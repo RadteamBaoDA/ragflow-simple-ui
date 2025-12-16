@@ -1,0 +1,67 @@
+{
+    "tools": [
+        {
+            "id": "grafana",
+            "name": "Grafana",
+            "description": "Metrics and Analytics Dashboard",
+            "icon": "https://cdn.jsdelivr.net/gh/devicons/devicon/icons/grafana/grafana-original.svg",
+            "url": "https://grafana.example.com",
+            "order": 1,
+            "enabled": true
+        },
+        {
+            "id": "prometheus",
+            "name": "Prometheus",
+            "description": "Monitoring and Alerting System",
+            "icon": "https://cdn.jsdelivr.net/gh/devicons/devicon/icons/prometheus/prometheus-original.svg",
+            "url": "https://prometheus.example.com",
+            "order": 2,
+            "enabled": true
+        },
+        {
+            "id": "kibana",
+            "name": "Kibana",
+            "description": "Data Visualization and Exploration",
+            "icon": "https://www.vectorlogo.zone/logos/elasticco_kibana/elasticco_kibana-icon.svg",
+            "url": "https://kibana.example.com",
+            "order": 3,
+            "enabled": true
+        },
+        {
+            "id": "jaeger",
+            "name": "Jaeger",
+            "description": "Distributed Tracing System",
+            "icon": "https://www.vectorlogo.zone/logos/jaegerio/jaegerio-icon.svg",
+            "url": "https://jaeger.example.com",
+            "order": 4,
+            "enabled": true
+        },
+        {
+            "id": "elasticsearch",
+            "name": "Elasticsearch",
+            "description": "Search and Analytics Engine",
+            "icon": "https://www.vectorlogo.zone/logos/elastic/elastic-icon.svg",
+            "url": "https://elasticsearch.example.com",
+            "order": 5,
+            "enabled": true
+        },
+        {
+            "id": "rabbitmq",
+            "name": "RabbitMQ",
+            "description": "Message Broker Management",
+            "icon": "https://www.vectorlogo.zone/logos/rabbitmq/rabbitmq-icon.svg",
+            "url": "https://rabbitmq.example.com",
+            "order": 6,
+            "enabled": true
+        },
+        {
+            "id": "internal-monitor",
+            "name": "Internal Monitor",
+            "description": "Local System Status",
+            "icon": "/static/icons/default-tool.svg",
+            "url": "http://localhost:3000/health",
+            "order": 7,
+            "enabled": true
+        }
+    ]
+}

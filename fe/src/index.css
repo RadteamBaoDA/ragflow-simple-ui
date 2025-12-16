@@ -1,0 +1,102 @@
+@import url('https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&display=swap');
+
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+:root {
+  --primary-color: #0D26CF;
+  --primary-hover: #0A1FA3;
+  --bg-color: #ffffff;
+  --sidebar-bg: #08107B;
+  --sidebar-text: #ffffff;
+  --text-color: #1e293b;
+  --border-color: #e2e8f0;
+  --card-bg: #ffffff;
+}
+
+.dark {
+  --primary-color: #3D54E6;
+  --primary-hover: #0D26CF;
+  --bg-color: #020617;
+  --sidebar-bg: #050a44;
+  --sidebar-text: #e2e8f0;
+  --text-color: #f1f5f9;
+  --border-color: #1e293b;
+  --card-bg: #0f172a;
+}
+
+@layer base {
+  body {
+    @apply bg-slate-50 text-slate-800 dark:bg-slate-950 dark:text-slate-100 font-sans;
+    font-family: 'Inter', sans-serif;
+  }
+}
+
+@layer components {
+  .sidebar-link {
+    @apply flex items-center gap-3 px-4 py-2.5 text-slate-200 rounded-md transition-colors border border-transparent hover:border-slate-500;
+  }
+
+  .sidebar-link.active {
+    @apply bg-yellow-400 text-slate-900 border-yellow-400 font-medium;
+  }
+
+  .btn {
+    @apply px-4 py-2 rounded-md text-sm font-medium transition-colors cursor-pointer;
+  }
+
+  .btn-primary {
+    @apply bg-primary text-white hover:bg-primary-hover dark:bg-primary dark:hover:bg-primary-hover;
+  }
+
+  .btn-secondary {
+    @apply bg-slate-200 text-slate-800 hover:bg-slate-300 dark:bg-slate-700 dark:text-slate-200 dark:hover:bg-slate-600;
+  }
+
+  /* Card component */
+  .card {
+    @apply bg-white dark:bg-slate-800 rounded-lg border border-slate-200 dark:border-slate-700;
+  }
+
+  /* Input styles */
+  .input {
+    @apply w-full px-3 py-2 rounded-md border border-slate-300 dark:border-slate-600 bg-white dark:bg-slate-700 text-slate-800 dark:text-slate-100 focus:outline-none focus:ring-2 focus:ring-primary focus:border-transparent;
+  }
+
+  /* Datetime-local input styling */
+  input[type="datetime-local"] {
+    color-scheme: light;
+  }
+  
+  .dark input[type="datetime-local"] {
+    color-scheme: dark;
+  }
+  
+  /* Style the native calendar picker icon for light mode */
+  input[type="datetime-local"]::-webkit-calendar-picker-indicator {
+    cursor: pointer;
+    padding: 4px;
+    margin-right: -4px;
+    border-radius: 4px;
+    background-color: transparent;
+    filter: invert(20%) sepia(80%) saturate(2000%) hue-rotate(220deg);
+    opacity: 0.8;
+  }
+  
+  input[type="datetime-local"]::-webkit-calendar-picker-indicator:hover {
+    background-color: rgba(13, 38, 207, 0.1);
+    opacity: 1;
+  }
+  
+  /* Style the native calendar picker icon for dark mode - bright and visible */
+  .dark input[type="datetime-local"]::-webkit-calendar-picker-indicator {
+    filter: invert(60%) sepia(80%) saturate(1000%) hue-rotate(200deg) brightness(1.2);
+    opacity: 1;
+  }
+  
+  .dark input[type="datetime-local"]::-webkit-calendar-picker-indicator:hover {
+    background-color: rgba(61, 84, 230, 0.2);
+    filter: invert(60%) sepia(80%) saturate(1000%) hue-rotate(200deg) brightness(1.4);
+  }
+}

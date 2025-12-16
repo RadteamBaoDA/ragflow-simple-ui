@@ -1,0 +1,106 @@
+# Knowledge Base - Docker Compose Configuration
+# This file sets up the complete infrastructure for the Knowledge Base system
+
+services:
+  # ==========================================================================
+  # PostgreSQL Database
+  # ==========================================================================
+  postgres:
+    image: postgres:17-alpine
+    container_name: kb-postgres
+    restart: unless-stopped
+    env_file:
+      - .env
+    environment:
+      POSTGRES_DB: ${DB_NAME:-knowledge_base}
+      POSTGRES_USER: ${DB_USER:-postgres}
+      POSTGRES_PASSWORD: ${DB_PASSWORD:-change_me_in_production}
+    volumes:
+      - postgres_data:/var/lib/postgresql/data
+      - ./init-db:/docker-entrypoint-initdb.d:ro
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U ${DB_USER:-postgres} -d ${DB_NAME:-knowledge_base}"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+      start_period: 10s
+    networks:
+      - kb-network
+
+  # ==========================================================================
+  # Redis Session Store
+  # ==========================================================================
+  redis:
+    image: redis:7-alpine
+    container_name: kb-redis
+    restart: unless-stopped
+    command: >
+      redis-server
+      --appendonly yes
+      --requirepass ${REDIS_PASSWORD:-}
+    volumes:
+      - redis_data:/data
+    healthcheck:
+      test: ["CMD", "redis-cli", "ping"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+      start_period: 5s
+    networks:
+      - kb-network
+
+  # ==========================================================================
+  # Knowledge Base Backend
+  # ==========================================================================
+  backend:
+    build:
+      context: ../be
+      dockerfile: Dockerfile
+    image: ${BACKEND_IMAGE:-knowledge-base-backend}:${BACKEND_VERSION:-latest}
+    container_name: kb-backend
+    restart: unless-stopped
+    depends_on:
+      postgres:
+        condition: service_healthy
+      redis:
+        condition: service_healthy
+    env_file:
+      - .env
+    environment:
+      # Override DB host to use Docker network
+      DB_HOST: postgres
+      REDIS_HOST: redis
+    ports:
+      - "${PORT:-3001}:3001"
+    expose:
+      - "3001"
+    volumes:
+      - backend_logs:/app/logs
+      # Mount custom config directory (optional - uncomment to customize)
+      # - ./config:/app/config:ro
+    healthcheck:
+      test: ["CMD", "wget", "--no-verbose", "--tries=1", "--spider", "http://localhost:3001/health"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+      start_period: 15s
+    networks:
+      - kb-network
+
+# ==========================================================================
+# Networks
+# ==========================================================================
+networks:
+  kb-network:
+    driver: bridge
+
+# ==========================================================================
+# Volumes
+# ==========================================================================
+volumes:
+  postgres_data:
+    driver: local
+  redis_data:
+    driver: local
+  backend_logs:
+    driver: local

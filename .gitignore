@@ -5,7 +5,7 @@ npm-debug.log*
 yarn-debug.log*
 yarn-error.log*
 lerna-debug.log*
-
+.png
 # Diagnostic reports (https://nodejs.org/api/report.html)
 report.[0-9]*.[0-9]*.[0-9]*.[0-9]*.json
 
@@ -137,3 +137,19 @@ dist
 # Vite logs files
 vite.config.js.timestamp-*
 vite.config.ts.timestamp-*
+
+# SSL Certificates (generated for local development)
+certs/
+*.pem
+
+.data
+.db
+
+# Backend database files
+be/.data/knowledge-base.db
+
+# Backend config JSON files (contain environment-specific settings)
+be/src/config/*.json
+fe/src/assets/logo-dark.png
+fe/src/assets/logo.png
+be/temp
