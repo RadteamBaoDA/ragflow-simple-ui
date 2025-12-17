@@ -48,6 +48,8 @@ const ErrorPage = lazy(() => import('./pages/ErrorPage'));
 const MinIOManagerPage = lazy(() => import('./pages/MinIOManagerPage'));
 /** Audit log viewer - admin only */
 const AuditLogPage = lazy(() => import('./pages/AuditLogPage'));
+/** Tokenizer tool - admin only */
+const TokenizerPage = lazy(() => import('./pages/TokenizerPage'));
 
 // Initialize i18n for internationalization
 import './i18n';
@@ -135,6 +137,11 @@ function App() {
                 <Route path="/audit-log" element={
                   <AdminRoute>
                     <AuditLogPage />
+                  </AdminRoute>
+                } />
+                <Route path="/tokenizer" element={
+                  <AdminRoute>
+                    <TokenizerPage />
                   </AdminRoute>
                 } />
 

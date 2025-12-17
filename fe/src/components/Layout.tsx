@@ -34,7 +34,8 @@ import {
   Users,
   Server,
   HardDrive,
-  ClipboardList
+  ClipboardList,
+  FileCode
 } from 'lucide-react';
 import logo from '../assets/logo.png';
 import logoDark from '../assets/logo-dark.png';
@@ -133,6 +134,8 @@ function Layout() {
         return t('userManagement.title');
       case '/audit-log':
         return t('pages.auditLog.title');
+      case '/tokenizer':
+        return t('pages.tokenizer.title');
       default:
         return t('common.appName');
     }
@@ -206,6 +209,12 @@ function Layout() {
             <NavLink to="/audit-log" className={({ isActive }) => `sidebar-link ${isActive ? 'active' : ''} ${isCollapsed ? 'justify-center px-2' : ''}`} title={t('nav.auditLog')}>
               <ClipboardList size={20} />
               {!isCollapsed && <span>{t('nav.auditLog')}</span>}
+            </NavLink>
+          )}
+          {user?.role === 'admin' && (
+            <NavLink to="/tokenizer" className={({ isActive }) => `sidebar-link ${isActive ? 'active' : ''} ${isCollapsed ? 'justify-center px-2' : ''}`} title={t('nav.tokenizer')}>
+              <FileCode size={20} />
+              {!isCollapsed && <span>{t('nav.tokenizer')}</span>}
             </NavLink>
           )}
         </nav>

@@ -388,7 +388,7 @@ function RagflowIframe({ path }: RagflowIframeProps) {
         <iframe
           ref={iframeRef}
           src={iframeSrc}
-          title={`RAGFlow ${path}`}
+          title={path === 'chat' ? t('iframe.chatInterface') : t('iframe.searchInterface')}
           className="w-full h-full"
           style={{ border: 'none' }}
           allow="clipboard-read; clipboard-write"
