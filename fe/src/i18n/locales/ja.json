@@ -29,6 +29,7 @@
     "systemTools": "システムツール",
     "storage": "ドキュメント",
     "auditLog": "監査ログ",
+    "tokenizer": "トークナイザー",
     "signOut": "サインアウト",
     "expandMenu": "メニューを展開",
     "collapseMenu": "メニューを折りたたむ"
@@ -95,7 +96,9 @@
     "errorLoading": "コンテンツの読み込みエラー",
     "errorLoadingDesc": "コンテンツの読み込み中に予期しないエラーが発生しました。もう一度お試しください。",
     "failedToLoad": "コンテンツの読み込みに失敗しました。サービスが一時的に利用できない可能性があります。",
-    "errorCode": "エラーコード: {{code}}"
+    "errorCode": "エラーコード: {{code}}",
+    "chatInterface": "RAGFlowチャットインターフェース",
+    "searchInterface": "RAGFlow検索インターフェース"
   },
   "pages": {
     "aiChat": {
@@ -118,6 +121,21 @@
     },
     "auditLog": {
       "title": "監査ログ"
+    },
+    "tokenizer": {
+      "title": "トークナイザー",
+      "description": "OpenAI、Ollama、vLLMモデルのトークン数を計算",
+      "inputText": "入力テキスト",
+      "placeholder": "テキストを入力してトークン数を確認...",
+      "tokenizedOutput": "トークン化された出力",
+      "tokens": "トークン",
+      "chars": "文字",
+      "copyTokenIds": "トークンIDをコピー",
+      "loading": "トークナイザーを読み込み中...",
+      "emptyState": "ここにトークンが表示されます...",
+      "tokenId": "トークンID",
+      "optGroupOpenAI": "OpenAIモデル",
+      "optGroupOther": "その他のプラットフォーム"
     }
   },
   "minio": {

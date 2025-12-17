@@ -29,6 +29,7 @@
     "systemTools": "Công cụ Hệ thống",
     "storage": "Kho Tài liệu",
     "auditLog": "Nhật ký Kiểm toán",
+    "tokenizer": "Bộ đếm Token",
     "signOut": "Đăng xuất",
     "expandMenu": "Mở rộng menu",
     "collapseMenu": "Thu gọn menu"
@@ -93,7 +94,9 @@
     "serverError": "Lỗi máy chủ",
     "serverErrorDesc": "Dịch vụ đang gặp sự cố kỹ thuật. Vui lòng thử lại sau.",
     "errorLoading": "Lỗi tải nội dung",
-    "errorLoadingDesc": "Đã xảy ra lỗi không mong muốn khi tải nội dung. Vui lòng thử lại.",
+    "errorLoadingDesc": "Đã xảy ra lỗi không xác định khi tải nội dung.",
+    "chatInterface": "Giao diện Chat RAGFlow",
+    "searchInterface": "Giao diện Tìm kiếm RAGFlow",
     "failedToLoad": "Không thể tải nội dung. Dịch vụ có thể tạm thời không khả dụng.",
     "errorCode": "Mã lỗi: {{code}}"
   },
@@ -118,6 +121,21 @@
     },
     "auditLog": {
       "title": "Nhật ký Kiểm toán"
+    },
+    "tokenizer": {
+      "title": "Bộ đếm Token",
+      "description": "Tính toán số lượng token cho các mô hình OpenAI, Ollama và vLLM",
+      "inputText": "Văn bản đầu vào",
+      "placeholder": "Nhập văn bản vào đây để xem số lượng token...",
+      "tokenizedOutput": "Kết quả Token",
+      "tokens": "token",
+      "chars": "ký tự",
+      "copyTokenIds": "Sao chép ID token",
+      "loading": "Đang tải bộ đếm token...",
+      "emptyState": "Token sẽ xuất hiện ở đây...",
+      "tokenId": "ID Token",
+      "optGroupOpenAI": "Mô hình OpenAI",
+      "optGroupOther": "Nền tảng khác"
     }
   },
   "minio": {

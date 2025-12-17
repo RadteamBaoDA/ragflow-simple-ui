@@ -3,6 +3,9 @@ import react from '@vitejs/plugin-react';
 import path from 'path';
 import fs from 'fs';
 
+import wasm from "vite-plugin-wasm";
+import topLevelAwait from "vite-plugin-top-level-await";
+
 // Helper to parse .env file
 function parseEnvFile(filePath: string): Record<string, string> {
   if (!fs.existsSync(filePath)) return {};
@@ -47,11 +50,18 @@ export default defineConfig(({ mode }) => {
   console.log('[Vite Config] HTTPS:', { httpsEnabled, hasSSLCerts, useHttps, devDomain, backendUrl });
 
   return {
-    plugins: [react()],
+    plugins: [
+      wasm(),
+      topLevelAwait(),
+      react()
+    ],
     resolve: {
       alias: {
         '@': path.resolve(__dirname, './src'),
       },
+    },
+    optimizeDeps: {
+      exclude: ['tiktoken'],
     },
     build: {
       // Production optimizations

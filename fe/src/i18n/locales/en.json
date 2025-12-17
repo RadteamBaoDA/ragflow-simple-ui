@@ -29,6 +29,7 @@
     "systemTools": "System Tools",
     "storage": "Documents",
     "auditLog": "Audit Log",
+    "tokenizer": "Tokenizer",
     "signOut": "Sign Out",
     "expandMenu": "Expand menu",
     "collapseMenu": "Collapse menu"
@@ -93,7 +94,9 @@
     "serverError": "Server Error",
     "serverErrorDesc": "The service is experiencing technical difficulties. Please try again later.",
     "errorLoading": "Error Loading Content",
-    "errorLoadingDesc": "An unexpected error occurred while loading the content. Please try again.",
+    "errorLoadingDesc": "An unknown error occurred while loading the content.",
+    "chatInterface": "RAGFlow Chat Interface",
+    "searchInterface": "RAGFlow Search Interface",
     "failedToLoad": "Failed to load the content. The service may be temporarily unavailable.",
     "errorCode": "Error Code: {{code}}"
   },
@@ -118,6 +121,21 @@
     },
     "auditLog": {
       "title": "Audit Log"
+    },
+    "tokenizer": {
+      "title": "Tokenizer",
+      "description": "Calculate token counts for OpenAI, Ollama, and vLLM models",
+      "inputText": "Input Text",
+      "placeholder": "Enter text here to see token count...",
+      "tokenizedOutput": "Tokenized Output",
+      "tokens": "tokens",
+      "chars": "chars",
+      "copyTokenIds": "Copy token IDs",
+      "loading": "Loading tokenizer...",
+      "emptyState": "Tokens will appear here...",
+      "tokenId": "Token ID",
+      "optGroupOpenAI": "OpenAI Models",
+      "optGroupOther": "Other Platforms"
     }
   },
   "minio": {
