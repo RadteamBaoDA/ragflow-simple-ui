@@ -303,5 +303,95 @@
     "noLogs": "No audit logs found",
     "noPermission": "You do not have permission to view audit logs.",
     "fetchError": "Failed to fetch audit logs"
+  },
+  "storage": {
+    "title": "Storages",
+    "subtitle": "Manage MinIO buckets and view statistics",
+    "createButton": "Create Bucket",
+    "search": {
+      "placeholder": "Search buckets..."
+    },
+    "bucket": {
+      "name": "Bucket Name",
+      "created": "Created At",
+      "objects": "Objects",
+      "size": "Size"
+    },
+    "actions": "Actions",
+    "tabs": {
+      "dashboard": "Dashboard",
+      "buckets": "Bucket Management",
+      "keys": "Access Keys"
+    },
+    "keys": {
+      "error": {
+        "load": "Failed to load access keys"
+      },
+      "create": {
+        "success": "Access Key created successfully",
+        "error": "Failed to create access key",
+        "title": "Create Access Key",
+        "policy": "Policy",
+        "name": "Name (Optional)",
+        "description": "Description",
+        "label": "Create"
+      },
+      "delete": {
+        "success": "Access Key deleted",
+        "error": "Failed to delete access key",
+        "confirm": "Delete Access Key?",
+        "warning": "This will permanently revoke access."
+      },
+      "table": {
+        "accessKey": "Access Key",
+        "status": "Status",
+        "actions": "Actions",
+        "policy": "Policy",
+        "name": "Name"
+      },
+      "credentials": {
+        "title": "Credentials Generated",
+        "warning": "Please copy these credentials. You will not be able to see the Secret Key again.",
+        "accessKey": "Access Key",
+        "secretKey": "Secret Key",
+        "copy": "Copy"
+      }
+    },
+    "delete": {
+      "confirm": "Delete Bucket?",
+      "warning": "This action cannot be undone. All data will be lost.",
+      "success": "Bucket deleted successfully",
+      "error": "Failed to delete bucket",
+      "confirmType": "To confirm, type \"{{name}}\" directly below:"
+    },
+    "create": {
+      "title": "Create New Bucket",
+      "label": "Bucket Name",
+      "placeholder": "e.g. my-new-bucket",
+      "rules": "Lowercase, numbers, hyphens only.",
+      "success": "Bucket created successfully",
+      "error": "Failed to create bucket"
+    },
+    "sync": {
+      "button": "Sync Metrics",
+      "success": "Metrics synced successfully",
+      "error": "Failed to sync metrics"
+    },
+    "stats": {
+      "totalBuckets": "Total Buckets",
+      "totalObjects": "Total Objects",
+      "totalSize": "Total Size",
+      "load": "Load Stats",
+      "unsynced": "Unsynced",
+      "syncTooltip": "Click Sync to load"
+    },
+    "charts": {
+      "growth": "Data Usage Growth",
+      "distribution": "Object Size Distribution",
+      "syncPrompt": "Sync metrics to see distribution"
+    },
+    "error": {
+      "load": "Failed to load buckets"
+    }
   }
 }

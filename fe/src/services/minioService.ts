@@ -80,6 +80,19 @@ export interface AvailableBucket {
 }
 
 /**
+ * Access Key (Service Account) details.
+ */
+export interface AccessKey {
+    accessKey: string;
+    parentUser: string;
+    accountStatus: string;
+    name?: string;
+    description?: string;
+    expiration?: string;
+}
+
+
+/**
  * Custom error class for MinIO service errors.
  * Includes error code for handling specific error types.
  */
@@ -428,3 +441,137 @@ export const checkFilesExistence = async (
     const data = await response.json();
     return data;
 };
+
+// ============================================================================
+// Raw MinIO Operations (Admin only)
+// ============================================================================
+
+/**
+ * List all buckets directly from MinIO.
+ * @returns Array of available buckets
+ */
+export const getRawBuckets = async (): Promise<any[]> => {
+    const response = await fetch(`${API_BASE_URL}/api/minio/raw`, {
+        credentials: 'include',
+    });
+
+    if (!response.ok) {
+        throw new Error(`Failed to fetch raw buckets: ${response.statusText}`);
+    }
+
+    const data = await response.json();
+    return data.buckets;
+};
+
+/**
+ * Get statistics for a specific bucket.
+ * @param bucketName - Name of the bucket
+ */
+export const getRawBucketStats = async (bucketName: string): Promise<{ objectCount: number; totalSize: number }> => {
+    const response = await fetch(`${API_BASE_URL}/api/minio/raw/${bucketName}/stats`, {
+        credentials: 'include',
+    });
+
+    if (!response.ok) {
+        throw new Error(`Failed to fetch bucket stats: ${response.statusText}`);
+    }
+
+    const data = await response.json();
+    return data.stats;
+};
+
+/**
+ * Create a new bucket directly in MinIO.
+ * @param bucketName - Name of the new bucket
+ */
+export const createRawBucket = async (bucketName: string): Promise<void> => {
+    const response = await fetch(`${API_BASE_URL}/api/minio/raw`, {
+        method: 'POST',
+        headers: {
+            'Content-Type': 'application/json',
+        },
+        credentials: 'include',
+        body: JSON.stringify({ name: bucketName }),
+    });
+
+    if (!response.ok) {
+        const error = await response.json();
+        throw new Error(error.error || 'Failed to create bucket');
+    }
+};
+
+/**
+ * Delete a bucket directly from MinIO.
+ * @param bucketName - Name of the bucket to delete
+ */
+export const deleteRawBucket = async (bucketName: string): Promise<void> => {
+    const response = await fetch(`${API_BASE_URL}/api/minio/raw/${bucketName}`, {
+        method: 'DELETE',
+        credentials: 'include',
+    });
+    if (!response.ok) {
+        const error = await response.json();
+        throw new Error(error.error || 'Failed to delete bucket');
+    }
+};
+
+export const getRawGlobalStats = async (): Promise<{
+    totalBuckets: number;
+    totalObjects: number;
+    totalSize: number;
+    distribution: Record<string, number>;
+    topBuckets: { name: string; size: number; objectCount: number }[];
+    topFiles: { name: string; size: number; lastModified: Date; bucketName: string }[];
+}> => {
+    const response = await fetch(`${API_BASE_URL}/api/minio/raw/metrics`, {
+        credentials: 'include',
+    });
+    if (!response.ok) {
+        throw new Error('Failed to fetch global stats');
+    }
+    return response.json();
+};
+
+/**
+ * List all Access Keys.
+ */
+export const getAccessKeys = async (): Promise<AccessKey[]> => {
+    const response = await fetch(`${API_BASE_URL}/api/minio/raw/keys`, {
+        credentials: 'include',
+    });
+    if (!response.ok) {
+        throw new Error('Failed to fetch access keys');
+    }
+    const data = await response.json();
+    return data.keys;
+};
+
+/**
+ * Create a new Access Key.
+ */
+export const createAccessKey = async (policy: string, name?: string, description?: string): Promise<any> => {
+    const response = await fetch(`${API_BASE_URL}/api/minio/raw/keys`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        credentials: 'include',
+        body: JSON.stringify({ policy, name, description }),
+    });
+    if (!response.ok) {
+        throw new Error('Failed to create access key');
+    }
+    return response.json();
+};
+
+/**
+ * Delete an Access Key.
+ */
+export const deleteAccessKey = async (accessKey: string): Promise<void> => {
+    const response = await fetch(`${API_BASE_URL}/api/minio/raw/keys/${accessKey}`, {
+        method: 'DELETE',
+        credentials: 'include',
+    });
+    if (!response.ok) {
+        throw new Error('Failed to delete access key');
+    }
+};
+

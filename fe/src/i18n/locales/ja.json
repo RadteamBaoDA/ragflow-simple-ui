@@ -303,5 +303,81 @@
     "noLogs": "監査ログが見つかりません",
     "noPermission": "監査ログを表示する権限がありません。",
     "fetchError": "監査ログの取得に失敗しました"
+  },
+  "storage": {
+    "title": "ストレージ",
+    "subtitle": "MinIOバケットの管理と統計の表示",
+    "createButton": "バケット作成",
+    "stats": {
+      "totalBuckets": "総バケット数",
+      "totalSize": "総サイズ",
+      "load": "統計読み込み"
+    },
+    "search": {
+      "placeholder": "バケットを検索..."
+    },
+    "bucket": {
+      "name": "バケット名",
+      "created": "作成日時",
+      "objects": "オブジェクト数",
+      "size": "サイズ"
+    },
+    "actions": "操作",
+    "tabs": {
+      "dashboard": "ダッシュボード",
+      "buckets": "バケット管理",
+      "keys": "アクセスキー"
+    },
+    "keys": {
+      "error": {
+        "load": "アクセスキーの読み込みに失敗しました"
+      },
+      "create": {
+        "success": "アクセスキーが作成されました",
+        "error": "アクセスキーの作成に失敗しました",
+        "title": "アクセスキーの作成",
+        "policy": "ポリシー",
+        "name": "名前 (オプション)",
+        "description": "説明",
+        "label": "作成"
+      },
+      "delete": {
+        "success": "アクセスキーが削除されました",
+        "error": "アクセスキーの削除に失敗しました",
+        "confirm": "アクセスキーを削除しますか？",
+        "warning": "この操作はアクセス権を永久に取り消します。"
+      },
+      "table": {
+        "accessKey": "アクセスキー",
+        "status": "ステータス",
+        "actions": "操作",
+        "policy": "ポリシー",
+        "name": "名前"
+      },
+      "credentials": {
+        "title": "認証情報が生成されました",
+        "warning": "これらの情報をコピーしてください。シークレットキーは二度と表示されません。",
+        "accessKey": "アクセスキー",
+        "secretKey": "シークレットキー",
+        "copy": "コピー"
+      }
+    },
+    "delete": {
+      "confirm": "バケットを削除しますか？",
+      "warning": "この操作は取り消せません。すべてのデータが失われます。",
+      "success": "バケットを削除しました",
+      "error": "バケットの削除に失敗しました"
+    },
+    "create": {
+      "title": "新しいバケットを作成",
+      "label": "バケット名",
+      "placeholder": "例: my-new-bucket",
+      "rules": "小文字、数字、ハイフンのみ。",
+      "success": "バケットを作成しました",
+      "error": "バケットの作成に失敗しました"
+    },
+    "error": {
+      "load": "バケットの読み込みに失敗しました"
+    }
   }
 }

@@ -89,7 +89,7 @@ const TokenizerPage = () => {
             chunks.push({
                 token,
                 text: displayDecoded,
-                colorClass: colors[currentColorIndex % colors.length] || colors[0]
+                colorClass: colors[currentColorIndex % colors.length] ?? colors[0] ?? ''
             });
             currentColorIndex++;
         }

@@ -13,6 +13,8 @@ import { defineConfig } from 'vite';
 import react from '@vitejs/plugin-react';
 import path from 'path';
 import fs from 'fs';
+import wasm from "vite-plugin-wasm";
+import topLevelAwait from "vite-plugin-top-level-await";
 // Helper to parse .env file
 function parseEnvFile(filePath) {
     if (!fs.existsSync(filePath))
@@ -49,11 +51,18 @@ export default defineConfig(function (_a) {
     var backendUrl = "".concat(backendProtocol, "://localhost:").concat(backendPort);
     console.log('[Vite Config] HTTPS:', { httpsEnabled: httpsEnabled, hasSSLCerts: hasSSLCerts, useHttps: useHttps, devDomain: devDomain, backendUrl: backendUrl });
     return {
-        plugins: [react()],
+        plugins: [
+            wasm(),
+            topLevelAwait(),
+            react()
+        ],
         resolve: {
             alias: {
                 '@': path.resolve(__dirname, './src'),
             },
+        },
+        optimizeDeps: {
+            exclude: ['tiktoken'],
         },
         build: {
             // Production optimizations
@@ -71,6 +80,8 @@ export default defineConfig(function (_a) {
                         vendor: ['react', 'react-dom', 'react-router-dom'],
                         i18n: ['i18next', 'react-i18next', 'i18next-browser-languagedetector'],
                         ui: ['lucide-react', '@headlessui/react'],
+                        antd: ['antd'],
+                        tiktoken: ['js-tiktoken'],
                     },
                 },
             },
