@@ -303,5 +303,95 @@
     "noLogs": "Không tìm thấy nhật ký kiểm toán",
     "noPermission": "Bạn không có quyền xem nhật ký kiểm toán.",
     "fetchError": "Không thể tải nhật ký kiểm toán"
+  },
+  "storage": {
+    "title": "Lưu trữ",
+    "subtitle": "Quản lý bucket MinIO và xem thống kê",
+    "createButton": "Tạo Bucket",
+    "search": {
+      "placeholder": "Tìm kiếm bucket..."
+    },
+    "bucket": {
+      "name": "Tên Bucket",
+      "created": "Ngày tạo",
+      "objects": "Đối tượng",
+      "size": "Kích thước"
+    },
+    "actions": "Hành động",
+    "tabs": {
+      "dashboard": "Bảng điều khiển",
+      "buckets": "Quản lý Bucket",
+      "keys": "Khóa truy cập"
+    },
+    "keys": {
+      "error": {
+        "load": "Không thể tải danh sách khóa truy cập"
+      },
+      "create": {
+        "success": "Đã tạo khóa truy cập thành công",
+        "error": "Không thể tạo khóa truy cập",
+        "title": "Tạo Khóa Truy Cập",
+        "policy": "Chính sách",
+        "name": "Tên (Tùy chọn)",
+        "description": "Mô tả",
+        "label": "Tạo"
+      },
+      "delete": {
+        "success": "Đã xóa khóa truy cập",
+        "error": "Không thể xóa khóa truy cập",
+        "confirm": "Xóa Khóa Truy Cập?",
+        "warning": "Hành động này sẽ thu hồi quyền truy cập vĩnh viễn."
+      },
+      "table": {
+        "accessKey": "Khóa Truy Cập",
+        "status": "Trạng Thái",
+        "actions": "Hành động",
+        "policy": "Chính sách",
+        "name": "Tên"
+      },
+      "credentials": {
+        "title": "Thông Tin Xác Thực Đã Tạo",
+        "warning": "Vui lòng sao chép các thông tin này. Bạn sẽ không thể xem lại Secret Key.",
+        "accessKey": "Access Key",
+        "secretKey": "Secret Key",
+        "copy": "Sao chép"
+      }
+    },
+    "delete": {
+      "confirm": "Xóa Bucket?",
+      "warning": "Hành động này không thể hoàn tác. Tất cả dữ liệu sẽ bị mất.",
+      "success": "Đã xóa bucket thành công",
+      "error": "Không thể xóa bucket",
+      "confirmType": "Để xác nhận, hãy nhập \"{{name}}\" vào bên dưới:"
+    },
+    "create": {
+      "title": "Tạo Bucket Mới",
+      "label": "Tên Bucket",
+      "placeholder": "vd. my-new-bucket",
+      "rules": "Chỉ chữ thường, số, dấu gạch ngang.",
+      "success": "Tạo bucket thành công",
+      "error": "Không thể tạo bucket"
+    },
+    "sync": {
+      "button": "Đồng bộ số liệu",
+      "success": "Đồng bộ số liệu thành công",
+      "error": "Không thể đồng bộ số liệu"
+    },
+    "stats": {
+      "totalBuckets": "Tổng số Bucket",
+      "totalObjects": "Tổng số đối tượng",
+      "totalSize": "Tổng dung lượng",
+      "load": "Tải thống kê",
+      "unsynced": "Chưa đồng bộ",
+      "syncTooltip": "Nhấn Đồng bộ để tải"
+    },
+    "charts": {
+      "growth": "Tăng trưởng Dữ liệu",
+      "distribution": "Phân bố Kích thước Đối tượng",
+      "syncPrompt": "Đồng bộ số liệu để xem phân bố"
+    },
+    "error": {
+      "load": "Không thể tải danh sách bucket"
+    }
   }
 }

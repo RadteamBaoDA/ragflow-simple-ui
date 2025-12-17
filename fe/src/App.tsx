@@ -50,6 +50,8 @@ const MinIOManagerPage = lazy(() => import('./pages/MinIOManagerPage'));
 const AuditLogPage = lazy(() => import('./pages/AuditLogPage'));
 /** Tokenizer tool - admin only */
 const TokenizerPage = lazy(() => import('./pages/TokenizerPage'));
+/** Storage Dashboard - admin only */
+const StoragePage = lazy(() => import('./pages/StoragePage'));
 
 // Initialize i18n for internationalization
 import './i18n';
@@ -142,6 +144,11 @@ function App() {
                 <Route path="/tokenizer" element={
                   <AdminRoute>
                     <TokenizerPage />
+                  </AdminRoute>
+                } />
+                <Route path="/storage-dashboard" element={
+                  <AdminRoute>
+                    <StoragePage />
                   </AdminRoute>
                 } />
 

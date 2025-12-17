@@ -35,7 +35,8 @@ import {
   Server,
   HardDrive,
   ClipboardList,
-  FileCode
+  FileCode,
+  Database
 } from 'lucide-react';
 import logo from '../assets/logo.png';
 import logoDark from '../assets/logo-dark.png';
@@ -136,6 +137,8 @@ function Layout() {
         return t('pages.auditLog.title');
       case '/tokenizer':
         return t('pages.tokenizer.title');
+      case '/storage-dashboard':
+        return t('storage.title');
       default:
         return t('common.appName');
     }
@@ -217,6 +220,12 @@ function Layout() {
               {!isCollapsed && <span>{t('nav.tokenizer')}</span>}
             </NavLink>
           )}
+          {user?.role === 'admin' && (
+            <NavLink to="/storage-dashboard" className={({ isActive }) => `sidebar-link ${isActive ? 'active' : ''} ${isCollapsed ? 'justify-center px-2' : ''}`} title={t('storage.title')}>
+              <Database size={20} />
+              {!isCollapsed && <span>{t('storage.title')}</span>}
+            </NavLink>
+          )}
         </nav>
 
         <div className={`mt-auto pt-4 border-t border-white/10 space-y-3 pb-4 ${resolvedTheme === 'dark' ? '' : 'bg-white'}`}>
@@ -266,7 +275,7 @@ function Layout() {
             />
           )}
         </header>
-        <div className={`flex-1 overflow-hidden ${['/ai-chat', '/ai-search', '/storage', '/system-tools'].includes(location.pathname) ? '' : 'p-8 overflow-auto'}`}>
+        <div className={`flex-1 overflow-hidden ${['/ai-chat', '/ai-search', '/storage', '/system-tools', '/storage-dashboard'].includes(location.pathname) ? '' : 'p-8 overflow-auto'}`}>
           <Outlet />
         </div>
       </main>

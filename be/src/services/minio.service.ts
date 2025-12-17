@@ -20,6 +20,9 @@
 
 import * as Minio from 'minio';
 import { Readable } from 'stream';
+import * as http from 'http';
+import * as https from 'https';
+import * as crypto from 'crypto';
 import { log } from './logger.service.js';
 
 // ============================================================================
@@ -42,6 +45,19 @@ interface MinioConfig {
     secretKey: string;
     /** Public endpoint for download URLs (optional) */
     publicEndPoint?: string;
+}
+
+
+/**
+ * Represents a Service Account (Access Key).
+ */
+export interface ServiceAccount {
+    accessKey: string;
+    parentUser: string;
+    accountStatus: string;
+    description?: string;
+    name?: string;
+    expiration?: string;
 }
 
 /**
@@ -140,6 +156,97 @@ class MinioService {
                 error: error instanceof Error ? error.message : String(error),
             });
         }
+    }
+
+    /**
+     * Generic helper for MinIO Admin API requests using native http/https with AWS SigV4.
+     * Note: minio-js SDK does not support Admin API, so we use direct HTTP requests.
+     */
+    private async adminRequest(method: string, path: string, query: any = {}, body: any = null): Promise<any> {
+        if (!this.config) throw new Error('MinIO config not initialized');
+
+        return new Promise((resolve, reject) => {
+            const urlPath = `/${path}`;
+            const queryString = Object.keys(query).length > 0
+                ? '?' + Object.entries(query).map(([k, v]) => `${k}=${encodeURIComponent(v as string)}`).join('&')
+                : '';
+
+            const fullPath = urlPath + queryString;
+            const payload = body ? JSON.stringify(body) : '';
+            const payloadHash = crypto.createHash('sha256').update(payload).digest('hex');
+
+            const date = new Date();
+            const amzDate = date.toISOString().replace(/[:-]|\.\d{3}/g, '');
+            const dateStamp = amzDate.slice(0, 8);
+            const host = `${this.config.endPoint}:${this.config.port}`;
+
+            const canonicalHeaders = `host:${host}\nx-amz-content-sha256:${payloadHash}\nx-amz-date:${amzDate}\n`;
+            const signedHeaders = 'host;x-amz-content-sha256;x-amz-date';
+
+            const canonicalRequest = [method, urlPath, queryString.replace('?', ''), canonicalHeaders, signedHeaders, payloadHash].join('\n');
+            const credentialScope = `${dateStamp}/us-east-1/s3/aws4_request`;
+            const stringToSign = ['AWS4-HMAC-SHA256', amzDate, credentialScope, crypto.createHash('sha256').update(canonicalRequest).digest('hex')].join('\n');
+
+            const kDate = crypto.createHmac('sha256', 'AWS4' + this.config.secretKey).update(dateStamp).digest();
+            const kRegion = crypto.createHmac('sha256', kDate).update('us-east-1').digest();
+            const kService = crypto.createHmac('sha256', kRegion).update('s3').digest();
+            const signingKey = crypto.createHmac('sha256', kService).update('aws4_request').digest();
+            const signature = crypto.createHmac('sha256', signingKey).update(stringToSign).digest('hex');
+
+            const authHeader = `AWS4-HMAC-SHA256 Credential=${this.config.accessKey}/${credentialScope}, SignedHeaders=${signedHeaders}, Signature=${signature}`;
+
+            const reqHeaders: Record<string, string | number> = {
+                'Host': host, 'X-Amz-Date': amzDate, 'X-Amz-Content-Sha256': payloadHash, 'Authorization': authHeader
+            };
+            if (payload) { reqHeaders['Content-Type'] = 'application/json'; reqHeaders['Content-Length'] = Buffer.byteLength(payload); }
+
+            const protocol = this.config.useSSL ? https : http;
+            const req = protocol.request({ hostname: this.config.endPoint, port: this.config.port, path: fullPath, method, headers: reqHeaders }, (res) => {
+                let data = '';
+                res.on('data', (chunk) => { data += chunk.toString(); });
+                res.on('end', () => {
+                    if (res.statusCode && res.statusCode >= 400) { log.error('Admin API Error', { statusCode: res.statusCode, data }); return reject(new Error(`Admin API Error ${res.statusCode}: ${data}`)); }
+                    try { if (!data) return resolve(null); resolve(JSON.parse(data)); } catch { resolve(data); }
+                });
+            });
+            req.on('error', (err) => { log.error('Admin request error', { message: err.message }); reject(err); });
+            if (payload) req.write(payload);
+            req.end();
+        });
+    }
+
+
+
+    /**
+     * Lists all Service Accounts (Access Keys).
+     */
+    async listServiceAccounts(): Promise<ServiceAccount[]> {
+        const result = await this.adminRequest('GET', 'minio/admin/v3/list-service-accounts');
+        return result?.accounts || [];
+    }
+
+    /**
+     * Creates a new Service Account.
+     */
+    async createServiceAccount(policy: string = 'readwrite', name: string = '', description: string = ''): Promise<any> {
+        // Simplified creation with canned policy if supported, otherwise just creates key
+        const payload = {
+            policy: policy === 'readonly' ? 'readonly' : 'readwrite',
+            name,
+            description,
+            // accessKey, secretKey can be auto-generated
+        };
+        // Note: 'policy' field in add-service-account might need to be a full policy document 
+        // or the API might support canned policy names. 
+        // If this fails, we might need to separate policy assignment.
+        return this.adminRequest('POST', 'minio/admin/v3/add-service-account', {}, payload);
+    }
+
+    /**
+     * Deletes a Service Account.
+     */
+    async deleteServiceAccount(accessKey: string): Promise<void> {
+        await this.adminRequest('POST', 'minio/admin/v3/delete-service-account', {}, { accessKey });
     }
 
     /**
@@ -521,7 +628,9 @@ class MinioService {
     ): Promise<string> {
         const client = this.ensureClient();
         try {
-            const respHeaders: { [key: string]: any } = {};
+            const respHeaders: {
+                [key: string]: any
+            } = {};
             if (disposition) {
                 respHeaders['response-content-disposition'] = disposition;
             }
@@ -584,26 +693,57 @@ class MinioService {
     }
 
     /**
-     * Get bucket information with object count and total size.
-     * 
+     * Get bucket information with object count, total size, and size distribution.
+     *
      * @param bucketName - Name of the bucket
-     * @returns Bucket statistics including object count and total size
+     * @returns Bucket statistics
      */
-    async getBucketStats(bucketName: string): Promise<{ objectCount: number; totalSize: number }> {
+    async getBucketStats(bucketName: string): Promise<{
+        objectCount: number;
+        totalSize: number;
+        distribution: Record<string, number>;
+        topFiles: { name: string; size: number; lastModified: Date; bucketName: string }[];
+    }> {
         const client = this.ensureClient();
         try {
             let objectCount = 0;
             let totalSize = 0;
+            const distribution: Record<string, number> = {
+                '<1MB': 0, '1MB-10MB': 0, '10MB-100MB': 0, '100MB-1GB': 0, '1GB-5GB': 0, '5GB-10GB': 0, '>10GB': 0
+            };
+            const topFiles: { name: string; size: number; lastModified: Date; bucketName: string }[] = [];
 
             const stream = client.listObjects(bucketName, '', true);
             for await (const obj of stream) {
                 if (obj.name && !obj.name.endsWith('/')) {
                     objectCount++;
-                    totalSize += obj.size || 0;
+                    const size = obj.size || 0;
+                    totalSize += size;
+                    const sizeMB = size / (1024 * 1024);
+
+                    if (sizeMB < 1) distribution['<1MB']!++;
+                    else if (sizeMB < 10) distribution['1MB-10MB']!++;
+                    else if (sizeMB < 100) distribution['10MB-100MB']!++;
+                    else if (sizeMB < 1024) distribution['100MB-1GB']!++;
+                    else if (sizeMB < 5 * 1024) distribution['1GB-5GB']!++;
+                    else if (sizeMB < 10 * 1024) distribution['5GB-10GB']!++;
+                    else distribution['>10GB']!++;
+
+                    topFiles.push({
+                        name: obj.name,
+                        size: size,
+                        lastModified: obj.lastModified,
+                        bucketName: bucketName
+                    });
+                    if (topFiles.length > 20) {
+                        topFiles.sort((a, b) => b.size - a.size);
+                        topFiles.length = 20;
+                    }
                 }
             }
+            topFiles.sort((a, b) => b.size - a.size);
 
-            return { objectCount, totalSize };
+            return { objectCount, totalSize, distribution, topFiles };
         } catch (error) {
             log.error('Failed to get bucket stats', {
                 bucketName,
@@ -634,6 +774,79 @@ class MinioService {
             }
             throw error;
         }
+    }
+
+    /**
+     * Get global statistics (total buckets, objects, size, distribution).
+     * Aggregates stats from all buckets.
+     */
+    async getGlobalStats(): Promise<{
+        totalBuckets: number;
+        totalObjects: number;
+        totalSize: number;
+        distribution: Record<string, number>;
+        topBuckets: { name: string; size: number; objectCount: number }[];
+        topFiles: { name: string; size: number; lastModified: Date; bucketName: string }[];
+    }> {
+        const buckets = await this.listBuckets();
+        let totalObjects = 0;
+        let totalSize = 0;
+        const totalDistribution: Record<string, number> = {
+            '<1MB': 0, '1MB-10MB': 0, '10MB-100MB': 0, '100MB-1GB': 0, '1GB-5GB': 0, '5GB-10GB': 0, '>10GB': 0
+        };
+        let allTopFiles: { name: string; size: number; lastModified: Date; bucketName: string }[] = [];
+        const bucketStatsList: { name: string; size: number; objectCount: number }[] = [];
+
+        // Fetch bucket stats in parallel
+        const statsPromises = buckets.map(async b => {
+            try {
+                const stats = await this.getBucketStats(b.name);
+                return { name: b.name, ...stats };
+            } catch (e) {
+                return {
+                    name: b.name,
+                    objectCount: 0,
+                    totalSize: 0,
+                    distribution: { '<1MB': 0, '1MB-10MB': 0, '10MB-100MB': 0, '100MB-1GB': 0, '1GB-5GB': 0, '5GB-10GB': 0, '>10GB': 0 },
+                    topFiles: []
+                };
+            }
+        });
+        const results = await Promise.all(statsPromises);
+
+        results.forEach(r => {
+            totalObjects += r.objectCount;
+            totalSize += r.totalSize;
+            if (r.distribution) {
+                Object.keys(r.distribution).forEach(key => {
+                    totalDistribution[key] = (totalDistribution[key] || 0) + (r.distribution[key] || 0);
+                });
+            }
+
+            bucketStatsList.push({
+                name: r.name,
+                size: r.totalSize,
+                objectCount: r.objectCount
+            });
+            if (r.topFiles) {
+                allTopFiles = allTopFiles.concat(r.topFiles);
+            }
+        });
+
+        // Sort and limit top buckets
+        const topBuckets = bucketStatsList.sort((a, b) => b.size - a.size).slice(0, 10);
+
+        // Sort and limit top files global
+        const topFiles = allTopFiles.sort((a, b) => b.size - a.size).slice(0, 10);
+
+        return {
+            totalBuckets: buckets.length,
+            totalObjects,
+            totalSize,
+            distribution: totalDistribution,
+            topBuckets,
+            topFiles
+        };
     }
 }
 

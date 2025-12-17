@@ -13,6 +13,7 @@
 
 import { createContext, useContext, useEffect, useState, ReactNode, useCallback } from 'react';
 import { useTranslation } from 'react-i18next';
+import { ConfigProvider, theme as antTheme } from 'antd';
 import { LanguageCode, SUPPORTED_LANGUAGES } from '../i18n';
 
 // ============================================================================
@@ -190,7 +191,13 @@ export function SettingsProvider({ children }: SettingsProviderProps) {
         closeSettings,
       }}
     >
-      {children}
+      <ConfigProvider
+        theme={{
+          algorithm: isDarkMode ? antTheme.darkAlgorithm : antTheme.defaultAlgorithm,
+        }}
+      >
+        {children}
+      </ConfigProvider>
     </SettingsContext.Provider>
   );
 }
