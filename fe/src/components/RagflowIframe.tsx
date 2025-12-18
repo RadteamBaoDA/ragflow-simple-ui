@@ -112,7 +112,8 @@ function RagflowIframe({ path }: RagflowIframeProps) {
         message: t('iframe.noSourceConfigured')
       });
     }
-  }, [ragflow.config, selectedSourceId, i18n.language, path, user, theme, t]);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [ragflow.config, selectedSourceId, i18n.language, path, user?.email, theme]);
 
   // ============================================================================
   // Callbacks
@@ -172,7 +173,8 @@ function RagflowIframe({ path }: RagflowIframeProps) {
     } finally {
       setIsCheckingUrl(false);
     }
-  }, [t]);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, []);
 
   /**
    * Effect: Check URL status when iframe source changes.
@@ -194,7 +196,8 @@ function RagflowIframe({ path }: RagflowIframeProps) {
     });
     setIframeLoading(false);
     setIframeError(null);
-  }, [iframeSrc, user]);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, []);
 
   /**
    * Handler: Called when iframe fails to load.
@@ -211,7 +214,8 @@ function RagflowIframe({ path }: RagflowIframeProps) {
       });
     }
     setIframeLoading(false);
-  }, [iframeSrc, iframeError, t]);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, []);
 
   /**
    * Effect: Reset loading state when iframe source changes.
