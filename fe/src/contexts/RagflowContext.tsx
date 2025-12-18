@@ -34,10 +34,10 @@ interface RagflowSource {
  * Complete RAGFlow configuration from backend.
  */
 interface RagflowConfig {
-    /** Legacy AI Chat URL (fallback) */
-    aiChatUrl: string;
-    /** Legacy AI Search URL (fallback) */
-    aiSearchUrl: string;
+    /** Default Chat Source ID */
+    defaultChatSourceId: string;
+    /** Default Search Source ID */
+    defaultSearchSourceId: string;
     /** Available chat sources */
     chatSources: RagflowSource[];
     /** Available search sources */
@@ -120,9 +120,9 @@ export function RagflowProvider({ children }: RagflowProviderProps) {
                 const data = await fetchRagflowConfig();
                 setConfig(data);
 
-                // Initialize chat source with saved preference or first available
+                // Initialize chat source with saved preference or default or first available
                 if (data.chatSources.length > 0) {
-                    let chatSourceId = data.chatSources[0]?.id || '';
+                    let chatSourceId = data.defaultChatSourceId || data.chatSources[0]?.id || '';
                     if (user?.id && chatSourceId) {
                         const saved = await userPreferences.get<string>(user.id, 'ragflow_source_chat');
                         if (saved && data.chatSources.some(s => s.id === saved)) {
@@ -132,9 +132,9 @@ export function RagflowProvider({ children }: RagflowProviderProps) {
                     setSelectedChatSourceId(chatSourceId);
                 }
 
-                // Initialize search source with saved preference or first available
+                // Initialize search source with saved preference or default or first available
                 if (data.searchSources.length > 0) {
-                    let searchSourceId = data.searchSources[0]?.id || '';
+                    let searchSourceId = data.defaultSearchSourceId || data.searchSources[0]?.id || '';
                     if (user?.id && searchSourceId) {
                         const saved = await userPreferences.get<string>(user.id, 'ragflow_source_search');
                         if (saved && data.searchSources.some(s => s.id === saved)) {

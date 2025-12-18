@@ -52,6 +52,8 @@ const AuditLogPage = lazy(() => import('./pages/AuditLogPage'));
 const TokenizerPage = lazy(() => import('./pages/TokenizerPage'));
 /** Storage Dashboard - admin only */
 const StoragePage = lazy(() => import('./pages/StoragePage'));
+/** RAGFlow Config page - admin only */
+const RagflowConfigPage = lazy(() => import('./pages/RagflowConfigPage'));
 
 // Initialize i18n for internationalization
 import './i18n';
@@ -149,6 +151,11 @@ function App() {
                 <Route path="/storage-dashboard" element={
                   <AdminRoute>
                     <StoragePage />
+                  </AdminRoute>
+                } />
+                <Route path="/ragflow-config" element={
+                  <AdminRoute>
+                    <RagflowConfigPage />
                   </AdminRoute>
                 } />
 
