@@ -37,7 +37,8 @@ import {
   ClipboardList,
   FileCode,
   Database,
-  Settings2
+  Settings2,
+  Activity
 } from 'lucide-react';
 import logo from '../assets/logo.png';
 import logoDark from '../assets/logo-dark.png';
@@ -130,6 +131,8 @@ function Layout() {
         return t('pages.history.title');
       case '/system-tools':
         return t('pages.systemTools.title');
+      case '/system-monitor':
+        return t('pages.systemMonitor.title');
       case '/storage':
         return t('pages.storage.title');
       case '/user-management':
@@ -203,6 +206,12 @@ function Layout() {
             <NavLink to="/system-tools" className={({ isActive }) => `sidebar-link ${isActive ? 'active' : ''} ${isCollapsed ? 'justify-center px-2' : ''}`} title={t('nav.systemTools')}>
               <Server size={20} />
               {!isCollapsed && <span>{t('nav.systemTools')}</span>}
+            </NavLink>
+          )}
+          {user?.role === 'admin' && (
+            <NavLink to="/system-monitor" className={({ isActive }) => `sidebar-link ${isActive ? 'active' : ''} ${isCollapsed ? 'justify-center px-2' : ''}`} title={t('nav.systemMonitor')}>
+              <Activity size={20} />
+              {!isCollapsed && <span>{t('nav.systemMonitor')}</span>}
             </NavLink>
           )}
           {user?.role === 'admin' && (

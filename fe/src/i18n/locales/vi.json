@@ -25,7 +25,10 @@
     "noData": "Không có dữ liệu",
     "confirmDelete": "Bạn có chắc chắn muốn xóa mục này không?",
     "fullScreen": "Toàn màn hình",
-    "exitFullScreen": "Thoát toàn màn hình"
+    "exitFullScreen": "Thoát toàn màn hình",
+    "refresh": "Làm mới",
+    "on": "BẬT",
+    "off": "TẮT"
   },
   "nav": {
     "aiChat": "Trò chuyện",
@@ -34,6 +37,7 @@
     "documents": "Tài liệu",
     "userManagement": "Quản lý Người dùng",
     "systemTools": "Công cụ Hệ thống",
+    "systemMonitor": "Giám sát Hệ thống",
     "storage": "Kho Tài liệu",
     "auditLog": "Nhật ký Kiểm toán",
     "tokenizer": "Bộ đếm Token",
@@ -123,6 +127,9 @@
     },
     "systemTools": {
       "title": "Công cụ Giám sát Hệ thống"
+    },
+    "systemMonitor": {
+      "title": "Giám sát Hệ thống"
     },
     "storage": {
       "title": "Tài liệu Kho Kiến Thức"
@@ -277,6 +284,32 @@
     "toolsAvailable_plural": "{{count}} công cụ có sẵn",
     "configInfo": "Cấu hình có thể được cập nhật trong",
     "error": "Không thể tải công cụ hệ thống"
+  },
+  "systemMonitor": {
+    "title": "Giám sát Hệ thống",
+    "description": "Bảng điều khiển thời gian thực về tình trạng dịch vụ và số liệu hệ thống.",
+    "controls": {
+      "autoRefresh": "Tự động làm mới",
+      "refreshNow": "Làm mới ngay"
+    },
+    "sections": {
+      "services": "Tình trạng Dịch vụ",
+      "system": "Tài nguyên Hệ thống"
+    },
+    "metrics": {
+      "uptime": "Thời gian hoạt động",
+      "memory": "Bộ nhớ",
+      "cpuLoad": "Tải CPU",
+      "serverInfo": "Thông tin Máy chủ"
+    },
+    "status": {
+      "healthy": "Ổn định",
+      "disabled": "Vô hiệu hóa",
+      "error": "Lỗi",
+      "connecting": "Đang kết nối",
+      "notConfigured": "Chưa cấu hình"
+    },
+    "error": "Không thể tải dữ liệu: {{error}}"
   },
   "errorPage": {
     "accessDenied": "Truy cập bị từ chối",

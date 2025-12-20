@@ -195,6 +195,97 @@ class SystemToolsService {
         log.debug('Reloading system tools configuration');
         await this.loadConfig();
     }
+
+    /**
+     * Get system health and metrics.
+     * Aggregates status from Database, Redis, MinIO, Langfuse, and System resources.
+     * 
+     * @returns System health object
+     */
+    async getSystemHealth(): Promise<any> {
+        const os = await import('os');
+        const { checkConnection } = await import('../db/index.js');
+        const { getRedisStatus } = await import('./redis.service.js');
+        const { minioService } = await import('./minio.service.js');
+        const { getLangfuseClient, checkHealth: checkLangfuseHealth } = await import('./langfuse.service.js');
+
+        // Check Database
+        const dbStatus = await checkConnection();
+
+        // Check Redis
+        const redisStatus = getRedisStatus();
+
+        // Check MinIO
+        // MinIO is enabled if credentials are provided in env
+        const minioEnabled = !!(process.env.MINIO_ACCESS_KEY && process.env.MINIO_SECRET_KEY);
+        let minioStatus = 'disconnected';
+        if (minioEnabled) {
+            try {
+                await minioService.listBuckets();
+                minioStatus = 'connected';
+            } catch (e) {
+                minioStatus = 'disconnected';
+            }
+        }
+
+        // Check Langfuse
+        const langfuseEnabled = !!(config.langfuse.publicKey && config.langfuse.secretKey && config.langfuse.baseUrl);
+        const langfuseHealthy = await checkLangfuseHealth();
+        const langfuseStatus = langfuseHealthy ? 'connected' : 'disconnected';
+
+        return {
+            timestamp: new Date().toISOString(),
+            services: {
+                database: {
+                    status: dbStatus ? 'connected' : 'disconnected',
+                    enabled: true,
+                    host: config.database.host,
+                },
+                redis: {
+                    status: redisStatus,
+                    enabled: true,
+                    host: config.redis.host,
+                },
+                minio: {
+                    status: minioStatus,
+                    enabled: minioEnabled,
+                    host: process.env.MINIO_ENDPOINT || 'localhost',
+                },
+                langfuse: {
+                    status: langfuseStatus,
+                    enabled: langfuseEnabled,
+                    host: config.langfuse.baseUrl ? new URL(config.langfuse.baseUrl).hostname : 'unknown',
+                },
+            },
+            system: {
+                uptime: process.uptime(),
+                memory: process.memoryUsage(),
+                loadAvg: os.loadavg(),
+                cpus: os.cpus().length,
+                platform: os.platform(),
+                arch: os.arch(),
+                hostname: os.hostname(),
+                nodeVersion: process.version,
+                cpuModel: os.cpus()[0]?.model || 'Unknown',
+                totalMemory: os.totalmem(),
+                osRelease: os.release(),
+                osType: os.type(),
+                disk: await (async () => {
+                    try {
+                        // Check disk space of the drive where the app is running
+                        const stats = await fs.statfs(process.cwd());
+                        return {
+                            total: stats.bsize * stats.blocks,
+                            free: stats.bsize * stats.bfree,
+                            available: stats.bsize * stats.bavail
+                        };
+                    } catch (e) {
+                        return undefined;
+                    }
+                })()
+            }
+        };
+    }
 }
 
 // ============================================================================
@@ -203,3 +294,4 @@ class SystemToolsService {
 
 /** Singleton service instance */
 export const systemToolsService = new SystemToolsService();
+

@@ -45,6 +45,43 @@ export interface SystemToolsResponse {
     count: number;
 }
 
+/**
+ * System health response.
+ */
+export interface SystemHealth {
+    timestamp: string;
+    services: {
+        database: { status: 'connected' | 'disconnected', enabled: boolean, host: string };
+        redis: { status: 'connected' | 'connecting' | 'disconnected' | 'not_initialized' | 'not_configured', enabled: boolean, host: string };
+        minio: { status: 'connected' | 'disconnected', enabled: boolean, host: string };
+        langfuse: { status: 'connected' | 'disconnected', enabled: boolean, host: string };
+    };
+    system: {
+        uptime: number;
+        memory: {
+            rss: number;
+            heapTotal: number;
+            heapUsed: number;
+            external: number;
+        };
+        loadAvg: number[];
+        cpus: number;
+        platform: string;
+        arch: string;
+        hostname: string;
+        nodeVersion?: string;
+        cpuModel?: string;
+        totalMemory?: number;
+        osRelease?: string;
+        osType?: string;
+        disk?: {
+            total: number;
+            free: number;
+            available: number;
+        };
+    };
+}
+
 // ============================================================================
 // API Functions
 // ============================================================================
@@ -81,4 +118,20 @@ export const reloadSystemTools = async (): Promise<void> => {
     if (!response.ok) {
         throw new Error(`Failed to reload system tools: ${response.statusText}`);
     }
+};
+
+/**
+ * Get system health metrics.
+ * @returns System health data
+ */
+export const getSystemHealth = async (): Promise<SystemHealth> => {
+    const response = await fetch(`${API_BASE_URL}/api/system-tools/health`, {
+        credentials: 'include',
+    });
+
+    if (!response.ok) {
+        throw new Error(`Failed to fetch system health: ${response.statusText}`);
+    }
+
+    return await response.json();
 };

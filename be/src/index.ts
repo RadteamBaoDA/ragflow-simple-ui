@@ -24,12 +24,12 @@ import cors from 'cors';
 import helmet from 'helmet';
 import compression from 'compression';
 import session from 'express-session';
-import { createClient } from 'redis';
 import { RedisStore } from 'connect-redis';
 import rateLimit from 'express-rate-limit';
 import hpp from 'hpp';
 import { config } from './config/index.js';
 import { log } from './services/logger.service.js';
+import { initRedis, getRedisClient, shutdownRedis, getRedisStatus } from './services/redis.service.js';
 
 // ============================================================================
 // SSL/TLS CONFIGURATION
@@ -80,41 +80,19 @@ const app = express();
  */
 let sessionStore: RedisStore | undefined;
 
-/**
- * Redis client instance for session storage.
- * Only initialized when SESSION_STORE=redis in configuration.
- */
-let redisClient: ReturnType<typeof createClient> | null = null;
-
 // Initialize Redis client if configured for Redis session storage
-if (config.sessionStore.type === 'redis') {
-  redisClient = createClient({
-    url: config.redis.url,
-  });
+const redisClient = await initRedis();
 
-  // Redis event handlers for connection lifecycle logging
-  redisClient.on('error', (err) => {
-    log.error('Redis client error', { error: err.message });
-  });
-
-  redisClient.on('connect', () => {
-    log.debug('Redis client connected');
-  });
-
-  redisClient.on('ready', () => {
-    log.info('Redis client ready');
-  });
-
-  redisClient.on('reconnecting', () => {
-    log.warn('Redis client reconnecting');
-  });
-
+if (redisClient) {
   // Initialize store immediately with the client
   sessionStore = new RedisStore({
     client: redisClient,
     prefix: 'kb:sess:',
     ttl: config.session.ttlSeconds,
   });
+  log.info('Session store: Redis initialized');
+} else if (config.sessionStore.type === 'redis') {
+  log.warn('Redis configured but failed to initialize. Session storage might be broken.');
 } else {
   log.info('Session store: MemoryStore (in-memory sessions)');
 }
@@ -381,21 +359,7 @@ app.get('/health', async (_req, res) => {
   const timestamp = new Date().toISOString();
   const databaseConnected = await checkConnection();
 
-  const redisStatus = (() => {
-    if (config.sessionStore.type !== 'redis') {
-      return 'not_configured';
-    }
-    if (!redisClient) {
-      return 'not_initialized';
-    }
-    if (redisClient.isReady) {
-      return 'connected';
-    }
-    if (redisClient.isOpen) {
-      return 'connecting';
-    }
-    return 'disconnected';
-  })();
+  const redisStatus = getRedisStatus();
 
   const healthPayload = {
     status: databaseConnected && (redisStatus === 'connected' || redisStatus === 'not_configured') ? 'ok' : 'degraded',
@@ -488,24 +452,11 @@ app.use((err: Error, _req: express.Request, res: express.Response, _next: expres
  * @returns Promise resolving to the HTTP/HTTPS server instance
  */
 const startServer = async (): Promise<http.Server | https.Server> => {
-  // Connect to Redis for session storage (production recommended)
-  if (config.sessionStore.type === 'redis' && redisClient) {
-    try {
-      await redisClient.connect();
-      // Configure Redis session store with key prefix and TTL
-      sessionStore = new RedisStore({
-        client: redisClient,
-        prefix: 'kb:sess:',  // Key prefix for session identification
-        ttl: config.session.ttlSeconds,  // Session time-to-live
-      });
-      log.info('Session store: Redis', { url: config.redis.url.replace(/:[^:@]*@/, ':***@') });
-    } catch (err) {
-      log.warn('Failed to connect to Redis', {
-        error: err instanceof Error ? err.message : String(err),
-      });
-      // Note: If Redis fails, session middleware might fail or hang depending on connect-redis behavior
-    }
-  }
+  // Redis is already initialized at module level awaiting promise but we called it in global scope
+  // which is bad practice on import. But since we need session middleware at top level...
+  // Actually, we called it before app.use(session(...)).
+  // So here we don't need to do anything for Redis.
+
 
   let server: http.Server | https.Server;
   const protocol = config.https.enabled ? 'https' : 'http';
@@ -634,10 +585,7 @@ if (!isTest) {
       });
 
       // Disconnect Redis session store
-      if (redisClient && redisClient.isOpen) {
-        await redisClient.quit();
-        log.info('Redis client disconnected');
-      }
+      await shutdownRedis();
 
       // Close database connections
       await closePool();

@@ -89,4 +89,23 @@ router.post('/reload', (req: Request, res: Response) => {
     }
 });
 
+/**
+ * GET /api/system-tools/health
+ * Get system health metrics (DB, Redis, MinIO, System).
+ * 
+ * @requires admin role
+ * @returns {Object} System health metrics
+ */
+router.get('/health', async (req: Request, res: Response) => {
+    try {
+        const health = await systemToolsService.getSystemHealth();
+        res.json(health);
+    } catch (error) {
+        log.error('Failed to get system health', {
+            error: error instanceof Error ? error.message : String(error),
+        });
+        res.status(500).json({ error: 'Failed to get system health' });
+    }
+});
+
 export default router;
