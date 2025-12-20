@@ -42,6 +42,8 @@ const LogoutPage = lazy(() => import('./pages/LogoutPage'));
 const UserManagementPage = lazy(() => import('./pages/UserManagementPage'));
 /** System monitoring tools page - admin only */
 const SystemToolsPage = lazy(() => import('./pages/SystemToolsPage'));
+/** System Monitor page - admin only */
+const SystemMonitorPage = lazy(() => import('./pages/SystemMonitorPage'));
 /** Error display page - 403, 404, 500 errors */
 const ErrorPage = lazy(() => import('./pages/ErrorPage'));
 /** MinIO storage manager - admin/manager only */
@@ -131,6 +133,11 @@ function App() {
                 <Route path="/system-tools" element={
                   <AdminRoute>
                     <SystemToolsPage />
+                  </AdminRoute>
+                } />
+                <Route path="/system-monitor" element={
+                  <AdminRoute>
+                    <SystemMonitorPage />
                   </AdminRoute>
                 } />
                 <Route path="/storage" element={

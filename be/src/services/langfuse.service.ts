@@ -64,3 +64,40 @@ export async function shutdownLangfuse(): Promise<void> {
     langfuseClient = null;
   }
 }
+
+/**
+ * Check connectivity to Langfuse server.
+ * 
+ * @returns true if connected/healthy, false otherwise
+ */
+export async function checkHealth(): Promise<boolean> {
+  // If not configured, it's technically "not healthy" in terms of connectivity
+  if (!config.langfuse.publicKey || !config.langfuse.secretKey || !config.langfuse.baseUrl) {
+    return false;
+  }
+
+  try {
+    // The Langfuse JS SDK does not expose a direct 'authCheck' method.
+    // To verify both connectivity AND credentials (simulating an SDK interaction),
+    // we send a dummy ingestion request. 
+    // - If we get 200/201/202, it worked.
+    // - If we get 400 (Bad Request), it means Auth passed but payload was empty/invalid (Connection OK).
+    // - If we get 401/403, Auth failed.
+    if (!getLangfuseClient()) {
+      return false;
+    }
+    const response = await fetch(`${config.langfuse.baseUrl}/api/public/ingestion`, {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json',
+        'Authorization': `Basic ${Buffer.from(`${config.langfuse.publicKey}:${config.langfuse.secretKey}`).toString('base64')}`
+      },
+      body: JSON.stringify({ batch: [] })
+    });
+
+    return response.ok || response.status === 400;
+  } catch (error) {
+    log.warn('Langfuse health check failed', { error: error instanceof Error ? error.message : String(error) });
+    return false;
+  }
+}

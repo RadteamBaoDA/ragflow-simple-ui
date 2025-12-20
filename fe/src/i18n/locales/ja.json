@@ -25,7 +25,10 @@
     "noData": "データなし",
     "confirmDelete": "この項目を削除してもよろしいですか？",
     "fullScreen": "全画面表示",
-    "exitFullScreen": "全画面表示を終了"
+    "exitFullScreen": "全画面表示を終了",
+    "refresh": "更新",
+    "on": "ON",
+    "off": "OFF"
   },
   "nav": {
     "aiChat": "チャット",
@@ -34,6 +37,7 @@
     "documents": "ドキュメント",
     "userManagement": "ユーザー管理",
     "systemTools": "システムツール",
+    "systemMonitor": "システムモニター",
     "storage": "ドキュメント",
     "auditLog": "監査ログ",
     "tokenizer": "トークナイザー",
@@ -123,6 +127,9 @@
     },
     "systemTools": {
       "title": "システム監視ツール"
+    },
+    "systemMonitor": {
+      "title": "システムモニター"
     },
     "storage": {
       "title": "ナレッジベースドキュメント"
@@ -277,6 +284,32 @@
     "toolsAvailable_plural": "{{count}}個のツールが利用可能",
     "configInfo": "設定は次の場所で更新できます",
     "error": "システムツールの読み込みに失敗しました"
+  },
+  "systemMonitor": {
+    "title": "システムモニター",
+    "description": "サービスの健全性とシステムメトリックのリアルタイムダッシュボード。",
+    "controls": {
+      "autoRefresh": "自動更新",
+      "refreshNow": "今すぐ更新"
+    },
+    "sections": {
+      "services": "サービスの健全性",
+      "system": "システムリソース"
+    },
+    "metrics": {
+      "uptime": "稼働時間",
+      "memory": "メモリ",
+      "cpuLoad": "CPU負荷",
+      "serverInfo": "サーバー情報"
+    },
+    "status": {
+      "healthy": "正常",
+      "disabled": "無効",
+      "error": "エラー",
+      "connecting": "接続中",
+      "notConfigured": "未設定"
+    },
+    "error": "データの取得に失敗しました: {{error}}"
   },
   "errorPage": {
     "accessDenied": "アクセスが拒否されました",

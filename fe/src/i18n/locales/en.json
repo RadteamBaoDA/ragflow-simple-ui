@@ -25,7 +25,10 @@
     "noData": "No data available",
     "confirmDelete": "Are you sure you want to delete this item?",
     "fullScreen": "Full Screen",
-    "exitFullScreen": "Exit Full Screen"
+    "exitFullScreen": "Exit Full Screen",
+    "refresh": "Refresh",
+    "on": "ON",
+    "off": "OFF"
   },
   "nav": {
     "aiChat": "Chat",
@@ -34,6 +37,7 @@
     "documents": "Document",
     "userManagement": "User Management",
     "systemTools": "System Tools",
+    "systemMonitor": "System Monitor",
     "storage": "Documents",
     "auditLog": "Audit Log",
     "tokenizer": "Tokenizer",
@@ -123,6 +127,9 @@
     },
     "systemTools": {
       "title": "System Monitoring Tools"
+    },
+    "systemMonitor": {
+      "title": "System Monitor"
     },
     "storage": {
       "title": "Knowledge Base Documents"
@@ -277,6 +284,32 @@
     "toolsAvailable_plural": "{{count}} tools available",
     "configInfo": "Configuration can be updated in",
     "error": "Failed to load system tools"
+  },
+  "systemMonitor": {
+    "title": "System Monitor",
+    "description": "Real-time dashboard for service health and system metrics.",
+    "controls": {
+      "autoRefresh": "Auto Refresh",
+      "refreshNow": "Refresh Now"
+    },
+    "sections": {
+      "services": "Service Health",
+      "system": "System Resources"
+    },
+    "metrics": {
+      "uptime": "Uptime",
+      "memory": "Memory",
+      "cpuLoad": "CPU Load",
+      "serverInfo": "Server Info"
+    },
+    "status": {
+      "healthy": "Healthy",
+      "disabled": "Disabled",
+      "error": "Error",
+      "connecting": "Connecting",
+      "notConfigured": "Not Configured"
+    },
+    "error": "Failed to fetch health data: {{error}}"
   },
   "errorPage": {
     "accessDenied": "Access Denied",
