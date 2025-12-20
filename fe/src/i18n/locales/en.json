@@ -28,14 +28,19 @@
     "exitFullScreen": "Exit Full Screen",
     "refresh": "Refresh",
     "on": "ON",
-    "off": "OFF"
+    "off": "OFF",
+    "searchPlaceholder": "Search...",
+    "add": "Add"
   },
   "nav": {
     "aiChat": "Chat",
     "aiSearch": "Search",
     "history": "History",
     "documents": "Document",
-    "userManagement": "User Management",
+    "iam": "IAM",
+    "userManagement": "Users",
+    "teamManagement": "Teams",
+    "permissionManagement": "Permissions",
     "systemTools": "System Tools",
     "systemMonitor": "System Monitor",
     "storage": "Documents",
@@ -44,6 +49,28 @@
     "signOut": "Sign Out",
     "expandMenu": "Expand menu",
     "collapseMenu": "Collapse menu"
+  },
+  "iam": {
+    "title": "Identity & Access Management",
+    "teams": {
+      "title": "Team Management",
+      "description": "Manage teams and members",
+      "create": "Create Team",
+      "edit": "Edit Team",
+      "name": "Team Name",
+      "projectName": "Project Name",
+      "formDescription": "Description",
+      "members": "Members",
+      "addMember": "Add Member",
+      "role": "Role",
+      "leader": "Leader",
+      "member": "Member",
+      "selectUser": "Select User"
+    },
+    "permissions": {
+      "title": "Permission Management",
+      "description": "Manage system permissions"
+    }
   },
   "login": {
     "subtitle": "AI Chat & Advanced Document Search",
@@ -241,6 +268,10 @@
       "video": "Video"
     }
   },
+  "UserManagement": {
+    "Leader": "Leader",
+    "leaderDescription": "Can manage content and view reports"
+  },
   "userManagement": {
     "searchPlaceholder": "Search users...",
     "allRoles": "All Roles",
@@ -257,10 +288,10 @@
     "saveChanges": "Save Changes",
     "cancel": "Cancel",
     "admin": "Admin",
-    "manager": "Manager",
+    "leader": "Leader",
     "userRole": "User",
     "adminDescription": "Full access to all features and settings",
-    "managerDescription": "Can manage content and view reports",
+    "leaderDescription": "Can manage content and view reports",
     "userDescription": "Standard access to chat and search",
     "noPermission": "You do not have permission to view this page.",
     "loading": "Loading...",

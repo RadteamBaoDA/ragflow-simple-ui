@@ -20,7 +20,7 @@ export interface MockUser {
   id: string;
   email: string;
   name: string;
-  role: 'admin' | 'manager' | 'user';
+  role: 'admin' | 'leader' | 'user';
   avatar?: string;
 }
 
@@ -62,14 +62,14 @@ export function createMockAdmin(overrides: Partial<MockUser> = {}): MockUser {
 }
 
 /**
- * Create a mock manager user.
+ * Create a mock leader user.
  */
-export function createMockManager(overrides: Partial<MockUser> = {}): MockUser {
+export function createMockLeader(overrides: Partial<MockUser> = {}): MockUser {
   return createMockUser({
-    id: 'manager-1',
-    email: 'manager@example.com',
-    name: 'Manager User',
-    role: 'manager',
+    id: 'leader-1',
+    email: 'leader@example.com',
+    name: 'Leader User',
+    role: 'leader',
     ...overrides,
   });
 }

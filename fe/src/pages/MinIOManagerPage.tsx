@@ -97,11 +97,16 @@ const formatDateTime = (date: Date, locale: string): string => {
  * - Download and delete actions
  * - Responsive table layout
  * 
+ * Permissions:
+ * - Read: List/Download (all roles)
+ * - Write: Upload/Delete (Admin/Leader only)
+ * 
  * Admin-only features:
  * - Add and remove bucket configurations (does not affect MinIO)
  */
 const MinIOManagerPage = () => {
     const { user } = useAuth();
+    const canWrite = user?.role === 'admin' || user?.permissions?.includes('storage:write');
     const { t, i18n } = useTranslation();
 
     // Bucket and object state
@@ -393,7 +398,7 @@ const MinIOManagerPage = () => {
         setIsDragging(false);
         dragCounter.current = 0;
 
-        if (!selectedBucket || uploading) return;
+        if (!selectedBucket || uploading || !canWrite) return;
 
         const items = e.dataTransfer.items;
         if (!items || items.length === 0) return;
@@ -1174,72 +1179,76 @@ const MinIOManagerPage = () => {
                         <RefreshCw className="w-5 h-5 text-gray-600 dark:text-gray-400" />
                     </button>
 
-                    <button
-                        onClick={() => setShowCreateFolderModal(true)}
-                        disabled={!selectedBucket}
-                        className="p-2 hover:bg-gray-200 dark:hover:bg-gray-700 rounded-lg transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
-                        title={t('minio.createFolder')}
-                    >
-                        <FolderPlus className="w-5 h-5 text-gray-600 dark:text-gray-400" />
-                    </button>
+                    {canWrite && (
+                        <button
+                            onClick={() => setShowCreateFolderModal(true)}
+                            disabled={!selectedBucket}
+                            className="p-2 hover:bg-gray-200 dark:hover:bg-gray-700 rounded-lg transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
+                            title={t('minio.createFolder')}
+                        >
+                            <FolderPlus className="w-5 h-5 text-gray-600 dark:text-gray-400" />
+                        </button>
+                    )}
 
                     {/* Upload dropdown */}
-                    <div className="relative" ref={uploadMenuRef}>
-                        <button
-                            onClick={() => setShowUploadMenu(!showUploadMenu)}
-                            disabled={!selectedBucket}
-                            className={`flex items-center gap-2 px-4 py-2 bg-primary dark:bg-blue-600 hover:bg-primary-hover dark:hover:bg-blue-700 text-white rounded-lg transition-colors ${!selectedBucket ? 'opacity-50 cursor-not-allowed' : ''}`}
-                        >
-                            <Upload className="w-5 h-5" />
-                            <span className="hidden sm:inline">{t('minio.upload')}</span>
-                            <ChevronDown className={`w-4 h-4 transition-transform ${showUploadMenu ? 'rotate-180' : ''}`} />
-                        </button>
+                    {canWrite && (
+                        <div className="relative" ref={uploadMenuRef}>
+                            <button
+                                onClick={() => setShowUploadMenu(!showUploadMenu)}
+                                disabled={!selectedBucket}
+                                className={`flex items-center gap-2 px-4 py-2 bg-primary dark:bg-blue-600 hover:bg-primary-hover dark:hover:bg-blue-700 text-white rounded-lg transition-colors ${!selectedBucket ? 'opacity-50 cursor-not-allowed' : ''}`}
+                            >
+                                <Upload className="w-5 h-5" />
+                                <span className="hidden sm:inline">{t('minio.upload')}</span>
+                                <ChevronDown className={`w-4 h-4 transition-transform ${showUploadMenu ? 'rotate-180' : ''}`} />
+                            </button>
 
-                        {showUploadMenu && (
-                            <div className="absolute right-0 mt-1 w-48 bg-white dark:bg-gray-800 border border-gray-200 dark:border-gray-700 rounded-lg shadow-lg z-50 overflow-hidden">
-                                <button
-                                    onClick={() => {
-                                        fileInputRef.current?.click();
-                                        setShowUploadMenu(false);
-                                    }}
-                                    className="w-full flex items-center gap-3 px-4 py-3 text-left text-gray-700 dark:text-gray-200 hover:bg-gray-100 dark:hover:bg-gray-700 transition-colors"
-                                >
-                                    <Upload className="w-5 h-5 text-primary dark:text-blue-400" />
-                                    <span>{t('minio.uploadFiles')}</span>
-                                </button>
-                                <button
-                                    onClick={() => {
-                                        folderInputRef.current?.click();
-                                        setShowUploadMenu(false);
-                                    }}
-                                    className="w-full flex items-center gap-3 px-4 py-3 text-left text-gray-700 dark:text-gray-200 hover:bg-gray-100 dark:hover:bg-gray-700 transition-colors border-t border-gray-200 dark:border-gray-700"
-                                >
-                                    <FolderPlus className="w-5 h-5 text-primary dark:text-blue-400" />
-                                    <span>{t('minio.uploadFolder')}</span>
-                                </button>
-                            </div>
-                        )}
+                            {showUploadMenu && (
+                                <div className="absolute right-0 mt-1 w-48 bg-white dark:bg-gray-800 border border-gray-200 dark:border-gray-700 rounded-lg shadow-lg z-50 overflow-hidden">
+                                    <button
+                                        onClick={() => {
+                                            fileInputRef.current?.click();
+                                            setShowUploadMenu(false);
+                                        }}
+                                        className="w-full flex items-center gap-3 px-4 py-3 text-left text-gray-700 dark:text-gray-200 hover:bg-gray-100 dark:hover:bg-gray-700 transition-colors"
+                                    >
+                                        <Upload className="w-5 h-5 text-primary dark:text-blue-400" />
+                                        <span>{t('minio.uploadFiles')}</span>
+                                    </button>
+                                    <button
+                                        onClick={() => {
+                                            folderInputRef.current?.click();
+                                            setShowUploadMenu(false);
+                                        }}
+                                        className="w-full flex items-center gap-3 px-4 py-3 text-left text-gray-700 dark:text-gray-200 hover:bg-gray-100 dark:hover:bg-gray-700 transition-colors border-t border-gray-200 dark:border-gray-700"
+                                    >
+                                        <FolderPlus className="w-5 h-5 text-primary dark:text-blue-400" />
+                                        <span>{t('minio.uploadFolder')}</span>
+                                    </button>
+                                </div>
+                            )}
 
-                        {/* Hidden file inputs */}
-                        <input
-                            ref={fileInputRef}
-                            type="file"
-                            multiple
-                            disabled={!selectedBucket}
-                            onChange={(e) => e.target.files && handleUpload(e.target.files, false)}
-                            className="hidden"
-                        />
-                        <input
-                            ref={folderInputRef}
-                            type="file"
-                            // @ts-ignore - webkitdirectory is not in TypeScript types but is widely supported
-                            webkitdirectory=""
-                            directory=""
-                            disabled={!selectedBucket}
-                            onChange={(e) => e.target.files && handleUpload(e.target.files, true)}
-                            className="hidden"
-                        />
-                    </div>
+                            {/* Hidden file inputs */}
+                            <input
+                                ref={fileInputRef}
+                                type="file"
+                                multiple
+                                disabled={!selectedBucket}
+                                onChange={(e) => e.target.files && handleUpload(e.target.files, false)}
+                                className="hidden"
+                            />
+                            <input
+                                ref={folderInputRef}
+                                type="file"
+                                // @ts-ignore - webkitdirectory is not in TypeScript types but is widely supported
+                                webkitdirectory=""
+                                directory=""
+                                disabled={!selectedBucket}
+                                onChange={(e) => e.target.files && handleUpload(e.target.files, true)}
+                                className="hidden"
+                            />
+                        </div>
+                    )}
                 </div>
             </div>
 
@@ -1441,13 +1450,15 @@ const MinIOManagerPage = () => {
                                                             </button>
                                                         </>
                                                     )}
-                                                    <button
-                                                        onClick={() => handleDelete(obj)}
-                                                        className="p-1.5 hover:bg-red-50 dark:hover:bg-red-900/20 rounded-lg text-gray-400 hover:text-red-600 transition-colors"
-                                                        title={t('common.delete')}
-                                                    >
-                                                        <Trash2 className="w-4 h-4" />
-                                                    </button>
+                                                    {canWrite && (
+                                                        <button
+                                                            onClick={() => handleDelete(obj)}
+                                                            className="p-1.5 hover:bg-red-50 dark:hover:bg-red-900/20 rounded-lg text-gray-400 hover:text-red-600 transition-colors"
+                                                            title={t('common.delete')}
+                                                        >
+                                                            <Trash2 className="w-4 h-4" />
+                                                        </button>
+                                                    )}
                                                 </div>
                                             </td>
                                         </tr>

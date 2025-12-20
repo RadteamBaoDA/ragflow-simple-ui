@@ -22,7 +22,7 @@ import { useAuth } from '../hooks/useAuth';
 // ============================================================================
 
 /** Valid user roles */
-type Role = 'admin' | 'manager' | 'user';
+type Role = 'admin' | 'leader' | 'user';
 
 interface RoleRouteProps {
     /** Child components to render for allowed roles */

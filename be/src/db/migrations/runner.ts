@@ -22,6 +22,8 @@ import { migration as migration003 } from './003_add_user_details.js';
 import { migration as migration004 } from './004_create_minio_buckets.js';
 import { migration as migration005 } from './005_user_ip_history.js';
 import { migration as migration006 } from './006_audit_logs.js';
+import { migration as migration008 } from './008_iam_enhancement.js';
+import { migration as migration009 } from './009_rename_manager_role.js';
 
 /**
  * Ordered list of all migrations.
@@ -39,6 +41,8 @@ const migrations = [
   migration004,  // MinIO buckets table
   migration005,  // User IP history: tracking user access IPs
   migration006,  // Audit logs: tracking user actions for compliance
+  migration008,  // IAM enhancement: teams and user_teams
+  migration009,  // Rename manager role to leader
 ];
 
 /**
@@ -80,7 +84,7 @@ export async function runMigrations(db: DatabaseAdapter): Promise<void> {
       try {
         // Execute the migration's up() function
         await migration.up(db);
-        
+
         // Record successful migration
         await db.query('INSERT INTO migrations (name) VALUES ($1)', [migration.name]);
         log.info(`Migration applied: ${migration.name}`);

@@ -53,6 +53,18 @@ router.get('/config', requirePermission('view_chat'), async (_req: Request, res:
  */
 router.get('/sources', requirePermission('view_chat'), async (req: Request, res: Response) => {
   try {
+    const user = req.user;
+    // Only admins and leaders can see the full list of sources
+    if (user?.role === 'user') {
+      res.json({
+        data: [],
+        total: 0,
+        page: 1,
+        limit: 10
+      });
+      return;
+    }
+
     const type = req.query.type as 'chat' | 'search';
     const page = parseInt(req.query.page as string || '1', 10);
     const limit = parseInt(req.query.limit as string || '10', 10);

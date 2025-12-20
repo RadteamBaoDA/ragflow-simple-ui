@@ -28,14 +28,19 @@
     "exitFullScreen": "Thoát toàn màn hình",
     "refresh": "Làm mới",
     "on": "BẬT",
-    "off": "TẮT"
+    "off": "TẮT",
+    "searchPlaceholder": "Tìm kiếm...",
+    "add": "Thêm"
   },
   "nav": {
     "aiChat": "Trò chuyện",
     "aiSearch": "Tìm kiếm",
     "history": "Lịch sử",
     "documents": "Tài liệu",
-    "userManagement": "Quản lý Người dùng",
+    "iam": "IAM",
+    "userManagement": "Người dùng",
+    "teamManagement": "Đội nhóm",
+    "permissionManagement": "Phân quyền",
     "systemTools": "Công cụ Hệ thống",
     "systemMonitor": "Giám sát Hệ thống",
     "storage": "Kho Tài liệu",
@@ -44,6 +49,28 @@
     "signOut": "Đăng xuất",
     "expandMenu": "Mở rộng menu",
     "collapseMenu": "Thu gọn menu"
+  },
+  "iam": {
+    "title": "Quản lý Định danh & Truy cập",
+    "teams": {
+      "title": "Quản lý Đội nhóm",
+      "description": "Quản lý các đội nhóm và thành viên",
+      "create": "Tạo Đội",
+      "edit": "Chỉnh sửa Đội",
+      "name": "Tên Đội",
+      "projectName": "Tên Dự án",
+      "formDescription": "Mô tả",
+      "members": "Thành viên",
+      "addMember": "Thêm Thành viên",
+      "role": "Vai trò",
+      "leader": "Trưởng nhóm",
+      "member": "Thành viên",
+      "selectUser": "Chọn thành viên"
+    },
+    "permissions": {
+      "title": "Quản lý Phân quyền",
+      "description": "Quản lý quyền truy cập hệ thống"
+    }
   },
   "login": {
     "subtitle": "Trò chuyện AI & Tìm kiếm tài liệu nâng cao",
@@ -241,6 +268,10 @@
       "video": "Video"
     }
   },
+  "UserManagement": {
+    "Leader": "Trưởng nhóm",
+    "leaderDescription": "Có thể quản lý nội dung và xem báo cáo"
+  },
   "userManagement": {
     "searchPlaceholder": "Tìm kiếm người dùng...",
     "allRoles": "Tất cả vai trò",
@@ -257,10 +288,10 @@
     "saveChanges": "Lưu thay đổi",
     "cancel": "Hủy",
     "admin": "Quản trị viên",
-    "manager": "Quản lý",
+    "leader": "Trưởng nhóm",
     "userRole": "Người dùng",
-    "adminDescription": "Quyền truy cập đầy đủ vào tất cả tính năng và cài đặt",
-    "managerDescription": "Có thể quản lý nội dung và xem báo cáo",
+    "adminDescription": "Toàn quyền truy cập tất cả tính năng và cài đặt",
+    "leaderDescription": "Có thể quản lý nội dung và xem báo cáo",
     "userDescription": "Quyền truy cập tiêu chuẩn vào trò chuyện và tìm kiếm",
     "noPermission": "Bạn không có quyền xem trang này.",
     "loading": "Đang tải...",

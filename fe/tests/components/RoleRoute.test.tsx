@@ -17,7 +17,7 @@ import { MemoryRouter, useLocation } from 'react-router-dom';
 // Types
 // ============================================================================
 
-type Role = 'admin' | 'manager' | 'user';
+type Role = 'admin' | 'leader' | 'user';
 
 interface User {
   id: string;
@@ -96,7 +96,7 @@ function TestWrapper({ children, user = null, isLoading = false, initialRoute = 
 
 // Test users
 const adminUser: User = { id: 'admin-1', email: 'admin@example.com', name: 'Admin', role: 'admin' };
-const managerUser: User = { id: 'manager-1', email: 'manager@example.com', name: 'Manager', role: 'manager' };
+const leaderUser: User = { id: 'leader-1', email: 'leader@example.com', name: 'Leader', role: 'leader' };
 const regularUser: User = { id: 'user-1', email: 'user@example.com', name: 'User', role: 'user' };
 
 // ============================================================================
@@ -117,11 +117,11 @@ describe('RoleRoute', () => {
       expect(screen.getByTestId('content')).toBeInTheDocument();
     });
 
-    it('should allow manager for manager-only route', () => {
+    it('should allow leader for leader-only route', () => {
       render(
-        <TestWrapper user={managerUser}>
-          <RoleRoute allowedRoles={['manager']}>
-            <div data-testid="content">Manager Content</div>
+        <TestWrapper user={leaderUser}>
+          <RoleRoute allowedRoles={['leader']}>
+            <div data-testid="content">Leader Content</div>
           </RoleRoute>
         </TestWrapper>
       );
@@ -146,7 +146,7 @@ describe('RoleRoute', () => {
     it('should allow admin for admin+manager route', () => {
       render(
         <TestWrapper user={adminUser}>
-          <RoleRoute allowedRoles={['admin', 'manager']}>
+          <RoleRoute allowedRoles={['admin', 'leader']}>
             <div data-testid="content">Content</div>
           </RoleRoute>
         </TestWrapper>
@@ -155,10 +155,10 @@ describe('RoleRoute', () => {
       expect(screen.getByTestId('content')).toBeInTheDocument();
     });
 
-    it('should allow manager for admin+manager route', () => {
+    it('should allow leader for admin+leader route', () => {
       render(
-        <TestWrapper user={managerUser}>
-          <RoleRoute allowedRoles={['admin', 'manager']}>
+        <TestWrapper user={leaderUser}>
+          <RoleRoute allowedRoles={['admin', 'leader']}>
             <div data-testid="content">Content</div>
           </RoleRoute>
         </TestWrapper>
@@ -170,7 +170,7 @@ describe('RoleRoute', () => {
     it('should allow any role for all roles route', () => {
       render(
         <TestWrapper user={regularUser}>
-          <RoleRoute allowedRoles={['admin', 'manager', 'user']}>
+          <RoleRoute allowedRoles={['admin', 'leader', 'user']}>
             <div data-testid="content">Content</div>
           </RoleRoute>
         </TestWrapper>
@@ -197,7 +197,7 @@ describe('RoleRoute', () => {
     it('should redirect user from admin+manager route', () => {
       render(
         <TestWrapper user={regularUser}>
-          <RoleRoute allowedRoles={['admin', 'manager']}>
+          <RoleRoute allowedRoles={['admin', 'leader']}>
             <div data-testid="content">Content</div>
           </RoleRoute>
         </TestWrapper>
@@ -207,9 +207,9 @@ describe('RoleRoute', () => {
       expect(screen.getByTestId('redirect')).toHaveAttribute('data-to', '/403');
     });
 
-    it('should redirect manager from admin-only route', () => {
+    it('should redirect leader from admin-only route', () => {
       render(
-        <TestWrapper user={managerUser}>
+        <TestWrapper user={leaderUser}>
           <RoleRoute allowedRoles={['admin']}>
             <div data-testid="content">Admin Content</div>
           </RoleRoute>
@@ -238,7 +238,7 @@ describe('RoleRoute', () => {
     it('should redirect unauthenticated user even with all roles allowed', () => {
       render(
         <TestWrapper user={null}>
-          <RoleRoute allowedRoles={['admin', 'manager', 'user']}>
+          <RoleRoute allowedRoles={['admin', 'leader', 'user']}>
             <div data-testid="content">Content</div>
           </RoleRoute>
         </TestWrapper>

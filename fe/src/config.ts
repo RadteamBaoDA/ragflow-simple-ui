@@ -48,4 +48,6 @@ export const config = {
         /** Enable chat history page */
         enableHistory: getBoolEnv('VITE_ENABLE_HISTORY', true),
     },
+    /** API Base URL */
+    apiBaseUrl: import.meta.env.VITE_API_BASE_URL || '',
 };

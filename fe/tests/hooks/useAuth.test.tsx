@@ -21,7 +21,7 @@ interface User {
   id: string;
   email: string;
   name: string;
-  role: 'admin' | 'manager' | 'user';
+  role: 'admin' | 'leader' | 'user';
   avatar?: string;
 }
 
@@ -136,7 +136,7 @@ describe('useAuth', () => {
 
   describe('initial state', () => {
     it('should start with loading true', async () => {
-      const mockFetch = vi.fn().mockImplementation(() => new Promise(() => {})); // Never resolves
+      const mockFetch = vi.fn().mockImplementation(() => new Promise(() => { })); // Never resolves
 
       const wrapper = ({ children }: { children: ReactNode }) => (
         <AuthProvider mockFetch={mockFetch}>{children}</AuthProvider>
@@ -401,12 +401,12 @@ describe('useAuth', () => {
       expect(result.current.user?.role).toBe('user');
     });
 
-    it('should handle manager role', async () => {
+    it('should handle leader role', async () => {
       const mockUser: User = {
-        id: 'manager-1',
-        email: 'manager@example.com',
-        name: 'Manager User',
-        role: 'manager',
+        id: 'leader-1',
+        email: 'leader@example.com',
+        name: 'Leader User',
+        role: 'leader',
       };
 
       const mockFetch = vi.fn().mockResolvedValue(createMockResponse(mockUser));
@@ -421,7 +421,7 @@ describe('useAuth', () => {
         expect(result.current.isLoading).toBe(false);
       });
 
-      expect(result.current.user?.role).toBe('manager');
+      expect(result.current.user?.role).toBe('leader');
     });
   });
 });

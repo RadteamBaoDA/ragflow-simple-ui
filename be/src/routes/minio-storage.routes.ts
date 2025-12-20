@@ -39,8 +39,8 @@ const router = Router();
 // Apply authentication to all routes
 router.use(requireAuth);
 
-// Apply storage:write permission to all routes (original behavior)
-router.use(requirePermission("storage:write"));
+// Apply storage:read permission to all routes by default (allows listing/downloading)
+router.use(requirePermission("storage:read"));
 
 // =============================================================================
 // MULTER CONFIGURATION
@@ -233,7 +233,7 @@ router.get("/:bucketId/list", async (req: Request, res: Response) => {
  * 5. Size limits enforced
  */
 // Use handleUpload middleware instead of raw upload.any()
-router.post("/:bucketId/upload", handleUpload, async (req: Request, res: Response) => {
+router.post("/:bucketId/upload", requirePermission("storage:write"), handleUpload, async (req: Request, res: Response) => {
     const user = getCurrentUser(req);
     const clientIp = getClientIp(req);
     const bucketId = req.params["bucketId"];
@@ -491,7 +491,7 @@ router.post("/:bucketId/check-existence", async (req: Request, res: Response) =>
  * POST /:bucketId/folder
  * Create a folder in MinIO storage.
  */
-router.post("/:bucketId/folder", async (req: Request, res: Response) => {
+router.post("/:bucketId/folder", requirePermission("storage:write"), async (req: Request, res: Response) => {
     const user = getCurrentUser(req);
     const clientIp = getClientIp(req);
     const bucketId = req.params["bucketId"];
@@ -592,7 +592,7 @@ router.post("/:bucketId/folder", async (req: Request, res: Response) => {
  * @body isFolder - Whether the path is a folder
  * @returns {401} If folder deletion and re-authentication required (REAUTH_REQUIRED error code)
  */
-router.delete("/:bucketId/delete", async (req: Request, res: Response, next) => {
+router.delete("/:bucketId/delete", requirePermission("storage:write"), async (req: Request, res: Response, next) => {
     // For folder deletions, require recent authentication
     const { isFolder } = req.body as { isFolder?: boolean };
     if (isFolder) {
@@ -690,7 +690,7 @@ router.delete("/:bucketId/delete", async (req: Request, res: Response, next) => 
  * @body items - Array of { path, isFolder } objects
  * @returns {401} If re-authentication required (REAUTH_REQUIRED error code)
  */
-router.post("/:bucketId/batch-delete", requireRecentAuth(15), async (req: Request, res: Response) => {
+router.post("/:bucketId/batch-delete", requirePermission("storage:write"), requireRecentAuth(15), async (req: Request, res: Response) => {
     const user = getCurrentUser(req);
     const clientIp = getClientIp(req);
     const bucketId = req.params["bucketId"];

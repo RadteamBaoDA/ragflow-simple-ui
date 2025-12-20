@@ -25,10 +25,10 @@
  * Available user roles in the system.
  * Roles are hierarchical in terms of permissions:
  * - admin: Full system access
- * - manager: User management and content access
+ * - leader: User management and content access
  * - user: Basic content access only
  */
-export type Role = 'admin' | 'manager' | 'user';
+export type Role = 'admin' | 'leader' | 'user';
 
 /**
  * Available permissions that can be assigned to roles.
@@ -70,7 +70,7 @@ export const DEFAULT_ROLE: Role = 'user';
  * These roles can bypass certain ownership checks (IDOR prevention).
  * Used in authorization middleware for resource access decisions.
  */
-export const ADMIN_ROLES: readonly Role[] = ['admin', 'manager'] as const;
+export const ADMIN_ROLES: readonly Role[] = ['admin', 'leader'] as const;
 
 /**
  * Check if a role has administrative privileges.
@@ -88,7 +88,7 @@ export function isAdminRole(role: string): boolean {
  * 
  * Role capabilities:
  * - admin: All permissions including system management
- * - manager: User management and content access (no system config)
+ * - leader: User management and content access (no system config)
  * - user: Basic content viewing only
  */
 export const ROLE_PERMISSIONS: Record<Role, Permission[]> = {
@@ -104,23 +104,21 @@ export const ROLE_PERMISSIONS: Record<Role, Permission[]> = {
         'storage:write',
         'storage:delete',
     ],
-    /** Manager can manage users and access content */
-    manager: [
+    /** Leader can manage users and access content */
+    leader: [
         'view_chat',
         'view_search',
         'view_history',
-        'manage_users', // Managers can view/edit users but maybe restricted (logic in service)
+        'manage_users', // Leaders can view/edit users but maybe restricted (logic in service)
         'view_analytics',
         'storage:read',
         'storage:write',
-        'storage:delete',
     ],
     /** Regular user has basic content access */
     user: [
         'view_chat',
         'view_search',
         'view_history',
-        'storage:read',
     ],
 };
 

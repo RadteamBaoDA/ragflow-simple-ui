@@ -38,7 +38,9 @@ import {
   FileCode,
   Database,
   Settings2,
-  Activity
+  Activity,
+  Shield,
+  ChevronDown
 } from 'lucide-react';
 import logo from '../assets/logo.png';
 import logoDark from '../assets/logo-dark.png';
@@ -107,6 +109,7 @@ function Layout() {
 
   // State: Sidebar collapse toggle
   const [isCollapsed, setIsCollapsed] = useState(false);
+  const [isIamExpanded, setIsIamExpanded] = useState(false);
 
   // Get auth, settings, and RAGFlow context
   const { user } = useAuth();
@@ -178,13 +181,13 @@ function Layout() {
         </div>
 
         <nav className="flex flex-col gap-2 flex-1 mt-4">
-          {config.features.enableAiChat && (
+          {config.features.enableAiChat && (user?.role === 'admin' || user?.role === 'leader' || user?.role === 'user' || user?.permissions?.includes('view_chat')) && (
             <NavLink to="/ai-chat" className={({ isActive }) => `sidebar-link ${isActive ? 'active' : ''} ${isCollapsed ? 'justify-center px-2' : ''}`} title={t('nav.aiChat')}>
               <MessageSquare size={20} />
               {!isCollapsed && <span>{t('nav.aiChat')}</span>}
             </NavLink>
           )}
-          {config.features.enableAiSearch && (
+          {config.features.enableAiSearch && (user?.role === 'admin' || user?.role === 'leader' || user?.role === 'user' || user?.permissions?.includes('view_search')) && (
             <NavLink to="/ai-search" className={({ isActive }) => `sidebar-link ${isActive ? 'active' : ''} ${isCollapsed ? 'justify-center px-2' : ''}`} title={t('nav.aiSearch')}>
               <Search size={20} />
               {!isCollapsed && <span>{t('nav.aiSearch')}</span>}
@@ -197,10 +200,34 @@ function Layout() {
             </NavLink>
           )}
           {user?.role === 'admin' && (
-            <NavLink to="/user-management" className={({ isActive }) => `sidebar-link ${isActive ? 'active' : ''} ${isCollapsed ? 'justify-center px-2' : ''}`} title={t('nav.userManagement')}>
-              <Users size={20} />
-              {!isCollapsed && <span>{t('nav.userManagement')}</span>}
-            </NavLink>
+            <div className="flex flex-col gap-1">
+              <button
+                onClick={() => setIsIamExpanded(!isIamExpanded)}
+                className={`sidebar-link w-full ${isCollapsed ? 'justify-center px-2' : ''}`}
+                title={t('nav.iam')}
+              >
+                <Shield size={20} />
+                {!isCollapsed && (
+                  <>
+                    <span className="flex-1 text-left">{t('nav.iam')}</span>
+                    {isIamExpanded ? <ChevronDown size={16} /> : <ChevronRight size={16} />}
+                  </>
+                )}
+              </button>
+
+              {(!isCollapsed && isIamExpanded) && (
+                <div className="pl-4 flex flex-col gap-1">
+                  <NavLink to="/user-management" className={({ isActive }) => `sidebar-link ${isActive ? 'active' : ''}`} title={t('nav.userManagement')}>
+                    <Users size={18} />
+                    <span>{t('nav.userManagement')}</span>
+                  </NavLink>
+                  <NavLink to="/iam/teams" className={({ isActive }) => `sidebar-link ${isActive ? 'active' : ''}`} title={t('nav.teamManagement')}>
+                    <Users size={18} />
+                    <span>{t('nav.teamManagement')}</span>
+                  </NavLink>
+                </div>
+              )}
+            </div>
           )}
           {user?.role === 'admin' && (
             <NavLink to="/system-tools" className={({ isActive }) => `sidebar-link ${isActive ? 'active' : ''} ${isCollapsed ? 'justify-center px-2' : ''}`} title={t('nav.systemTools')}>
@@ -220,7 +247,7 @@ function Layout() {
               {!isCollapsed && <span>{t('ragflowConfig.title')}</span>}
             </NavLink>
           )}
-          {(user?.role === 'admin' || user?.role === 'manager') && (
+          {(user?.role === 'admin' || user?.role === 'leader' || user?.permissions?.includes('storage:read')) && (
             <NavLink to="/storage" className={({ isActive }) => `sidebar-link ${isActive ? 'active' : ''} ${isCollapsed ? 'justify-center px-2' : ''}`} title={t('nav.storage')}>
               <HardDrive size={20} />
               {!isCollapsed && <span>{t('nav.storage')}</span>}
@@ -293,7 +320,7 @@ function Layout() {
             />
           )}
         </header>
-        <div className={`flex-1 overflow-hidden ${['/ai-chat', '/ai-search', '/storage', '/system-tools', '/storage-dashboard', '/ragflow-config'].includes(location.pathname) ? '' : 'p-8 overflow-auto'}`}>
+        <div className={`flex-1 overflow-hidden ${['/ai-chat', '/ai-search', '/storage', '/system-tools', '/storage-dashboard', '/ragflow-config', '/iam/teams'].includes(location.pathname) ? '' : 'p-8 overflow-auto'}`}>
           <Outlet />
         </div>
       </main>

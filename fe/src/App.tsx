@@ -40,6 +40,10 @@ const LoginPage = lazy(() => import('./pages/LoginPage'));
 const LogoutPage = lazy(() => import('./pages/LogoutPage'));
 /** User management page - admin only */
 const UserManagementPage = lazy(() => import('./pages/UserManagementPage'));
+/** Team management page - admin only */
+const TeamManagementPage = lazy(() => import('./pages/TeamManagementPage'));
+/** Permission management page - admin only */
+const PermissionManagementPage = lazy(() => import('./pages/PermissionManagementPage'));
 /** System monitoring tools page - admin only */
 const SystemToolsPage = lazy(() => import('./pages/SystemToolsPage'));
 /** System Monitor page - admin only */
@@ -141,7 +145,7 @@ function App() {
                   </AdminRoute>
                 } />
                 <Route path="/storage" element={
-                  <RoleRoute allowedRoles={['admin', 'manager']}>
+                  <RoleRoute allowedRoles={['admin', 'leader']}>
                     <MinIOManagerPage />
                   </RoleRoute>
                 } />
@@ -165,6 +169,12 @@ function App() {
                     <RagflowConfigPage />
                   </AdminRoute>
                 } />
+                <Route path="/iam/teams" element={
+                  <AdminRoute>
+                    <TeamManagementPage />
+                  </AdminRoute>
+                } />
+
 
                 {/* Error routes */}
                 <Route path="/403" element={<ErrorPage code={403} />} />

@@ -28,14 +28,19 @@
     "exitFullScreen": "全画面表示を終了",
     "refresh": "更新",
     "on": "ON",
-    "off": "OFF"
+    "off": "OFF",
+    "searchPlaceholder": "検索...",
+    "add": "追加"
   },
   "nav": {
     "aiChat": "チャット",
     "aiSearch": "検索",
     "history": "履歴",
     "documents": "ドキュメント",
-    "userManagement": "ユーザー管理",
+    "iam": "IAM",
+    "userManagement": "ユーザー",
+    "teamManagement": "チーム",
+    "permissionManagement": "権限",
     "systemTools": "システムツール",
     "systemMonitor": "システムモニター",
     "storage": "ドキュメント",
@@ -44,6 +49,28 @@
     "signOut": "サインアウト",
     "expandMenu": "メニューを展開",
     "collapseMenu": "メニューを折りたたむ"
+  },
+  "iam": {
+    "title": "ID管理とアクセス制御",
+    "teams": {
+      "title": "チーム管理",
+      "description": "チームとメンバーを管理",
+      "create": "チームを作成",
+      "edit": "チームを編集",
+      "name": "チーム名",
+      "projectName": "プロジェクト名",
+      "formDescription": "説明",
+      "members": "メンバー",
+      "addMember": "メンバーを追加",
+      "role": "役割",
+      "leader": "リーダー",
+      "member": "メンバー",
+      "selectUser": "ユーザーを選択"
+    },
+    "permissions": {
+      "title": "権限管理",
+      "description": "システム権限を管理"
+    }
   },
   "login": {
     "subtitle": "AIチャットと高度なドキュメント検索",
@@ -241,6 +268,10 @@
       "video": "動画"
     }
   },
+  "UserManagement": {
+    "Leader": "リーダー",
+    "leaderDescription": "コンテンツの管理とレポートの表示が可能"
+  },
   "userManagement": {
     "searchPlaceholder": "ユーザーを検索...",
     "allRoles": "すべての役割",
@@ -257,10 +288,10 @@
     "saveChanges": "変更を保存",
     "cancel": "キャンセル",
     "admin": "管理者",
-    "manager": "マネージャー",
+    "leader": "リーダー",
     "userRole": "ユーザー",
     "adminDescription": "すべての機能と設定へのフルアクセス",
-    "managerDescription": "コンテンツの管理とレポートの表示が可能",
+    "leaderDescription": "コンテンツの管理とレポートの表示が可能",
     "userDescription": "チャットと検索への標準アクセス",
     "noPermission": "このページを表示する権限がありません。",
     "loading": "読み込み中...",

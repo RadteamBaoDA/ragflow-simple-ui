@@ -38,7 +38,7 @@ const router = Router();
 function getClientIp(req: Request): string {
     const forwardedFor = req.headers['x-forwarded-for'];
     const realIp = req.headers['x-real-ip'];
-    
+
     if (typeof forwardedFor === 'string') {
         return forwardedFor.split(',')[0]?.trim() || 'unknown';
     }
@@ -113,12 +113,12 @@ router.get('/ip-history', requirePermission('manage_users'), async (req: Request
  */
 router.get('/:id/ip-history', requirePermission('manage_users'), async (req: Request, res: Response) => {
     const { id } = req.params;
-    
+
     if (!id) {
         res.status(400).json({ error: 'User ID is required' });
         return;
     }
-    
+
     try {
         const history = await userService.getUserIpHistory(id);
         res.json(history);
@@ -166,7 +166,7 @@ router.put('/:id/role', requirePermission('manage_users'), requireRecentAuth(15)
         res.status(400).json({ error: 'Invalid input' });
         return;
     }
-    
+
     // Validate UUID format for id
     const uuidRegex = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;
     if (!uuidRegex.test(id) && id !== 'root-user' && id !== 'dev-user-001') {
@@ -175,7 +175,7 @@ router.put('/:id/role', requirePermission('manage_users'), requireRecentAuth(15)
     }
 
     // Validate role value (strict type check)
-    const validRoles = ['admin', 'manager', 'user'] as const;
+    const validRoles = ['admin', 'leader', 'user'] as const;
     if (!validRoles.includes(role as typeof validRoles[number])) {
         res.status(400).json({ error: 'Invalid role' });
         return;
@@ -205,7 +205,7 @@ router.put('/:id/role', requirePermission('manage_users'), requireRecentAuth(15)
     }
 
     try {
-        const updatedUser = await userService.updateUserRole(id, role as 'admin' | 'manager' | 'user');
+        const updatedUser = await userService.updateUserRole(id, role as 'admin' | 'leader' | 'user');
         if (!updatedUser) {
             res.status(404).json({ error: 'User not found' });
             return;

@@ -203,7 +203,7 @@ describe('useSharedUser', () => {
         id: 'user-2',
         email: 'new@example.com',
         name: 'New User',
-        role: 'manager',
+        role: 'leader',
       };
 
       act(() => {

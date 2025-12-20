@@ -37,8 +37,8 @@ export interface User {
     email: string;
     /** User's display name */
     display_name: string;
-    /** User's role for RBAC (admin/manager/user) */
-    role: 'admin' | 'manager' | 'user';
+    /** User's role for RBAC (admin/leader/user) */
+    role: 'admin' | 'leader' | 'user';
     /** Additional permissions (JSON string in DB) */
     permissions: string[];
     /** User's organizational department (from Azure AD) */
@@ -285,7 +285,7 @@ export class UserService {
      * @param role - New role to assign (admin/manager/user)
      * @returns Updated user record, or undefined if not found
      */
-    async updateUserRole(userId: string, role: 'admin' | 'manager' | 'user'): Promise<User | undefined> {
+    async updateUserRole(userId: string, role: 'admin' | 'leader' | 'user'): Promise<User | undefined> {
         await query(
             'UPDATE users SET role = $1, updated_at = NOW() WHERE id = $2',
             [role, userId]
@@ -300,6 +300,20 @@ export class UserService {
         }
 
         return updatedUser;
+    }
+
+    /**
+     * Update a user's permissions.
+     * Used for bulk granting permissions or fine-grained access control.
+     * 
+     * @param userId - ID of user to update
+     * @param permissions - Array of permission strings
+     */
+    async updateUserPermissions(userId: string, permissions: string[]): Promise<void> {
+        await query(
+            'UPDATE users SET permissions = $1, updated_at = NOW() WHERE id = $2',
+            [JSON.stringify(permissions), userId]
+        );
     }
 
     /**

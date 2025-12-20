@@ -16,7 +16,7 @@
 import { useState, useEffect } from 'react';
 import { useAuth, User } from '../hooks/useAuth';
 import { Dialog } from '../components/Dialog';
-import { Mail, Edit2, Globe, Search, Filter, X, ArrowUp, ArrowDown } from 'lucide-react';
+import { Mail, Edit2, Globe, Search, Filter, X, ArrowUp, ArrowDown, AlertCircle } from 'lucide-react';
 import { useTranslation } from 'react-i18next';
 
 /** API base URL from environment */
@@ -58,7 +58,7 @@ export default function UserManagementPage() {
     // Edit dialog state
     const [selectedUser, setSelectedUser] = useState<User | null>(null);
     const [isEditModalOpen, setIsEditModalOpen] = useState(false);
-    const [newRole, setNewRole] = useState<'admin' | 'manager' | 'user'>('user');
+    const [newRole, setNewRole] = useState<'admin' | 'leader' | 'user'>('user');
 
     // IP history state
     const [ipHistoryMap, setIpHistoryMap] = useState<IpHistoryMap>({});
@@ -67,7 +67,7 @@ export default function UserManagementPage() {
 
     // Filter and Sort state
     const [searchQuery, setSearchQuery] = useState('');
-    const [roleFilter, setRoleFilter] = useState<'all' | 'admin' | 'manager' | 'user'>('all');
+    const [roleFilter, setRoleFilter] = useState<'all' | 'admin' | 'leader' | 'user'>('all');
     const [departmentFilter, setDepartmentFilter] = useState<string>('all');
     const [sortConfig, setSortConfig] = useState<{ key: keyof User | 'email'; direction: 'asc' | 'desc' }>({
         key: 'displayName',
@@ -178,12 +178,17 @@ export default function UserManagementPage() {
     // Handlers
     // ============================================================================
 
+    const [saveError, setSaveError] = useState<string | null>(null);
+
+    // ...
+
     /**
      * Handle edit button click - open dialog with user's current role.
      */
     const handleEditClick = (user: User) => {
         setSelectedUser(user);
         setNewRole(user.role);
+        setSaveError(null);
         setIsEditModalOpen(true);
     };
 
@@ -192,6 +197,7 @@ export default function UserManagementPage() {
      */
     const handleSaveRole = async () => {
         if (!selectedUser) return;
+        setSaveError(null);
 
         try {
             const response = await fetch(`${API_BASE_URL}/api/users/${selectedUser.id}/role`, {
@@ -201,15 +207,21 @@ export default function UserManagementPage() {
                 credentials: 'include',
             });
 
-            if (!response.ok) throw new Error('Failed to update role');
+            if (!response.ok) {
+                const data = await response.json().catch(() => ({}));
+                throw new Error(data.error || 'Failed to update role');
+            }
 
             // Update local state to reflect change
             setUsers(users.map(u => u.id === selectedUser.id ? { ...u, role: newRole } : u));
             setIsEditModalOpen(false);
         } catch (err) {
             console.error('Failed to update role:', err);
+            setSaveError(err instanceof Error ? err.message : 'An error occurred');
         }
     };
+
+
 
     if (isLoading) {
         return (
@@ -272,7 +284,7 @@ export default function UserManagementPage() {
                             >
                                 <option value="all">{t('userManagement.allRoles', 'All Roles')}</option>
                                 <option value="admin">{t('userManagement.admin')}</option>
-                                <option value="manager">{t('userManagement.manager')}</option>
+                                <option value="leader">{t('userManagement.leader')}</option>
                                 <option value="user">{t('userManagement.userRole')}</option>
                             </select>
                             <Filter className="absolute right-2.5 top-1/2 transform -translate-y-1/2 w-4 h-4 text-slate-400 pointer-events-none" />
@@ -381,10 +393,10 @@ export default function UserManagementPage() {
                                         <td className="p-4">
                                             <span className={`inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium capitalize
                       ${user.role === 'admin' ? 'bg-purple-100 text-purple-800 dark:bg-purple-900/30 dark:text-purple-300' :
-                                                    user.role === 'manager' ? 'bg-blue-100 text-blue-800 dark:bg-blue-900/30 dark:text-blue-300' :
+                                                    user.role === 'leader' ? 'bg-blue-100 text-blue-800 dark:bg-blue-900/30 dark:text-blue-300' :
                                                         'bg-slate-100 text-slate-800 dark:bg-slate-700 dark:text-slate-300'}`}>
                                                 {user.role === 'admin' ? t('userManagement.admin') :
-                                                    user.role === 'manager' ? t('userManagement.manager') :
+                                                    user.role === 'leader' ? t('userManagement.leader') :
                                                         t('userManagement.userRole')}
                                             </span>
                                         </td>
@@ -527,7 +539,7 @@ export default function UserManagementPage() {
                             {t('userManagement.role')}
                         </label>
                         <div className="grid grid-cols-1 gap-2">
-                            {['admin', 'manager', 'user'].map((role) => (
+                            {['admin', 'leader', 'user'].map((role) => (
                                 <label
                                     key={role}
                                     className={`flex items-center p-3 border rounded-lg cursor-pointer transition-all
@@ -546,12 +558,12 @@ export default function UserManagementPage() {
                                     <div className="flex-1">
                                         <div className="font-medium text-slate-900 dark:text-white capitalize">
                                             {role === 'admin' ? t('userManagement.admin') :
-                                                role === 'manager' ? t('userManagement.manager') :
+                                                role === 'leader' ? t('userManagement.leader') :
                                                     t('userManagement.userRole')}
                                         </div>
                                         <div className="text-xs text-slate-500 dark:text-slate-400">
                                             {role === 'admin' ? t('userManagement.adminDescription') :
-                                                role === 'manager' ? t('userManagement.managerDescription') :
+                                                role === 'leader' ? t('userManagement.leaderDescription') :
                                                     t('userManagement.userDescription')}
                                         </div>
                                     </div>
@@ -561,6 +573,12 @@ export default function UserManagementPage() {
                                 </label>
                             ))}
                         </div>
+                        {saveError && (
+                            <div className="mt-4 p-3 bg-red-50 dark:bg-red-900/20 border border-red-200 dark:border-red-800 rounded-lg flex items-start gap-2 text-red-700 dark:text-red-400">
+                                <AlertCircle className="w-5 h-5 flex-shrink-0 mt-0.5" />
+                                <div className="text-sm">{saveError}</div>
+                            </div>
+                        )}
                     </div>
                 </div>
             </Dialog>
