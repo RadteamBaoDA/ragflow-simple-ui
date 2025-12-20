@@ -17,6 +17,13 @@
     "username": "Tên đăng nhập",
     "password": "Mật khẩu",
     "login": "Đăng nhập",
+    "name": "Tên",
+    "actions": "Thao tác",
+    "select": "Chọn",
+    "previous": "Trước",
+    "next": "Sau",
+    "noData": "Không có dữ liệu",
+    "confirmDelete": "Bạn có chắc chắn muốn xóa mục này không?",
     "fullScreen": "Toàn màn hình",
     "exitFullScreen": "Thoát toàn màn hình"
   },
@@ -98,7 +105,8 @@
     "chatInterface": "Giao diện Chat RAGFlow",
     "searchInterface": "Giao diện Tìm kiếm RAGFlow",
     "failedToLoad": "Không thể tải nội dung. Dịch vụ có thể tạm thời không khả dụng.",
-    "errorCode": "Mã lỗi: {{code}}"
+    "errorCode": "Mã lỗi: {{code}}",
+    "noSourceConfigured": "Không có nguồn nào được cấu hình. Vui lòng liên hệ quản trị viên."
   },
   "pages": {
     "aiChat": {
@@ -393,5 +401,18 @@
     "error": {
       "load": "Không thể tải danh sách bucket"
     }
+  },
+  "ragflowConfig": {
+    "title": "Cấu hình RAGFlow",
+    "tabs": {
+      "chat": "AI Chat",
+      "search": "AI Tìm kiếm"
+    },
+    "defaultSettings": "Cấu hình Mặc định",
+    "defaultUrlLabel": "URL Mặc định cho {{type}}",
+    "sourcesList": "Danh sách Nguồn",
+    "addSource": "Thêm Nguồn",
+    "editSource": "Chỉnh sửa Nguồn",
+    "pageInfo": "Trang {{current}} trên {{total}}"
   }
 }

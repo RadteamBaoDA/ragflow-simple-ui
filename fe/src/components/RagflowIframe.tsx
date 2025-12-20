@@ -82,11 +82,19 @@ function RagflowIframe({ path }: RagflowIframeProps) {
    * Appends current locale to URL for internationalization.
    */
   useEffect(() => {
-    if (!ragflow.config || !selectedSourceId) return;
+    if (!ragflow.config) return;
 
     // Get sources array based on path type
     const sources = path === 'chat' ? ragflow.config.chatSources : ragflow.config.searchSources;
-    const source = sources.find(s => s.id === selectedSourceId);
+
+    // Try to find selected source
+    let source = sources.find(s => s.id === selectedSourceId);
+
+    // If not found, try default source
+    if (!source) {
+      const defaultId = path === 'chat' ? ragflow.config.defaultChatSourceId : ragflow.config.defaultSearchSourceId;
+      source = sources.find(s => s.id === defaultId);
+    }
 
     if (source) {
       // Append locale, email, and theme query parameters to URL
@@ -97,17 +105,15 @@ function RagflowIframe({ path }: RagflowIframeProps) {
       setIframeSrc(urlWithParams);
       setUrlChecked(false); // Reset check when URL changes
     } else {
-      // Fallback to legacy URL if source not found
-      const fallbackUrl = path === 'chat' ? ragflow.config.aiChatUrl : ragflow.config.aiSearchUrl;
-      if (fallbackUrl) {
-        const separator = fallbackUrl.includes('?') ? '&' : '?';
-        const userEmail = user?.email ? `&email=${encodeURIComponent(user.email)}` : '';
-        const themeParam = `&theme=${theme}`;
-        setIframeSrc(`${fallbackUrl}${separator}locale=${i18n.language}${userEmail}${themeParam}`);
-        setUrlChecked(false);
-      }
+      // No source configured
+      setIframeSrc('');
+      setIframeError({
+        type: 'notfound',
+        message: t('iframe.noSourceConfigured')
+      });
     }
-  }, [ragflow.config, selectedSourceId, i18n.language, path, user, theme]);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [ragflow.config, selectedSourceId, i18n.language, path, user?.email, theme]);
 
   // ============================================================================
   // Callbacks
@@ -167,7 +173,8 @@ function RagflowIframe({ path }: RagflowIframeProps) {
     } finally {
       setIsCheckingUrl(false);
     }
-  }, [t]);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, []);
 
   /**
    * Effect: Check URL status when iframe source changes.
@@ -189,7 +196,8 @@ function RagflowIframe({ path }: RagflowIframeProps) {
     });
     setIframeLoading(false);
     setIframeError(null);
-  }, [iframeSrc, user]);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, []);
 
   /**
    * Handler: Called when iframe fails to load.
@@ -206,7 +214,8 @@ function RagflowIframe({ path }: RagflowIframeProps) {
       });
     }
     setIframeLoading(false);
-  }, [iframeSrc, iframeError, t]);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, []);
 
   /**
    * Effect: Reset loading state when iframe source changes.

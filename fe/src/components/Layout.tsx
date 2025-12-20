@@ -36,7 +36,8 @@ import {
   HardDrive,
   ClipboardList,
   FileCode,
-  Database
+  Database,
+  Settings2
 } from 'lucide-react';
 import logo from '../assets/logo.png';
 import logoDark from '../assets/logo-dark.png';
@@ -139,6 +140,8 @@ function Layout() {
         return t('pages.tokenizer.title');
       case '/storage-dashboard':
         return t('storage.title');
+      case '/ragflow-config':
+        return t('ragflowConfig.title');
       default:
         return t('common.appName');
     }
@@ -200,6 +203,12 @@ function Layout() {
             <NavLink to="/system-tools" className={({ isActive }) => `sidebar-link ${isActive ? 'active' : ''} ${isCollapsed ? 'justify-center px-2' : ''}`} title={t('nav.systemTools')}>
               <Server size={20} />
               {!isCollapsed && <span>{t('nav.systemTools')}</span>}
+            </NavLink>
+          )}
+          {user?.role === 'admin' && (
+            <NavLink to="/ragflow-config" className={({ isActive }) => `sidebar-link ${isActive ? 'active' : ''} ${isCollapsed ? 'justify-center px-2' : ''}`} title={t('ragflowConfig.title')}>
+              <Settings2 size={20} />
+              {!isCollapsed && <span>{t('ragflowConfig.title')}</span>}
             </NavLink>
           )}
           {(user?.role === 'admin' || user?.role === 'manager') && (
@@ -275,7 +284,7 @@ function Layout() {
             />
           )}
         </header>
-        <div className={`flex-1 overflow-hidden ${['/ai-chat', '/ai-search', '/storage', '/system-tools', '/storage-dashboard'].includes(location.pathname) ? '' : 'p-8 overflow-auto'}`}>
+        <div className={`flex-1 overflow-hidden ${['/ai-chat', '/ai-search', '/storage', '/system-tools', '/storage-dashboard', '/ragflow-config'].includes(location.pathname) ? '' : 'p-8 overflow-auto'}`}>
           <Outlet />
         </div>
       </main>

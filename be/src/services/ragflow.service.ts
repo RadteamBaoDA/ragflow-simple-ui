@@ -2,27 +2,14 @@
  * @fileoverview RAGFlow configuration service.
  * 
  * This module manages the configuration for RAGFlow AI Chat and Search
- * iframe URLs. Configuration is loaded from a JSON file that can be
- * customized via Docker volume mount.
- * 
- * Configuration file location (in order of priority):
- * 1. RAGFLOW_CONFIG_PATH environment variable
- * 2. /app/config/ragflow.config.json (Docker volume mount)
- * 3. be/src/config/ragflow.config.json (default/fallback)
+ * iframe URLs. Configuration is stored in the database.
  * 
  * @module services/ragflow
  */
 
-import fs from 'fs/promises';
-import { constants } from 'fs';
-import path from 'path';
-import { fileURLToPath } from 'url';
+import { v4 as uuidv4 } from 'uuid';
 import { log } from './logger.service.js';
-import { config } from '../config/index.js';
-
-/** ESM-compatible __dirname resolution */
-const __filename = fileURLToPath(import.meta.url);
-const __dirname = path.dirname(__filename);
+import { db } from '../db/index.js';
 
 // ============================================================================
 // TYPE DEFINITIONS
@@ -34,6 +21,8 @@ const __dirname = path.dirname(__filename);
 export interface RagflowSource {
     /** Unique source identifier */
     id: string;
+    /** 'chat' or 'search' */
+    type: string;
     /** Display name in UI */
     name: string;
     /** RAGFlow iframe URL */
@@ -41,17 +30,23 @@ export interface RagflowSource {
 }
 
 /**
- * RAGFlow configuration file structure.
+ * RAGFlow configuration structure.
  */
 export interface RagflowConfig {
-    /** Primary AI Chat iframe URL */
-    aiChatUrl: string;
-    /** Primary AI Search iframe URL */
-    aiSearchUrl: string;
-    /** Available chat sources */
+    defaultChatSourceId: string;
+    defaultSearchSourceId: string;
     chatSources: RagflowSource[];
-    /** Available search sources */
     searchSources: RagflowSource[];
+}
+
+/**
+ * Paginated response for sources
+ */
+export interface PaginatedSources {
+    data: RagflowSource[];
+    total: number;
+    page: number;
+    limit: number;
 }
 
 // ============================================================================
@@ -60,151 +55,117 @@ export interface RagflowConfig {
 
 /**
  * Service for managing RAGFlow configuration.
- * Loads configuration from a JSON file and provides
- * methods to query chat/search URLs and sources.
+ * Interact with `system_configs` and `ragflow_sources` tables.
  */
 class RagflowService {
-    /** Loaded configuration */
-    private ragflowConfig: RagflowConfig = {
-        aiChatUrl: '',
-        aiSearchUrl: '',
-        chatSources: [],
-        searchSources: [],
-    };
-    /** Path to the configuration file */
-    private configPath: string = '';
 
-    /**
-     * Creates a new RagflowService.
-     * Configuration is loaded asynchronously via initialize().
-     */
-    constructor() {
-    }
+    constructor() { }
 
     /**
      * Initialize the service.
-     * Must be called before use.
      */
     async initialize(): Promise<void> {
-        this.configPath = await this.resolveConfigPath();
-        await this.loadConfig();
+        // Potential future use: Check if DB is empty and seed from file
     }
 
     /**
-     * Resolve the configuration file path.
-     * Checks multiple locations in order of priority.
+     * Get the global RAGFlow configuration (lists of sources and default IDs).
      */
-    private async resolveConfigPath(): Promise<string> {
-        // 1. Check environment variable
-        const envPath = config.ragflowConfigPath;
-        if (envPath) {
-            try {
-                await fs.access(envPath, constants.F_OK);
-                log.debug('Using RAGFlow config from environment variable', { path: envPath });
-                return envPath;
-            } catch {
-                // Ignore
-            }
-        }
+    async getConfig(): Promise<RagflowConfig> {
+        // Fetch default source IDs
+        const defaultChatId = await db.queryOne<{ value: string }>('SELECT value FROM system_configs WHERE key = $1', ['default_chat_source_id']);
+        const defaultSearchId = await db.queryOne<{ value: string }>('SELECT value FROM system_configs WHERE key = $1', ['default_search_source_id']);
 
-        // 2. Check Docker volume mount location
-        const dockerPath = '/app/config/ragflow.config.json';
-        try {
-            await fs.access(dockerPath, constants.F_OK);
-            log.debug('Using RAGFlow config from Docker volume', { path: dockerPath });
-            return dockerPath;
-        } catch {
-            // Ignore
-        }
+        // Fetch all sources
+        // Note: For a very large number of sources, we might want to optimize this,
+        // but for configuration binding on the frontend, we typically need the lists.
+        // If lists become huge, the frontend should use the paginated endpoint instead.
+        const sources = await db.query<RagflowSource>('SELECT * FROM ragflow_sources ORDER BY name ASC');
+        const chatSources = sources.filter(s => s.type === 'chat');
+        const searchSources = sources.filter(s => s.type === 'search');
 
-        // 3. Fallback to bundled config (relative to compiled code)
-        const fallbackPath = path.join(__dirname, '../config/ragflow.config.json');
-        log.debug('Using bundled RAGFlow config', { path: fallbackPath });
-        return fallbackPath;
+        return {
+            defaultChatSourceId: defaultChatId?.value || '',
+            defaultSearchSourceId: defaultSearchId?.value || '',
+            chatSources,
+            searchSources,
+        };
     }
 
     /**
-     * Load RAGFlow configuration from JSON file.
-     * Called on startup and when reload() is invoked.
+     * Get all sources (chat and search) - primarily for Dropdown or internal use.
+     * Warning: This returns all sources. For management UI, use getSourcesPaginated.
      */
-    private async loadConfig(): Promise<void> {
-        try {
-            // Check if config file exists
-            try {
-                await fs.access(this.configPath, constants.F_OK);
-            } catch {
-                log.warn('RAGFlow config file not found', { path: this.configPath });
-                return;
-            }
-
-            // Read and parse JSON configuration
-            const configData = await fs.readFile(this.configPath, 'utf-8');
-            const loadedConfig: RagflowConfig = JSON.parse(configData);
-
-            // Validate config structure
-            if (!loadedConfig.chatSources || !Array.isArray(loadedConfig.chatSources)) {
-                loadedConfig.chatSources = [];
-            }
-            if (!loadedConfig.searchSources || !Array.isArray(loadedConfig.searchSources)) {
-                loadedConfig.searchSources = [];
-            }
-
-            this.ragflowConfig = loadedConfig;
-            log.debug('RAGFlow configuration loaded', {
-                chatSources: this.ragflowConfig.chatSources.length,
-                searchSources: this.ragflowConfig.searchSources.length,
-            });
-        } catch (error) {
-            log.error('Failed to load RAGFlow config', {
-                error: error instanceof Error ? error.message : String(error),
-            });
-        }
+    async getAllSources(): Promise<{ chatSources: RagflowSource[], searchSources: RagflowSource[] }> {
+        const sources = await db.query<RagflowSource>('SELECT * FROM ragflow_sources ORDER BY name ASC');
+        return {
+            chatSources: sources.filter(s => s.type === 'chat'),
+            searchSources: sources.filter(s => s.type === 'search'),
+        };
     }
 
     /**
-     * Get the full RAGFlow configuration.
-     * Used by the API to return config to frontend.
+     * Get sources with pagination.
      */
-    getConfig(): RagflowConfig {
-        return this.ragflowConfig;
+    async getSourcesPaginated(type: 'chat' | 'search', page: number = 1, limit: number = 10): Promise<PaginatedSources> {
+        const offset = (page - 1) * limit;
+
+        const countResult = await db.queryOne<{ count: string }>(
+            'SELECT COUNT(*) as count FROM ragflow_sources WHERE type = $1',
+            [type]
+        );
+        const total = parseInt(countResult?.count || '0', 10);
+
+        const data = await db.query<RagflowSource>(
+            'SELECT * FROM ragflow_sources WHERE type = $1 ORDER BY created_at DESC LIMIT $2 OFFSET $3',
+            [type, limit, offset]
+        );
+
+        return { data, total, page, limit };
     }
 
     /**
-     * Get primary AI Chat URL.
+     * Update a system configuration (default source IDs).
      */
-    getAiChatUrl(): string {
-        return this.ragflowConfig.aiChatUrl;
+    async saveSystemConfig(key: 'default_chat_source_id' | 'default_search_source_id', value: string): Promise<void> {
+        await db.query(
+            `INSERT INTO system_configs (key, value) VALUES ($1, $2)
+             ON CONFLICT (key) DO UPDATE SET value = $2, updated_at = NOW()`,
+            [key, value]
+        );
+        log.info(`Updated system config: ${key}`);
     }
 
     /**
-     * Get primary AI Search URL.
+     * Add a new source.
      */
-    getAiSearchUrl(): string {
-        return this.ragflowConfig.aiSearchUrl;
+    async addSource(type: 'chat' | 'search', name: string, url: string): Promise<RagflowSource> {
+        const id = uuidv4();
+        await db.query(
+            'INSERT INTO ragflow_sources (id, type, name, url) VALUES ($1, $2, $3, $4)',
+            [id, type, name, url]
+        );
+        log.info(`Added new ${type} source`, { id, name });
+        return { id, type, name, url };
     }
 
     /**
-     * Get all chat sources.
+     * Update an existing source.
      */
-    getChatSources(): RagflowSource[] {
-        return this.ragflowConfig.chatSources;
+    async updateSource(id: string, name: string, url: string): Promise<void> {
+        await db.query(
+            'UPDATE ragflow_sources SET name = $1, url = $2, updated_at = NOW() WHERE id = $3',
+            [name, url, id]
+        );
+        log.info('Updated source', { id });
     }
 
     /**
-     * Get all search sources.
+     * Delete a source.
      */
-    getSearchSources(): RagflowSource[] {
-        return this.ragflowConfig.searchSources;
-    }
-
-    /**
-     * Reload configuration from file.
-     * Call this after modifying the config file to apply changes
-     * without restarting the server.
-     */
-    async reload(): Promise<void> {
-        log.debug('Reloading RAGFlow configuration');
-        await this.loadConfig();
+    async deleteSource(id: string): Promise<void> {
+        await db.query('DELETE FROM ragflow_sources WHERE id = $1', [id]);
+        log.info('Deleted source', { id });
     }
 }
 
@@ -214,3 +175,4 @@ class RagflowService {
 
 /** Singleton service instance */
 export const ragflowService = new RagflowService();
+
