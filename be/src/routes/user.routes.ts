@@ -65,7 +65,8 @@ function getClientIp(req: Request): string {
  */
 router.get('/', requireAuth, async (req: Request, res: Response) => {
     try {
-        const users = await userService.getAllUsers();
+        const roles = req.query.roles ? (req.query.roles as string).split(',') : undefined;
+        const users = await userService.getAllUsers(roles as any);
         res.json(users);
     } catch (error) {
         log.error('Failed to fetch users', { error: error instanceof Error ? error.message : String(error) });

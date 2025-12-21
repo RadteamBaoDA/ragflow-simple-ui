@@ -2,8 +2,9 @@ import { config } from '../config';
 import { User } from '../hooks/useAuth';
 
 export const userService = {
-    async getUsers(): Promise<User[]> {
-        const response = await fetch(`${config.apiBaseUrl}/api/users`, {
+    async getUsers(roles?: string[]): Promise<User[]> {
+        const queryParams = roles ? `?roles=${roles.join(',')}` : '';
+        const response = await fetch(`${config.apiBaseUrl}/api/users${queryParams}`, {
             headers: {
                 'Authorization': `Bearer ${localStorage.getItem('token')}`
             }
@@ -16,9 +17,9 @@ export const userService = {
         }));
     },
 
-    async getAllUsers(): Promise<User[]> {
+    async getAllUsers(roles?: string[]): Promise<User[]> {
         // Alias for getUsers if needed, or same implementation
-        return this.getUsers();
+        return this.getUsers(roles);
     },
 
     async updateUserPermissions(userId: string, permissions: string[]): Promise<void> {

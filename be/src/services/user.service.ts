@@ -267,8 +267,18 @@ export class UserService {
      * 
      * @returns Array of all users with parsed permissions
      */
-    async getAllUsers(): Promise<User[]> {
-        const users = await query<User>('SELECT * FROM users ORDER BY created_at DESC');
+    async getAllUsers(roles?: string[]): Promise<User[]> {
+        let sql = 'SELECT * FROM users';
+        const params: any[] = [];
+
+        if (roles && roles.length > 0) {
+            sql += ' WHERE role = ANY($1)';
+            params.push(roles);
+        }
+
+        sql += ' ORDER BY created_at DESC';
+
+        const users = await query<User>(sql, params);
 
         // Parse permissions from JSON string to array
         return users.map(user => ({

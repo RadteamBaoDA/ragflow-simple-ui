@@ -33,6 +33,7 @@ import {
   ChevronLeft,
   ChevronRight,
   Users,
+
   Server,
   HardDrive,
   ClipboardList,
@@ -41,8 +42,11 @@ import {
   Settings2,
   Activity,
   Shield,
-  ChevronDown
+  ChevronDown,
+  User as UserIcon,
+  UserCog,
 } from 'lucide-react';
+
 import logo from '../assets/logo.png';
 import logoDark from '../assets/logo-dark.png';
 
@@ -247,7 +251,7 @@ function Layout() {
                 className={`sidebar-link w-full ${isCollapsed ? 'justify-center px-2' : ''}`}
                 title={t('nav.iam')}
               >
-                <Users size={20} />
+                <UserCog size={20} />
                 {!isCollapsed && (
                   <>
                     <span className="flex-1 text-left">{t('nav.iam')}</span>
@@ -259,7 +263,7 @@ function Layout() {
               {(!isCollapsed && isIamExpanded) && (
                 <div className="pl-4 flex flex-col gap-1">
                   <NavLink to="/user-management" className={({ isActive }) => `sidebar-link ${isActive ? 'active' : ''}`} title={t('nav.userManagement')}>
-                    <Users size={18} />
+                    <UserIcon size={18} />
                     <span>{t('nav.userManagement')}</span>
                   </NavLink>
                   <NavLink to="/iam/teams" className={({ isActive }) => `sidebar-link ${isActive ? 'active' : ''}`} title={t('nav.teamManagement')}>
