@@ -198,6 +198,9 @@
     "createBucket": "バケット設定を追加",
     "deleteBucket": "バケットを削除",
     "uploadFiles": "ファイルをアップロード",
+    "reauthRequired": "セッションの有効期限が切れました。ページを更新して再度ログインしてください。",
+    "deleteFailed": "アイテムの削除に失敗しました",
+    "batchDeleteConfirm": "{{count}} 個のアイテムを削除してもよろしいですか？",
     "uploadFolder": "フォルダをアップロード",
     "upload": "アップロード",
     "refresh": "更新",
@@ -475,10 +478,5 @@
     "permissionsTitle": "権限: {{sourceName}}",
     "publicAccess": "システム全体へのアクセス",
     "publicAccessDesc": "すべての認証済みユーザーにこのソースへのアクセスを許可します。"
-  },
-  "minio": {
-    "reauthRequired": "セッションの有効期限が切れました。ページを更新して再度ログインしてください。",
-    "deleteFailed": "アイテムの削除に失敗しました",
-    "batchDeleteConfirm": "{{count}} 個のアイテムを削除してもよろしいですか？"
   }
 }

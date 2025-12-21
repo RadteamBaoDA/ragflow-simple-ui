@@ -198,6 +198,9 @@
     "createBucket": "Add Bucket Configuration",
     "deleteBucket": "Remove Bucket",
     "uploadFiles": "Upload Files",
+    "reauthRequired": "Session expired. Please refresh the page to log in again.",
+    "deleteFailed": "Failed to delete item",
+    "batchDeleteConfirm": "Are you sure you want to delete {{count}} items?",
     "uploadFolder": "Upload Folder",
     "upload": "Upload",
     "refresh": "Refresh",
@@ -489,10 +492,5 @@
     "permissionsTitle": "Permissions: {{sourceName}}",
     "publicAccess": "System-wide Access",
     "publicAccessDesc": "Allow all authenticated users to access this source."
-  },
-  "minio": {
-    "reauthRequired": "Session expired. Please refresh the page to log in again.",
-    "deleteFailed": "Failed to delete item",
-    "batchDeleteConfirm": "Are you sure you want to delete {{count}} items?"
   }
 }

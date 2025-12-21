@@ -141,7 +141,7 @@ export default function KnowledgeBaseConfigPage() {
     const currentSources = activeTab === 'chat' ? configQuery.data?.chatSources : configQuery.data?.searchSources;
 
     return (
-        <div className="w-[80%] mx-auto h-full flex flex-col p-6 space-y-6">
+        <div className="w-[90%] mx-auto h-full flex flex-col p-6 space-y-6">
             {/* Tabs */}
             <div className="flex border-b border-gray-200 dark:border-gray-700 mb-6 shrink-0">
                 <button
@@ -226,7 +226,7 @@ export default function KnowledgeBaseConfigPage() {
                             <tr>
                                 <th className="px-6 py-3 font-medium text-gray-500 dark:text-gray-300">{t('common.name')}</th>
                                 <th className="px-6 py-3 font-medium text-gray-500 dark:text-gray-300">URL</th>
-                                <th className="px-6 py-3 font-medium text-gray-500 dark:text-gray-300 w-24">{t('common.actions')}</th>
+                                <th className="px-6 py-3 font-medium text-gray-500 dark:text-gray-300 w-32 whitespace-nowrap">{t('common.actions')}</th>
                             </tr>
                         </thead>
                         <tbody className="divide-y divide-gray-200 dark:divide-slate-700">

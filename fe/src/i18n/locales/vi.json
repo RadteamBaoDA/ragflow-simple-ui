@@ -198,6 +198,9 @@
     "createBucket": "Thêm cấu hình Bucket",
     "deleteBucket": "Xóa Bucket",
     "uploadFiles": "Tải lên Tệp",
+    "reauthRequired": "Phiên đăng nhập hết hạn. Vui lòng tải lại trang để đăng nhập lại.",
+    "deleteFailed": "Không thể xóa mục",
+    "batchDeleteConfirm": "Bạn có chắc chắn muốn xóa {{count}} mục không?",
     "uploadFolder": "Tải lên Thư mục",
     "upload": "Tải lên",
     "refresh": "Làm mới",
@@ -489,10 +492,5 @@
     "permissionsTitle": "Phân quyền: {{sourceName}}",
     "publicAccess": "Truy cập toàn hệ thống",
     "publicAccessDesc": "Cho phép tất cả người dùng đã xác thực truy cập nguồn này."
-  },
-  "minio": {
-    "reauthRequired": "Phiên đăng nhập hết hạn. Vui lòng tải lại trang để đăng nhập lại.",
-    "deleteFailed": "Không thể xóa mục",
-    "batchDeleteConfirm": "Bạn có chắc chắn muốn xóa {{count}} mục không?"
   }
 }
