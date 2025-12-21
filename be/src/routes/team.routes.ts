@@ -101,7 +101,7 @@ router.post('/:id/members', requirePermission('manage_users'), async (req: Reque
         }
 
         await teamService.addMembersWithAutoRole(teamId, idsToAdd);
-        res.status(201).json({ message: 'Member(s) added successfully' });
+        return res.status(201).json({ message: 'Member(s) added successfully' });
     } catch (error: any) {
         const message = String(error.message || error);
         log.error('Error adding team member:', { error: message });
@@ -112,7 +112,7 @@ router.post('/:id/members', requirePermission('manage_users'), async (req: Reque
         if (message.includes('No valid users found') || message.includes('User not found')) {
             return res.status(404).json({ error: message });
         }
-        res.status(500).json({ error: 'Failed to add team member' });
+        return res.status(500).json({ error: 'Failed to add team member' });
     }
 });
 

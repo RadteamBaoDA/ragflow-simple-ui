@@ -428,16 +428,16 @@ const StoragePage = () => {
                                         },
                                         {
                                             key: 'files',
-                                            label: t('minio.filesProgress'),
+                                            label: t('documents.filesProgress'),
                                             children: (
                                                 <div className="h-full overflow-hidden">
                                                     <Table
                                                         dataSource={globalMetrics.topFiles}
                                                         columns={[
-                                                            { title: t('minio.name'), dataIndex: 'name', key: 'name', ellipsis: true },
-                                                            { title: t('minio.bucketName'), dataIndex: 'bucketName', key: 'bucketName' },
-                                                            { title: t('minio.size'), dataIndex: 'size', key: 'size', render: (val) => formatFileSize(val) },
-                                                            { title: t('minio.modified'), dataIndex: 'lastModified', key: 'lastModified', render: (val) => new Date(val).toLocaleDateString() }
+                                                            { title: t('documents.name'), dataIndex: 'name', key: 'name', ellipsis: true },
+                                                            { title: t('documents.bucketName'), dataIndex: 'bucketName', key: 'bucketName' },
+                                                            { title: t('documents.size'), dataIndex: 'size', key: 'size', render: (val) => formatFileSize(val) },
+                                                            { title: t('documents.modified'), dataIndex: 'lastModified', key: 'lastModified', render: (val) => new Date(val).toLocaleDateString() }
                                                         ]}
                                                         pagination={false}
                                                         size="small"

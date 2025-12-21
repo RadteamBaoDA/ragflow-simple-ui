@@ -160,12 +160,27 @@ export const migration: Migration = {
         `);
         await db.query('CREATE INDEX IF NOT EXISTS idx_user_ip_history_user_id ON user_ip_history(user_id)');
 
+        // 11. Storage Permissions
+        await db.query(`
+            CREATE TABLE IF NOT EXISTS storage_permissions (
+                id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
+                entity_type VARCHAR(10) NOT NULL CHECK (entity_type IN ('user', 'team')),
+                entity_id TEXT NOT NULL,
+                permission_level INT NOT NULL DEFAULT 0 CHECK (permission_level BETWEEN 0 AND 3),
+                created_at TIMESTAMP WITH TIME ZONE DEFAULT NOW(),
+                updated_at TIMESTAMP WITH TIME ZONE DEFAULT NOW(),
+                UNIQUE(entity_type, entity_id)
+            )
+        `);
+        await db.query('CREATE INDEX IF NOT EXISTS idx_storage_permissions_entity ON storage_permissions(entity_type, entity_id)');
+
         log.info('Final schema created successfully');
     },
 
     async down(db: DatabaseAdapter): Promise<void> {
         log.info('Reverting migration: 001_initial_schema');
 
+        await db.query('DROP TABLE IF EXISTS storage_permissions');
         await db.query('DROP TABLE IF EXISTS user_ip_history');
         await db.query('DROP TABLE IF EXISTS audit_logs');
         await db.query('DROP TABLE IF EXISTS knowledge_base_sources');

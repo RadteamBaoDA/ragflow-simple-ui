@@ -17,7 +17,7 @@
 import { useState, useEffect, useRef, useCallback, useMemo } from 'react';
 import { createPortal } from 'react-dom';
 import { useTranslation } from 'react-i18next';
-import { HardDrive, Trash2, Upload, Download, AlertCircle, RefreshCw, FolderPlus, Plus, X, ChevronDown, ChevronRight, Home, ArrowLeft, ArrowRight, Search, Eye, FileText, FileImage, FileSpreadsheet, FileCode, File as FileIcon, Filter, ArrowUp, ArrowDown } from 'lucide-react';
+import { HardDrive, Trash2, Upload, Download, AlertCircle, RefreshCw, FolderPlus, Plus, X, ChevronDown, ChevronRight, Home, ArrowLeft, ArrowRight, Search, Eye, FileText, FileImage, FileSpreadsheet, FileCode, File as FileIcon, Filter, ArrowUp, ArrowDown, Shield } from 'lucide-react';
 import { useAuth } from '../hooks/useAuth';
 import { Select } from '../components/Select';
 import { FilePreviewModal } from '../components/FilePreview/FilePreviewModal';
@@ -36,8 +36,11 @@ import {
     batchDelete,
     getDownloadUrl,
     checkFilesExistence,
-    MinioServiceError
+    MinioServiceError,
+    PermissionLevel,
+    getEffectivePermission
 } from '../services/minioService';
+import { StoragePermissionsModal } from '../components/StoragePermissionsModal';
 import { formatFileSize } from '../utils/format';
 
 // ============================================================================
@@ -50,16 +53,16 @@ const ROW_HEIGHT = 52; // Height of each table row in pixels
 const OVERSCAN = 5; // Number of extra rows to render above/below viewport
 
 const FILE_CATEGORIES = {
-    doc: { labelKey: 'minio.category.doc', extensions: ['doc', 'docx', 'odt', 'rtf', 'tex', 'wpd'] },
-    excel: { labelKey: 'minio.category.excel', extensions: ['xls', 'xlsx', 'csv', 'ods', 'tsv'] },
-    ppt: { labelKey: 'minio.category.ppt', extensions: ['ppt', 'pptx', 'odp', 'pps', 'ppsx'] },
-    pdf: { labelKey: 'minio.category.pdf', extensions: ['pdf'] },
-    text: { labelKey: 'minio.category.text', extensions: ['txt', 'md', 'log', 'json', 'xml', 'yml', 'yaml', 'ini', 'conf'] },
-    image: { labelKey: 'minio.category.image', extensions: ['jpg', 'jpeg', 'png', 'gif', 'bmp', 'svg', 'webp', 'tiff', 'ico'] },
-    code: { labelKey: 'minio.category.code', extensions: ['js', 'ts', 'jsx', 'tsx', 'css', 'html', 'py', 'java', 'c', 'cpp', 'h', 'cs', 'php', 'go', 'rs', 'rb', 'sh', 'sql'] },
-    archive: { labelKey: 'minio.category.archive', extensions: ['zip', 'rar', '7z', 'tar', 'gz', 'bz2'] },
-    audio: { labelKey: 'minio.category.audio', extensions: ['mp3', 'wav', 'ogg', 'm4a', 'flac', 'aac'] },
-    video: { labelKey: 'minio.category.video', extensions: ['mp4', 'avi', 'mkv', 'mov', 'wmv', 'flv', 'webm'] }
+    doc: { labelKey: 'documents.category.doc', extensions: ['doc', 'docx', 'odt', 'rtf', 'tex', 'wpd'] },
+    excel: { labelKey: 'documents.category.excel', extensions: ['xls', 'xlsx', 'csv', 'ods', 'tsv'] },
+    ppt: { labelKey: 'documents.category.ppt', extensions: ['ppt', 'pptx', 'odp', 'pps', 'ppsx'] },
+    pdf: { labelKey: 'documents.category.pdf', extensions: ['pdf'] },
+    text: { labelKey: 'documents.category.text', extensions: ['txt', 'md', 'log', 'json', 'xml', 'yml', 'yaml', 'ini', 'conf'] },
+    image: { labelKey: 'documents.category.image', extensions: ['jpg', 'jpeg', 'png', 'gif', 'bmp', 'svg', 'webp', 'tiff', 'ico'] },
+    code: { labelKey: 'documents.category.code', extensions: ['js', 'ts', 'jsx', 'tsx', 'css', 'html', 'py', 'java', 'c', 'cpp', 'h', 'cs', 'php', 'go', 'rs', 'rb', 'sh', 'sql'] },
+    archive: { labelKey: 'documents.category.archive', extensions: ['zip', 'rar', '7z', 'tar', 'gz', 'bz2'] },
+    audio: { labelKey: 'documents.category.audio', extensions: ['mp3', 'wav', 'ogg', 'm4a', 'flac', 'aac'] },
+    video: { labelKey: 'documents.category.video', extensions: ['mp4', 'avi', 'mkv', 'mov', 'wmv', 'flv', 'webm'] }
 };
 
 type SortKey = 'name' | 'size' | 'lastModified';
@@ -106,7 +109,12 @@ const formatDateTime = (date: Date, locale: string): string => {
  */
 const MinIOManagerPage = () => {
     const { user } = useAuth();
-    const canWrite = user?.role === 'admin' || user?.permissions?.includes('storage:write');
+    const [effectivePermission, setEffectivePermission] = useState<number>(PermissionLevel.NONE);
+    const [isPermissionsModalOpen, setIsPermissionsModalOpen] = useState(false);
+    const canWrite = effectivePermission >= PermissionLevel.UPLOAD;
+    const canDelete = effectivePermission >= PermissionLevel.FULL;
+    const isAdmin = user?.role === 'admin';
+    const canManagePermissions = user?.permissions?.includes('manage_system') || isAdmin;
     const { t, i18n } = useTranslation();
 
     // Bucket and object state
@@ -173,6 +181,15 @@ const MinIOManagerPage = () => {
     const [showConflictModal, setShowConflictModal] = useState(false);
     const [conflictFiles, setConflictFiles] = useState<string[]>([]);
     const [pendingUploadFiles, setPendingUploadFiles] = useState<{ files: File[]; preserveFolderStructure: boolean } | null>(null);
+
+
+
+    // Fetch effective permission
+    useEffect(() => {
+        getEffectivePermission()
+            .then(setEffectivePermission)
+            .catch(err => console.error('Failed to fetch storage permissions', err));
+    }, [user?.id]); // Re-fetch when user changes
 
 
     // Handle bucket selection with localStorage persistence
@@ -553,7 +570,7 @@ const MinIOManagerPage = () => {
                 }
             }
         } catch (err) {
-            setError(err instanceof Error ? err.message : t('minio.loadFailed'));
+            setError(err instanceof Error ? err.message : t('documents.loadFailed'));
         }
     };
 
@@ -582,7 +599,7 @@ const MinIOManagerPage = () => {
                 setBucketSyncError(err.message);
                 setObjects([]);
             } else {
-                setError(err instanceof Error ? err.message : t('minio.loadFailed'));
+                setError(err instanceof Error ? err.message : t('documents.loadFailed'));
             }
         } finally {
             setLoading(false);
@@ -590,7 +607,7 @@ const MinIOManagerPage = () => {
     };
 
     const handleDeleteBucket = async (bucketId: string) => {
-        if (!confirm(t('minio.deleteBucketConfirm'))) return;
+        if (!confirm(t('documents.deleteBucketConfirm'))) return;
 
         try {
             await deleteBucket(bucketId);
@@ -600,7 +617,7 @@ const MinIOManagerPage = () => {
                 setCurrentPrefix('');
             }
         } catch (err) {
-            setError(err instanceof Error ? err.message : t('minio.deleteFailed'));
+            setError(err instanceof Error ? err.message : t('documents.deleteFailed'));
         }
     };
 
@@ -635,7 +652,7 @@ const MinIOManagerPage = () => {
 
             await loadObjects();
         } catch (err) {
-            setError(err instanceof Error ? err.message : t('minio.uploadFailed'));
+            setError(err instanceof Error ? err.message : t('documents.uploadFailed'));
         } finally {
             setUploading(false);
             setPendingUploadFiles(null);
@@ -758,7 +775,7 @@ const MinIOManagerPage = () => {
     };
 
     const handleDelete = async (obj: FileObject) => {
-        if (!confirm(t('minio.deleteConfirm', { type: obj.isFolder ? t('minio.folder') : t('minio.file'), name: obj.name }))) return;
+        if (!confirm(t('documents.deleteConfirm', { type: obj.isFolder ? t('documents.folder') : t('documents.file'), name: obj.name }))) return;
 
         setDeleting(true);
         setDeleteProgress({ current: 0, total: 1 });
@@ -768,9 +785,9 @@ const MinIOManagerPage = () => {
             setDeleteProgress({ current: 1, total: 1 });
             await loadObjects();
         } catch (err) {
-            const message = err instanceof Error ? err.message : t('minio.deleteFailed');
+            const message = err instanceof Error ? err.message : t('documents.deleteFailed');
             if (message === 'REAUTH_REQUIRED') {
-                setError(t('minio.reauthRequired'));
+                setError(t('documents.reauthRequired'));
             } else {
                 setError(message);
             }
@@ -781,7 +798,7 @@ const MinIOManagerPage = () => {
 
     const handleBatchDelete = async () => {
         if (selectedItems.size === 0) return;
-        if (!confirm(t('minio.batchDeleteConfirm', { count: selectedItems.size }))) return;
+        if (!confirm(t('documents.batchDeleteConfirm', { count: selectedItems.size }))) return;
 
         setDeleting(true);
         const objectsToDelete = objects
@@ -801,9 +818,9 @@ const MinIOManagerPage = () => {
             setSelectedItems(new Set());
             await loadObjects();
         } catch (err) {
-            const message = err instanceof Error ? err.message : t('minio.deleteFailed');
+            const message = err instanceof Error ? err.message : t('documents.deleteFailed');
             if (message === 'REAUTH_REQUIRED') {
-                setError(t('minio.reauthRequired'));
+                setError(t('documents.reauthRequired'));
             } else {
                 setError(message);
             }
@@ -818,7 +835,7 @@ const MinIOManagerPage = () => {
             const url = await getDownloadUrl(selectedBucket, fullPath);
             window.open(url, '_blank');
         } catch (err) {
-            setError(err instanceof Error ? err.message : t('minio.loadFailed'));
+            setError(err instanceof Error ? err.message : t('documents.loadFailed'));
         }
     };
 
@@ -887,15 +904,11 @@ const MinIOManagerPage = () => {
             setPreviewUrl(url);
             setShowPreview(true);
         } catch (err) {
-            setError(err instanceof Error ? err.message : t('minio.loadFailed'));
+            setError(err instanceof Error ? err.message : t('documents.loadFailed'));
         }
     };
 
-    const handleClosePreview = () => {
-        setPreviewFile(null);
-        setPreviewUrl(null);
-        setShowPreview(false);
-    };
+
 
     const navigateToFolder = (obj: FileObject) => {
         if (obj.isFolder) {
@@ -916,10 +929,10 @@ const MinIOManagerPage = () => {
     const validateForm = () => {
         const errors: Record<string, string> = {};
         if (!formData.bucket_name) {
-            errors.bucket_name = t('minio.bucketNameRequired');
+            errors.bucket_name = t('documents.bucketNameRequired');
         }
         if (!formData.display_name) {
-            errors.display_name = t('minio.displayNameRequired');
+            errors.display_name = t('documents.displayNameRequired');
         }
         setFormErrors(errors);
         return Object.keys(errors).length === 0;
@@ -938,7 +951,7 @@ const MinIOManagerPage = () => {
             setFormData({ bucket_name: '', display_name: '', description: '' });
             setFormErrors({});
         } catch (err) {
-            setCreateError(err instanceof Error ? err.message : t('minio.createFailed'));
+            setCreateError(err instanceof Error ? err.message : t('documents.createFailed'));
         } finally {
             setCreating(false);
         }
@@ -954,7 +967,7 @@ const MinIOManagerPage = () => {
 
     const handleCreateFolder = async () => {
         if (!newFolderName.trim()) {
-            setFolderError(t('minio.folderNameRequired'));
+            setFolderError(t('documents.folderNameRequired'));
             return;
         }
 
@@ -967,13 +980,13 @@ const MinIOManagerPage = () => {
             setFolderError(null);
             await loadObjects();
         } catch (err) {
-            setFolderError(err instanceof Error ? err.message : t('minio.createFolderFailed'));
+            setFolderError(err instanceof Error ? err.message : t('documents.createFolderFailed'));
         } finally {
             setCreatingFolder(false);
         }
     };
 
-    const isAdmin = user?.role === 'admin';
+
 
     const bucketOptions = buckets.map(b => ({
         id: b.id,
@@ -1002,11 +1015,22 @@ const MinIOManagerPage = () => {
                         className="w-64"
                     />
 
+                    {canManagePermissions && (
+                        <button
+                            onClick={() => setIsPermissionsModalOpen(true)}
+                            disabled={!selectedBucket}
+                            className={`p-2.5 bg-white dark:bg-gray-700 hover:bg-gray-100 dark:hover:bg-gray-600 text-gray-700 dark:text-gray-200 border border-gray-200 dark:border-gray-600 rounded-lg transition-colors shadow-sm ${!selectedBucket ? 'opacity-50 cursor-not-allowed' : ''}`}
+                            title={t('documents.configPermissions')}
+                        >
+                            <Shield className="w-5 h-5" />
+                        </button>
+                    )}
+
                     {isAdmin && (
                         <button
                             onClick={handleOpenCreateModal}
                             className="p-2.5 bg-primary dark:bg-blue-600 hover:bg-primary-hover dark:hover:bg-blue-700 text-white rounded-lg transition-colors shadow-sm"
-                            title={t('minio.createBucket')}
+                            title={t('documents.createBucket')}
                         >
                             <Plus className="w-5 h-5" />
                         </button>
@@ -1016,7 +1040,7 @@ const MinIOManagerPage = () => {
                         <button
                             onClick={() => handleDeleteBucket(selectedBucket)}
                             className="p-2.5 bg-red-600 hover:bg-red-700 text-white rounded-lg transition-colors shadow-sm"
-                            title={t('minio.deleteBucket')}
+                            title={t('documents.deleteBucket')}
                         >
                             <Trash2 className="w-5 h-5" />
                         </button>
@@ -1033,10 +1057,10 @@ const MinIOManagerPage = () => {
                         <button
                             onClick={() => navigateTo('')}
                             className="flex items-center gap-1 px-2 py-1 text-primary dark:text-blue-400 hover:bg-primary-50 dark:hover:bg-blue-900/30 rounded transition-colors"
-                            title={t('minio.rootFolder')}
+                            title={t('documents.rootFolder')}
                         >
                             <Home className="w-4 h-4" />
-                            <span className="hidden sm:inline">{t('minio.root')}</span>
+                            <span className="hidden sm:inline">{t('documents.root')}</span>
                         </button>
                         {currentPrefix && currentPrefix.split('/').filter(Boolean).map((folder, index, arr) => {
                             const path = arr.slice(0, index + 1).join('/') + '/';
@@ -1076,7 +1100,7 @@ const MinIOManagerPage = () => {
                             onClick={goBack}
                             disabled={!canGoBack}
                             className="p-2 hover:bg-gray-200 dark:hover:bg-gray-700 rounded-lg transition-colors disabled:opacity-30 disabled:cursor-not-allowed"
-                            title={t('minio.back')}
+                            title={t('documents.back')}
                         >
                             <ArrowLeft className="w-5 h-5 text-gray-600 dark:text-gray-400" />
                         </button>
@@ -1084,7 +1108,7 @@ const MinIOManagerPage = () => {
                             onClick={goForward}
                             disabled={!canGoForward}
                             className="p-2 hover:bg-gray-200 dark:hover:bg-gray-700 rounded-lg transition-colors disabled:opacity-30 disabled:cursor-not-allowed"
-                            title={t('minio.forward')}
+                            title={t('documents.forward')}
                         >
                             <ArrowRight className="w-5 h-5 text-gray-600 dark:text-gray-400" />
                         </button>
@@ -1109,7 +1133,7 @@ const MinIOManagerPage = () => {
                             type="text"
                             value={searchQuery}
                             onChange={(e) => setSearchQuery(e.target.value)}
-                            placeholder={t('minio.searchPlaceholder')}
+                            placeholder={t('documents.searchPlaceholder')}
                             disabled={!selectedBucket}
                             className="w-full pl-10 pr-4 py-2 border border-gray-300 dark:border-gray-600 rounded-lg bg-white dark:bg-gray-800 text-gray-900 dark:text-white placeholder-gray-400 focus:ring-2 focus:ring-primary focus:border-transparent disabled:opacity-50 disabled:cursor-not-allowed"
                         />
@@ -1132,7 +1156,7 @@ const MinIOManagerPage = () => {
                             disabled={!selectedBucket}
                             className={`p-2 hover:bg-gray-200 dark:hover:bg-gray-700 rounded-lg transition-colors disabled:opacity-50 disabled:cursor-not-allowed ${filterCategory ? 'bg-blue-50 dark:bg-blue-900/30 text-primary dark:text-blue-400' : 'text-gray-600 dark:text-gray-400'
                                 }`}
-                            title={t('minio.filter')}
+                            title={t('documents.filter')}
                         >
                             <Filter className="w-5 h-5" />
                         </button>
@@ -1146,7 +1170,7 @@ const MinIOManagerPage = () => {
                                     className={`w-full text-left px-4 py-2 text-sm hover:bg-gray-100 dark:hover:bg-gray-700 transition-colors flex items-center justify-between ${!filterCategory ? 'text-primary dark:text-blue-400 font-medium bg-blue-50 dark:bg-blue-900/10' : 'text-gray-700 dark:text-gray-200'
                                         }`}
                                 >
-                                    <span>{t('minio.allFiles')}</span>
+                                    <span>{t('documents.allFiles')}</span>
                                     {!filterCategory && <ChevronDown className="w-4 h-4 rotate-[-90deg]" />}
                                 </button>
                                 <div className="border-t border-gray-100 dark:border-gray-700 my-1"></div>
@@ -1174,7 +1198,7 @@ const MinIOManagerPage = () => {
                         onClick={() => loadObjects()}
                         disabled={!selectedBucket}
                         className="p-2 hover:bg-gray-200 dark:hover:bg-gray-700 rounded-lg transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
-                        title={t('minio.refresh')}
+                        title={t('documents.refresh')}
                     >
                         <RefreshCw className="w-5 h-5 text-gray-600 dark:text-gray-400" />
                     </button>
@@ -1184,7 +1208,7 @@ const MinIOManagerPage = () => {
                             onClick={() => setShowCreateFolderModal(true)}
                             disabled={!selectedBucket}
                             className="p-2 hover:bg-gray-200 dark:hover:bg-gray-700 rounded-lg transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
-                            title={t('minio.createFolder')}
+                            title={t('documents.createFolder')}
                         >
                             <FolderPlus className="w-5 h-5 text-gray-600 dark:text-gray-400" />
                         </button>
@@ -1199,7 +1223,7 @@ const MinIOManagerPage = () => {
                                 className={`flex items-center gap-2 px-4 py-2 bg-primary dark:bg-blue-600 hover:bg-primary-hover dark:hover:bg-blue-700 text-white rounded-lg transition-colors ${!selectedBucket ? 'opacity-50 cursor-not-allowed' : ''}`}
                             >
                                 <Upload className="w-5 h-5" />
-                                <span className="hidden sm:inline">{t('minio.upload')}</span>
+                                <span className="hidden sm:inline">{t('documents.upload')}</span>
                                 <ChevronDown className={`w-4 h-4 transition-transform ${showUploadMenu ? 'rotate-180' : ''}`} />
                             </button>
 
@@ -1213,7 +1237,7 @@ const MinIOManagerPage = () => {
                                         className="w-full flex items-center gap-3 px-4 py-3 text-left text-gray-700 dark:text-gray-200 hover:bg-gray-100 dark:hover:bg-gray-700 transition-colors"
                                     >
                                         <Upload className="w-5 h-5 text-primary dark:text-blue-400" />
-                                        <span>{t('minio.uploadFiles')}</span>
+                                        <span>{t('documents.uploadFiles')}</span>
                                     </button>
                                     <button
                                         onClick={() => {
@@ -1223,7 +1247,7 @@ const MinIOManagerPage = () => {
                                         className="w-full flex items-center gap-3 px-4 py-3 text-left text-gray-700 dark:text-gray-200 hover:bg-gray-100 dark:hover:bg-gray-700 transition-colors border-t border-gray-200 dark:border-gray-700"
                                     >
                                         <FolderPlus className="w-5 h-5 text-primary dark:text-blue-400" />
-                                        <span>{t('minio.uploadFolder')}</span>
+                                        <span>{t('documents.uploadFolder')}</span>
                                     </button>
                                 </div>
                             )}
@@ -1267,10 +1291,10 @@ const MinIOManagerPage = () => {
                         <div className="bg-white dark:bg-gray-800 rounded-xl shadow-lg p-8 border-2 border-dashed border-primary dark:border-blue-500 flex flex-col items-center gap-3">
                             <Upload className="w-12 h-12 text-primary dark:text-blue-400" />
                             <span className="text-lg font-medium text-gray-900 dark:text-white">
-                                {t('minio.dropFilesHere')}
+                                {t('documents.dropFilesHere')}
                             </span>
                             <span className="text-sm text-gray-500 dark:text-gray-400">
-                                {t('minio.dropFilesHint')}
+                                {t('documents.dropFilesHint')}
                             </span>
                         </div>
                     </div>
@@ -1296,14 +1320,14 @@ const MinIOManagerPage = () => {
                                     />
                                 </th>
                                 <th
-                                    className="text-left px-4 py-3 text-sm font-medium text-gray-700 dark:text-gray-300 cursor-pointer hover:bg-gray-100 dark:hover:bg-gray-800 transition-colors select-none group"
+                                    className="text-left px-4 py-3 text-sm font-medium text-gray-700 dark:text-gray-300 cursor-pointer hover:bg-gray-100 dark:hover:bg-gray-800 transition-colors select-none group whitespace-nowrap"
                                     onClick={() => setSortConfig({
                                         key: 'name',
                                         direction: sortConfig.key === 'name' && sortConfig.direction === 'asc' ? 'desc' : 'asc'
                                     })}
                                 >
                                     <div className="flex items-center gap-1">
-                                        {t('minio.name')}
+                                        {t('documents.name')}
                                         {sortConfig.key === 'name' ? (
                                             sortConfig.direction === 'asc' ? <ArrowUp className="w-3 h-3 text-primary dark:text-blue-500" /> : <ArrowDown className="w-3 h-3 text-primary dark:text-blue-500" />
                                         ) : (
@@ -1312,14 +1336,14 @@ const MinIOManagerPage = () => {
                                     </div>
                                 </th>
                                 <th
-                                    className="w-24 text-right px-4 py-3 text-sm font-medium text-gray-700 dark:text-gray-300 cursor-pointer hover:bg-gray-100 dark:hover:bg-gray-800 transition-colors select-none group"
+                                    className="w-32 text-right px-4 py-3 text-sm font-medium text-gray-700 dark:text-gray-300 cursor-pointer hover:bg-gray-100 dark:hover:bg-gray-800 transition-colors select-none group whitespace-nowrap"
                                     onClick={() => setSortConfig({
                                         key: 'size',
                                         direction: sortConfig.key === 'size' && sortConfig.direction === 'asc' ? 'desc' : 'asc'
                                     })}
                                 >
                                     <div className="flex items-center justify-end gap-1">
-                                        {t('minio.size')}
+                                        {t('documents.size')}
                                         {sortConfig.key === 'size' ? (
                                             sortConfig.direction === 'asc' ? <ArrowUp className="w-3 h-3 text-primary dark:text-blue-500" /> : <ArrowDown className="w-3 h-3 text-primary dark:text-blue-500" />
                                         ) : (
@@ -1328,14 +1352,14 @@ const MinIOManagerPage = () => {
                                     </div>
                                 </th>
                                 <th
-                                    className="w-52 text-left px-4 py-3 text-sm font-medium text-gray-700 dark:text-gray-300 cursor-pointer hover:bg-gray-100 dark:hover:bg-gray-800 transition-colors select-none group"
+                                    className="w-52 text-left px-4 py-3 text-sm font-medium text-gray-700 dark:text-gray-300 cursor-pointer hover:bg-gray-100 dark:hover:bg-gray-800 transition-colors select-none group whitespace-nowrap"
                                     onClick={() => setSortConfig({
                                         key: 'lastModified',
                                         direction: sortConfig.key === 'lastModified' && sortConfig.direction === 'asc' ? 'desc' : 'asc'
                                     })}
                                 >
                                     <div className="flex items-center gap-1">
-                                        {t('minio.modified')}
+                                        {t('documents.modified')}
                                         {sortConfig.key === 'lastModified' ? (
                                             sortConfig.direction === 'asc' ? <ArrowUp className="w-3 h-3 text-primary dark:text-blue-500" /> : <ArrowDown className="w-3 h-3 text-primary dark:text-blue-500" />
                                         ) : (
@@ -1343,7 +1367,7 @@ const MinIOManagerPage = () => {
                                         )}
                                     </div>
                                 </th>
-                                <th className="w-20 text-right px-4 py-3 text-sm font-medium text-gray-700 dark:text-gray-300">{t('minio.actions')}</th>
+                                <th className="w-28 text-right px-4 py-3 text-sm font-medium text-gray-700 dark:text-gray-300 whitespace-nowrap">{t('documents.actions')}</th>
                             </tr>
                         </thead>
                     </table>
@@ -1358,18 +1382,18 @@ const MinIOManagerPage = () => {
                     {loading ? (
                         <div className="flex flex-col items-center justify-center py-12 text-gray-500 dark:text-gray-400">
                             <RefreshCw className="w-8 h-8 animate-spin text-primary" />
-                            <span className="mt-2">{t('minio.loadingFiles')}</span>
+                            <span className="mt-2">{t('documents.loadingFiles')}</span>
                         </div>
                     ) : !selectedBucket ? (
                         <div className="flex flex-col items-center justify-center py-12 text-gray-500 dark:text-gray-400">
                             <HardDrive className="w-12 h-12 text-gray-300 dark:text-gray-600" />
-                            <span className="mt-2 text-lg font-medium">{t('minio.noBucketSelected')}</span>
-                            <span className="text-sm">{t('minio.selectBucketPrompt')}</span>
+                            <span className="mt-2 text-lg font-medium">{t('documents.noBucketSelected')}</span>
+                            <span className="text-sm">{t('documents.selectBucketPrompt')}</span>
                         </div>
                     ) : bucketSyncError ? (
                         <div className="flex flex-col items-center justify-center py-12 text-gray-500 dark:text-gray-400">
                             <AlertCircle className="w-12 h-12 text-amber-500" />
-                            <span className="mt-2 text-lg font-medium text-amber-600 dark:text-amber-400">{t('minio.bucketSyncError')}</span>
+                            <span className="mt-2 text-lg font-medium text-amber-600 dark:text-amber-400">{t('documents.bucketSyncError')}</span>
                             <span className="text-sm text-center max-w-md mt-2">{bucketSyncError}</span>
                             {isAdmin && (
                                 <button
@@ -1377,21 +1401,21 @@ const MinIOManagerPage = () => {
                                     className="mt-4 px-4 py-2 bg-red-600 hover:bg-red-700 text-white rounded-lg transition-colors flex items-center gap-2"
                                 >
                                     <Trash2 className="w-4 h-4" />
-                                    {t('minio.removeBucketConfig')}
+                                    {t('documents.removeBucketConfig')}
                                 </button>
                             )}
                         </div>
                     ) : objects.length === 0 ? (
                         <div className="flex flex-col items-center justify-center py-12 text-gray-500 dark:text-gray-400">
                             <FolderPlus className="w-12 h-12 text-gray-300 dark:text-gray-600" />
-                            <span className="mt-2 text-lg font-medium">{t('minio.emptyBucket')}</span>
-                            <span className="text-sm">{t('minio.uploadPrompt')}</span>
+                            <span className="mt-2 text-lg font-medium">{t('documents.emptyBucket')}</span>
+                            <span className="text-sm">{t('documents.uploadPrompt')}</span>
                         </div>
                     ) : filteredObjects.length === 0 ? (
                         <div className="flex flex-col items-center justify-center py-12 text-gray-500 dark:text-gray-400">
                             <Search className="w-12 h-12 text-gray-300 dark:text-gray-600" />
-                            <span className="mt-2 text-lg font-medium">{t('minio.noSearchResults')}</span>
-                            <span className="text-sm">{t('minio.noSearchResultsHint')}</span>
+                            <span className="mt-2 text-lg font-medium">{t('documents.noSearchResults')}</span>
+                            <span className="text-sm">{t('documents.noSearchResultsHint')}</span>
                         </div>
                     ) : (
                         <div style={{ height: virtualScrollData.totalHeight, position: 'relative' }}>
@@ -1437,20 +1461,20 @@ const MinIOManagerPage = () => {
                                                                     ? 'hover:bg-gray-100 dark:hover:bg-gray-700 text-gray-600 dark:text-gray-400 hover:text-primary'
                                                                     : 'text-gray-300 dark:text-gray-700 cursor-not-allowed'
                                                                     }`}
-                                                                title={isPreviewSupported(obj.name) ? t('minio.preview') : t('minio.previewNotSupported')}
+                                                                title={isPreviewSupported(obj.name) ? t('documents.preview') : t('documents.previewNotSupported')}
                                                             >
                                                                 <Eye className="w-4 h-4" />
                                                             </button>
                                                             <button
                                                                 onClick={() => handleDownload(obj)}
                                                                 className="p-1.5 hover:bg-gray-100 dark:hover:bg-gray-700 rounded-lg text-gray-600 dark:text-gray-400 hover:text-primary transition-colors"
-                                                                title={t('minio.download')}
+                                                                title={t('documents.download')}
                                                             >
                                                                 <Download className="w-4 h-4" />
                                                             </button>
                                                         </>
                                                     )}
-                                                    {canWrite && (
+                                                    {canDelete && (
                                                         <button
                                                             onClick={() => handleDelete(obj)}
                                                             className="p-1.5 hover:bg-red-50 dark:hover:bg-red-900/20 rounded-lg text-gray-400 hover:text-red-600 transition-colors"
@@ -1478,12 +1502,12 @@ const MinIOManagerPage = () => {
                         <div className="flex items-center gap-3 mb-4">
                             <AlertCircle className="w-8 h-8 text-yellow-500" />
                             <h3 className="text-lg font-semibold text-gray-900 dark:text-gray-100">
-                                {t('minio.conflictDetected', 'File Conflict Detected')}
+                                {t('documents.conflictDetected', 'File Conflict Detected')}
                             </h3>
                         </div>
 
                         <p className="text-gray-600 dark:text-gray-300 mb-4">
-                            {t('minio.conflictMessage', {
+                            {t('documents.conflictMessage', {
                                 count: conflictFiles.length,
                                 defaultValue: `${conflictFiles.length} file(s) already exist in this location.`
                             })}
@@ -1497,7 +1521,7 @@ const MinIOManagerPage = () => {
                             ))}
                             {conflictFiles.length > 10 && (
                                 <div className="text-xs text-center text-gray-400 mt-1">
-                                    {t('minio.andMore', { count: conflictFiles.length - 10, defaultValue: `...and ${conflictFiles.length - 10} more` })}
+                                    {t('documents.andMore', { count: conflictFiles.length - 10, defaultValue: `...and ${conflictFiles.length - 10} more` })}
                                 </div>
                             )}
                         </div>
@@ -1507,19 +1531,19 @@ const MinIOManagerPage = () => {
                                 onClick={() => handleConflictResolution('replace')}
                                 className="w-full px-4 py-2 bg-red-600 hover:bg-red-700 text-white rounded-lg transition-colors flex items-center justify-center gap-2"
                             >
-                                {t('minio.replace', 'Replace All')}
+                                {t('documents.replace', 'Replace All')}
                             </button>
                             <button
                                 onClick={() => handleConflictResolution('keepBoth')}
                                 className="w-full px-4 py-2 bg-blue-600 hover:bg-blue-700 text-white rounded-lg transition-colors flex items-center justify-center gap-2"
                             >
-                                {t('minio.keepBoth', 'Keep Both (Rename)')}
+                                {t('documents.keepBoth', 'Keep Both (Rename)')}
                             </button>
                             <button
                                 onClick={() => handleConflictResolution('skip')}
                                 className="w-full px-4 py-2 bg-gray-600 hover:bg-gray-700 text-white rounded-lg transition-colors flex items-center justify-center gap-2"
                             >
-                                {t('minio.skip', 'Skip Duplicates')}
+                                {t('documents.skip', 'Skip Duplicates')}
                             </button>
                             <button
                                 onClick={() => {
@@ -1543,16 +1567,16 @@ const MinIOManagerPage = () => {
                         <div className="flex items-center gap-3 mb-4">
                             <Upload className="w-6 h-6 text-primary animate-pulse" />
                             <h3 className="text-lg font-semibold text-gray-900 dark:text-white">
-                                {t('minio.uploadingFiles')}
+                                {t('documents.uploadingFiles')}
                             </h3>
                         </div>
                         <div className="space-y-3">
                             <div className="flex justify-between text-sm text-gray-600 dark:text-gray-400">
-                                <span>{t('minio.filesProgress')}</span>
-                                <span>{uploadProgress.total} {t('minio.filesCount')}</span>
+                                <span>{t('documents.filesProgress')}</span>
+                                <span>{uploadProgress.total} {t('documents.filesCount')}</span>
                             </div>
                             <div className="flex justify-between text-sm text-gray-600 dark:text-gray-400">
-                                <span>{t('minio.transferProgress')}</span>
+                                <span>{t('documents.transferProgress')}</span>
                                 <span>{uploadProgress.transferProgress.toFixed(0)}%</span>
                             </div>
                             <div className="w-full bg-gray-200 dark:bg-gray-700 rounded-full h-2">
@@ -1571,7 +1595,7 @@ const MinIOManagerPage = () => {
                 <div className="fixed inset-0 bg-black/50 flex items-center justify-center z-50 p-4">
                     <div className="bg-white dark:bg-gray-800 rounded-lg shadow-xl max-w-md w-full">
                         <div className="flex items-center justify-between p-4 border-b border-gray-200 dark:border-gray-700">
-                            <h2 className="text-lg font-semibold text-gray-900 dark:text-white">{t('minio.createBucket')}</h2>
+                            <h2 className="text-lg font-semibold text-gray-900 dark:text-white">{t('documents.createBucket')}</h2>
                             <button
                                 onClick={() => setShowCreateModal(false)}
                                 className="p-1 hover:bg-gray-100 dark:hover:bg-gray-700 rounded"
@@ -1589,7 +1613,7 @@ const MinIOManagerPage = () => {
                             )}
                             <div>
                                 <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">
-                                    {t('minio.bucketName')} <span className="text-red-500">*</span>
+                                    {t('documents.bucketName')} <span className="text-red-500">*</span>
                                 </label>
                                 <select
                                     value={formData.bucket_name}
@@ -1597,7 +1621,7 @@ const MinIOManagerPage = () => {
                                     className={`w-full px-3 py-2 border rounded-lg bg-white dark:bg-gray-900 text-gray-900 dark:text-white ${formErrors.bucket_name ? 'border-red-500' : 'border-gray-300 dark:border-gray-600'
                                         }`}
                                 >
-                                    <option value="">{t('minio.selectBucketPlaceholder')}</option>
+                                    <option value="">{t('documents.selectBucketPlaceholder')}</option>
                                     {availableBuckets.map((bucket) => (
                                         <option key={bucket.name} value={bucket.name}>
                                             {bucket.name}
@@ -1607,17 +1631,17 @@ const MinIOManagerPage = () => {
                                 {formErrors.bucket_name && (
                                     <p className="mt-1 text-sm text-red-600 dark:text-red-400">{formErrors.bucket_name}</p>
                                 )}
-                                <p className="mt-1 text-xs text-gray-500 dark:text-gray-400">{t('minio.bucketNameHelper')}</p>
+                                <p className="mt-1 text-xs text-gray-500 dark:text-gray-400">{t('documents.bucketNameHelper')}</p>
                             </div>
                             <div>
                                 <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">
-                                    {t('minio.displayName')} <span className="text-red-500">*</span>
+                                    {t('documents.displayName')} <span className="text-red-500">*</span>
                                 </label>
                                 <input
                                     type="text"
                                     value={formData.display_name}
                                     onChange={(e) => setFormData({ ...formData, display_name: e.target.value })}
-                                    placeholder={t('minio.displayNamePlaceholder')}
+                                    placeholder={t('documents.displayNamePlaceholder')}
                                     className={`w-full px-3 py-2 border rounded-lg bg-white dark:bg-gray-900 text-gray-900 dark:text-white ${formErrors.display_name ? 'border-red-500' : 'border-gray-300 dark:border-gray-600'
                                         }`}
                                 />
@@ -1627,12 +1651,12 @@ const MinIOManagerPage = () => {
                             </div>
                             <div>
                                 <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">
-                                    {t('minio.description')}
+                                    {t('documents.description')}
                                 </label>
                                 <textarea
                                     value={formData.description}
                                     onChange={(e) => setFormData({ ...formData, description: e.target.value })}
-                                    placeholder={t('minio.descriptionPlaceholder')}
+                                    placeholder={t('documents.descriptionPlaceholder')}
                                     rows={3}
                                     className="w-full px-3 py-2 border rounded-lg bg-white dark:bg-gray-900 text-gray-900 dark:text-white border-gray-300 dark:border-gray-600"
                                 />
@@ -1655,10 +1679,10 @@ const MinIOManagerPage = () => {
                                 {creating ? (
                                     <>
                                         <RefreshCw className="w-4 h-4 animate-spin" />
-                                        {t('minio.creating')}
+                                        {t('documents.creating')}
                                     </>
                                 ) : (
-                                    t('minio.createBucket')
+                                    t('documents.createBucket')
                                 )}
                             </button>
                         </div>
@@ -1671,7 +1695,7 @@ const MinIOManagerPage = () => {
                 <div className="fixed inset-0 bg-black/50 flex items-center justify-center z-50 p-4">
                     <div className="bg-white dark:bg-gray-800 rounded-lg shadow-xl max-w-md w-full">
                         <div className="flex items-center justify-between p-4 border-b border-gray-200 dark:border-gray-700">
-                            <h2 className="text-lg font-semibold text-gray-900 dark:text-white">{t('minio.createFolder')}</h2>
+                            <h2 className="text-lg font-semibold text-gray-900 dark:text-white">{t('documents.createFolder')}</h2>
                             <button
                                 onClick={() => {
                                     setShowCreateFolderModal(false);
@@ -1687,7 +1711,7 @@ const MinIOManagerPage = () => {
                         <div className="p-4 space-y-4">
                             <div>
                                 <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">
-                                    {t('minio.folderName')}
+                                    {t('documents.folderName')}
                                 </label>
                                 <input
                                     type="text"
@@ -1697,7 +1721,7 @@ const MinIOManagerPage = () => {
                                         setFolderError(null);
                                     }}
                                     onKeyPress={(e) => e.key === 'Enter' && handleCreateFolder()}
-                                    placeholder={t('minio.folderNamePlaceholder')}
+                                    placeholder={t('documents.folderNamePlaceholder')}
                                     className={`w-full px-3 py-2 border rounded-lg bg-white dark:bg-gray-700 text-gray-900 dark:text-white focus:ring-2 focus:ring-primary dark:focus:ring-blue-500 focus:border-transparent ${folderError
                                         ? 'border-red-500 dark:border-red-500'
                                         : 'border-gray-300 dark:border-gray-600'
@@ -1729,10 +1753,10 @@ const MinIOManagerPage = () => {
                                 {creatingFolder ? (
                                     <>
                                         <RefreshCw className="w-4 h-4 animate-spin" />
-                                        {t('minio.creatingFolder')}
+                                        {t('documents.creatingFolder')}
                                     </>
                                 ) : (
-                                    t('minio.createFolder')
+                                    t('documents.createFolder')
                                 )}
                             </button>
                         </div>
@@ -1747,12 +1771,12 @@ const MinIOManagerPage = () => {
                         <div className="flex items-center gap-3 mb-4">
                             <RefreshCw className="w-6 h-6 text-primary-600 animate-spin" />
                             <h3 className="text-lg font-semibold text-gray-900 dark:text-white">
-                                {t('minio.deletingItems')}
+                                {t('documents.deletingItems')}
                             </h3>
                         </div>
                         <div className="space-y-2">
                             <div className="flex justify-between text-sm text-gray-600 dark:text-gray-400">
-                                <span>{t('minio.progress')}</span>
+                                <span>{t('documents.progress')}</span>
                                 <span>{deleteProgress.current} / {deleteProgress.total}</span>
                             </div>
                             <div className="w-full bg-gray-200 dark:bg-gray-700 rounded-full h-2">
@@ -1766,14 +1790,26 @@ const MinIOManagerPage = () => {
                 </div>
             )}
             {/* Preview Modal */}
-            {showPreview && previewFile && previewUrl && (
+            {/* Preview Modal */}
+            {showPreview && previewFile && (
                 <FilePreviewModal
+                    onClose={() => {
+                        setShowPreview(false);
+                        setPreviewFile(null);
+                        setPreviewUrl(null);
+                    }}
                     file={previewFile}
-                    url={previewUrl}
-                    onClose={handleClosePreview}
+                    url={previewUrl || ''}
                     onDownload={() => handleDownload(previewFile)}
                 />
             )}
+
+            {/* Storage Permissions Modal */}
+            <StoragePermissionsModal
+                isOpen={isPermissionsModalOpen}
+                onClose={() => setIsPermissionsModalOpen(false)}
+                bucketName={selectedBucketInfo?.display_name || selectedBucketInfo?.bucket_name || selectedBucket || ''}
+            />
         </div>
     );
 };

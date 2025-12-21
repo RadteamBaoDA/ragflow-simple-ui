@@ -37,7 +37,13 @@ router.get('/config', requirePermission('view_chat'), async (req: Request, res: 
         const teams = await teamService.getUserTeams(req.user.id);
         userTeamIds = teams.map(t => t.id);
     }
-    const config = await knowledgeBaseService.getConfig(req.user, userTeamIds);
+    if (!req.user) {
+        res.status(401).json({ error: 'Unauthorized' });
+        return;
+    }
+    // Ensure role is defined (default to 'user' if missing)
+    const user = { ...req.user, role: req.user.role || 'user' };
+    const config = await knowledgeBaseService.getConfig(user, userTeamIds);
     res.json(config);
 });
 
@@ -106,7 +112,7 @@ router.post('/sources', requireRole('admin'), async (req: Request, res: Response
 router.put('/sources/:id', requireRole('admin'), async (req: Request, res: Response) => {
     try {
         const { name, url, access_control } = req.body;
-        await knowledgeBaseService.updateSource(req.params.id, name, url, access_control);
+        await knowledgeBaseService.updateSource(req.params.id as string, name, url, access_control);
         res.json({ success: true });
     } catch (error) {
         log.error('Error updating source', { error });
@@ -116,7 +122,7 @@ router.put('/sources/:id', requireRole('admin'), async (req: Request, res: Respo
 
 router.delete('/sources/:id', requireRole('admin'), async (req: Request, res: Response) => {
     try {
-        await knowledgeBaseService.deleteSource(req.params.id);
+        await knowledgeBaseService.deleteSource(req.params.id as string);
         res.json({ success: true });
     } catch (error) {
         log.error('Error deleting source', { error });

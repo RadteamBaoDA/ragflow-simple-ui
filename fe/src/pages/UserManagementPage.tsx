@@ -17,7 +17,7 @@ import { useState, useEffect } from 'react';
 import { useAuth, User } from '../hooks/useAuth';
 import { Dialog } from '../components/Dialog';
 import { userService } from '../services/userService';
-import { Mail, Edit2, Globe, Search, Filter, X, ArrowUp, ArrowDown, AlertCircle, Key } from 'lucide-react';
+import { Mail, Edit2, Globe, Search, Filter, X, ArrowUp, ArrowDown, AlertCircle } from 'lucide-react';
 import { useTranslation } from 'react-i18next';
 
 /** API base URL from environment */
@@ -194,11 +194,11 @@ export default function UserManagementPage() {
         setIsEditModalOpen(true);
     };
 
-    const handlePermissionClick = (user: User) => {
+    /* const handlePermissionClick = (user: User) => {
         setSelectedUser(user);
         setSelectedPermissions(user.permissions || []);
         setIsPermissionModalOpen(true);
-    };
+    }; */
 
     const handleSavePermissions = async () => {
         if (!selectedUser) return;

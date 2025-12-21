@@ -64,14 +64,14 @@ export const FilePreviewModal: React.FC<FilePreviewModalProps> = ({ file, url, o
                 return (
                     <div className="flex flex-col items-center justify-center h-full text-gray-500 dark:text-gray-400 p-8 text-center">
                         <AlertCircle className="w-16 h-16 mb-4 opacity-50" />
-                        <p className="text-lg font-medium mb-2">{t('minio.previewNotSupported', 'Preview not supported for this file type')}</p>
+                        <p className="text-lg font-medium mb-2">{t('documents.previewNotSupported', 'Preview not supported for this file type')}</p>
                         <p className="text-sm mb-6">{file.name}</p>
                         <button
                             onClick={onDownload}
                             className="flex items-center gap-2 px-4 py-2 bg-primary-600 hover:bg-primary-700 text-white rounded-lg transition-colors"
                         >
                             <Download className="w-4 h-4" />
-                            {t('minio.download')}
+                            {t('documents.download')}
                         </button>
                     </div>
                 );
@@ -95,7 +95,7 @@ export const FilePreviewModal: React.FC<FilePreviewModalProps> = ({ file, url, o
                         <button
                             onClick={onDownload}
                             className="p-2 text-gray-500 hover:text-primary-600 hover:bg-gray-100 dark:hover:bg-gray-800 rounded-lg transition-colors"
-                            title={t('minio.download')}
+                            title={t('documents.download')}
                         >
                             <Download className="w-5 h-5" />
                         </button>
@@ -104,7 +104,7 @@ export const FilePreviewModal: React.FC<FilePreviewModalProps> = ({ file, url, o
                             target="_blank"
                             rel="noopener noreferrer"
                             className="p-2 text-gray-500 hover:text-primary-600 hover:bg-gray-100 dark:hover:bg-gray-800 rounded-lg transition-colors"
-                            title={t('minio.openNewTab', 'Open in new tab')}
+                            title={t('documents.openNewTab', 'Open in new tab')}
                         >
                             <ExternalLink className="w-5 h-5" />
                         </a>

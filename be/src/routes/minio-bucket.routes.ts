@@ -38,7 +38,7 @@ const router = Router();
 function getClientIp(req: Request): string {
     const forwardedFor = req.headers['x-forwarded-for'];
     const realIp = req.headers['x-real-ip'];
-    
+
     if (typeof forwardedFor === 'string') {
         return forwardedFor.split(',')[0]?.trim() || 'unknown';
     }
@@ -71,7 +71,7 @@ function getClientIp(req: Request): string {
  * @returns {Object} Buckets array and count
  * @returns {500} If database query fails
  */
-router.get('/', requireRole('admin', 'manager'), async (req: Request, res: Response) => {
+router.get('/', requireRole('admin', 'leader'), async (req: Request, res: Response) => {
     try {
         log.debug('Fetching configured MinIO buckets', { user: req.session.user?.email });
 
@@ -154,7 +154,7 @@ router.post('/', requireRole('admin'), async (req: Request, res: Response) => {
 
         if (existing.length > 0) {
             const existingBucket = existing[0]!;
-            
+
             // If bucket was soft-deleted, reactivate it with updated info
             // Note: is_active is stored as INTEGER (0/1) in DB but may be returned as boolean
             if (!existingBucket.is_active || existingBucket.is_active === 0) {

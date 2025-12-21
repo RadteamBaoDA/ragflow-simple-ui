@@ -236,6 +236,8 @@ function RagflowIframe({ path }: RagflowIframeProps) {
    * Uses a small delay to ensure clean reload.
    */
   const handleReload = useCallback(() => {
+    if (!iframeSrc) return;
+
     setIframeLoading(true);
     setIframeError(null);
     setUrlChecked(false);
@@ -325,13 +327,15 @@ function RagflowIframe({ path }: RagflowIframeProps) {
               {t('iframe.errorCode', { code: error.statusCode })}
             </p>
           )}
-          <button
-            onClick={handleReload}
-            className="inline-flex items-center gap-2 px-4 py-2 bg-primary hover:bg-primary-hover text-white rounded-lg transition-colors"
-          >
-            <RefreshCw className="w-4 h-4" />
-            {t('common.retry')}
-          </button>
+          {error.type !== 'notfound' && (
+            <button
+              onClick={handleReload}
+              className="inline-flex items-center gap-2 px-4 py-2 bg-primary hover:bg-primary-hover text-white rounded-lg transition-colors"
+            >
+              <RefreshCw className="w-4 h-4" />
+              {t('common.retry')}
+            </button>
+          )}
         </div>
       </div>
     );
@@ -362,7 +366,14 @@ function RagflowIframe({ path }: RagflowIframeProps) {
       <div className="w-full h-full flex items-center justify-center bg-slate-50 dark:bg-slate-800">
         <div className="text-center">
           <div className="animate-spin rounded-full h-10 w-10 border-b-2 border-primary mx-auto mb-3"></div>
-          <div className="text-slate-500 dark:text-slate-400">{t('iframe.checkingAvailability')}</div>
+          <div className="text-slate-500 dark:text-slate-400 mb-4">{t('iframe.checkingAvailability')}</div>
+          <button
+            onClick={handleReload}
+            className="inline-flex items-center gap-2 px-4 py-2 bg-white dark:bg-slate-700 text-slate-700 dark:text-slate-200 border border-slate-200 dark:border-slate-600 hover:bg-slate-50 dark:hover:bg-slate-600 rounded-lg transition-colors text-sm shadow-sm"
+          >
+            <RefreshCw className="w-3.5 h-3.5" />
+            {t('common.retry')}
+          </button>
         </div>
       </div>
     );
@@ -379,7 +390,14 @@ function RagflowIframe({ path }: RagflowIframeProps) {
       <div className="w-full h-full flex items-center justify-center bg-slate-50 dark:bg-slate-800">
         <div className="text-center">
           <div className="animate-spin rounded-full h-10 w-10 border-b-2 border-primary mx-auto mb-3"></div>
-          <div className="text-slate-500 dark:text-slate-400">{t('iframe.preparingContent')}</div>
+          <div className="text-slate-500 dark:text-slate-400 mb-4">{t('iframe.preparingContent')}</div>
+          <button
+            onClick={handleReload}
+            className="inline-flex items-center gap-2 px-4 py-2 bg-white dark:bg-slate-700 text-slate-700 dark:text-slate-200 border border-slate-200 dark:border-slate-600 hover:bg-slate-50 dark:hover:bg-slate-600 rounded-lg transition-colors text-sm shadow-sm"
+          >
+            <RefreshCw className="w-3.5 h-3.5" />
+            {t('common.retry')}
+          </button>
         </div>
       </div>
     );

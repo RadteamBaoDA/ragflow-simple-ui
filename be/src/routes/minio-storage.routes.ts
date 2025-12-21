@@ -40,7 +40,38 @@ const router = Router();
 router.use(requireAuth);
 
 // Apply storage:read permission to all routes by default (allows listing/downloading)
-router.use(requirePermission("storage:read"));
+import { storagePermissionService, PermissionLevel } from "../services/storage-permission.service.js";
+
+const requireStoragePermission = (requiredLevel: PermissionLevel) => {
+    return async (req: Request, res: Response, next: any) => {
+        try {
+            const user = (req as any).user;
+            if (!user) return res.status(401).json({ error: "Unauthorized" });
+
+            // Admins bypass
+            if (user.role === 'admin') return next();
+
+            const level = await storagePermissionService.resolveUserPermission(user.id);
+            if (level >= requiredLevel) {
+                return next();
+            }
+
+            res.status(403).json({ error: "Insufficient storage permissions" });
+        } catch (error) {
+            log.error("Failed to check storage permission", { error });
+            res.status(500).json({ error: "Internal server error" });
+        }
+    };
+};
+
+
+
+// Default requirement: VIEW access for all GET routes?
+// Actually, let's apply specific checks per route.
+// But for now, let's enforce VIEW for everything as a baseline, and UPLOAD/DELETE specific.
+
+// Remove static permission check
+// router.use(requirePermission("storage:read"));
 
 // =============================================================================
 // MULTER CONFIGURATION
@@ -155,7 +186,7 @@ async function getBucketById(bucketId: string): Promise<{ id: string; bucket_nam
  * @param bucketId - Bucket UUID
  * @query prefix - Optional path prefix (folder path)
  */
-router.get("/:bucketId/list", async (req: Request, res: Response) => {
+router.get("/:bucketId/list", requireStoragePermission(PermissionLevel.VIEW), async (req: Request, res: Response) => {
     const user = getCurrentUser(req);
     const bucketId = req.params["bucketId"];
     const prefix = (req.query["prefix"] as string) || "";
@@ -233,7 +264,7 @@ router.get("/:bucketId/list", async (req: Request, res: Response) => {
  * 5. Size limits enforced
  */
 // Use handleUpload middleware instead of raw upload.any()
-router.post("/:bucketId/upload", requirePermission("storage:write"), handleUpload, async (req: Request, res: Response) => {
+router.post("/:bucketId/upload", requireStoragePermission(PermissionLevel.UPLOAD), handleUpload, async (req: Request, res: Response) => {
     const user = getCurrentUser(req);
     const clientIp = getClientIp(req);
     const bucketId = req.params["bucketId"];
@@ -309,7 +340,7 @@ router.post("/:bucketId/upload", requirePermission("storage:write"), handleUploa
                 const sanitizeResult = sanitizeFilename(path.basename(relativePath));
                 safeFilename = sanitizeResult.sanitized || generateSafeFilename(originalname);
 
-                // Get folder path (everything except the filename)
+                // Placeholder: Reading file first path (everything except the filename)
                 const folderPath = path.dirname(relativePath);
                 if (folderPath && folderPath !== '.') {
                     // Sanitize folder path and combine with target prefix
@@ -592,7 +623,7 @@ router.post("/:bucketId/folder", requirePermission("storage:write"), async (req:
  * @body isFolder - Whether the path is a folder
  * @returns {401} If folder deletion and re-authentication required (REAUTH_REQUIRED error code)
  */
-router.delete("/:bucketId/delete", requirePermission("storage:write"), async (req: Request, res: Response, next) => {
+router.delete("/:bucketId/delete", requireStoragePermission(PermissionLevel.FULL), async (req: Request, res: Response, next) => {
     // For folder deletions, require recent authentication
     const { isFolder } = req.body as { isFolder?: boolean };
     if (isFolder) {
@@ -690,7 +721,7 @@ router.delete("/:bucketId/delete", requirePermission("storage:write"), async (re
  * @body items - Array of { path, isFolder } objects
  * @returns {401} If re-authentication required (REAUTH_REQUIRED error code)
  */
-router.post("/:bucketId/batch-delete", requirePermission("storage:write"), requireRecentAuth(15), async (req: Request, res: Response) => {
+router.post("/:bucketId/batch-delete", requireStoragePermission(PermissionLevel.FULL), requireRecentAuth(15), async (req: Request, res: Response) => {
     const user = getCurrentUser(req);
     const clientIp = getClientIp(req);
     const bucketId = req.params["bucketId"];
@@ -798,7 +829,7 @@ router.post("/:bucketId/batch-delete", requirePermission("storage:write"), requi
  * 3. Time-limited URL expiration
  * 4. Audit logging of all download requests
  */
-router.get("/:bucketId/download/*", async (req: Request, res: Response) => {
+router.get("/:bucketId/download/*", requireStoragePermission(PermissionLevel.VIEW), async (req: Request, res: Response) => {
     const user = getCurrentUser(req);
     const clientIp = getClientIp(req);
     const bucketId = req.params["bucketId"];
