@@ -349,10 +349,13 @@ export class ExternalTraceService {
 
         try {
             const langfuse = getLangfuseClient();
+            log.debug('Langfuse client obtained', { clientExists: !!langfuse });
 
             const chatId = metadata?.chatId ?? metadata?.sessionId ?? `chat-${email}-${Date.now()}`;
             const taskName = metadata?.task ?? (role === 'assistant' ? 'llm_response' : 'user_response');
             const tags = this.buildTags(metadata);
+
+            log.debug('Trace params built', { chatId, taskName, tagsCount: tags.length });
 
             let trace = this.chatTraces.get(chatId);
 

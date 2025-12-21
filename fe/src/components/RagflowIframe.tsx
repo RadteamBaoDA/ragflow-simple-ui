@@ -54,7 +54,7 @@ interface IframeError {
  */
 function RagflowIframe({ path }: RagflowIframeProps) {
   const { t, i18n } = useTranslation();
-  const { theme } = useSettings();
+  const { resolvedTheme } = useSettings();
   const iframeRef = useRef<HTMLIFrameElement>(null);
 
   // State management
@@ -67,54 +67,18 @@ function RagflowIframe({ path }: RagflowIframeProps) {
   const [isFullScreen, setIsFullScreen] = useState(false);
 
   // Get user and Knowledge Base configuration
-  const { user } = useSharedUser();
+  const { user, isLoading: isUserLoading } = useSharedUser();
   const knowledgeBase = useKnowledgeBase();
 
   // Get the selected source ID based on path (chat or search)
   const selectedSourceId = path === 'chat' ? knowledgeBase.selectedChatSourceId : knowledgeBase.selectedSearchSourceId;
 
-  // ============================================================================
-  // Effects
-  // ============================================================================
+
 
   /**
    * Effect: Update iframe source URL when source or locale changes.
    * Appends current locale to URL for internationalization.
    */
-  useEffect(() => {
-    if (!knowledgeBase.config) return;
-
-    // Get sources array based on path type
-    const sources = path === 'chat' ? knowledgeBase.config.chatSources : knowledgeBase.config.searchSources;
-
-    // Try to find selected source
-    let source = sources.find(s => s.id === selectedSourceId);
-
-    // If not found, try default source
-    if (!source) {
-      const defaultId = path === 'chat' ? knowledgeBase.config.defaultChatSourceId : knowledgeBase.config.defaultSearchSourceId;
-      source = sources.find(s => s.id === defaultId);
-    }
-
-    // ... (rest of effect logic using source)
-    if (source) {
-      // Append locale, email, and theme query parameters to URL
-      const separator = source.url.includes('?') ? '&' : '?';
-      const userEmail = user?.email ? `&email=${encodeURIComponent(user.email)}` : '';
-      const themeParam = `&theme=${theme}`;
-      const urlWithParams = `${source.url}${separator}locale=${i18n.language}${userEmail}${themeParam}`;
-      setIframeSrc(urlWithParams);
-      setUrlChecked(false); // Reset check when URL changes
-    } else {
-      // No source configured
-      setIframeSrc('');
-      setIframeError({
-        type: 'notfound',
-        message: t(path === 'chat' ? 'iframe.noChatSourceConfigured' : 'iframe.noSearchSourceConfigured')
-      });
-    }
-  }, [knowledgeBase.config, selectedSourceId, i18n.language, path, user?.email, theme]);
-
   // ============================================================================
   // Callbacks
   // ============================================================================
@@ -181,8 +145,71 @@ function RagflowIframe({ path }: RagflowIframeProps) {
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
 
+  // ============================================================================
+
+  /**
+   * Effect: Update iframe source URL when source or locale changes.
+   * Appends current locale to URL for internationalization.
+   */
+  useEffect(() => {
+    // Wait for user data to be ready
+    if (isUserLoading) return;
+    if (!knowledgeBase.config) return;
+
+    // Get sources array based on path type
+    const sources = path === 'chat' ? knowledgeBase.config.chatSources : knowledgeBase.config.searchSources;
+
+    // Try to find selected source
+    let source = sources.find(s => s.id === selectedSourceId);
+
+    // If not found, try default source
+    if (!source) {
+      const defaultId = path === 'chat' ? knowledgeBase.config.defaultChatSourceId : knowledgeBase.config.defaultSearchSourceId;
+      source = sources.find(s => s.id === defaultId);
+    }
+
+    if (source) {
+      // Helper to build URL with proper param handling (overwrites existing params)
+      const buildUrl = (baseUrl: string, params: Record<string, string | undefined>) => {
+        const url = new URL(baseUrl);
+        Object.entries(params).forEach(([key, value]) => {
+          if (value !== undefined) {
+            url.searchParams.set(key, value); // .set() overwrites existing param
+          }
+        });
+        return url.toString();
+      };
+
+      // Build final URL with all params (locale, email, theme)
+      const urlWithParams = buildUrl(source.url, {
+        locale: i18n.language,
+        email: user?.email,
+        theme: resolvedTheme,
+      });
+
+      // Only update if URL actually changed
+      setIframeSrc(prev => {
+        if (prev !== urlWithParams) {
+          setUrlChecked(false); // Reset check when URL changes
+          return urlWithParams;
+        }
+        return prev;
+      });
+    } else {
+      // No source configured
+      setIframeSrc('');
+      setIframeError({
+        type: 'notfound',
+        message: t(path === 'chat' ? 'iframe.noChatSourceConfigured' : 'iframe.noSearchSourceConfigured')
+      });
+    }
+  }, [knowledgeBase.config, selectedSourceId, i18n.language, path, user?.email, resolvedTheme, isUserLoading, t]);
+
   /**
    * Effect: Check URL status when iframe source changes.
+   * Only check if we haven't already checked (urlChecked) and we have a src.
+   * Note: The warmup checks the base URL, so we might skip this if we consider warmup sufficient,
+   * but keeping it for the final URL is safer.
    */
   useEffect(() => {
     if (iframeSrc && !urlChecked) {
