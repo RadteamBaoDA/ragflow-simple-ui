@@ -16,7 +16,8 @@
 import { useState, useEffect } from 'react';
 import { useAuth, User } from '../hooks/useAuth';
 import { Dialog } from '../components/Dialog';
-import { Mail, Edit2, Globe, Search, Filter, X, ArrowUp, ArrowDown, AlertCircle } from 'lucide-react';
+import { userService } from '../services/userService';
+import { Mail, Edit2, Globe, Search, Filter, X, ArrowUp, ArrowDown, AlertCircle, Key } from 'lucide-react';
 import { useTranslation } from 'react-i18next';
 
 /** API base URL from environment */
@@ -175,10 +176,11 @@ export default function UserManagementPage() {
     };
 
     // ============================================================================
-    // Handlers
-    // ============================================================================
-
     const [saveError, setSaveError] = useState<string | null>(null);
+
+    // Permission Dialog State
+    const [isPermissionModalOpen, setIsPermissionModalOpen] = useState(false);
+    const [selectedPermissions, setSelectedPermissions] = useState<string[]>([]);
 
     // ...
 
@@ -191,6 +193,26 @@ export default function UserManagementPage() {
         setSaveError(null);
         setIsEditModalOpen(true);
     };
+
+    const handlePermissionClick = (user: User) => {
+        setSelectedUser(user);
+        setSelectedPermissions(user.permissions || []);
+        setIsPermissionModalOpen(true);
+    };
+
+    const handleSavePermissions = async () => {
+        if (!selectedUser) return;
+        try {
+            await userService.updateUserPermissions(selectedUser.id, selectedPermissions);
+            // Update local state
+            setUsers(users.map(u => u.id === selectedUser.id ? { ...u, permissions: selectedPermissions } : u));
+            setIsPermissionModalOpen(false);
+        } catch (error) {
+            console.error('Failed to update permissions:', error);
+            // Optionally set error state to show in modal
+        }
+    };
+
 
     /**
      * Save role change via API and update local state.
@@ -413,6 +435,7 @@ export default function UserManagementPage() {
                                                 >
                                                     <Globe className="w-4 h-4" />
                                                 </button>
+
                                                 <button
                                                     onClick={() => handleEditClick(user)}
                                                     className="p-2 text-slate-400 hover:text-primary-600 dark:hover:text-primary-400 transition-colors rounded-full hover:bg-slate-100 dark:hover:bg-slate-700"
@@ -514,6 +537,7 @@ export default function UserManagementPage() {
                     </>
                 }
             >
+                {/* ... existing edit role dialog content ... */}
                 <div className="space-y-4 py-4">
                     <div className="flex items-center gap-3 p-3 bg-slate-50 dark:bg-slate-800 rounded-lg border border-slate-200 dark:border-slate-700">
                         <div className="w-10 h-10 rounded-full bg-primary-100 dark:bg-primary-900/30 flex items-center justify-center text-primary-600 dark:text-primary-400 font-medium">
@@ -582,6 +606,73 @@ export default function UserManagementPage() {
                     </div>
                 </div>
             </Dialog>
+
+            {/* Grant Permission Dialog */}
+            <Dialog
+                open={isPermissionModalOpen}
+                onClose={() => setIsPermissionModalOpen(false)}
+                title={t('userManagement.grantPermissions')}
+                footer={
+                    <>
+                        <button
+                            onClick={() => setIsPermissionModalOpen(false)}
+                            className="px-4 py-2 text-sm font-medium text-slate-700 dark:text-slate-300 hover:bg-slate-100 dark:hover:bg-slate-700 rounded-lg transition-colors"
+                        >
+                            {t('common.cancel')}
+                        </button>
+                        <button
+                            onClick={handleSavePermissions}
+                            className="px-4 py-2 text-sm font-medium text-white bg-primary hover:bg-primary-hover rounded-lg transition-colors"
+                        >
+                            {t('common.save')}
+                        </button>
+                    </>
+                }
+            >
+                <div className="py-4 space-y-4">
+                    <div className="flex items-center gap-3 p-3 bg-slate-50 dark:bg-slate-800 rounded-lg border border-slate-200 dark:border-slate-700">
+                        <div className="w-10 h-10 rounded-full bg-primary-100 dark:bg-primary-900/30 flex items-center justify-center text-primary-600 dark:text-primary-400 font-medium">
+                            {(selectedUser?.displayName || selectedUser?.email || '?').charAt(0).toUpperCase()}
+                        </div>
+                        <div>
+                            <div className="font-medium text-slate-900 dark:text-white">{selectedUser?.displayName || selectedUser?.email}</div>
+                            <div className="text-sm text-slate-500 dark:text-slate-400">{selectedUser?.email}</div>
+                        </div>
+                    </div>
+
+                    <div className="space-y-3">
+                        <label className="block text-sm font-medium text-slate-700 dark:text-slate-300">
+                            {t('userManagement.permissions')}
+                        </label>
+                        <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+                            {[
+                                { id: 'view_chat', label: 'AI Chat Access' },
+                                { id: 'view_search', label: 'AI Search Access' },
+                                { id: 'manage_knowledge', label: 'Knowledge Base Access' },
+                                { id: 'manage_users', label: 'Manage Users' },
+                                { id: 'view_system_monitor', label: 'System Monitor' },
+                            ].map((perm) => (
+                                <label key={perm.id} className="flex items-center p-3 border border-slate-200 dark:border-slate-700 rounded-lg cursor-pointer hover:bg-slate-50 dark:hover:bg-slate-800/50 transition-colors">
+                                    <input
+                                        type="checkbox"
+                                        className="w-4 h-4 text-primary border-gray-300 rounded focus:ring-primary"
+                                        checked={selectedPermissions.includes(perm.id)}
+                                        onChange={(e) => {
+                                            if (e.target.checked) {
+                                                setSelectedPermissions([...selectedPermissions, perm.id]);
+                                            } else {
+                                                setSelectedPermissions(selectedPermissions.filter(p => p !== perm.id));
+                                            }
+                                        }}
+                                    />
+                                    <span className="ml-2 text-sm text-slate-700 dark:text-slate-300">{perm.label}</span>
+                                </label>
+                            ))}
+                        </div>
+                    </div>
+                </div>
+            </Dialog>
         </div>
     );
+
 }

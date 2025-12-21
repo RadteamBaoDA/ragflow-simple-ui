@@ -30,6 +30,9 @@
     "on": "ON",
     "off": "OFF",
     "searchPlaceholder": "Search...",
+    "search": "Search",
+    "teams": "Teams",
+    "users": "Users",
     "add": "Add"
   },
   "nav": {
@@ -47,7 +50,9 @@
     "auditLog": "Audit Log",
     "tokenizer": "Tokenizer",
     "signOut": "Sign Out",
+    "knowledgeBase": "Knowledge Base",
     "expandMenu": "Expand menu",
+    "administrators": "Administrators",
     "collapseMenu": "Collapse menu"
   },
   "iam": {
@@ -137,7 +142,10 @@
     "searchInterface": "RAGFlow Search Interface",
     "failedToLoad": "Failed to load the content. The service may be temporarily unavailable.",
     "errorCode": "Error Code: {{code}}",
-    "noSourceConfigured": "No source configured. Please contact admin."
+    "noSourceConfigured": "No AI Chat / AI Search found, contact administrator",
+    "noChatSourceConfigured": "No AI Chat found, contact administrator",
+    "noSearchSourceConfigured": "No AI Search found, contact administrator",
+    "reauthRequired": "Session expired. Please refresh the page to log in again."
   },
   "pages": {
     "aiChat": {
@@ -466,8 +474,8 @@
       "load": "Failed to load buckets"
     }
   },
-  "ragflowConfig": {
-    "title": "RAGFlow Configuration",
+  "knowledgeBaseConfig": {
+    "title": "Configuration",
     "tabs": {
       "chat": "AI Chat",
       "search": "AI Search"
@@ -477,6 +485,14 @@
     "sourcesList": "Sources List",
     "addSource": "Add Source",
     "editSource": "Edit Source",
-    "pageInfo": "Page {{current}} of {{total}}"
+    "pageInfo": "Page {{current}} of {{total}}",
+    "permissionsTitle": "Permissions: {{sourceName}}",
+    "publicAccess": "System-wide Access",
+    "publicAccessDesc": "Allow all authenticated users to access this source."
+  },
+  "minio": {
+    "reauthRequired": "Session expired. Please refresh the page to log in again.",
+    "deleteFailed": "Failed to delete item",
+    "batchDeleteConfirm": "Are you sure you want to delete {{count}} items?"
   }
 }

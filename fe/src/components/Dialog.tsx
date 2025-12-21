@@ -29,7 +29,9 @@ interface DialogProps {
     /** Optional footer content (typically action buttons) */
     footer?: ReactNode;
     /** Maximum width preset */
-    maxWidth?: 'sm' | 'md' | 'lg' | 'xl';
+    maxWidth?: 'sm' | 'md' | 'lg' | 'xl' | '2xl' | '3xl' | '4xl' | '5xl' | '6xl' | '7xl' | 'full' | 'none';
+    /** Custom class name for the dialog panel */
+    className?: string;
 }
 
 // ============================================================================
@@ -53,6 +55,7 @@ interface DialogProps {
  * @param children - Body content
  * @param footer - Optional footer content
  * @param maxWidth - Width preset (default: 'md')
+ * @param className - Custom class name
  */
 export function Dialog({
     open,
@@ -60,14 +63,23 @@ export function Dialog({
     title,
     children,
     footer,
-    maxWidth = 'md'
+    maxWidth = 'md',
+    className = ''
 }: DialogProps) {
     // Map width preset to Tailwind class
     const maxWidthClasses = {
-        sm: 'max-w-sm',
-        md: 'max-w-md',
-        lg: 'max-w-lg',
-        xl: 'max-w-xl',
+        sm: 'w-full max-w-sm',
+        md: 'w-full max-w-md',
+        lg: 'w-full max-w-lg',
+        xl: 'w-full max-w-xl',
+        '2xl': 'w-full max-w-2xl',
+        '3xl': 'w-full max-w-3xl',
+        '4xl': 'w-full max-w-4xl',
+        '5xl': 'w-full max-w-5xl',
+        '6xl': 'w-full max-w-6xl',
+        '7xl': 'w-full max-w-7xl',
+        full: 'w-full max-w-full',
+        none: 'max-w-none', // No w-full here allowing custom width
     };
 
     return (
@@ -99,10 +111,10 @@ export function Dialog({
                             leaveTo="opacity-0 scale-95"
                         >
                             <HeadlessDialog.Panel
-                                className={`w-full ${maxWidthClasses[maxWidth]} transform overflow-hidden rounded-lg bg-white dark:bg-slate-800 p-6 shadow-xl transition-all`}
+                                className={`${maxWidthClasses[maxWidth]} ${className} transform overflow-hidden rounded-lg bg-white dark:bg-slate-800 p-6 shadow-xl transition-all flex flex-col`}
                             >
                                 {/* Header */}
-                                <div className="flex items-center justify-between mb-6">
+                                <div className="flex items-center justify-between mb-6 shrink-0">
                                     <HeadlessDialog.Title className="text-xl font-semibold text-slate-800 dark:text-slate-100">
                                         {title}
                                     </HeadlessDialog.Title>
@@ -115,7 +127,7 @@ export function Dialog({
                                 </div>
 
                                 {/* Body */}
-                                <div className="text-slate-600 dark:text-slate-400">
+                                <div className="text-slate-600 dark:text-slate-400 flex-1 min-h-0">
                                     {children}
                                 </div>
 

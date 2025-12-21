@@ -16,7 +16,7 @@ import { Suspense, lazy } from 'react';
 import { Routes, Route, Navigate } from 'react-router-dom';
 import { AuthProvider } from './hooks/useAuth';
 import { SettingsProvider } from './contexts/SettingsContext';
-import { RagflowProvider } from './contexts/RagflowContext';
+import { KnowledgeBaseProvider } from './contexts/KnowledgeBaseContext';
 import ProtectedRoute from './components/ProtectedRoute';
 import AdminRoute from './components/AdminRoute';
 import RoleRoute from './components/RoleRoute';
@@ -43,7 +43,7 @@ const UserManagementPage = lazy(() => import('./pages/UserManagementPage'));
 /** Team management page - admin only */
 const TeamManagementPage = lazy(() => import('./pages/TeamManagementPage'));
 /** Permission management page - admin only */
-const PermissionManagementPage = lazy(() => import('./pages/PermissionManagementPage'));
+
 /** System monitoring tools page - admin only */
 const SystemToolsPage = lazy(() => import('./pages/SystemToolsPage'));
 /** System Monitor page - admin only */
@@ -59,7 +59,7 @@ const TokenizerPage = lazy(() => import('./pages/TokenizerPage'));
 /** Storage Dashboard - admin only */
 const StoragePage = lazy(() => import('./pages/StoragePage'));
 /** RAGFlow Config page - admin only */
-const RagflowConfigPage = lazy(() => import('./pages/RagflowConfigPage'));
+const KnowledgeBaseConfigPage = lazy(() => import('./pages/KnowledgeBaseConfigPage'));
 
 // Initialize i18n for internationalization
 import './i18n';
@@ -106,7 +106,7 @@ function App() {
   return (
     <AuthProvider>
       <SettingsProvider>
-        <RagflowProvider>
+        <KnowledgeBaseProvider>
           <Suspense fallback={<PageLoader />}>
             <Routes>
               {/* Public routes */}
@@ -164,9 +164,9 @@ function App() {
                     <StoragePage />
                   </AdminRoute>
                 } />
-                <Route path="/ragflow-config" element={
+                <Route path="/knowledge-base/config" element={
                   <AdminRoute>
-                    <RagflowConfigPage />
+                    <KnowledgeBaseConfigPage />
                   </AdminRoute>
                 } />
                 <Route path="/iam/teams" element={
@@ -185,7 +185,7 @@ function App() {
             </Routes>
           </Suspense>
           <SettingsDialog />
-        </RagflowProvider>
+        </KnowledgeBaseProvider>
       </SettingsProvider>
     </AuthProvider>
   );

@@ -19,5 +19,17 @@ export const userService = {
     async getAllUsers(): Promise<User[]> {
         // Alias for getUsers if needed, or same implementation
         return this.getUsers();
+    },
+
+    async updateUserPermissions(userId: string, permissions: string[]): Promise<void> {
+        const response = await fetch(`${config.apiBaseUrl}/api/users/${userId}/permissions`, {
+            method: 'PUT',
+            headers: {
+                'Content-Type': 'application/json',
+                'Authorization': `Bearer ${localStorage.getItem('token')}`
+            },
+            body: JSON.stringify({ permissions })
+        });
+        if (!response.ok) throw new Error('Failed to update user permissions');
     }
 };

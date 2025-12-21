@@ -21,7 +21,7 @@
 import { Router, Request, Response, NextFunction } from 'express';
 import { userService } from '../services/user.service.js';
 import { log } from '../services/logger.service.js';
-import { requirePermission, requireOwnership, requireRecentAuth, REAUTH_REQUIRED_ERROR } from '../middleware/auth.middleware.js';
+import { requireAuth, requirePermission, requireOwnership, requireRecentAuth, REAUTH_REQUIRED_ERROR } from '../middleware/auth.middleware.js';
 import { auditService, AuditAction, AuditResourceType } from '../services/audit.service.js';
 import { isAdminRole } from '../config/rbac.js';
 
@@ -63,7 +63,7 @@ function getClientIp(req: Request): string {
  * @returns {Array<User>} List of all users
  * @returns {500} If database query fails
  */
-router.get('/', requirePermission('manage_users'), async (req: Request, res: Response) => {
+router.get('/', requireAuth, async (req: Request, res: Response) => {
     try {
         const users = await userService.getAllUsers();
         res.json(users);
@@ -236,6 +236,37 @@ router.put('/:id/role', requirePermission('manage_users'), requireRecentAuth(15)
     } catch (error) {
         log.error('Failed to update user role', { error: error instanceof Error ? error.message : String(error) });
         res.status(500).json({ error: 'Failed to update user role' });
+    }
+});
+
+/**
+ * PUT /api/users/:id/permissions
+ * Update user permissions.
+ * 
+ * Used to grant granular permissions to specific users.
+ * 
+ * @requires manage_users permission
+ */
+router.put('/:id/permissions', requirePermission('manage_users'), async (req: Request, res: Response) => {
+    const { id } = req.params;
+    const { permissions } = req.body;
+
+    if (!id) {
+        res.status(400).json({ error: 'User ID is required' });
+        return;
+    }
+
+    if (!Array.isArray(permissions)) {
+        res.status(400).json({ error: 'Permissions must be an array of strings' });
+        return;
+    }
+
+    try {
+        await userService.updateUserPermissions(id, permissions);
+        res.json({ success: true });
+    } catch (error) {
+        log.error('Failed to update user permissions', { userId: id, error: String(error) });
+        res.status(500).json({ error: 'Failed to update user permissions' });
     }
 });
 

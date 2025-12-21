@@ -30,6 +30,9 @@
     "on": "ON",
     "off": "OFF",
     "searchPlaceholder": "検索...",
+    "search": "検索",
+    "teams": "チーム",
+    "users": "ユーザー",
     "add": "追加"
   },
   "nav": {
@@ -47,7 +50,9 @@
     "auditLog": "監査ログ",
     "tokenizer": "トークナイザー",
     "signOut": "サインアウト",
+    "knowledgeBase": "ナレッジベース",
     "expandMenu": "メニューを展開",
+    "administrators": "管理者",
     "collapseMenu": "メニューを折りたたむ"
   },
   "iam": {
@@ -135,7 +140,10 @@
     "errorLoadingDesc": "コンテンツの読み込み中に予期しないエラーが発生しました。もう一度お試しください。",
     "failedToLoad": "コンテンツの読み込みに失敗しました。サービスが一時的に利用できない可能性があります。",
     "errorCode": "エラーコード: {{code}}",
-    "noSourceConfigured": "ソースが設定されていません。管理者に連絡してください。",
+    "noSourceConfigured": "AIチャット/AI検索が見つかりません。管理者に連絡してください",
+    "noChatSourceConfigured": "AIチャットが見つかりません。管理者に連絡してください",
+    "noSearchSourceConfigured": "AI検索が見つかりません。管理者に連絡してください",
+    "reauthRequired": "セッションの有効期限が切れました。ページを更新して再度ログインしてください。",
     "chatInterface": "RAGFlowチャットインターフェース",
     "searchInterface": "RAGFlow検索インターフェース"
   },
@@ -452,17 +460,25 @@
       "load": "バケットの読み込みに失敗しました"
     }
   },
-  "ragflowConfig": {
-    "title": "RAGFlow 設定",
+  "knowledgeBaseConfig": {
+    "title": "設定",
     "tabs": {
       "chat": "AI チャット",
       "search": "AI 検索"
     },
     "defaultSettings": "デフォルト設定",
-    "defaultUrlLabel": "デフォルト {{type}} URL",
+    "defaultUrlLabel": "{{type}} のデフォルトURL",
     "sourcesList": "ソース一覧",
     "addSource": "ソースを追加",
     "editSource": "ソースを編集",
-    "pageInfo": "ページ {{current}} / {{total}}"
+    "pageInfo": "ページ {{current}} / {{total}}",
+    "permissionsTitle": "権限: {{sourceName}}",
+    "publicAccess": "システム全体へのアクセス",
+    "publicAccessDesc": "すべての認証済みユーザーにこのソースへのアクセスを許可します。"
+  },
+  "minio": {
+    "reauthRequired": "セッションの有効期限が切れました。ページを更新して再度ログインしてください。",
+    "deleteFailed": "アイテムの削除に失敗しました",
+    "batchDeleteConfirm": "{{count}} 個のアイテムを削除してもよろしいですか？"
   }
 }

@@ -30,6 +30,9 @@
     "on": "BẬT",
     "off": "TẮT",
     "searchPlaceholder": "Tìm kiếm...",
+    "search": "Tìm kiếm",
+    "teams": "Nhóm",
+    "users": "Người dùng",
     "add": "Thêm"
   },
   "nav": {
@@ -47,7 +50,9 @@
     "auditLog": "Nhật ký Kiểm toán",
     "tokenizer": "Bộ đếm Token",
     "signOut": "Đăng xuất",
+    "knowledgeBase": "Cơ sở tri thức",
     "expandMenu": "Mở rộng menu",
+    "administrators": "Quản trị",
     "collapseMenu": "Thu gọn menu"
   },
   "iam": {
@@ -137,7 +142,10 @@
     "searchInterface": "Giao diện Tìm kiếm RAGFlow",
     "failedToLoad": "Không thể tải nội dung. Dịch vụ có thể tạm thời không khả dụng.",
     "errorCode": "Mã lỗi: {{code}}",
-    "noSourceConfigured": "Không có nguồn nào được cấu hình. Vui lòng liên hệ quản trị viên."
+    "noSourceConfigured": "Không tìm thấy AI Chat / AI Search, vui lòng liên hệ quản trị viên",
+    "noChatSourceConfigured": "Không tìm thấy AI Chat, vui lòng liên hệ quản trị viên",
+    "noSearchSourceConfigured": "Không tìm thấy AI Search, vui lòng liên hệ quản trị viên",
+    "reauthRequired": "Phiên đăng nhập hết hạn. Vui lòng tải lại trang để đăng nhập lại."
   },
   "pages": {
     "aiChat": {
@@ -466,8 +474,8 @@
       "load": "Không thể tải danh sách bucket"
     }
   },
-  "ragflowConfig": {
-    "title": "Cấu hình RAGFlow",
+  "knowledgeBaseConfig": {
+    "title": "Cấu hình",
     "tabs": {
       "chat": "AI Chat",
       "search": "AI Tìm kiếm"
@@ -477,6 +485,14 @@
     "sourcesList": "Danh sách Nguồn",
     "addSource": "Thêm Nguồn",
     "editSource": "Chỉnh sửa Nguồn",
-    "pageInfo": "Trang {{current}} trên {{total}}"
+    "pageInfo": "Trang {{current}} trên {{total}}",
+    "permissionsTitle": "Phân quyền: {{sourceName}}",
+    "publicAccess": "Truy cập toàn hệ thống",
+    "publicAccessDesc": "Cho phép tất cả người dùng đã xác thực truy cập nguồn này."
+  },
+  "minio": {
+    "reauthRequired": "Phiên đăng nhập hết hạn. Vui lòng tải lại trang để đăng nhập lại.",
+    "deleteFailed": "Không thể xóa mục",
+    "batchDeleteConfirm": "Bạn có chắc chắn muốn xóa {{count}} mục không?"
   }
 }

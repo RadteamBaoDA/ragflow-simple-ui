@@ -16,7 +16,7 @@
 import { useEffect, useRef, useState, useCallback } from 'react';
 import { useSharedUser } from '../hooks/useSharedUser';
 import { useTranslation } from 'react-i18next';
-import { useRagflow } from '../contexts/RagflowContext';
+import { useKnowledgeBase } from '../contexts/KnowledgeBaseContext';
 import { useSettings } from '../contexts/SettingsContext';
 import { AlertCircle, RefreshCw, WifiOff, Lock, FileQuestion, ServerCrash, Maximize2, Minimize2 } from 'lucide-react';
 
@@ -66,12 +66,12 @@ function RagflowIframe({ path }: RagflowIframeProps) {
   const [urlChecked, setUrlChecked] = useState(false);
   const [isFullScreen, setIsFullScreen] = useState(false);
 
-  // Get user and RAGFlow configuration
+  // Get user and Knowledge Base configuration
   const { user } = useSharedUser();
-  const ragflow = useRagflow();
+  const knowledgeBase = useKnowledgeBase();
 
   // Get the selected source ID based on path (chat or search)
-  const selectedSourceId = path === 'chat' ? ragflow.selectedChatSourceId : ragflow.selectedSearchSourceId;
+  const selectedSourceId = path === 'chat' ? knowledgeBase.selectedChatSourceId : knowledgeBase.selectedSearchSourceId;
 
   // ============================================================================
   // Effects
@@ -82,20 +82,21 @@ function RagflowIframe({ path }: RagflowIframeProps) {
    * Appends current locale to URL for internationalization.
    */
   useEffect(() => {
-    if (!ragflow.config) return;
+    if (!knowledgeBase.config) return;
 
     // Get sources array based on path type
-    const sources = path === 'chat' ? ragflow.config.chatSources : ragflow.config.searchSources;
+    const sources = path === 'chat' ? knowledgeBase.config.chatSources : knowledgeBase.config.searchSources;
 
     // Try to find selected source
     let source = sources.find(s => s.id === selectedSourceId);
 
     // If not found, try default source
     if (!source) {
-      const defaultId = path === 'chat' ? ragflow.config.defaultChatSourceId : ragflow.config.defaultSearchSourceId;
+      const defaultId = path === 'chat' ? knowledgeBase.config.defaultChatSourceId : knowledgeBase.config.defaultSearchSourceId;
       source = sources.find(s => s.id === defaultId);
     }
 
+    // ... (rest of effect logic using source)
     if (source) {
       // Append locale, email, and theme query parameters to URL
       const separator = source.url.includes('?') ? '&' : '?';
@@ -109,11 +110,10 @@ function RagflowIframe({ path }: RagflowIframeProps) {
       setIframeSrc('');
       setIframeError({
         type: 'notfound',
-        message: t('iframe.noSourceConfigured')
+        message: t(path === 'chat' ? 'iframe.noChatSourceConfigured' : 'iframe.noSearchSourceConfigured')
       });
     }
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [ragflow.config, selectedSourceId, i18n.language, path, user?.email, theme]);
+  }, [knowledgeBase.config, selectedSourceId, i18n.language, path, user?.email, theme]);
 
   // ============================================================================
   // Callbacks
@@ -157,6 +157,11 @@ function RagflowIframe({ path }: RagflowIframeProps) {
         setIframeError({
           type: 'network',
           message: t('iframe.connectionTimeout'),
+        });
+      } else if (error.message?.includes('REAUTH_REQUIRED')) {
+        setIframeError({
+          type: 'forbidden',
+          message: t('iframe.reauthRequired'),
         });
       } else if (error.message?.includes('Failed to fetch') || error.message?.includes('NetworkError')) {
         setIframeError({
@@ -332,7 +337,7 @@ function RagflowIframe({ path }: RagflowIframeProps) {
     );
   };
 
-  if (ragflow.isLoading) {
+  if (knowledgeBase.isLoading) {
     return (
       <div className="w-full h-full flex items-center justify-center bg-slate-50 dark:bg-slate-800">
         <div className="text-center">
@@ -343,10 +348,10 @@ function RagflowIframe({ path }: RagflowIframeProps) {
     );
   }
 
-  if (ragflow.error) {
+  if (knowledgeBase.error) {
     return (
       <div className="w-full h-full flex items-center justify-center bg-red-50 dark:bg-red-900/20">
-        <div className="text-red-600 dark:text-red-400">{ragflow.error}</div>
+        <div className="text-red-600 dark:text-red-400">{knowledgeBase.error}</div>
       </div>
     );
   }

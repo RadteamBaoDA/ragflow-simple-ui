@@ -43,7 +43,7 @@ import { shutdownLangfuse } from './services/langfuse.service.js';
 import { checkConnection, closePool, getAdapter } from './db/index.js';
 import { userService } from './services/user.service.js';
 import authRoutes from './routes/auth.routes.js';
-import ragflowRoutes from './routes/ragflow.routes.js';
+import { knowledgeBaseRoutes } from './routes/knowledge-base.routes.js';
 import adminRoutes from './routes/admin.routes.js';
 import userRoutes from './routes/user.routes.js';
 import systemToolsRoutes from './routes/system-tools.routes.js';
@@ -57,7 +57,7 @@ import previewRoutes from './routes/preview.routes.js';
 import { externalTraceService } from './services/external-trace.service.js';
 import { runMigrations } from './db/migrations/runner.js';
 import { cronService } from './services/cron.service.js';
-import { ragflowService } from './services/ragflow.service.js';
+import { knowledgeBaseService } from './services/knowledge-base.service.js';
 import { systemToolsService } from './services/system-tools.service.js';
 
 /**
@@ -397,7 +397,7 @@ app.use('/api/auth/login', authLimiter);
 app.use('/api/auth/callback', authLimiter);
 
 app.use('/api/auth', authRoutes);
-app.use('/api/ragflow', ragflowRoutes);
+app.use('/api/knowledge-base', knowledgeBaseRoutes);
 app.use('/api/admin', adminRoutes);
 app.use('/api/users', userRoutes);
 app.use('/api/teams', teamRoutes);
@@ -494,7 +494,7 @@ const startServer = async (): Promise<http.Server | https.Server> => {
     cronService.startCleanupJob();
 
     // Initialize async services
-    await ragflowService.initialize();
+    await knowledgeBaseService.initialize();
     await systemToolsService.initialize();
 
     // Verify database connectivity
