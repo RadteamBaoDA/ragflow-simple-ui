@@ -27,6 +27,7 @@
     "fullScreen": "Toàn màn hình",
     "exitFullScreen": "Thoát toàn màn hình",
     "refresh": "Làm mới",
+    "reset": "Đặt lại",
     "on": "BẬT",
     "off": "TẮT",
     "searchPlaceholder": "Tìm kiếm...",
@@ -148,7 +149,8 @@
     "noSourceConfigured": "Không tìm thấy AI Chat / AI Search, vui lòng liên hệ quản trị viên",
     "noChatSourceConfigured": "Không tìm thấy AI Chat, vui lòng liên hệ quản trị viên",
     "noSearchSourceConfigured": "Không tìm thấy AI Search, vui lòng liên hệ quản trị viên",
-    "reauthRequired": "Phiên đăng nhập hết hạn. Vui lòng tải lại trang để đăng nhập lại."
+    "reauthRequired": "Phiên đăng nhập hết hạn. Vui lòng tải lại trang để đăng nhập lại.",
+    "resetSession": "Làm mới phiên"
   },
   "pages": {
     "aiChat": {

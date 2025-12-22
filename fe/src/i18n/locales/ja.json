@@ -27,6 +27,7 @@
     "fullScreen": "全画面表示",
     "exitFullScreen": "全画面表示を終了",
     "refresh": "更新",
+    "reset": "リセット",
     "on": "ON",
     "off": "OFF",
     "searchPlaceholder": "検索...",
@@ -148,7 +149,8 @@
     "noSearchSourceConfigured": "AI検索が見つかりません。管理者に連絡してください",
     "reauthRequired": "セッションの有効期限が切れました。ページを更新して再度ログインしてください。",
     "chatInterface": "RAGFlowチャットインターフェース",
-    "searchInterface": "RAGFlow検索インターフェース"
+    "searchInterface": "RAGFlow検索インターフェース",
+    "resetSession": "セッションをリセット"
   },
   "pages": {
     "aiChat": {

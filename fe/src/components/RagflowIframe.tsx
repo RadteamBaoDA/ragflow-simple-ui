@@ -18,7 +18,7 @@ import { useSharedUser } from '../hooks/useSharedUser';
 import { useTranslation } from 'react-i18next';
 import { useKnowledgeBase } from '../contexts/KnowledgeBaseContext';
 import { useSettings } from '../contexts/SettingsContext';
-import { AlertCircle, RefreshCw, WifiOff, Lock, FileQuestion, ServerCrash, Maximize2, Minimize2 } from 'lucide-react';
+import { AlertCircle, RefreshCw, RotateCcw, WifiOff, Lock, FileQuestion, ServerCrash, Maximize2, Minimize2 } from 'lucide-react';
 
 // ============================================================================
 // Types
@@ -65,6 +65,7 @@ function RagflowIframe({ path }: RagflowIframeProps) {
 
   const [urlChecked, setUrlChecked] = useState(false);
   const [isFullScreen, setIsFullScreen] = useState(false);
+  const [sessionKey, setSessionKey] = useState<number>(Date.now());
 
   // Get user and Knowledge Base configuration
   const { user, isLoading: isUserLoading } = useSharedUser();
@@ -185,6 +186,7 @@ function RagflowIframe({ path }: RagflowIframeProps) {
         locale: i18n.language,
         email: user?.email,
         theme: resolvedTheme,
+        _t: sessionKey.toString(),
       });
 
       // Only update if URL actually changed
@@ -203,7 +205,7 @@ function RagflowIframe({ path }: RagflowIframeProps) {
         message: t(path === 'chat' ? 'iframe.noChatSourceConfigured' : 'iframe.noSearchSourceConfigured')
       });
     }
-  }, [knowledgeBase.config, selectedSourceId, i18n.language, path, user?.email, resolvedTheme, isUserLoading, t]);
+  }, [knowledgeBase.config, selectedSourceId, i18n.language, path, user?.email, resolvedTheme, isUserLoading, t, sessionKey]);
 
   /**
    * Effect: Check URL status when iframe source changes.
@@ -283,6 +285,15 @@ function RagflowIframe({ path }: RagflowIframeProps) {
    */
   const toggleFullScreen = useCallback(() => {
     setIsFullScreen(prev => !prev);
+  }, []);
+
+  /**
+   * Handler: Reset the session by updating the timestamp key.
+   */
+  const handleResetSession = useCallback(() => {
+    setSessionKey(Date.now());
+    setUrlChecked(false);
+    setIframeLoading(true);
   }, []);
 
   // ============================================================================
@@ -471,8 +482,20 @@ function RagflowIframe({ path }: RagflowIframeProps) {
             {isFullScreen ? t('common.exitFullScreen') : t('common.fullScreen')}
           </span>
         </button>
+
+        {/* Reset Session Bubble Button */}
+        <button
+          onClick={handleResetSession}
+          className="absolute bottom-20 right-6 p-3 bg-white dark:bg-slate-700 text-slate-700 dark:text-slate-200 rounded-full shadow-lg hover:bg-slate-100 dark:hover:bg-slate-600 transition-all duration-200 z-[100] border border-slate-200 dark:border-slate-600 group cursor-pointer"
+          title={t('iframe.resetSession')}
+        >
+          <RotateCcw className="w-6 h-6" />
+          <span className="sr-only">
+            {t('iframe.resetSession')}
+          </span>
+        </button>
       </div>
-    </div>
+    </div >
   );
 }
 
