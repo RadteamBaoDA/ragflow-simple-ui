@@ -250,7 +250,7 @@ describe('Auth Service', () => {
       // Mock photo fetch success
       mockFetch.mockResolvedValueOnce({
         ok: true,
-        arrayBuffer: async () => new ArrayBuffer(10),
+        arrayBuffer: async () => Buffer.from('fake-image-data'),
         headers: {
           get: () => 'image/jpeg',
         },

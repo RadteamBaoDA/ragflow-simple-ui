@@ -18,6 +18,7 @@ vi.mock('../../src/services/logger.service.js', () => ({
 vi.mock('../../src/middleware/auth.middleware.js', () => ({
     requireAuth: vi.fn((_req: unknown, _res: unknown, next: () => void) => next()),
     requirePermission: vi.fn(() => (_req: unknown, _res: unknown, next: () => void) => next()),
+    requireRole: vi.fn(() => (_req: unknown, _res: unknown, next: () => void) => next()),
 }));
 
 vi.mock('../../src/services/ragflow.service.js', () => ({

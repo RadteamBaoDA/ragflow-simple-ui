@@ -23,8 +23,8 @@ describe('File Upload Configuration', () => {
       expect(MAX_FILENAME_LENGTH).toBe(200);
     });
 
-    it('MAX_FILE_SIZE should be 100MB', () => {
-      expect(MAX_FILE_SIZE).toBe(100 * 1024 * 1024);
+    it('MAX_FILE_SIZE should be 500MB', () => {
+      expect(MAX_FILE_SIZE).toBe(500 * 1024 * 1024);
     });
 
     it('MAX_FILES_PER_REQUEST should be 1000', () => {

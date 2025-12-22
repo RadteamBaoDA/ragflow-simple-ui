@@ -1,22 +1,12 @@
 /**
  * @fileoverview Unit tests for RAGFlow configuration service.
- * Tests config loading from various sources, getter methods,
- * and configuration reload functionality.
+ * Tests config loading from database, management methods,
+ * and pagination.
  */
 
 import { describe, it, expect, vi, beforeEach, afterEach } from 'vitest';
-import fs from 'fs';
-import path from 'path';
-
-// Mock fs module
-vi.mock('fs', () => ({
-    default: {
-        existsSync: vi.fn(),
-        readFileSync: vi.fn(),
-    },
-    existsSync: vi.fn(),
-    readFileSync: vi.fn(),
-}));
+import { ragflowService } from '../../src/services/ragflow.service.js';
+import { db } from '../../src/db/index.js';
 
 // Mock logger to avoid console noise
 vi.mock('../../src/services/logger.service.js', () => ({
@@ -28,256 +18,139 @@ vi.mock('../../src/services/logger.service.js', () => ({
     },
 }));
 
-// Mock config
-vi.mock('../../src/config/index.js', () => ({
-    config: {
-        ragflowConfigPath: undefined,
+// Mock db
+vi.mock('../../src/db/index.js', () => ({
+    db: {
+        query: vi.fn(),
+        queryOne: vi.fn(),
     },
 }));
 
 describe('RagflowService', () => {
-    const mockConfig = {
-        aiChatUrl: 'https://ragflow.example.com/chat',
-        aiSearchUrl: 'https://ragflow.example.com/search',
-        chatSources: [
-            { id: 'chat1', name: 'Chat Source 1', url: 'https://chat1.example.com' },
-            { id: 'chat2', name: 'Chat Source 2', url: 'https://chat2.example.com' },
-        ],
-        searchSources: [
-            { id: 'search1', name: 'Search Source 1', url: 'https://search1.example.com' },
-        ],
-    };
+    const mockChatSource = { id: 'chat1', type: 'chat', name: 'Chat Source 1', url: 'https://chat1.example.com' };
+    const mockSearchSource = { id: 'search1', type: 'search', name: 'Search Source 1', url: 'https://search1.example.com' };
+    const mockSources = [mockChatSource, mockSearchSource];
 
     beforeEach(() => {
         vi.clearAllMocks();
-        // Reset module cache to get fresh service instance
-        vi.resetModules();
     });
 
     afterEach(() => {
         vi.restoreAllMocks();
     });
 
-    describe('Config Loading', () => {
-        it('should load config from environment variable path first', async () => {
-            const envPath = '/custom/path/ragflow.config.json';
-            
-            // Mock config with env path
-            vi.doMock('../../src/config/index.js', () => ({
-                config: {
-                    ragflowConfigPath: envPath,
-                },
-            }));
-
-            vi.mocked(fs.existsSync).mockImplementation((p) => {
-                return p === envPath;
-            });
-            vi.mocked(fs.readFileSync).mockReturnValue(JSON.stringify(mockConfig));
-
-            // Import service fresh
-            const { ragflowService } = await import('../../src/services/ragflow.service.js');
-
-            expect(ragflowService.getAiChatUrl()).toBe(mockConfig.aiChatUrl);
-            expect(ragflowService.getAiSearchUrl()).toBe(mockConfig.aiSearchUrl);
-        });
-
-        it('should load config from Docker volume path if env path not available', async () => {
-            const dockerPath = '/app/config/ragflow.config.json';
-
-            vi.doMock('../../src/config/index.js', () => ({
-                config: {
-                    ragflowConfigPath: undefined,
-                },
-            }));
-
-            vi.mocked(fs.existsSync).mockImplementation((p) => {
-                return p === dockerPath;
-            });
-            vi.mocked(fs.readFileSync).mockReturnValue(JSON.stringify(mockConfig));
-
-            const { ragflowService } = await import('../../src/services/ragflow.service.js');
-
-            expect(ragflowService.getAiChatUrl()).toBe(mockConfig.aiChatUrl);
-        });
-
-        it('should handle missing config file gracefully', async () => {
-            vi.doMock('../../src/config/index.js', () => ({
-                config: {
-                    ragflowConfigPath: undefined,
-                },
-            }));
-
-            vi.mocked(fs.existsSync).mockReturnValue(false);
-
-            const { ragflowService } = await import('../../src/services/ragflow.service.js');
-
-            // Should return empty defaults
-            expect(ragflowService.getAiChatUrl()).toBe('');
-            expect(ragflowService.getAiSearchUrl()).toBe('');
-            expect(ragflowService.getChatSources()).toEqual([]);
-            expect(ragflowService.getSearchSources()).toEqual([]);
-        });
-
-        it('should handle invalid JSON gracefully', async () => {
-            vi.doMock('../../src/config/index.js', () => ({
-                config: {
-                    ragflowConfigPath: undefined,
-                },
-            }));
-
-            vi.mocked(fs.existsSync).mockReturnValue(true);
-            vi.mocked(fs.readFileSync).mockReturnValue('invalid json');
-
-            const { ragflowService } = await import('../../src/services/ragflow.service.js');
-
-            // Should return empty defaults on parse error
-            expect(ragflowService.getAiChatUrl()).toBe('');
-        });
-
-        it('should initialize empty arrays for missing sources in config', async () => {
-            const partialConfig = {
-                aiChatUrl: 'https://chat.example.com',
-                aiSearchUrl: 'https://search.example.com',
-                // Missing chatSources and searchSources
-            };
-
-            vi.doMock('../../src/config/index.js', () => ({
-                config: {
-                    ragflowConfigPath: undefined,
-                },
-            }));
-
-            vi.mocked(fs.existsSync).mockReturnValue(true);
-            vi.mocked(fs.readFileSync).mockReturnValue(JSON.stringify(partialConfig));
-
-            const { ragflowService } = await import('../../src/services/ragflow.service.js');
-
-            expect(ragflowService.getChatSources()).toEqual([]);
-            expect(ragflowService.getSearchSources()).toEqual([]);
-        });
-    });
-
     describe('getConfig', () => {
-        it('should return the full configuration object', async () => {
-            vi.doMock('../../src/config/index.js', () => ({
-                config: {
-                    ragflowConfigPath: undefined,
-                },
-            }));
+        it('should return the full configuration object with default IDs and sources', async () => {
+            vi.mocked(db.queryOne).mockImplementation(async (sql, params) => {
+                if (params && params[0] === 'default_chat_source_id') return { value: 'chat1' };
+                if (params && params[0] === 'default_search_source_id') return { value: 'search1' };
+                return undefined;
+            });
+            vi.mocked(db.query).mockResolvedValue(mockSources);
 
-            vi.mocked(fs.existsSync).mockReturnValue(true);
-            vi.mocked(fs.readFileSync).mockReturnValue(JSON.stringify(mockConfig));
+            const config = await ragflowService.getConfig();
 
-            const { ragflowService } = await import('../../src/services/ragflow.service.js');
-            const config = ragflowService.getConfig();
+            expect(config).toEqual({
+                defaultChatSourceId: 'chat1',
+                defaultSearchSourceId: 'search1',
+                chatSources: [mockChatSource],
+                searchSources: [mockSearchSource],
+            });
+            expect(db.queryOne).toHaveBeenCalledTimes(2);
+            expect(db.query).toHaveBeenCalledTimes(1);
+        });
 
-            expect(config).toHaveProperty('aiChatUrl', mockConfig.aiChatUrl);
-            expect(config).toHaveProperty('aiSearchUrl', mockConfig.aiSearchUrl);
-            expect(config).toHaveProperty('chatSources');
-            expect(config).toHaveProperty('searchSources');
+        it('should return empty strings for default IDs if not found', async () => {
+            vi.mocked(db.queryOne).mockResolvedValue(undefined);
+            vi.mocked(db.query).mockResolvedValue([]);
+
+            const config = await ragflowService.getConfig();
+
+            expect(config).toEqual({
+                defaultChatSourceId: '',
+                defaultSearchSourceId: '',
+                chatSources: [],
+                searchSources: [],
+            });
         });
     });
 
-    describe('getAiChatUrl', () => {
-        it('should return the AI Chat URL', async () => {
-            vi.doMock('../../src/config/index.js', () => ({
-                config: {
-                    ragflowConfigPath: undefined,
-                },
-            }));
+    describe('getAllSources', () => {
+        it('should return all sources separated by type', async () => {
+            vi.mocked(db.query).mockResolvedValue(mockSources);
 
-            vi.mocked(fs.existsSync).mockReturnValue(true);
-            vi.mocked(fs.readFileSync).mockReturnValue(JSON.stringify(mockConfig));
+            const result = await ragflowService.getAllSources();
 
-            const { ragflowService } = await import('../../src/services/ragflow.service.js');
-
-            expect(ragflowService.getAiChatUrl()).toBe(mockConfig.aiChatUrl);
+            expect(result).toEqual({
+                chatSources: [mockChatSource],
+                searchSources: [mockSearchSource],
+            });
         });
     });
 
-    describe('getAiSearchUrl', () => {
-        it('should return the AI Search URL', async () => {
-            vi.doMock('../../src/config/index.js', () => ({
-                config: {
-                    ragflowConfigPath: undefined,
-                },
-            }));
+    describe('getSourcesPaginated', () => {
+        it('should return paginated sources', async () => {
+            vi.mocked(db.queryOne).mockResolvedValue({ count: '10' });
+            vi.mocked(db.query).mockResolvedValue([mockChatSource]);
 
-            vi.mocked(fs.existsSync).mockReturnValue(true);
-            vi.mocked(fs.readFileSync).mockReturnValue(JSON.stringify(mockConfig));
+            const result = await ragflowService.getSourcesPaginated('chat', 1, 10);
 
-            const { ragflowService } = await import('../../src/services/ragflow.service.js');
-
-            expect(ragflowService.getAiSearchUrl()).toBe(mockConfig.aiSearchUrl);
+            expect(result).toEqual({
+                data: [mockChatSource],
+                total: 10,
+                page: 1,
+                limit: 10,
+            });
+            expect(db.queryOne).toHaveBeenCalledWith(expect.stringContaining('COUNT'), ['chat']);
+            expect(db.query).toHaveBeenCalledWith(expect.stringContaining('LIMIT'), ['chat', 10, 0]);
         });
     });
 
-    describe('getChatSources', () => {
-        it('should return all chat sources', async () => {
-            vi.doMock('../../src/config/index.js', () => ({
-                config: {
-                    ragflowConfigPath: undefined,
-                },
-            }));
+    describe('saveSystemConfig', () => {
+        it('should insert or update system config', async () => {
+            await ragflowService.saveSystemConfig('default_chat_source_id', 'new-id');
 
-            vi.mocked(fs.existsSync).mockReturnValue(true);
-            vi.mocked(fs.readFileSync).mockReturnValue(JSON.stringify(mockConfig));
-
-            const { ragflowService } = await import('../../src/services/ragflow.service.js');
-            const sources = ragflowService.getChatSources();
-
-            expect(sources).toHaveLength(2);
-            expect(sources[0]).toEqual(mockConfig.chatSources[0]);
-            expect(sources[1]).toEqual(mockConfig.chatSources[1]);
+            expect(db.query).toHaveBeenCalledWith(
+                expect.stringContaining('INSERT INTO system_configs'),
+                ['default_chat_source_id', 'new-id']
+            );
         });
     });
 
-    describe('getSearchSources', () => {
-        it('should return all search sources', async () => {
-            vi.doMock('../../src/config/index.js', () => ({
-                config: {
-                    ragflowConfigPath: undefined,
-                },
-            }));
+    describe('addSource', () => {
+        it('should add a new source', async () => {
+            const result = await ragflowService.addSource('chat', 'New Chat', 'http://new.com');
 
-            vi.mocked(fs.existsSync).mockReturnValue(true);
-            vi.mocked(fs.readFileSync).mockReturnValue(JSON.stringify(mockConfig));
-
-            const { ragflowService } = await import('../../src/services/ragflow.service.js');
-            const sources = ragflowService.getSearchSources();
-
-            expect(sources).toHaveLength(1);
-            expect(sources[0]).toEqual(mockConfig.searchSources[0]);
+            expect(result).toHaveProperty('id');
+            expect(result.type).toBe('chat');
+            expect(result.name).toBe('New Chat');
+            expect(result.url).toBe('http://new.com');
+            expect(db.query).toHaveBeenCalledWith(
+                expect.stringContaining('INSERT INTO ragflow_sources'),
+                [expect.any(String), 'chat', 'New Chat', 'http://new.com']
+            );
         });
     });
 
-    describe('reload', () => {
-        it('should reload configuration from file', async () => {
-            vi.doMock('../../src/config/index.js', () => ({
-                config: {
-                    ragflowConfigPath: undefined,
-                },
-            }));
+    describe('updateSource', () => {
+        it('should update an existing source', async () => {
+            await ragflowService.updateSource('id-123', 'Updated Name', 'http://updated.com');
 
-            vi.mocked(fs.existsSync).mockReturnValue(true);
-            vi.mocked(fs.readFileSync).mockReturnValue(JSON.stringify(mockConfig));
+            expect(db.query).toHaveBeenCalledWith(
+                expect.stringContaining('UPDATE ragflow_sources'),
+                ['Updated Name', 'http://updated.com', 'id-123']
+            );
+        });
+    });
 
-            const { ragflowService } = await import('../../src/services/ragflow.service.js');
+    describe('deleteSource', () => {
+        it('should delete a source', async () => {
+            await ragflowService.deleteSource('id-123');
 
-            // Initial load
-            expect(ragflowService.getAiChatUrl()).toBe(mockConfig.aiChatUrl);
-
-            // Update mock to return new config
-            const updatedConfig = {
-                ...mockConfig,
-                aiChatUrl: 'https://new-chat.example.com',
-            };
-            vi.mocked(fs.readFileSync).mockReturnValue(JSON.stringify(updatedConfig));
-
-            // Reload and verify
-            ragflowService.reload();
-
-            expect(ragflowService.getAiChatUrl()).toBe(updatedConfig.aiChatUrl);
+            expect(db.query).toHaveBeenCalledWith(
+                expect.stringContaining('DELETE FROM ragflow_sources'),
+                ['id-123']
+            );
         });
     });
 });
