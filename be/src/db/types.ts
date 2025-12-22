@@ -38,7 +38,7 @@ export interface DatabaseAdapter {
      * @returns Array of result rows
      */
     query<T>(text: string, params?: unknown[]): Promise<T[]>;
-    
+
     /**
      * Execute a query and return only the first row.
      * Useful for queries expected to return a single result.
@@ -49,7 +49,7 @@ export interface DatabaseAdapter {
      * @returns First row or undefined if no results
      */
     queryOne<T>(text: string, params?: unknown[]): Promise<T | undefined>;
-    
+
     /**
      * Acquire a database client for transaction support.
      * Client must be released after use to return to connection pool.
@@ -57,13 +57,13 @@ export interface DatabaseAdapter {
      * @returns A database client with query and release methods
      */
     getClient(): Promise<DatabaseClient>;
-    
+
     /**
      * Close the database connection and release all resources.
      * Should be called during application shutdown.
      */
     close(): Promise<void>;
-    
+
     /**
      * Check if the database connection is healthy.
      * Used for health checks and startup verification.
@@ -99,10 +99,23 @@ export interface DatabaseClient {
      * @returns Array of result rows
      */
     query<T>(text: string, params?: unknown[]): Promise<T[]>;
-    
+
     /**
      * Release the client back to the connection pool.
      * Must be called after all operations are complete.
      */
     release(): void;
+}
+
+/**
+ * Database migration interface.
+ * Defines the structure for schema changes.
+ */
+export interface Migration {
+    /** Unique name for the migration (e.g., '001_initial_schema') */
+    name: string;
+    /** Function to apply the migration changes */
+    up: (db: DatabaseAdapter) => Promise<void>;
+    /** Function to revert the migration changes (optional) */
+    down?: (db: DatabaseAdapter) => Promise<void>;
 }

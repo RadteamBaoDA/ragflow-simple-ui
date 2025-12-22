@@ -141,6 +141,16 @@ router.post('/', checkEnabled, validateApiKey, async (req: Request, res: Respons
     try {
         const { email, message, role, response, metadata } = req.body as CollectTraceBody;
 
+        // Debug log incoming request
+        log.debug('External trace request received', {
+            email: email ? `${email.substring(0, 5)}...` : 'undefined',
+            messageLength: message?.length ?? 0,
+            role: role ?? 'user',
+            hasResponse: !!response,
+            metadata: metadata ? Object.keys(metadata) : [],
+            ip: getClientIp(req),
+        });
+
         // Validate required fields
         if (!email || typeof email !== 'string') {
             log.warn('External trace: Missing or invalid email', { email, ip: getClientIp(req) });

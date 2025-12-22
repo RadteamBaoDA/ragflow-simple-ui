@@ -16,7 +16,7 @@ import { Suspense, lazy } from 'react';
 import { Routes, Route, Navigate } from 'react-router-dom';
 import { AuthProvider } from './hooks/useAuth';
 import { SettingsProvider } from './contexts/SettingsContext';
-import { RagflowProvider } from './contexts/RagflowContext';
+import { KnowledgeBaseProvider } from './contexts/KnowledgeBaseContext';
 import ProtectedRoute from './components/ProtectedRoute';
 import AdminRoute from './components/AdminRoute';
 import RoleRoute from './components/RoleRoute';
@@ -40,6 +40,10 @@ const LoginPage = lazy(() => import('./pages/LoginPage'));
 const LogoutPage = lazy(() => import('./pages/LogoutPage'));
 /** User management page - admin only */
 const UserManagementPage = lazy(() => import('./pages/UserManagementPage'));
+/** Team management page - admin only */
+const TeamManagementPage = lazy(() => import('./pages/TeamManagementPage'));
+/** Permission management page - admin only */
+
 /** System monitoring tools page - admin only */
 const SystemToolsPage = lazy(() => import('./pages/SystemToolsPage'));
 /** System Monitor page - admin only */
@@ -55,7 +59,7 @@ const TokenizerPage = lazy(() => import('./pages/TokenizerPage'));
 /** Storage Dashboard - admin only */
 const StoragePage = lazy(() => import('./pages/StoragePage'));
 /** RAGFlow Config page - admin only */
-const RagflowConfigPage = lazy(() => import('./pages/RagflowConfigPage'));
+const KnowledgeBaseConfigPage = lazy(() => import('./pages/KnowledgeBaseConfigPage'));
 
 // Initialize i18n for internationalization
 import './i18n';
@@ -102,7 +106,7 @@ function App() {
   return (
     <AuthProvider>
       <SettingsProvider>
-        <RagflowProvider>
+        <KnowledgeBaseProvider>
           <Suspense fallback={<PageLoader />}>
             <Routes>
               {/* Public routes */}
@@ -141,7 +145,7 @@ function App() {
                   </AdminRoute>
                 } />
                 <Route path="/storage" element={
-                  <RoleRoute allowedRoles={['admin', 'manager']}>
+                  <RoleRoute allowedRoles={['admin', 'leader']}>
                     <MinIOManagerPage />
                   </RoleRoute>
                 } />
@@ -160,11 +164,17 @@ function App() {
                     <StoragePage />
                   </AdminRoute>
                 } />
-                <Route path="/ragflow-config" element={
+                <Route path="/knowledge-base/config" element={
                   <AdminRoute>
-                    <RagflowConfigPage />
+                    <KnowledgeBaseConfigPage />
                   </AdminRoute>
                 } />
+                <Route path="/iam/teams" element={
+                  <AdminRoute>
+                    <TeamManagementPage />
+                  </AdminRoute>
+                } />
+
 
                 {/* Error routes */}
                 <Route path="/403" element={<ErrorPage code={403} />} />
@@ -175,7 +185,7 @@ function App() {
             </Routes>
           </Suspense>
           <SettingsDialog />
-        </RagflowProvider>
+        </KnowledgeBaseProvider>
       </SettingsProvider>
     </AuthProvider>
   );

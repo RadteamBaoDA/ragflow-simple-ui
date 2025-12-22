@@ -21,7 +21,7 @@
 import { Router, Request, Response, NextFunction } from 'express';
 import { userService } from '../services/user.service.js';
 import { log } from '../services/logger.service.js';
-import { requirePermission, requireOwnership, requireRecentAuth, REAUTH_REQUIRED_ERROR } from '../middleware/auth.middleware.js';
+import { requireAuth, requirePermission, requireOwnership, requireRecentAuth, REAUTH_REQUIRED_ERROR } from '../middleware/auth.middleware.js';
 import { auditService, AuditAction, AuditResourceType } from '../services/audit.service.js';
 import { isAdminRole } from '../config/rbac.js';
 
@@ -38,7 +38,7 @@ const router = Router();
 function getClientIp(req: Request): string {
     const forwardedFor = req.headers['x-forwarded-for'];
     const realIp = req.headers['x-real-ip'];
-    
+
     if (typeof forwardedFor === 'string') {
         return forwardedFor.split(',')[0]?.trim() || 'unknown';
     }
@@ -63,9 +63,10 @@ function getClientIp(req: Request): string {
  * @returns {Array<User>} List of all users
  * @returns {500} If database query fails
  */
-router.get('/', requirePermission('manage_users'), async (req: Request, res: Response) => {
+router.get('/', requireAuth, async (req: Request, res: Response) => {
     try {
-        const users = await userService.getAllUsers();
+        const roles = req.query.roles ? (req.query.roles as string).split(',') : undefined;
+        const users = await userService.getAllUsers(roles as any);
         res.json(users);
     } catch (error) {
         log.error('Failed to fetch users', { error: error instanceof Error ? error.message : String(error) });
@@ -113,12 +114,12 @@ router.get('/ip-history', requirePermission('manage_users'), async (req: Request
  */
 router.get('/:id/ip-history', requirePermission('manage_users'), async (req: Request, res: Response) => {
     const { id } = req.params;
-    
+
     if (!id) {
         res.status(400).json({ error: 'User ID is required' });
         return;
     }
-    
+
     try {
         const history = await userService.getUserIpHistory(id);
         res.json(history);
@@ -166,7 +167,7 @@ router.put('/:id/role', requirePermission('manage_users'), requireRecentAuth(15)
         res.status(400).json({ error: 'Invalid input' });
         return;
     }
-    
+
     // Validate UUID format for id
     const uuidRegex = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;
     if (!uuidRegex.test(id) && id !== 'root-user' && id !== 'dev-user-001') {
@@ -175,7 +176,7 @@ router.put('/:id/role', requirePermission('manage_users'), requireRecentAuth(15)
     }
 
     // Validate role value (strict type check)
-    const validRoles = ['admin', 'manager', 'user'] as const;
+    const validRoles = ['admin', 'leader', 'user'] as const;
     if (!validRoles.includes(role as typeof validRoles[number])) {
         res.status(400).json({ error: 'Invalid role' });
         return;
@@ -205,7 +206,7 @@ router.put('/:id/role', requirePermission('manage_users'), requireRecentAuth(15)
     }
 
     try {
-        const updatedUser = await userService.updateUserRole(id, role as 'admin' | 'manager' | 'user');
+        const updatedUser = await userService.updateUserRole(id, role as 'admin' | 'leader' | 'user');
         if (!updatedUser) {
             res.status(404).json({ error: 'User not found' });
             return;
@@ -236,6 +237,37 @@ router.put('/:id/role', requirePermission('manage_users'), requireRecentAuth(15)
     } catch (error) {
         log.error('Failed to update user role', { error: error instanceof Error ? error.message : String(error) });
         res.status(500).json({ error: 'Failed to update user role' });
+    }
+});
+
+/**
+ * PUT /api/users/:id/permissions
+ * Update user permissions.
+ * 
+ * Used to grant granular permissions to specific users.
+ * 
+ * @requires manage_users permission
+ */
+router.put('/:id/permissions', requirePermission('manage_users'), async (req: Request, res: Response) => {
+    const { id } = req.params;
+    const { permissions } = req.body;
+
+    if (!id) {
+        res.status(400).json({ error: 'User ID is required' });
+        return;
+    }
+
+    if (!Array.isArray(permissions)) {
+        res.status(400).json({ error: 'Permissions must be an array of strings' });
+        return;
+    }
+
+    try {
+        await userService.updateUserPermissions(id, permissions);
+        res.json({ success: true });
+    } catch (error) {
+        log.error('Failed to update user permissions', { userId: id, error: String(error) });
+        res.status(500).json({ error: 'Failed to update user permissions' });
     }
 });
 

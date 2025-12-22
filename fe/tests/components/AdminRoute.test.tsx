@@ -20,7 +20,7 @@ interface User {
   id: string;
   email: string;
   name: string;
-  role: 'admin' | 'manager' | 'user';
+  role: 'admin' | 'leader' | 'user';
 }
 
 interface AuthContextType {
@@ -162,16 +162,16 @@ describe('AdminRoute', () => {
       expect(screen.getByTestId('redirect')).toHaveAttribute('data-to', '/403');
     });
 
-    it('should redirect manager to 403', () => {
-      const managerUser: User = {
-        id: 'manager-1',
-        email: 'manager@example.com',
-        name: 'Manager User',
-        role: 'manager',
+    it('should redirect leader to 403', () => {
+      const leaderUser: User = {
+        id: 'leader-1',
+        email: 'leader@example.com',
+        name: 'Leader User',
+        role: 'leader',
       };
 
       render(
-        <TestWrapper user={managerUser}>
+        <TestWrapper user={leaderUser}>
           <AdminRoute>
             <div data-testid="admin-content">Admin Only Content</div>
           </AdminRoute>

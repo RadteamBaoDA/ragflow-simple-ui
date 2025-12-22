@@ -16,7 +16,7 @@
 import { useEffect, useRef, useState, useCallback } from 'react';
 import { useSharedUser } from '../hooks/useSharedUser';
 import { useTranslation } from 'react-i18next';
-import { useRagflow } from '../contexts/RagflowContext';
+import { useKnowledgeBase } from '../contexts/KnowledgeBaseContext';
 import { useSettings } from '../contexts/SettingsContext';
 import { AlertCircle, RefreshCw, WifiOff, Lock, FileQuestion, ServerCrash, Maximize2, Minimize2 } from 'lucide-react';
 
@@ -54,7 +54,7 @@ interface IframeError {
  */
 function RagflowIframe({ path }: RagflowIframeProps) {
   const { t, i18n } = useTranslation();
-  const { theme } = useSettings();
+  const { resolvedTheme } = useSettings();
   const iframeRef = useRef<HTMLIFrameElement>(null);
 
   // State management
@@ -66,55 +66,19 @@ function RagflowIframe({ path }: RagflowIframeProps) {
   const [urlChecked, setUrlChecked] = useState(false);
   const [isFullScreen, setIsFullScreen] = useState(false);
 
-  // Get user and RAGFlow configuration
-  const { user } = useSharedUser();
-  const ragflow = useRagflow();
+  // Get user and Knowledge Base configuration
+  const { user, isLoading: isUserLoading } = useSharedUser();
+  const knowledgeBase = useKnowledgeBase();
 
   // Get the selected source ID based on path (chat or search)
-  const selectedSourceId = path === 'chat' ? ragflow.selectedChatSourceId : ragflow.selectedSearchSourceId;
+  const selectedSourceId = path === 'chat' ? knowledgeBase.selectedChatSourceId : knowledgeBase.selectedSearchSourceId;
 
-  // ============================================================================
-  // Effects
-  // ============================================================================
+
 
   /**
    * Effect: Update iframe source URL when source or locale changes.
    * Appends current locale to URL for internationalization.
    */
-  useEffect(() => {
-    if (!ragflow.config) return;
-
-    // Get sources array based on path type
-    const sources = path === 'chat' ? ragflow.config.chatSources : ragflow.config.searchSources;
-
-    // Try to find selected source
-    let source = sources.find(s => s.id === selectedSourceId);
-
-    // If not found, try default source
-    if (!source) {
-      const defaultId = path === 'chat' ? ragflow.config.defaultChatSourceId : ragflow.config.defaultSearchSourceId;
-      source = sources.find(s => s.id === defaultId);
-    }
-
-    if (source) {
-      // Append locale, email, and theme query parameters to URL
-      const separator = source.url.includes('?') ? '&' : '?';
-      const userEmail = user?.email ? `&email=${encodeURIComponent(user.email)}` : '';
-      const themeParam = `&theme=${theme}`;
-      const urlWithParams = `${source.url}${separator}locale=${i18n.language}${userEmail}${themeParam}`;
-      setIframeSrc(urlWithParams);
-      setUrlChecked(false); // Reset check when URL changes
-    } else {
-      // No source configured
-      setIframeSrc('');
-      setIframeError({
-        type: 'notfound',
-        message: t('iframe.noSourceConfigured')
-      });
-    }
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [ragflow.config, selectedSourceId, i18n.language, path, user?.email, theme]);
-
   // ============================================================================
   // Callbacks
   // ============================================================================
@@ -158,6 +122,11 @@ function RagflowIframe({ path }: RagflowIframeProps) {
           type: 'network',
           message: t('iframe.connectionTimeout'),
         });
+      } else if (error.message?.includes('REAUTH_REQUIRED')) {
+        setIframeError({
+          type: 'forbidden',
+          message: t('iframe.reauthRequired'),
+        });
       } else if (error.message?.includes('Failed to fetch') || error.message?.includes('NetworkError')) {
         setIframeError({
           type: 'network',
@@ -176,8 +145,71 @@ function RagflowIframe({ path }: RagflowIframeProps) {
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
 
+  // ============================================================================
+
+  /**
+   * Effect: Update iframe source URL when source or locale changes.
+   * Appends current locale to URL for internationalization.
+   */
+  useEffect(() => {
+    // Wait for user data to be ready
+    if (isUserLoading) return;
+    if (!knowledgeBase.config) return;
+
+    // Get sources array based on path type
+    const sources = path === 'chat' ? knowledgeBase.config.chatSources : knowledgeBase.config.searchSources;
+
+    // Try to find selected source
+    let source = sources.find(s => s.id === selectedSourceId);
+
+    // If not found, try default source
+    if (!source) {
+      const defaultId = path === 'chat' ? knowledgeBase.config.defaultChatSourceId : knowledgeBase.config.defaultSearchSourceId;
+      source = sources.find(s => s.id === defaultId);
+    }
+
+    if (source) {
+      // Helper to build URL with proper param handling (overwrites existing params)
+      const buildUrl = (baseUrl: string, params: Record<string, string | undefined>) => {
+        const url = new URL(baseUrl);
+        Object.entries(params).forEach(([key, value]) => {
+          if (value !== undefined) {
+            url.searchParams.set(key, value); // .set() overwrites existing param
+          }
+        });
+        return url.toString();
+      };
+
+      // Build final URL with all params (locale, email, theme)
+      const urlWithParams = buildUrl(source.url, {
+        locale: i18n.language,
+        email: user?.email,
+        theme: resolvedTheme,
+      });
+
+      // Only update if URL actually changed
+      setIframeSrc(prev => {
+        if (prev !== urlWithParams) {
+          setUrlChecked(false); // Reset check when URL changes
+          return urlWithParams;
+        }
+        return prev;
+      });
+    } else {
+      // No source configured
+      setIframeSrc('');
+      setIframeError({
+        type: 'notfound',
+        message: t(path === 'chat' ? 'iframe.noChatSourceConfigured' : 'iframe.noSearchSourceConfigured')
+      });
+    }
+  }, [knowledgeBase.config, selectedSourceId, i18n.language, path, user?.email, resolvedTheme, isUserLoading, t]);
+
   /**
    * Effect: Check URL status when iframe source changes.
+   * Only check if we haven't already checked (urlChecked) and we have a src.
+   * Note: The warmup checks the base URL, so we might skip this if we consider warmup sufficient,
+   * but keeping it for the final URL is safer.
    */
   useEffect(() => {
     if (iframeSrc && !urlChecked) {
@@ -231,6 +263,8 @@ function RagflowIframe({ path }: RagflowIframeProps) {
    * Uses a small delay to ensure clean reload.
    */
   const handleReload = useCallback(() => {
+    if (!iframeSrc) return;
+
     setIframeLoading(true);
     setIframeError(null);
     setUrlChecked(false);
@@ -320,19 +354,21 @@ function RagflowIframe({ path }: RagflowIframeProps) {
               {t('iframe.errorCode', { code: error.statusCode })}
             </p>
           )}
-          <button
-            onClick={handleReload}
-            className="inline-flex items-center gap-2 px-4 py-2 bg-primary hover:bg-primary-hover text-white rounded-lg transition-colors"
-          >
-            <RefreshCw className="w-4 h-4" />
-            {t('common.retry')}
-          </button>
+          {error.type !== 'notfound' && (
+            <button
+              onClick={handleReload}
+              className="inline-flex items-center gap-2 px-4 py-2 bg-primary hover:bg-primary-hover text-white rounded-lg transition-colors"
+            >
+              <RefreshCw className="w-4 h-4" />
+              {t('common.retry')}
+            </button>
+          )}
         </div>
       </div>
     );
   };
 
-  if (ragflow.isLoading) {
+  if (knowledgeBase.isLoading) {
     return (
       <div className="w-full h-full flex items-center justify-center bg-slate-50 dark:bg-slate-800">
         <div className="text-center">
@@ -343,10 +379,10 @@ function RagflowIframe({ path }: RagflowIframeProps) {
     );
   }
 
-  if (ragflow.error) {
+  if (knowledgeBase.error) {
     return (
       <div className="w-full h-full flex items-center justify-center bg-red-50 dark:bg-red-900/20">
-        <div className="text-red-600 dark:text-red-400">{ragflow.error}</div>
+        <div className="text-red-600 dark:text-red-400">{knowledgeBase.error}</div>
       </div>
     );
   }
@@ -357,7 +393,14 @@ function RagflowIframe({ path }: RagflowIframeProps) {
       <div className="w-full h-full flex items-center justify-center bg-slate-50 dark:bg-slate-800">
         <div className="text-center">
           <div className="animate-spin rounded-full h-10 w-10 border-b-2 border-primary mx-auto mb-3"></div>
-          <div className="text-slate-500 dark:text-slate-400">{t('iframe.checkingAvailability')}</div>
+          <div className="text-slate-500 dark:text-slate-400 mb-4">{t('iframe.checkingAvailability')}</div>
+          <button
+            onClick={handleReload}
+            className="inline-flex items-center gap-2 px-4 py-2 bg-white dark:bg-slate-700 text-slate-700 dark:text-slate-200 border border-slate-200 dark:border-slate-600 hover:bg-slate-50 dark:hover:bg-slate-600 rounded-lg transition-colors text-sm shadow-sm"
+          >
+            <RefreshCw className="w-3.5 h-3.5" />
+            {t('common.retry')}
+          </button>
         </div>
       </div>
     );
@@ -374,7 +417,14 @@ function RagflowIframe({ path }: RagflowIframeProps) {
       <div className="w-full h-full flex items-center justify-center bg-slate-50 dark:bg-slate-800">
         <div className="text-center">
           <div className="animate-spin rounded-full h-10 w-10 border-b-2 border-primary mx-auto mb-3"></div>
-          <div className="text-slate-500 dark:text-slate-400">{t('iframe.preparingContent')}</div>
+          <div className="text-slate-500 dark:text-slate-400 mb-4">{t('iframe.preparingContent')}</div>
+          <button
+            onClick={handleReload}
+            className="inline-flex items-center gap-2 px-4 py-2 bg-white dark:bg-slate-700 text-slate-700 dark:text-slate-200 border border-slate-200 dark:border-slate-600 hover:bg-slate-50 dark:hover:bg-slate-600 rounded-lg transition-colors text-sm shadow-sm"
+          >
+            <RefreshCw className="w-3.5 h-3.5" />
+            {t('common.retry')}
+          </button>
         </div>
       </div>
     );

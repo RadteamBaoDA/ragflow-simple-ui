@@ -43,20 +43,22 @@ import { shutdownLangfuse } from './services/langfuse.service.js';
 import { checkConnection, closePool, getAdapter } from './db/index.js';
 import { userService } from './services/user.service.js';
 import authRoutes from './routes/auth.routes.js';
-import ragflowRoutes from './routes/ragflow.routes.js';
+import { knowledgeBaseRoutes } from './routes/knowledge-base.routes.js';
 import adminRoutes from './routes/admin.routes.js';
 import userRoutes from './routes/user.routes.js';
 import systemToolsRoutes from './routes/system-tools.routes.js';
+import teamRoutes from './routes/team.routes.js';
 import minioBucketRoutes from './routes/minio-bucket.routes.js';
 import minioRawRoutes from './routes/minio-raw.routes.js';
 import minioStorageRoutes from './routes/minio-storage.routes.js';
+import storagePermissionRoutes from './routes/storage-permission.routes.js';
 import auditRoutes from './routes/audit.routes.js';
 import externalRoutes from './routes/external/index.js';
 import previewRoutes from './routes/preview.routes.js';
 import { externalTraceService } from './services/external-trace.service.js';
 import { runMigrations } from './db/migrations/runner.js';
 import { cronService } from './services/cron.service.js';
-import { ragflowService } from './services/ragflow.service.js';
+import { knowledgeBaseService } from './services/knowledge-base.service.js';
 import { systemToolsService } from './services/system-tools.service.js';
 
 /**
@@ -396,13 +398,15 @@ app.use('/api/auth/login', authLimiter);
 app.use('/api/auth/callback', authLimiter);
 
 app.use('/api/auth', authRoutes);
-app.use('/api/ragflow', ragflowRoutes);
+app.use('/api/knowledge-base', knowledgeBaseRoutes);
 app.use('/api/admin', adminRoutes);
 app.use('/api/users', userRoutes);
+app.use('/api/teams', teamRoutes);
 app.use('/api/system-tools', systemToolsRoutes);
 app.use('/api/minio/buckets', minioBucketRoutes);
 app.use('/api/minio/raw', minioRawRoutes);
 app.use('/api/minio/storage', minioStorageRoutes);
+app.use('/api/storage-permissions', storagePermissionRoutes);
 app.use('/api/audit', auditRoutes);
 app.use('/api/external', externalRoutes);
 app.use('/api/preview', previewRoutes);
@@ -492,7 +496,7 @@ const startServer = async (): Promise<http.Server | https.Server> => {
     cronService.startCleanupJob();
 
     // Initialize async services
-    await ragflowService.initialize();
+    await knowledgeBaseService.initialize();
     await systemToolsService.initialize();
 
     // Verify database connectivity

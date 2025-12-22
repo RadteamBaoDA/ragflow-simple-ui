@@ -20,26 +20,33 @@ import { Outlet, NavLink, useLocation, Link } from 'react-router-dom';
 import { useTranslation } from 'react-i18next';
 import { useAuth, User } from '../hooks/useAuth';
 import { useSettings } from '../contexts/SettingsContext';
-import { useRagflow } from '../contexts/RagflowContext';
+import { useKnowledgeBase } from '../contexts/KnowledgeBaseContext';
 import { config } from '../config';
 import { Select } from './Select';
 import {
   MessageSquare,
   Search,
-  History,
+
   Settings,
+  BookOpen,
   LogOut,
   ChevronLeft,
   ChevronRight,
   Users,
+
   Server,
   HardDrive,
   ClipboardList,
   FileCode,
   Database,
   Settings2,
-  Activity
+  Activity,
+  Shield,
+  ChevronDown,
+  User as UserIcon,
+  UserCog,
 } from 'lucide-react';
+
 import logo from '../assets/logo.png';
 import logoDark from '../assets/logo-dark.png';
 
@@ -107,11 +114,14 @@ function Layout() {
 
   // State: Sidebar collapse toggle
   const [isCollapsed, setIsCollapsed] = useState(false);
+  const [isIamExpanded, setIsIamExpanded] = useState(false);
+  const [isAdministratorsExpanded, setIsAdministratorsExpanded] = useState(false);
+  const [isKnowledgeBaseExpanded, setIsKnowledgeBaseExpanded] = useState(false);
 
-  // Get auth, settings, and RAGFlow context
+  // Get auth, settings, and Knowledge Base context
   const { user } = useAuth();
   const { openSettings, resolvedTheme } = useSettings();
-  const ragflow = useRagflow();
+  const knowledgeBase = useKnowledgeBase();
 
   // Select logo based on current theme
   // Select logo based on current theme
@@ -143,8 +153,8 @@ function Layout() {
         return t('pages.tokenizer.title');
       case '/storage-dashboard':
         return t('storage.title');
-      case '/ragflow-config':
-        return t('ragflowConfig.title');
+      case '/knowledge-base/config':
+        return t('knowledgeBaseConfig.title');
       default:
         return t('common.appName');
     }
@@ -152,8 +162,8 @@ function Layout() {
 
   // Determine if source selection dropdowns should be shown
   // Only show when multiple sources are configured
-  const showChatDropdown = location.pathname === '/ai-chat' && ragflow.config?.chatSources && ragflow.config.chatSources.length > 1;
-  const showSearchDropdown = location.pathname === '/ai-search' && ragflow.config?.searchSources && ragflow.config.searchSources.length > 1;
+  const showChatDropdown = location.pathname === '/ai-chat' && knowledgeBase.config?.chatSources && knowledgeBase.config.chatSources.length > 1;
+  const showSearchDropdown = location.pathname === '/ai-search' && knowledgeBase.config?.searchSources && knowledgeBase.config.searchSources.length > 1;
 
   return (
     <div className="flex h-screen overflow-hidden">
@@ -190,60 +200,125 @@ function Layout() {
               {!isCollapsed && <span>{t('nav.aiSearch')}</span>}
             </NavLink>
           )}
-          {config.features.enableHistory && (
+          {(user?.role === 'admin' || user?.role === 'leader') && (
+            <div className="flex flex-col gap-1">
+              <button
+                onClick={() => setIsKnowledgeBaseExpanded(!isKnowledgeBaseExpanded)}
+                className={`sidebar-link w-full ${isCollapsed ? 'justify-center px-2' : ''}`}
+                title={t('nav.knowledgeBase')}
+              >
+                <BookOpen size={20} />
+                {!isCollapsed && (
+                  <>
+                    <span className="flex-1 text-left">{t('nav.knowledgeBase')}</span>
+                    {isKnowledgeBaseExpanded ? <ChevronDown size={16} /> : <ChevronRight size={16} />}
+                  </>
+                )}
+              </button>
+
+              {(!isCollapsed && isKnowledgeBaseExpanded) && (
+                <div className="pl-4 flex flex-col gap-1">
+                  <NavLink to="/storage" className={({ isActive }) => `sidebar-link ${isActive ? 'active' : ''}`} title={t('nav.storage')}>
+                    <HardDrive size={18} />
+                    <span>{t('nav.storage')}</span>
+                  </NavLink>
+                  {user?.role === 'admin' && (
+                    <NavLink to="/knowledge-base/config" className={({ isActive }) => `sidebar-link ${isActive ? 'active' : ''}`} title={t('knowledgeBaseConfig.title')}>
+                      <Settings2 size={18} />
+                      <span>{t('knowledgeBaseConfig.title')}</span>
+                    </NavLink>
+                  )}
+                  {user?.role === 'admin' && (
+                    <NavLink to="/storage-dashboard" className={({ isActive }) => `sidebar-link ${isActive ? 'active' : ''}`} title={t('storage.title')}>
+                      <Database size={18} />
+                      <span>{t('storage.title')}</span>
+                    </NavLink>
+                  )}
+                </div>
+              )}
+            </div>
+          )}
+          {/* {config.features.enableHistory && (
             <NavLink to="/history" className={({ isActive }) => `sidebar-link ${isActive ? 'active' : ''} ${isCollapsed ? 'justify-center px-2' : ''}`} title={t('nav.history')}>
               <History size={20} />
               {!isCollapsed && <span>{t('nav.history')}</span>}
             </NavLink>
+          )} */}
+          {user?.role === 'admin' && (
+            <div className="flex flex-col gap-1">
+              <button
+                onClick={() => setIsIamExpanded(!isIamExpanded)}
+                className={`sidebar-link w-full ${isCollapsed ? 'justify-center px-2' : ''}`}
+                title={t('nav.iam')}
+              >
+                <UserCog size={20} />
+                {!isCollapsed && (
+                  <>
+                    <span className="flex-1 text-left">{t('nav.iam')}</span>
+                    {isIamExpanded ? <ChevronDown size={16} /> : <ChevronRight size={16} />}
+                  </>
+                )}
+              </button>
+
+              {(!isCollapsed && isIamExpanded) && (
+                <div className="pl-4 flex flex-col gap-1">
+                  <NavLink to="/user-management" className={({ isActive }) => `sidebar-link ${isActive ? 'active' : ''}`} title={t('nav.userManagement')}>
+                    <UserIcon size={18} />
+                    <span>{t('nav.userManagement')}</span>
+                  </NavLink>
+                  <NavLink to="/iam/teams" className={({ isActive }) => `sidebar-link ${isActive ? 'active' : ''}`} title={t('nav.teamManagement')}>
+                    <Users size={18} />
+                    <span>{t('nav.teamManagement')}</span>
+                  </NavLink>
+                </div>
+              )}
+            </div>
           )}
           {user?.role === 'admin' && (
-            <NavLink to="/user-management" className={({ isActive }) => `sidebar-link ${isActive ? 'active' : ''} ${isCollapsed ? 'justify-center px-2' : ''}`} title={t('nav.userManagement')}>
-              <Users size={20} />
-              {!isCollapsed && <span>{t('nav.userManagement')}</span>}
-            </NavLink>
+            <div className="flex flex-col gap-1">
+              <button
+                onClick={() => setIsAdministratorsExpanded(!isAdministratorsExpanded)}
+                className={`sidebar-link w-full ${isCollapsed ? 'justify-center px-2' : ''}`}
+                title={t('nav.administrators')}
+              >
+                <Shield size={20} />
+                {!isCollapsed && (
+                  <>
+                    <span className="flex-1 text-left">{t('nav.administrators')}</span>
+                    {isAdministratorsExpanded ? <ChevronDown size={16} /> : <ChevronRight size={16} />}
+                  </>
+                )}
+              </button>
+
+              {(!isCollapsed && isAdministratorsExpanded) && (
+                <div className="pl-4 flex flex-col gap-1">
+                  <NavLink to="/audit-log" className={({ isActive }) => `sidebar-link ${isActive ? 'active' : ''}`} title={t('nav.auditLog')}>
+                    <ClipboardList size={18} />
+                    <span>{t('nav.auditLog')}</span>
+                  </NavLink>
+                  <NavLink to="/system-tools" className={({ isActive }) => `sidebar-link ${isActive ? 'active' : ''}`} title={t('nav.systemTools')}>
+                    <Server size={18} />
+                    <span>{t('nav.systemTools')}</span>
+                  </NavLink>
+                  <NavLink to="/system-monitor" className={({ isActive }) => `sidebar-link ${isActive ? 'active' : ''}`} title={t('nav.systemMonitor')}>
+                    <Activity size={18} />
+                    <span>{t('nav.systemMonitor')}</span>
+                  </NavLink>
+                  <NavLink to="/tokenizer" className={({ isActive }) => `sidebar-link ${isActive ? 'active' : ''}`} title={t('nav.tokenizer')}>
+                    <FileCode size={18} />
+                    <span>{t('nav.tokenizer')}</span>
+                  </NavLink>
+
+                </div>
+              )}
+            </div>
           )}
-          {user?.role === 'admin' && (
-            <NavLink to="/system-tools" className={({ isActive }) => `sidebar-link ${isActive ? 'active' : ''} ${isCollapsed ? 'justify-center px-2' : ''}`} title={t('nav.systemTools')}>
-              <Server size={20} />
-              {!isCollapsed && <span>{t('nav.systemTools')}</span>}
-            </NavLink>
-          )}
-          {user?.role === 'admin' && (
-            <NavLink to="/system-monitor" className={({ isActive }) => `sidebar-link ${isActive ? 'active' : ''} ${isCollapsed ? 'justify-center px-2' : ''}`} title={t('nav.systemMonitor')}>
-              <Activity size={20} />
-              {!isCollapsed && <span>{t('nav.systemMonitor')}</span>}
-            </NavLink>
-          )}
-          {user?.role === 'admin' && (
-            <NavLink to="/ragflow-config" className={({ isActive }) => `sidebar-link ${isActive ? 'active' : ''} ${isCollapsed ? 'justify-center px-2' : ''}`} title={t('ragflowConfig.title')}>
-              <Settings2 size={20} />
-              {!isCollapsed && <span>{t('ragflowConfig.title')}</span>}
-            </NavLink>
-          )}
-          {(user?.role === 'admin' || user?.role === 'manager') && (
-            <NavLink to="/storage" className={({ isActive }) => `sidebar-link ${isActive ? 'active' : ''} ${isCollapsed ? 'justify-center px-2' : ''}`} title={t('nav.storage')}>
-              <HardDrive size={20} />
-              {!isCollapsed && <span>{t('nav.storage')}</span>}
-            </NavLink>
-          )}
-          {user?.role === 'admin' && (
-            <NavLink to="/audit-log" className={({ isActive }) => `sidebar-link ${isActive ? 'active' : ''} ${isCollapsed ? 'justify-center px-2' : ''}`} title={t('nav.auditLog')}>
-              <ClipboardList size={20} />
-              {!isCollapsed && <span>{t('nav.auditLog')}</span>}
-            </NavLink>
-          )}
-          {user?.role === 'admin' && (
-            <NavLink to="/tokenizer" className={({ isActive }) => `sidebar-link ${isActive ? 'active' : ''} ${isCollapsed ? 'justify-center px-2' : ''}`} title={t('nav.tokenizer')}>
-              <FileCode size={20} />
-              {!isCollapsed && <span>{t('nav.tokenizer')}</span>}
-            </NavLink>
-          )}
-          {user?.role === 'admin' && (
-            <NavLink to="/storage-dashboard" className={({ isActive }) => `sidebar-link ${isActive ? 'active' : ''} ${isCollapsed ? 'justify-center px-2' : ''}`} title={t('storage.title')}>
-              <Database size={20} />
-              {!isCollapsed && <span>{t('storage.title')}</span>}
-            </NavLink>
-          )}
+
+
+
+
+
+
         </nav>
 
         <div className={`mt-auto pt-4 border-t border-white/10 space-y-3 pb-4 ${resolvedTheme === 'dark' ? '' : 'bg-white'}`}>
@@ -277,23 +352,23 @@ function Layout() {
 
           {showChatDropdown && (
             <Select
-              value={ragflow.selectedChatSourceId}
-              onChange={ragflow.setSelectedChatSource}
-              options={ragflow.config?.chatSources || []}
+              value={knowledgeBase.selectedChatSourceId}
+              onChange={knowledgeBase.setSelectedChatSource}
+              options={knowledgeBase.config?.chatSources || []}
               icon={<MessageSquare size={18} />}
             />
           )}
 
           {showSearchDropdown && (
             <Select
-              value={ragflow.selectedSearchSourceId}
-              onChange={ragflow.setSelectedSearchSource}
-              options={ragflow.config?.searchSources || []}
+              value={knowledgeBase.selectedSearchSourceId}
+              onChange={knowledgeBase.setSelectedSearchSource}
+              options={knowledgeBase.config?.searchSources || []}
               icon={<Search size={18} />}
             />
           )}
         </header>
-        <div className={`flex-1 overflow-hidden ${['/ai-chat', '/ai-search', '/storage', '/system-tools', '/storage-dashboard', '/ragflow-config'].includes(location.pathname) ? '' : 'p-8 overflow-auto'}`}>
+        <div className={`flex-1 overflow-hidden ${['/ai-chat', '/ai-search', '/storage', '/system-tools', '/storage-dashboard', '/ragflow-config', '/iam/teams'].includes(location.pathname) ? '' : 'p-8 overflow-auto'}`}>
           <Outlet />
         </div>
       </main>

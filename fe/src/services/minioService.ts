@@ -19,6 +19,22 @@ const API_BASE_URL = import.meta.env.VITE_API_BASE_URL || '';
 // Types
 // ============================================================================
 
+export enum PermissionLevel {
+    NONE = 0,
+    VIEW = 1,
+    UPLOAD = 2,
+    FULL = 3
+}
+
+export interface StoragePermission {
+    id: string;
+    entity_type: 'user' | 'team';
+    entity_id: string;
+    permission_level: number;
+    created_at: string;
+    updated_at: string;
+}
+
 /**
  * MinIO bucket configuration from the database.
  */
@@ -572,6 +588,52 @@ export const deleteAccessKey = async (accessKey: string): Promise<void> => {
     });
     if (!response.ok) {
         throw new Error('Failed to delete access key');
+    }
+};
+
+// ============================================================================
+// Storage Permissions
+// ============================================================================
+
+/**
+ * Get the effective storage permission level for the current user.
+ */
+export const getEffectivePermission = async (): Promise<number> => {
+    const response = await fetch(`${API_BASE_URL}/api/storage-permissions/resolve`, {
+        credentials: 'include',
+    });
+    if (!response.ok) {
+        throw new Error('Failed to resolve permission');
+    }
+    const data = await response.json();
+    return data.level;
+};
+
+/**
+ * Get all configured storage permissions (Admin only).
+ */
+export const getAllPermissions = async (): Promise<StoragePermission[]> => {
+    const response = await fetch(`${API_BASE_URL}/api/storage-permissions`, {
+        credentials: 'include',
+    });
+    if (!response.ok) {
+        throw new Error('Failed to fetch permissions');
+    }
+    return response.json();
+};
+
+/**
+ * Set storage permission for a user or team.
+ */
+export const setPermission = async (entityType: 'user' | 'team', entityId: string, level: number): Promise<void> => {
+    const response = await fetch(`${API_BASE_URL}/api/storage-permissions`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        credentials: 'include',
+        body: JSON.stringify({ entityType, entityId, level }),
+    });
+    if (!response.ok) {
+        throw new Error('Failed to set permission');
     }
 };
 

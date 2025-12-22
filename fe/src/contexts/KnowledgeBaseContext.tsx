@@ -1,12 +1,12 @@
 /**
- * @fileoverview RAGFlow configuration context.
+ * @fileoverview Knowledge Base configuration context.
  * 
- * Manages RAGFlow iframe configuration and source selection:
- * - Fetches iframe URLs from backend /api/ragflow/config
+ * Manages Knowledge Base iframe configuration and source selection:
+ * - Fetches iframe URLs from backend /api/knowledge-base/config
  * - Manages selected chat and search sources
  * - Persists source preferences per user via IndexedDB
  * 
- * @module contexts/RagflowContext
+ * @module contexts/KnowledgeBaseContext
  */
 
 import { createContext, useContext, useEffect, useState, ReactNode, useCallback } from 'react';
@@ -18,10 +18,10 @@ import { userPreferences } from '../services/userPreferences';
 // ============================================================================
 
 /**
- * RAGFlow data source configuration.
+ * Knowledge Base data source configuration.
  * Represents a single chat or search source.
  */
-interface RagflowSource {
+interface KnowledgeBaseSource {
     /** Unique source identifier */
     id: string;
     /** Display name for the source */
@@ -31,25 +31,25 @@ interface RagflowSource {
 }
 
 /**
- * Complete RAGFlow configuration from backend.
+ * Complete Knowledge Base configuration from backend.
  */
-interface RagflowConfig {
+interface KnowledgeBaseConfig {
     /** Default Chat Source ID */
     defaultChatSourceId: string;
     /** Default Search Source ID */
     defaultSearchSourceId: string;
     /** Available chat sources */
-    chatSources: RagflowSource[];
+    chatSources: KnowledgeBaseSource[];
     /** Available search sources */
-    searchSources: RagflowSource[];
+    searchSources: KnowledgeBaseSource[];
 }
 
 /**
- * RAGFlow context value type.
+ * Knowledge Base context value type.
  */
-interface RagflowContextType {
+interface KnowledgeBaseContextType {
     /** Current configuration or null if loading */
-    config: RagflowConfig | null;
+    config: KnowledgeBaseConfig | null;
     /** Currently selected chat source ID */
     selectedChatSourceId: string;
     /** Currently selected search source ID */
@@ -68,22 +68,22 @@ interface RagflowContextType {
 // Context
 // ============================================================================
 
-const RagflowContext = createContext<RagflowContextType | undefined>(undefined);
+const KnowledgeBaseContext = createContext<KnowledgeBaseContextType | undefined>(undefined);
 
 // ============================================================================
 // Helper Functions
 // ============================================================================
 
 /**
- * Fetch RAGFlow configuration from backend.
- * @returns RAGFlow configuration with source URLs
+ * Fetch Knowledge Base configuration from backend.
+ * @returns Knowledge Base configuration with source URLs
  */
-async function fetchRagflowConfig(): Promise<RagflowConfig> {
-    const response = await fetch('/api/ragflow/config', {
+async function fetchKnowledgeBaseConfig(): Promise<KnowledgeBaseConfig> {
+    const response = await fetch('/api/knowledge-base/config', {
         credentials: 'include',
     });
     if (!response.ok) {
-        throw new Error('Failed to fetch RAGFlow config');
+        throw new Error('Failed to fetch Knowledge Base config');
     }
     return response.json();
 }
@@ -92,19 +92,19 @@ async function fetchRagflowConfig(): Promise<RagflowConfig> {
 // Provider
 // ============================================================================
 
-interface RagflowProviderProps {
+interface KnowledgeBaseProviderProps {
     children: ReactNode;
 }
 
 /**
- * RAGFlow provider component.
+ * Knowledge Base provider component.
  * Fetches configuration and manages source selection.
  * 
  * @param children - Child components to wrap
  */
-export function RagflowProvider({ children }: RagflowProviderProps) {
+export function KnowledgeBaseProvider({ children }: KnowledgeBaseProviderProps) {
     const { user } = useAuth();
-    const [config, setConfig] = useState<RagflowConfig | null>(null);
+    const [config, setConfig] = useState<KnowledgeBaseConfig | null>(null);
     const [selectedChatSourceId, setSelectedChatSourceId] = useState<string>('');
     const [selectedSearchSourceId, setSelectedSearchSourceId] = useState<string>('');
     const [isLoading, setIsLoading] = useState(true);
@@ -117,14 +117,14 @@ export function RagflowProvider({ children }: RagflowProviderProps) {
     useEffect(() => {
         const init = async () => {
             try {
-                const data = await fetchRagflowConfig();
+                const data = await fetchKnowledgeBaseConfig();
                 setConfig(data);
 
                 // Initialize chat source with saved preference or default or first available
                 if (data.chatSources.length > 0) {
                     let chatSourceId = data.defaultChatSourceId || data.chatSources[0]?.id || '';
                     if (user?.id && chatSourceId) {
-                        const saved = await userPreferences.get<string>(user.id, 'ragflow_source_chat');
+                        const saved = await userPreferences.get<string>(user.id, 'knowledge_base_source_chat');
                         if (saved && data.chatSources.some(s => s.id === saved)) {
                             chatSourceId = saved;
                         }
@@ -136,7 +136,7 @@ export function RagflowProvider({ children }: RagflowProviderProps) {
                 if (data.searchSources.length > 0) {
                     let searchSourceId = data.defaultSearchSourceId || data.searchSources[0]?.id || '';
                     if (user?.id && searchSourceId) {
-                        const saved = await userPreferences.get<string>(user.id, 'ragflow_source_search');
+                        const saved = await userPreferences.get<string>(user.id, 'knowledge_base_source_search');
                         if (saved && data.searchSources.some(s => s.id === saved)) {
                             searchSourceId = saved;
                         }
@@ -144,8 +144,8 @@ export function RagflowProvider({ children }: RagflowProviderProps) {
                     setSelectedSearchSourceId(searchSourceId);
                 }
             } catch (err) {
-                console.error('[RagflowContext] Failed to fetch config:', err);
-                setError('Failed to load RAGFlow configuration');
+                console.error('[KnowledgeBaseContext] Failed to fetch config:', err);
+                setError('Failed to load Knowledge Base configuration');
             } finally {
                 setIsLoading(false);
             }
@@ -160,7 +160,7 @@ export function RagflowProvider({ children }: RagflowProviderProps) {
     const setSelectedChatSource = useCallback(async (id: string) => {
         setSelectedChatSourceId(id);
         if (user?.id) {
-            await userPreferences.set(user.id, 'ragflow_source_chat', id);
+            await userPreferences.set(user.id, 'knowledge_base_source_chat', id);
         }
     }, [user?.id]);
 
@@ -170,12 +170,12 @@ export function RagflowProvider({ children }: RagflowProviderProps) {
     const setSelectedSearchSource = useCallback(async (id: string) => {
         setSelectedSearchSourceId(id);
         if (user?.id) {
-            await userPreferences.set(user.id, 'ragflow_source_search', id);
+            await userPreferences.set(user.id, 'knowledge_base_source_search', id);
         }
     }, [user?.id]);
 
     return (
-        <RagflowContext.Provider
+        <KnowledgeBaseContext.Provider
             value={{
                 config,
                 selectedChatSourceId,
@@ -187,7 +187,7 @@ export function RagflowProvider({ children }: RagflowProviderProps) {
             }}
         >
             {children}
-        </RagflowContext.Provider>
+        </KnowledgeBaseContext.Provider>
     );
 }
 
@@ -196,21 +196,21 @@ export function RagflowProvider({ children }: RagflowProviderProps) {
 // ============================================================================
 
 /**
- * Hook to access RAGFlow configuration context.
- * Must be used within a RagflowProvider.
+ * Hook to access Knowledge Base configuration context.
+ * Must be used within a KnowledgeBaseProvider.
  * 
- * @returns RAGFlow context with config and source selection
- * @throws Error if used outside RagflowProvider
+ * @returns Knowledge Base context with config and source selection
+ * @throws Error if used outside KnowledgeBaseProvider
  * 
  * @example
  * ```tsx
- * const { config, selectedChatSourceId, setSelectedChatSource } = useRagflow();
+ * const { config, selectedChatSourceId, setSelectedChatSource } = useKnowledgeBase();
  * ```
  */
-export function useRagflow(): RagflowContextType {
-    const context = useContext(RagflowContext);
+export function useKnowledgeBase(): KnowledgeBaseContextType {
+    const context = useContext(KnowledgeBaseContext);
     if (context === undefined) {
-        throw new Error('useRagflow must be used within a RagflowProvider');
+        throw new Error('useKnowledgeBase must be used within a KnowledgeBaseProvider');
     }
     return context;
 }

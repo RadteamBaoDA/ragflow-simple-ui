@@ -28,22 +28,57 @@
     "exitFullScreen": "Exit Full Screen",
     "refresh": "Refresh",
     "on": "ON",
-    "off": "OFF"
+    "off": "OFF",
+    "searchPlaceholder": "Search...",
+    "search": "Search",
+    "teams": "Teams",
+    "users": "Users",
+    "add": "Add",
+    "user": "User",
+    "team": "Team",
+    "permissions": "Permissions"
   },
   "nav": {
     "aiChat": "Chat",
     "aiSearch": "Search",
     "history": "History",
     "documents": "Document",
-    "userManagement": "User Management",
+    "iam": "IAM",
+    "userManagement": "Users",
+    "teamManagement": "Teams",
+    "permissionManagement": "Permissions",
     "systemTools": "System Tools",
     "systemMonitor": "System Monitor",
     "storage": "Documents",
     "auditLog": "Audit Log",
     "tokenizer": "Tokenizer",
     "signOut": "Sign Out",
+    "knowledgeBase": "Knowledge Base",
     "expandMenu": "Expand menu",
+    "administrators": "Administrators",
     "collapseMenu": "Collapse menu"
+  },
+  "iam": {
+    "title": "Identity & Access Management",
+    "teams": {
+      "title": "Team Management",
+      "description": "Manage teams and members",
+      "create": "Create Team",
+      "edit": "Edit Team",
+      "name": "Team Name",
+      "projectName": "Project Name",
+      "formDescription": "Description",
+      "members": "Members",
+      "addMember": "Add Member",
+      "role": "Role",
+      "leader": "Leader",
+      "member": "Member",
+      "selectUser": "Select User"
+    },
+    "permissions": {
+      "title": "Permission Management",
+      "description": "Manage system permissions"
+    }
   },
   "login": {
     "subtitle": "AI Chat & Advanced Document Search",
@@ -110,7 +145,10 @@
     "searchInterface": "RAGFlow Search Interface",
     "failedToLoad": "Failed to load the content. The service may be temporarily unavailable.",
     "errorCode": "Error Code: {{code}}",
-    "noSourceConfigured": "No source configured. Please contact admin."
+    "noSourceConfigured": "No AI Chat / AI Search found, contact administrator",
+    "noChatSourceConfigured": "No AI Chat found, contact administrator",
+    "noSearchSourceConfigured": "No AI Search found, contact administrator",
+    "reauthRequired": "Session expired. Please refresh the page to log in again."
   },
   "pages": {
     "aiChat": {
@@ -153,7 +191,7 @@
       "optGroupOther": "Other Platforms"
     }
   },
-  "minio": {
+  "documents": {
     "title": "Knowledge Base Documents",
     "noBucketSelected": "No Bucket Selected",
     "selectBucketPrompt": "Please select a bucket from the top right to view files.",
@@ -161,40 +199,9 @@
     "emptyBucket": "No documents found",
     "uploadPrompt": "Upload files to get started.",
     "createBucket": "Add Bucket Configuration",
-    "deleteBucket": "Remove Bucket",
-    "uploadFiles": "Upload Files",
-    "uploadFolder": "Upload Folder",
-    "upload": "Upload",
-    "refresh": "Refresh",
-    "delete": "Delete",
-    "download": "Download",
-    "preview": "Preview",
-    "previewNotSupported": "Preview not supported",
-    "name": "Name",
-    "size": "Size",
-    "modified": "Modified",
-    "actions": "Actions",
-    "bucketName": "MinIO Bucket",
-    "displayName": "Display Name",
-    "description": "Description",
-    "bucketNamePlaceholder": "e.g., user-uploads, documents-2024",
-    "displayNamePlaceholder": "e.g., User Uploads, Company Documents",
-    "descriptionPlaceholder": "e.g., Stores user-uploaded profile images and documents",
-    "bucketNameHelper": "Select an existing bucket from MinIO server",
-    "displayNameHelper": "Human-readable name shown in table",
-    "descriptionHelper": "Purpose of this bucket for easy management",
-    "bucketNameRequired": "Bucket name is required",
-    "displayNameRequired": "Display name is required",
-    "bucketNameInvalid": "Must be 3-63 characters, lowercase, alphanumeric, hyphens, and dots only",
-    "creating": "Adding...",
-    "uploading": "Uploading...",
-    "loadingFiles": "Loading files...",
-    "deleteConfirm": "Delete {{type}} \"{{name}}\"?",
-    "batchDeleteConfirm": "Delete {{count}} selected item(s)?",
     "deleteBucketConfirm": "Are you sure you want to remove this bucket configuration? (The bucket will remain in MinIO)",
     "uploadSuccess": "Uploaded {{count}} file(s) successfully",
     "uploadFailed": "Failed to upload files",
-    "deleteFailed": "Failed to delete",
     "createFailed": "Failed to add bucket configuration",
     "loadFailed": "Failed to load files",
     "bucketNotFound": "Bucket not found",
@@ -226,8 +233,40 @@
     "dropFilesHere": "Drop files or folders here",
     "dropFilesHint": "Folder structure will be preserved",
     "reauthRequired": "Security check failed. Please sign in again to delete selected items.",
+    "configPermissions": "Configure Permissions",
     "filter": "Filter",
     "allFiles": "All Files",
+    "bucketName": "MinIO Bucket",
+    "displayName": "Display Name",
+    "description": "Description",
+    "bucketNamePlaceholder": "e.g. user-uploads, documents-2024",
+    "displayNamePlaceholder": "e.g. User Uploads, Company Docs",
+    "descriptionPlaceholder": "e.g. Stores user profile pictures and documents",
+    "bucketNameHelper": "Name of the existing bucket on MinIO server",
+    "displayNameHelper": "Human-readable name shown in the table",
+    "descriptionHelper": "Purpose of this bucket for easier management",
+    "bucketNameRequired": "Bucket name is required",
+    "displayNameRequired": "Display name is required",
+    "bucketNameInvalid": "Must be 3-63 characters, lowercase, alphanumeric, hyphens and dots only",
+    "creating": "Adding...",
+    "uploading": "Uploading...",
+    "loadingFiles": "Loading files...",
+    "deleteConfirm": "Delete {{type}} \"{{name}}\"?",
+    "batchDeleteConfirm": "Delete {{count}} selected items?",
+    "deleteBucket": "Delete Bucket",
+    "uploadFiles": "Upload Files",
+    "deleteFailed": "Failed to remove item",
+    "uploadFolder": "Upload Folder",
+    "upload": "Upload",
+    "refresh": "Refresh",
+    "delete": "Delete",
+    "download": "Download",
+    "preview": "Preview",
+    "previewNotSupported": "Preview not supported",
+    "name": "Name",
+    "size": "Size",
+    "modified": "Last Modified",
+    "actions": "Actions",
     "category": {
       "doc": "Documents",
       "excel": "Spreadsheets",
@@ -240,6 +279,10 @@
       "audio": "Audio",
       "video": "Video"
     }
+  },
+  "UserManagement": {
+    "Leader": "Leader",
+    "leaderDescription": "Can manage content and view reports"
   },
   "userManagement": {
     "searchPlaceholder": "Search users...",
@@ -257,10 +300,10 @@
     "saveChanges": "Save Changes",
     "cancel": "Cancel",
     "admin": "Admin",
-    "manager": "Manager",
+    "leader": "Leader",
     "userRole": "User",
     "adminDescription": "Full access to all features and settings",
-    "managerDescription": "Can manage content and view reports",
+    "leaderDescription": "Can manage content and view reports",
     "userDescription": "Standard access to chat and search",
     "noPermission": "You do not have permission to view this page.",
     "loading": "Loading...",
@@ -435,8 +478,8 @@
       "load": "Failed to load buckets"
     }
   },
-  "ragflowConfig": {
-    "title": "RAGFlow Configuration",
+  "knowledgeBaseConfig": {
+    "title": "Configuration",
     "tabs": {
       "chat": "AI Chat",
       "search": "AI Search"
@@ -446,6 +489,9 @@
     "sourcesList": "Sources List",
     "addSource": "Add Source",
     "editSource": "Edit Source",
-    "pageInfo": "Page {{current}} of {{total}}"
+    "pageInfo": "Page {{current}} of {{total}}",
+    "permissionsTitle": "Permissions: {{sourceName}}",
+    "publicAccess": "System-wide Access",
+    "publicAccessDesc": "Allow all authenticated users to access this source."
   }
 }

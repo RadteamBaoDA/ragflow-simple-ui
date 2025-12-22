@@ -37,8 +37,8 @@ export interface User {
     email: string;
     /** User's display name */
     display_name: string;
-    /** User's role for RBAC (admin/manager/user) */
-    role: 'admin' | 'manager' | 'user';
+    /** User's role for RBAC (admin/leader/user) */
+    role: 'admin' | 'leader' | 'user';
     /** Additional permissions (JSON string in DB) */
     permissions: string[];
     /** User's organizational department (from Azure AD) */
@@ -267,8 +267,18 @@ export class UserService {
      * 
      * @returns Array of all users with parsed permissions
      */
-    async getAllUsers(): Promise<User[]> {
-        const users = await query<User>('SELECT * FROM users ORDER BY created_at DESC');
+    async getAllUsers(roles?: string[]): Promise<User[]> {
+        let sql = 'SELECT * FROM users';
+        const params: any[] = [];
+
+        if (roles && roles.length > 0) {
+            sql += ' WHERE role = ANY($1)';
+            params.push(roles);
+        }
+
+        sql += ' ORDER BY created_at DESC';
+
+        const users = await query<User>(sql, params);
 
         // Parse permissions from JSON string to array
         return users.map(user => ({
@@ -285,7 +295,7 @@ export class UserService {
      * @param role - New role to assign (admin/manager/user)
      * @returns Updated user record, or undefined if not found
      */
-    async updateUserRole(userId: string, role: 'admin' | 'manager' | 'user'): Promise<User | undefined> {
+    async updateUserRole(userId: string, role: 'admin' | 'leader' | 'user'): Promise<User | undefined> {
         await query(
             'UPDATE users SET role = $1, updated_at = NOW() WHERE id = $2',
             [role, userId]
@@ -300,6 +310,20 @@ export class UserService {
         }
 
         return updatedUser;
+    }
+
+    /**
+     * Update a user's permissions.
+     * Used for bulk granting permissions or fine-grained access control.
+     * 
+     * @param userId - ID of user to update
+     * @param permissions - Array of permission strings
+     */
+    async updateUserPermissions(userId: string, permissions: string[]): Promise<void> {
+        await query(
+            'UPDATE users SET permissions = $1, updated_at = NOW() WHERE id = $2',
+            [JSON.stringify(permissions), userId]
+        );
     }
 
     /**

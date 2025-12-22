@@ -16,7 +16,8 @@
 import { useState, useEffect } from 'react';
 import { useAuth, User } from '../hooks/useAuth';
 import { Dialog } from '../components/Dialog';
-import { Mail, Edit2, Globe, Search, Filter, X, ArrowUp, ArrowDown } from 'lucide-react';
+import { userService } from '../services/userService';
+import { Mail, Edit2, Globe, Search, Filter, X, ArrowUp, ArrowDown, AlertCircle } from 'lucide-react';
 import { useTranslation } from 'react-i18next';
 
 /** API base URL from environment */
@@ -58,7 +59,7 @@ export default function UserManagementPage() {
     // Edit dialog state
     const [selectedUser, setSelectedUser] = useState<User | null>(null);
     const [isEditModalOpen, setIsEditModalOpen] = useState(false);
-    const [newRole, setNewRole] = useState<'admin' | 'manager' | 'user'>('user');
+    const [newRole, setNewRole] = useState<'admin' | 'leader' | 'user'>('user');
 
     // IP history state
     const [ipHistoryMap, setIpHistoryMap] = useState<IpHistoryMap>({});
@@ -67,7 +68,7 @@ export default function UserManagementPage() {
 
     // Filter and Sort state
     const [searchQuery, setSearchQuery] = useState('');
-    const [roleFilter, setRoleFilter] = useState<'all' | 'admin' | 'manager' | 'user'>('all');
+    const [roleFilter, setRoleFilter] = useState<'all' | 'admin' | 'leader' | 'user'>('all');
     const [departmentFilter, setDepartmentFilter] = useState<string>('all');
     const [sortConfig, setSortConfig] = useState<{ key: keyof User | 'email'; direction: 'asc' | 'desc' }>({
         key: 'displayName',
@@ -175,8 +176,13 @@ export default function UserManagementPage() {
     };
 
     // ============================================================================
-    // Handlers
-    // ============================================================================
+    const [saveError, setSaveError] = useState<string | null>(null);
+
+    // Permission Dialog State
+    const [isPermissionModalOpen, setIsPermissionModalOpen] = useState(false);
+    const [selectedPermissions, setSelectedPermissions] = useState<string[]>([]);
+
+    // ...
 
     /**
      * Handle edit button click - open dialog with user's current role.
@@ -184,14 +190,36 @@ export default function UserManagementPage() {
     const handleEditClick = (user: User) => {
         setSelectedUser(user);
         setNewRole(user.role);
+        setSaveError(null);
         setIsEditModalOpen(true);
     };
+
+    /* const handlePermissionClick = (user: User) => {
+        setSelectedUser(user);
+        setSelectedPermissions(user.permissions || []);
+        setIsPermissionModalOpen(true);
+    }; */
+
+    const handleSavePermissions = async () => {
+        if (!selectedUser) return;
+        try {
+            await userService.updateUserPermissions(selectedUser.id, selectedPermissions);
+            // Update local state
+            setUsers(users.map(u => u.id === selectedUser.id ? { ...u, permissions: selectedPermissions } : u));
+            setIsPermissionModalOpen(false);
+        } catch (error) {
+            console.error('Failed to update permissions:', error);
+            // Optionally set error state to show in modal
+        }
+    };
+
 
     /**
      * Save role change via API and update local state.
      */
     const handleSaveRole = async () => {
         if (!selectedUser) return;
+        setSaveError(null);
 
         try {
             const response = await fetch(`${API_BASE_URL}/api/users/${selectedUser.id}/role`, {
@@ -201,15 +229,21 @@ export default function UserManagementPage() {
                 credentials: 'include',
             });
 
-            if (!response.ok) throw new Error('Failed to update role');
+            if (!response.ok) {
+                const data = await response.json().catch(() => ({}));
+                throw new Error(data.error || 'Failed to update role');
+            }
 
             // Update local state to reflect change
             setUsers(users.map(u => u.id === selectedUser.id ? { ...u, role: newRole } : u));
             setIsEditModalOpen(false);
         } catch (err) {
             console.error('Failed to update role:', err);
+            setSaveError(err instanceof Error ? err.message : 'An error occurred');
         }
     };
+
+
 
     if (isLoading) {
         return (
@@ -272,7 +306,7 @@ export default function UserManagementPage() {
                             >
                                 <option value="all">{t('userManagement.allRoles', 'All Roles')}</option>
                                 <option value="admin">{t('userManagement.admin')}</option>
-                                <option value="manager">{t('userManagement.manager')}</option>
+                                <option value="leader">{t('userManagement.leader')}</option>
                                 <option value="user">{t('userManagement.userRole')}</option>
                             </select>
                             <Filter className="absolute right-2.5 top-1/2 transform -translate-y-1/2 w-4 h-4 text-slate-400 pointer-events-none" />
@@ -381,10 +415,10 @@ export default function UserManagementPage() {
                                         <td className="p-4">
                                             <span className={`inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium capitalize
                       ${user.role === 'admin' ? 'bg-purple-100 text-purple-800 dark:bg-purple-900/30 dark:text-purple-300' :
-                                                    user.role === 'manager' ? 'bg-blue-100 text-blue-800 dark:bg-blue-900/30 dark:text-blue-300' :
+                                                    user.role === 'leader' ? 'bg-blue-100 text-blue-800 dark:bg-blue-900/30 dark:text-blue-300' :
                                                         'bg-slate-100 text-slate-800 dark:bg-slate-700 dark:text-slate-300'}`}>
                                                 {user.role === 'admin' ? t('userManagement.admin') :
-                                                    user.role === 'manager' ? t('userManagement.manager') :
+                                                    user.role === 'leader' ? t('userManagement.leader') :
                                                         t('userManagement.userRole')}
                                             </span>
                                         </td>
@@ -401,6 +435,7 @@ export default function UserManagementPage() {
                                                 >
                                                     <Globe className="w-4 h-4" />
                                                 </button>
+
                                                 <button
                                                     onClick={() => handleEditClick(user)}
                                                     className="p-2 text-slate-400 hover:text-primary-600 dark:hover:text-primary-400 transition-colors rounded-full hover:bg-slate-100 dark:hover:bg-slate-700"
@@ -502,6 +537,7 @@ export default function UserManagementPage() {
                     </>
                 }
             >
+                {/* ... existing edit role dialog content ... */}
                 <div className="space-y-4 py-4">
                     <div className="flex items-center gap-3 p-3 bg-slate-50 dark:bg-slate-800 rounded-lg border border-slate-200 dark:border-slate-700">
                         <div className="w-10 h-10 rounded-full bg-primary-100 dark:bg-primary-900/30 flex items-center justify-center text-primary-600 dark:text-primary-400 font-medium">
@@ -527,7 +563,7 @@ export default function UserManagementPage() {
                             {t('userManagement.role')}
                         </label>
                         <div className="grid grid-cols-1 gap-2">
-                            {['admin', 'manager', 'user'].map((role) => (
+                            {['admin', 'leader', 'user'].map((role) => (
                                 <label
                                     key={role}
                                     className={`flex items-center p-3 border rounded-lg cursor-pointer transition-all
@@ -546,12 +582,12 @@ export default function UserManagementPage() {
                                     <div className="flex-1">
                                         <div className="font-medium text-slate-900 dark:text-white capitalize">
                                             {role === 'admin' ? t('userManagement.admin') :
-                                                role === 'manager' ? t('userManagement.manager') :
+                                                role === 'leader' ? t('userManagement.leader') :
                                                     t('userManagement.userRole')}
                                         </div>
                                         <div className="text-xs text-slate-500 dark:text-slate-400">
                                             {role === 'admin' ? t('userManagement.adminDescription') :
-                                                role === 'manager' ? t('userManagement.managerDescription') :
+                                                role === 'leader' ? t('userManagement.leaderDescription') :
                                                     t('userManagement.userDescription')}
                                         </div>
                                     </div>
@@ -561,9 +597,82 @@ export default function UserManagementPage() {
                                 </label>
                             ))}
                         </div>
+                        {saveError && (
+                            <div className="mt-4 p-3 bg-red-50 dark:bg-red-900/20 border border-red-200 dark:border-red-800 rounded-lg flex items-start gap-2 text-red-700 dark:text-red-400">
+                                <AlertCircle className="w-5 h-5 flex-shrink-0 mt-0.5" />
+                                <div className="text-sm">{saveError}</div>
+                            </div>
+                        )}
+                    </div>
+                </div>
+            </Dialog>
+
+            {/* Grant Permission Dialog */}
+            <Dialog
+                open={isPermissionModalOpen}
+                onClose={() => setIsPermissionModalOpen(false)}
+                title={t('userManagement.grantPermissions')}
+                footer={
+                    <>
+                        <button
+                            onClick={() => setIsPermissionModalOpen(false)}
+                            className="px-4 py-2 text-sm font-medium text-slate-700 dark:text-slate-300 hover:bg-slate-100 dark:hover:bg-slate-700 rounded-lg transition-colors"
+                        >
+                            {t('common.cancel')}
+                        </button>
+                        <button
+                            onClick={handleSavePermissions}
+                            className="px-4 py-2 text-sm font-medium text-white bg-primary hover:bg-primary-hover rounded-lg transition-colors"
+                        >
+                            {t('common.save')}
+                        </button>
+                    </>
+                }
+            >
+                <div className="py-4 space-y-4">
+                    <div className="flex items-center gap-3 p-3 bg-slate-50 dark:bg-slate-800 rounded-lg border border-slate-200 dark:border-slate-700">
+                        <div className="w-10 h-10 rounded-full bg-primary-100 dark:bg-primary-900/30 flex items-center justify-center text-primary-600 dark:text-primary-400 font-medium">
+                            {(selectedUser?.displayName || selectedUser?.email || '?').charAt(0).toUpperCase()}
+                        </div>
+                        <div>
+                            <div className="font-medium text-slate-900 dark:text-white">{selectedUser?.displayName || selectedUser?.email}</div>
+                            <div className="text-sm text-slate-500 dark:text-slate-400">{selectedUser?.email}</div>
+                        </div>
+                    </div>
+
+                    <div className="space-y-3">
+                        <label className="block text-sm font-medium text-slate-700 dark:text-slate-300">
+                            {t('userManagement.permissions')}
+                        </label>
+                        <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+                            {[
+                                { id: 'view_chat', label: 'AI Chat Access' },
+                                { id: 'view_search', label: 'AI Search Access' },
+                                { id: 'manage_knowledge', label: 'Knowledge Base Access' },
+                                { id: 'manage_users', label: 'Manage Users' },
+                                { id: 'view_system_monitor', label: 'System Monitor' },
+                            ].map((perm) => (
+                                <label key={perm.id} className="flex items-center p-3 border border-slate-200 dark:border-slate-700 rounded-lg cursor-pointer hover:bg-slate-50 dark:hover:bg-slate-800/50 transition-colors">
+                                    <input
+                                        type="checkbox"
+                                        className="w-4 h-4 text-primary border-gray-300 rounded focus:ring-primary"
+                                        checked={selectedPermissions.includes(perm.id)}
+                                        onChange={(e) => {
+                                            if (e.target.checked) {
+                                                setSelectedPermissions([...selectedPermissions, perm.id]);
+                                            } else {
+                                                setSelectedPermissions(selectedPermissions.filter(p => p !== perm.id));
+                                            }
+                                        }}
+                                    />
+                                    <span className="ml-2 text-sm text-slate-700 dark:text-slate-300">{perm.label}</span>
+                                </label>
+                            ))}
+                        </div>
                     </div>
                 </div>
             </Dialog>
         </div>
     );
+
 }
