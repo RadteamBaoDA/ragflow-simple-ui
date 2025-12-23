@@ -5,9 +5,11 @@ import { teamService, Team, TeamMember } from '../services/teamService';
 import { userService } from '../services/userService';
 import { User } from '../hooks/useAuth';
 import UserMultiSelect from '../components/UserMultiSelect';
+import { useConfirm } from '../components/ConfirmDialog';
 
 export default function TeamManagementPage() {
     const { t } = useTranslation();
+    const confirm = useConfirm();
     const [teams, setTeams] = useState<Team[]>([]);
     const [loading, setLoading] = useState(true);
     const [searchTerm, setSearchTerm] = useState('');
@@ -99,7 +101,8 @@ export default function TeamManagementPage() {
     };
 
     const handleDelete = async (id: string) => {
-        if (!window.confirm(t('common.confirmDelete'))) return;
+        const confirmed = await confirm({ message: t('common.confirmDelete'), variant: 'danger' });
+        if (!confirmed) return;
         try {
             await teamService.deleteTeam(id);
             loadTeams();
@@ -375,9 +378,11 @@ export default function TeamManagementPage() {
                                             </td>
                                             <td className="px-4 py-3 text-right text-sm">
                                                 <button
-                                                    onClick={() => {
-                                                        if (window.confirm(t('common.confirmDelete'))) {
-                                                            teamService.removeMember(selectedTeam.id, member.id).then(() => loadMembers(selectedTeam.id));
+                                                    onClick={async () => {
+                                                        const confirmed = await confirm({ message: t('common.confirmDelete'), variant: 'danger' });
+                                                        if (confirmed) {
+                                                            await teamService.removeMember(selectedTeam.id, member.id);
+                                                            loadMembers(selectedTeam.id);
                                                         }
                                                     }}
                                                     className="text-red-600 hover:text-red-900"

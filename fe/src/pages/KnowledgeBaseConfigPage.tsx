@@ -5,9 +5,11 @@ import { getKnowledgeBaseConfig, updateSystemConfig, addSource, updateSource, de
 import { MessageSquare, Search, Plus, Edit2, Trash2, Save, ExternalLink, Shield } from 'lucide-react';
 import { Dialog } from '../components/Dialog';
 import { SourcePermissionsModal, PermissionsSelector } from '../components/SourcePermissionsModal';
+import { useConfirm } from '../components/ConfirmDialog';
 
 export default function KnowledgeBaseConfigPage() {
     const { t } = useTranslation();
+    const confirm = useConfirm();
     const queryClient = useQueryClient();
     const [activeTab, setActiveTab] = useState<'chat' | 'search'>('chat');
 
@@ -247,8 +249,12 @@ export default function KnowledgeBaseConfigPage() {
                                                 <Shield size={16} />
                                             </button>
                                             <button
-                                                onClick={() => {
-                                                    if (confirm(t('common.confirmDelete'))) {
+                                                onClick={async () => {
+                                                    const confirmed = await confirm({
+                                                        message: t('common.confirmDelete'),
+                                                        variant: 'danger'
+                                                    });
+                                                    if (confirmed) {
                                                         deleteMutation.mutate(source.id);
                                                     }
                                                 }}

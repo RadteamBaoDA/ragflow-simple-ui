@@ -7,7 +7,8 @@ export const userService = {
         const response = await fetch(`${config.apiBaseUrl}/api/users${queryParams}`, {
             headers: {
                 'Authorization': `Bearer ${localStorage.getItem('token')}`
-            }
+            },
+            credentials: 'include'
         });
         if (!response.ok) throw new Error('Failed to fetch users');
         const data = await response.json();
@@ -29,6 +30,7 @@ export const userService = {
                 'Content-Type': 'application/json',
                 'Authorization': `Bearer ${localStorage.getItem('token')}`
             },
+            credentials: 'include',
             body: JSON.stringify({ permissions })
         });
         if (!response.ok) throw new Error('Failed to update user permissions');

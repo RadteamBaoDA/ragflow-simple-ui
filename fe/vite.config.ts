@@ -50,6 +50,13 @@ export default defineConfig(({ mode }) => {
   console.log('[Vite Config] HTTPS:', { httpsEnabled, hasSSLCerts, useHttps, devDomain, backendUrl });
 
   return {
+    test: {
+      coverage: {
+        enabled: true, // You can also enable it in the config
+        reporter: ['lcov', 'html'], // Output formats
+        reportsDirectory: './coverage', // Optional: specify output folder
+      },
+    },
     plugins: [
       wasm(),
       topLevelAwait(),

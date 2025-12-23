@@ -21,6 +21,7 @@ import ProtectedRoute from './components/ProtectedRoute';
 import AdminRoute from './components/AdminRoute';
 import RoleRoute from './components/RoleRoute';
 import SettingsDialog from './components/SettingsDialog';
+import { ConfirmProvider } from './components/ConfirmDialog';
 import Layout from './components/Layout';
 import { config } from './config';
 
@@ -51,7 +52,7 @@ const SystemMonitorPage = lazy(() => import('./pages/SystemMonitorPage'));
 /** Error display page - 403, 404, 500 errors */
 const ErrorPage = lazy(() => import('./pages/ErrorPage'));
 /** MinIO storage manager - admin/manager only */
-const MinIOManagerPage = lazy(() => import('./pages/MinIOManagerPage'));
+const DocumentManagerPage = lazy(() => import('./pages/DocumentManagerPage'));
 /** Audit log viewer - admin only */
 const AuditLogPage = lazy(() => import('./pages/AuditLogPage'));
 /** Tokenizer tool - admin only */
@@ -107,84 +108,86 @@ function App() {
     <AuthProvider>
       <SettingsProvider>
         <KnowledgeBaseProvider>
-          <Suspense fallback={<PageLoader />}>
-            <Routes>
-              {/* Public routes */}
-              <Route path="/login" element={<LoginPage />} />
-              <Route path="/logout" element={<LogoutPage />} />
+          <ConfirmProvider>
+            <Suspense fallback={<PageLoader />}>
+              <Routes>
+                {/* Public routes */}
+                <Route path="/login" element={<LoginPage />} />
+                <Route path="/logout" element={<LogoutPage />} />
 
-              {/* Protected routes */}
-              <Route element={<ProtectedRoute><Layout /></ProtectedRoute>}>
-                <Route path="/" element={<Navigate to={getDefaultPath()} replace />} />
+                {/* Protected routes */}
+                <Route element={<ProtectedRoute><Layout /></ProtectedRoute>}>
+                  <Route path="/" element={<Navigate to={getDefaultPath()} replace />} />
 
-                {config.features.enableAiChat && (
-                  <Route path="/ai-chat" element={<AiChatPage />} />
-                )}
+                  {config.features.enableAiChat && (
+                    <Route path="/ai-chat" element={<AiChatPage />} />
+                  )}
 
-                {config.features.enableAiSearch && (
-                  <Route path="/ai-search" element={<AiSearchPage />} />
-                )}
+                  {config.features.enableAiSearch && (
+                    <Route path="/ai-search" element={<AiSearchPage />} />
+                  )}
 
-                {config.features.enableHistory && (
-                  <Route path="/history" element={<HistoryPage />} />
-                )}
+                  {config.features.enableHistory && (
+                    <Route path="/history" element={<HistoryPage />} />
+                  )}
 
-                <Route path="/user-management" element={
-                  <AdminRoute>
-                    <UserManagementPage />
-                  </AdminRoute>
-                } />
-                <Route path="/system-tools" element={
-                  <AdminRoute>
-                    <SystemToolsPage />
-                  </AdminRoute>
-                } />
-                <Route path="/system-monitor" element={
-                  <AdminRoute>
-                    <SystemMonitorPage />
-                  </AdminRoute>
-                } />
-                <Route path="/storage" element={
-                  <RoleRoute allowedRoles={['admin', 'leader']}>
-                    <MinIOManagerPage />
-                  </RoleRoute>
-                } />
-                <Route path="/audit-log" element={
-                  <AdminRoute>
-                    <AuditLogPage />
-                  </AdminRoute>
-                } />
-                <Route path="/tokenizer" element={
-                  <AdminRoute>
-                    <TokenizerPage />
-                  </AdminRoute>
-                } />
-                <Route path="/storage-dashboard" element={
-                  <AdminRoute>
-                    <StoragePage />
-                  </AdminRoute>
-                } />
-                <Route path="/knowledge-base/config" element={
-                  <AdminRoute>
-                    <KnowledgeBaseConfigPage />
-                  </AdminRoute>
-                } />
-                <Route path="/iam/teams" element={
-                  <AdminRoute>
-                    <TeamManagementPage />
-                  </AdminRoute>
-                } />
+                  <Route path="/user-management" element={
+                    <AdminRoute>
+                      <UserManagementPage />
+                    </AdminRoute>
+                  } />
+                  <Route path="/system-tools" element={
+                    <AdminRoute>
+                      <SystemToolsPage />
+                    </AdminRoute>
+                  } />
+                  <Route path="/system-monitor" element={
+                    <AdminRoute>
+                      <SystemMonitorPage />
+                    </AdminRoute>
+                  } />
+                  <Route path="/documents" element={
+                    <RoleRoute allowedRoles={['admin', 'leader']}>
+                      <DocumentManagerPage />
+                    </RoleRoute>
+                  } />
+                  <Route path="/audit-log" element={
+                    <AdminRoute>
+                      <AuditLogPage />
+                    </AdminRoute>
+                  } />
+                  <Route path="/tokenizer" element={
+                    <AdminRoute>
+                      <TokenizerPage />
+                    </AdminRoute>
+                  } />
+                  <Route path="/storage-dashboard" element={
+                    <AdminRoute>
+                      <StoragePage />
+                    </AdminRoute>
+                  } />
+                  <Route path="/knowledge-base/config" element={
+                    <AdminRoute>
+                      <KnowledgeBaseConfigPage />
+                    </AdminRoute>
+                  } />
+                  <Route path="/iam/teams" element={
+                    <AdminRoute>
+                      <TeamManagementPage />
+                    </AdminRoute>
+                  } />
 
 
-                {/* Error routes */}
-                <Route path="/403" element={<ErrorPage code={403} />} />
-                <Route path="/404" element={<ErrorPage code={404} />} />
-                <Route path="/500" element={<ErrorPage code={500} />} />
-                <Route path="*" element={<Navigate to="/404" replace />} />
-              </Route>
-            </Routes>
-          </Suspense>
-          <SettingsDialog />
+                  {/* Error routes */}
+                  <Route path="/403" element={<ErrorPage code={403} />} />
+                  <Route path="/404" element={<ErrorPage code={404} />} />
+                  <Route path="/500" element={<ErrorPage code={500} />} />
+                  <Route path="*" element={<Navigate to="/404" replace />} />
+                </Route>
+              </Routes>
+            </Suspense>
+            <SettingsDialog />
+          </ConfirmProvider>
         </KnowledgeBaseProvider>
       </SettingsProvider>
     </AuthProvider>

@@ -270,211 +270,213 @@ const SystemMonitorPage = () => {
     };
 
     return (
-        <div className="container mx-auto px-4 py-8 max-w-7xl">
-            {/* Header & Controls */}
-            <div className="flex flex-col md:flex-row md:items-center justify-between mb-8 gap-4">
-                <div>
-                    <h1 className="text-2xl font-bold text-gray-900 dark:text-white flex items-center gap-2">
-                        <Activity className="w-8 h-8 text-primary-600" />
-                        {t('systemMonitor.title')}
-                    </h1>
-                    <p className="text-gray-500 dark:text-gray-400 mt-1">
-                        {t('systemMonitor.description')}
-                    </p>
-                </div>
-
-                <div className="flex flex-wrap items-center gap-3 bg-white dark:bg-gray-800 p-2 rounded-lg border border-gray-200 dark:border-gray-700 shadow-sm">
-                    {/* Auto Refresh Toggle */}
-                    <div className="flex items-center gap-2 px-2 border-r border-gray-200 dark:border-gray-700">
-                        <label className="text-sm text-gray-600 dark:text-gray-300 select-none cursor-pointer flex items-center gap-2">
-                            <input
-                                type="checkbox"
-                                checked={autoRefresh}
-                                onChange={(e) => setAutoRefresh(e.target.checked)}
-                                className="w-4 h-4 text-primary-600 rounded border-gray-300 focus:ring-primary-500"
-                            />
-                            {t('systemMonitor.controls.autoRefresh')}
-                        </label>
+        <div className="h-full overflow-y-auto">
+            <div className="container mx-auto px-4 py-8 max-w-7xl">
+                {/* Header & Controls */}
+                <div className="flex flex-col md:flex-row md:items-center justify-between mb-8 gap-4">
+                    <div>
+                        <h1 className="text-2xl font-bold text-gray-900 dark:text-white flex items-center gap-2">
+                            <Activity className="w-8 h-8 text-primary-600" />
+                            {t('systemMonitor.title')}
+                        </h1>
+                        <p className="text-gray-500 dark:text-gray-400 mt-1">
+                            {t('systemMonitor.description')}
+                        </p>
                     </div>
 
-                    {/* Interval Selector */}
-                    <select
-                        value={intervalMs}
-                        onChange={(e) => setIntervalMs(Number(e.target.value))}
-                        disabled={!autoRefresh}
-                        className="bg-gray-50 dark:bg-gray-700 border-0 rounded text-sm py-1.5 px-3 focus:ring-2 focus:ring-primary-500 disabled:opacity-50 text-gray-900 dark:text-white"
-                        aria-label="Refresh interval"
-                    >
-                        {REFRESH_INTERVALS.map(opt => (
-                            <option key={opt.value} value={opt.value}>{opt.label}</option>
+                    <div className="flex flex-wrap items-center gap-3 bg-white dark:bg-gray-800 p-2 rounded-lg border border-gray-200 dark:border-gray-700 shadow-sm">
+                        {/* Auto Refresh Toggle */}
+                        <div className="flex items-center gap-2 px-2 border-r border-gray-200 dark:border-gray-700">
+                            <label className="text-sm text-gray-600 dark:text-gray-300 select-none cursor-pointer flex items-center gap-2">
+                                <input
+                                    type="checkbox"
+                                    checked={autoRefresh}
+                                    onChange={(e) => setAutoRefresh(e.target.checked)}
+                                    className="w-4 h-4 text-primary-600 rounded border-gray-300 focus:ring-primary-500"
+                                />
+                                {t('systemMonitor.controls.autoRefresh')}
+                            </label>
+                        </div>
+
+                        {/* Interval Selector */}
+                        <select
+                            value={intervalMs}
+                            onChange={(e) => setIntervalMs(Number(e.target.value))}
+                            disabled={!autoRefresh}
+                            className="bg-gray-50 dark:bg-gray-700 border-0 rounded text-sm py-1.5 px-3 focus:ring-2 focus:ring-primary-500 disabled:opacity-50 text-gray-900 dark:text-white"
+                            aria-label="Refresh interval"
+                        >
+                            {REFRESH_INTERVALS.map(opt => (
+                                <option key={opt.value} value={opt.value}>{opt.label}</option>
+                            ))}
+                        </select>
+
+                        <div className="w-px h-6 bg-gray-200 dark:bg-gray-700 mx-1"></div>
+
+                        {/* Manual Refresh */}
+                        <button
+                            onClick={() => fetchData(false)}
+                            disabled={loading || isFetchingRef.current}
+                            className="flex items-center gap-2 px-4 py-1.5 bg-primary-600 hover:bg-primary-700 text-white rounded-md text-sm font-medium transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
+                            title={t('systemMonitor.controls.refreshNow')}
+                        >
+                            <RefreshCw className={`w-4 h-4 ${loading ? 'animate-spin' : ''}`} />
+                            <span className="hidden sm:inline">{t('common.refresh')}</span>
+                        </button>
+
+                        {lastUpdated && (
+                            <div className="text-xs text-gray-400 px-2 min-w-[80px] text-right">
+                                {lastUpdated.toLocaleTimeString()}
+                            </div>
+                        )}
+                    </div>
+                </div>
+
+                {/* Error Message */}
+                {error && (
+                    <div className="mb-6 p-4 bg-red-50 dark:bg-red-900/20 border border-red-200 dark:border-red-800 rounded-lg flex items-center gap-3 text-red-700 dark:text-red-400">
+                        <AlertCircle className="w-5 h-5 shrink-0" />
+                        <span>{t('systemMonitor.error', { error })}</span>
+                    </div>
+                )}
+
+                {loading && !health ? (
+                    // Skeleton Loading
+                    <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6">
+                        {[1, 2, 3, 4, 5, 6, 7, 8].map(i => (
+                            <div key={i} className="h-32 bg-gray-100 dark:bg-gray-800 rounded-lg animate-pulse"></div>
                         ))}
-                    </select>
+                    </div>
+                ) : health ? (
+                    // Dashboard Content
+                    <div className="space-y-8">
 
-                    <div className="w-px h-6 bg-gray-200 dark:bg-gray-700 mx-1"></div>
-
-                    {/* Manual Refresh */}
-                    <button
-                        onClick={() => fetchData(false)}
-                        disabled={loading || isFetchingRef.current}
-                        className="flex items-center gap-2 px-4 py-1.5 bg-primary-600 hover:bg-primary-700 text-white rounded-md text-sm font-medium transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
-                        title={t('systemMonitor.controls.refreshNow')}
-                    >
-                        <RefreshCw className={`w-4 h-4 ${loading ? 'animate-spin' : ''}`} />
-                        <span className="hidden sm:inline">{t('common.refresh')}</span>
-                    </button>
-
-                    {lastUpdated && (
-                        <div className="text-xs text-gray-400 px-2 min-w-[80px] text-right">
-                            {lastUpdated.toLocaleTimeString()}
-                        </div>
-                    )}
-                </div>
-            </div>
-
-            {/* Error Message */}
-            {error && (
-                <div className="mb-6 p-4 bg-red-50 dark:bg-red-900/20 border border-red-200 dark:border-red-800 rounded-lg flex items-center gap-3 text-red-700 dark:text-red-400">
-                    <AlertCircle className="w-5 h-5 shrink-0" />
-                    <span>{t('systemMonitor.error', { error })}</span>
-                </div>
-            )}
-
-            {loading && !health ? (
-                // Skeleton Loading
-                <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6">
-                    {[1, 2, 3, 4, 5, 6, 7, 8].map(i => (
-                        <div key={i} className="h-32 bg-gray-100 dark:bg-gray-800 rounded-lg animate-pulse"></div>
-                    ))}
-                </div>
-            ) : health ? (
-                // Dashboard Content
-                <div className="space-y-8">
-
-                    {/* Services Section */}
-                    <section>
-                        <h2 className="text-lg font-semibold text-gray-900 dark:text-white mb-4 flex items-center gap-2">
-                            <Box className="w-5 h-5 text-primary-500" />
-                            {t('systemMonitor.sections.services')}
-                        </h2>
-                        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
-                            <ServiceCard
-                                title="Database"
-                                icon={Database}
-                                status={health.services.database.status}
-                                enabled={health.services.database.enabled}
-                                subtext={health.services.database.host}
-                            />
-                            <ServiceCard
-                                title="Redis Cache"
-                                icon={Zap}
-                                status={health.services.redis.status}
-                                enabled={health.services.redis.enabled}
-                                subtext={health.services.redis.host}
-                            />
-                            <ServiceCard
-                                title="MinIO Storage"
-                                icon={HardDrive}
-                                status={health.services.minio.status}
-                                enabled={health.services.minio.enabled}
-                                subtext={health.services.minio.host}
-                            />
-                            <ServiceCard
-                                title="Langfuse Trace"
-                                icon={Activity}
-                                status={health.services.langfuse.status}
-                                enabled={health.services.langfuse.enabled}
-                                subtext={health.services.langfuse.host}
-                            />
-                        </div>
-                    </section>
+                        {/* Services Section */}
+                        <section>
+                            <h2 className="text-lg font-semibold text-gray-900 dark:text-white mb-4 flex items-center gap-2">
+                                <Box className="w-5 h-5 text-primary-500" />
+                                {t('systemMonitor.sections.services')}
+                            </h2>
+                            <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
+                                <ServiceCard
+                                    title="Database"
+                                    icon={Database}
+                                    status={health.services.database.status}
+                                    enabled={health.services.database.enabled}
+                                    subtext={health.services.database.host}
+                                />
+                                <ServiceCard
+                                    title="Redis Cache"
+                                    icon={Zap}
+                                    status={health.services.redis.status}
+                                    enabled={health.services.redis.enabled}
+                                    subtext={health.services.redis.host}
+                                />
+                                <ServiceCard
+                                    title="MinIO Storage"
+                                    icon={HardDrive}
+                                    status={health.services.minio.status}
+                                    enabled={health.services.minio.enabled}
+                                    subtext={health.services.minio.host}
+                                />
+                                <ServiceCard
+                                    title="Langfuse Trace"
+                                    icon={Activity}
+                                    status={health.services.langfuse.status}
+                                    enabled={health.services.langfuse.enabled}
+                                    subtext={health.services.langfuse.host}
+                                />
+                            </div>
+                        </section>
 
 
-                    {/* System Resources Section */}
-                    <section>
-                        <h2 className="text-lg font-semibold text-gray-900 dark:text-white mb-4 flex items-center gap-2">
-                            <Server className="w-5 h-5 text-blue-500" />
-                            {t('systemMonitor.sections.system')}
-                        </h2>
-                        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
-                            <MetricCard
-                                title={t('systemMonitor.metrics.uptime')}
-                                value={formatUptime(health.system.uptime)}
-                                icon={Clock}
-                                colorClass="text-green-500"
-                            />
-                            <MetricCard
-                                title="Disk Storage"
-                                value={health.system.disk ? formatBytes(health.system.disk.available) : 'Unknown'}
-                                subValue={health.system.disk ? `Free of ${formatBytes(health.system.disk.total)}` : 'Check Failed'}
-                                icon={HardDrive}
-                                colorClass="text-orange-500"
-                            />
-                            <MetricCard
-                                title={t('systemMonitor.metrics.memory')}
-                                value={formatBytes(health.system.memory.rss)} // RSS is mostly what we care about (resident set size)
-                                subValue={`Heap: ${formatBytes(health.system.memory.heapUsed)} / ${formatBytes(health.system.memory.heapTotal)}`}
-                                icon={HardDrive}
-                                colorClass="text-purple-500"
-                            />
-                            <MetricCard
-                                title={t('systemMonitor.metrics.cpuLoad')}
-                                value={health.system.loadAvg?.[0]?.toFixed(2) || '0.00'}
-                                subValue={`1m / 5m / 15m`} // Simplified label
-                                icon={Cpu}
-                                colorClass="text-red-500"
-                            />
-                            <MetricCard
-                                title={t('systemMonitor.metrics.serverInfo')}
-                                value={health.system.platform}
-                                subValue={`${health.system.arch} | ${health.system.hostname}`}
-                                icon={Server}
-                                colorClass="text-blue-500"
-                            />
-                        </div>
-                    </section>
+                        {/* System Resources Section */}
+                        <section>
+                            <h2 className="text-lg font-semibold text-gray-900 dark:text-white mb-4 flex items-center gap-2">
+                                <Server className="w-5 h-5 text-blue-500" />
+                                {t('systemMonitor.sections.system')}
+                            </h2>
+                            <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
+                                <MetricCard
+                                    title={t('systemMonitor.metrics.uptime')}
+                                    value={formatUptime(health.system.uptime)}
+                                    icon={Clock}
+                                    colorClass="text-green-500"
+                                />
+                                <MetricCard
+                                    title="Disk Storage"
+                                    value={health.system.disk ? formatBytes(health.system.disk.available) : 'Unknown'}
+                                    subValue={health.system.disk ? `Free of ${formatBytes(health.system.disk.total)}` : 'Check Failed'}
+                                    icon={HardDrive}
+                                    colorClass="text-orange-500"
+                                />
+                                <MetricCard
+                                    title={t('systemMonitor.metrics.memory')}
+                                    value={formatBytes(health.system.memory.rss)} // RSS is mostly what we care about (resident set size)
+                                    subValue={`Heap: ${formatBytes(health.system.memory.heapUsed)} / ${formatBytes(health.system.memory.heapTotal)}`}
+                                    icon={HardDrive}
+                                    colorClass="text-purple-500"
+                                />
+                                <MetricCard
+                                    title={t('systemMonitor.metrics.cpuLoad')}
+                                    value={health.system.loadAvg?.[0]?.toFixed(2) || '0.00'}
+                                    subValue={`1m / 5m / 15m`} // Simplified label
+                                    icon={Cpu}
+                                    colorClass="text-red-500"
+                                />
+                                <MetricCard
+                                    title={t('systemMonitor.metrics.serverInfo')}
+                                    value={health.system.platform}
+                                    subValue={`${health.system.arch} | ${health.system.hostname}`}
+                                    icon={Server}
+                                    colorClass="text-blue-500"
+                                />
+                            </div>
+                        </section>
 
-                    {/* Backend Specifications Section */}
-                    <section>
-                        <h2 className="text-lg font-semibold text-gray-900 dark:text-white mb-4 flex items-center gap-2">
-                            <Cpu className="w-5 h-5 text-indigo-500" />
-                            Backend Specifications
-                        </h2>
-                        <div className="bg-white dark:bg-gray-800 rounded-lg border border-gray-200 dark:border-gray-700 shadow-sm overflow-hidden">
-                            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 divide-y md:divide-y-0 md:divide-x border-gray-200 dark:border-gray-700">
-                                <div className="p-4">
-                                    <h3 className="text-xs font-medium text-gray-400 uppercase tracking-wider mb-1">Runtime Environment</h3>
-                                    <div className="flex items-center gap-2">
-                                        <div className="w-2 h-2 rounded-full bg-green-500"></div>
-                                        <span className="text-sm font-medium text-gray-900 dark:text-gray-100">Node.js {health.system.nodeVersion}</span>
+                        {/* Backend Specifications Section */}
+                        <section>
+                            <h2 className="text-lg font-semibold text-gray-900 dark:text-white mb-4 flex items-center gap-2">
+                                <Cpu className="w-5 h-5 text-indigo-500" />
+                                Backend Specifications
+                            </h2>
+                            <div className="bg-white dark:bg-gray-800 rounded-lg border border-gray-200 dark:border-gray-700 shadow-sm overflow-hidden">
+                                <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 divide-y md:divide-y-0 md:divide-x border-gray-200 dark:border-gray-700">
+                                    <div className="p-4">
+                                        <h3 className="text-xs font-medium text-gray-400 uppercase tracking-wider mb-1">Runtime Environment</h3>
+                                        <div className="flex items-center gap-2">
+                                            <div className="w-2 h-2 rounded-full bg-green-500"></div>
+                                            <span className="text-sm font-medium text-gray-900 dark:text-gray-100">Node.js {health.system.nodeVersion}</span>
+                                        </div>
+                                        <div className="mt-1 text-xs text-gray-500">{health.system.osType} {health.system.osRelease}</div>
                                     </div>
-                                    <div className="mt-1 text-xs text-gray-500">{health.system.osType} {health.system.osRelease}</div>
-                                </div>
-                                <div className="p-4">
-                                    <h3 className="text-xs font-medium text-gray-400 uppercase tracking-wider mb-1">CPU</h3>
-                                    <div className="flex items-center gap-2">
-                                        <Cpu className="w-4 h-4 text-gray-400" />
-                                        <span className="text-sm font-medium text-gray-900 dark:text-gray-100 truncate" title={health.system.cpuModel}>
-                                            {health.system.cpuModel}
-                                        </span>
+                                    <div className="p-4">
+                                        <h3 className="text-xs font-medium text-gray-400 uppercase tracking-wider mb-1">CPU</h3>
+                                        <div className="flex items-center gap-2">
+                                            <Cpu className="w-4 h-4 text-gray-400" />
+                                            <span className="text-sm font-medium text-gray-900 dark:text-gray-100 truncate" title={health.system.cpuModel}>
+                                                {health.system.cpuModel}
+                                            </span>
+                                        </div>
+                                        <div className="mt-1 text-xs text-gray-500">{health.system.cpus} Cores</div>
                                     </div>
-                                    <div className="mt-1 text-xs text-gray-500">{health.system.cpus} Cores</div>
-                                </div>
-                                <div className="p-4">
-                                    <h3 className="text-xs font-medium text-gray-400 uppercase tracking-wider mb-1">Memory Capacity</h3>
-                                    <div className="flex items-center gap-2">
-                                        <HardDrive className="w-4 h-4 text-gray-400" />
-                                        <span className="text-sm font-medium text-gray-900 dark:text-gray-100">
-                                            {health.system.totalMemory ? formatBytes(health.system.totalMemory) : 'Unknown'}
-                                        </span>
+                                    <div className="p-4">
+                                        <h3 className="text-xs font-medium text-gray-400 uppercase tracking-wider mb-1">Memory Capacity</h3>
+                                        <div className="flex items-center gap-2">
+                                            <HardDrive className="w-4 h-4 text-gray-400" />
+                                            <span className="text-sm font-medium text-gray-900 dark:text-gray-100">
+                                                {health.system.totalMemory ? formatBytes(health.system.totalMemory) : 'Unknown'}
+                                            </span>
+                                        </div>
+                                        <div className="mt-1 text-xs text-gray-500">Total System Memory</div>
                                     </div>
-                                    <div className="mt-1 text-xs text-gray-500">Total System Memory</div>
                                 </div>
                             </div>
-                        </div>
-                    </section>
+                        </section>
 
-                </div>
-            ) : null}
+                    </div>
+                ) : null}
+            </div>
         </div>
     );
 };

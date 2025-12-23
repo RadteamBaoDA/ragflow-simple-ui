@@ -288,6 +288,27 @@ export class UserService {
     }
 
     /**
+     * Get a single user by ID.
+     * Used for validation and user-specific operations.
+     * 
+     * @param userId - ID of user to fetch
+     * @returns User record with parsed permissions, or undefined if not found
+     */
+    async getUserById(userId: string): Promise<User | undefined> {
+        const user = await queryOne<User>('SELECT * FROM users WHERE id = $1', [userId]);
+
+        if (!user) {
+            return undefined;
+        }
+
+        // Parse permissions from JSON string to array
+        return {
+            ...user,
+            permissions: typeof user.permissions === 'string' ? JSON.parse(user.permissions) : user.permissions,
+        };
+    }
+
+    /**
      * Update a user's role.
      * Used by administrators to grant/revoke access levels.
      * 

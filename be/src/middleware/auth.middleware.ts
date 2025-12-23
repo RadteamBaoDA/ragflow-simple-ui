@@ -107,14 +107,47 @@ declare global {
  *   res.json({ user: req.user });
  * });
  */
-export function requireAuth(req: Request, res: Response, next: NextFunction): void {
+export async function requireAuth(req: Request, res: Response, next: NextFunction): Promise<void> {
   // Check for valid session with user data
   if (req.session?.user) {
-    // Attach user to request for easy access in route handlers
-    req.user = req.session.user;
-    log.debug('User authenticated via session', { userId: req.user.id, email: req.user.email });
-    next();
-    return;
+    try {
+      // Fetch fresh user data from database to reflect permission changes immediately
+      const { userService } = await import('../services/user.service.js');
+      const freshUser = await userService.getUserById(req.session.user.id);
+
+      if (!freshUser) {
+        // User not found in database (deleted)
+        req.session.destroy(() => {
+          res.status(401).json({ error: 'Unauthorized', message: 'User no longer exists' });
+        });
+        return;
+      }
+
+      // Update session with fresh data and attach to request
+      req.session.user = {
+        ...req.session.user,
+        role: freshUser.role,
+        permissions: freshUser.permissions
+      };
+      req.user = req.session.user;
+
+      log.debug('User authenticated with fresh permissions', {
+        userId: req.user.id,
+        email: req.user.email,
+        role: freshUser.role
+      });
+      next();
+      return;
+    } catch (error) {
+      log.error('Failed to refresh user data', {
+        error: error instanceof Error ? error.message : String(error),
+        userId: req.session.user.id
+      });
+      // On error, still allow through but log the issue
+      req.user = req.session.user;
+      next();
+      return;
+    }
   }
 
   // No valid session - return 401 Unauthorized
@@ -179,10 +212,10 @@ export function requireRecentAuth(maxAgeMinutes: number = DEFAULT_REAUTH_MAX_AGE
     // Check for recent re-authentication (higher priority)
     const lastReauthAt = req.session.lastReauthAt;
     const lastAuthAt = req.session.lastAuthAt;
-    
+
     // Use the more recent of lastReauthAt or lastAuthAt
     const lastValidAuth = Math.max(lastReauthAt ?? 0, lastAuthAt ?? 0);
-    
+
     if (!lastValidAuth) {
       // Session exists but no auth timestamp - require re-auth
       log.warn('Session missing auth timestamp, requiring re-authentication', {
@@ -342,7 +375,7 @@ export function requirePermission(permission: Permission) {
       role: user.role,
       requiredPermission: permission
     });
-    res.status(403).json({ error: 'Forbidden: Insufficient permissions' });
+    res.status(403).json({ error: 'Access Denied' });
   };
 }
 
@@ -385,7 +418,7 @@ export function requireRole(...roles: Role[]) {
       userRole: user.role,
       requiredRoles: roles
     });
-    res.status(403).json({ error: 'Forbidden: Insufficient role' });
+    res.status(403).json({ error: 'You don\'t have permission to access this resource' });
   };
 }
 
@@ -554,10 +587,10 @@ export function authorizationError(
   logDetails: Record<string, unknown>
 ): void {
   log.warn(logMessage, logDetails);
-  
-  const message = statusCode === 401 
-    ? 'Authentication required' 
+
+  const message = statusCode === 401
+    ? 'Authentication required'
     : 'Access denied';
-  
+
   res.status(statusCode).json({ error: message });
 }

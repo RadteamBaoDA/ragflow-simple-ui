@@ -71,16 +71,50 @@ function getClientIp(req: Request): string {
  * @returns {Object} Buckets array and count
  * @returns {500} If database query fails
  */
-router.get('/', requireRole('admin', 'leader'), async (req: Request, res: Response) => {
+router.get('/', async (req: Request, res: Response) => {
     try {
-        log.debug('Fetching configured MinIO buckets', { user: req.session.user?.email });
+        const user = req.session.user;
+        if (!user) {
+            return res.status(401).json({ error: 'Unauthorized' });
+        }
 
-        // Query active buckets from database
-        const buckets = await db.query<MinioBucket>(
-            'SELECT * FROM minio_buckets WHERE is_active = 1 ORDER BY created_at DESC'
-        );
+        log.debug('Fetching configured MinIO buckets', { user: user.email });
 
-        res.json({
+        let buckets: MinioBucket[];
+        if (user.role === 'admin') {
+            // Admins see all active buckets
+            buckets = await db.query<MinioBucket>(
+                'SELECT * FROM minio_buckets WHERE is_active = 1 ORDER BY created_at DESC'
+            );
+        } else {
+            // Others only see buckets where they have direct permission OR team-based permission
+            // Using a subquery or join to find buckets with permissions > 0
+            buckets = await db.query<MinioBucket>(`
+                SELECT b.* 
+                FROM minio_buckets b
+                WHERE b.is_active = 1 AND (
+                    EXISTS (
+                        SELECT 1 FROM document_permissions sp 
+                        WHERE sp.bucket_id::text = b.id::text 
+                        AND sp.entity_type = 'user' 
+                        AND sp.entity_id::text = $1::text 
+                        AND sp.permission_level > 0
+                    )
+                    OR EXISTS (
+                        SELECT 1 FROM document_permissions sp
+                        JOIN user_teams ut ON sp.entity_id::text = ut.team_id::text
+                        WHERE sp.bucket_id::text = b.id::text
+                        AND sp.entity_type = 'team'
+                        AND ut.user_id::text = $1::text
+                        AND sp.permission_level > 0
+                        AND ut.role = 'leader'
+                    )
+                )
+                ORDER BY b.created_at DESC
+            `, [user.id]);
+        }
+
+        return res.json({
             buckets,
             count: buckets.length,
         });
@@ -88,7 +122,7 @@ router.get('/', requireRole('admin', 'leader'), async (req: Request, res: Respon
         log.error('Failed to fetch MinIO buckets', {
             error: error instanceof Error ? error.message : String(error),
         });
-        res.status(500).json({ error: 'Failed to fetch buckets' });
+        return res.status(500).json({ error: 'Failed to fetch buckets' });
     }
 });
 

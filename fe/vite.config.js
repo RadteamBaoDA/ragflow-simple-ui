@@ -51,6 +51,13 @@ export default defineConfig(function (_a) {
     var backendUrl = "".concat(backendProtocol, "://localhost:").concat(backendPort);
     console.log('[Vite Config] HTTPS:', { httpsEnabled: httpsEnabled, hasSSLCerts: hasSSLCerts, useHttps: useHttps, devDomain: devDomain, backendUrl: backendUrl });
     return {
+        test: {
+            coverage: {
+                enabled: true, // You can also enable it in the config
+                reporter: ['lcov', 'html'], // Output formats
+                reportsDirectory: './coverage', // Optional: specify output folder
+            },
+        },
         plugins: [
             wasm(),
             topLevelAwait(),

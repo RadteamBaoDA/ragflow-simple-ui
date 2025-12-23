@@ -39,6 +39,12 @@
     "team": "チーム",
     "permissions": "権限"
   },
+  "dialog": {
+    "confirm": "確認",
+    "cancel": "キャンセル",
+    "confirmTitle": "操作の確認",
+    "close": "閉じる"
+  },
   "nav": {
     "aiChat": "チャット",
     "aiSearch": "検索",
@@ -204,6 +210,7 @@
     "deleteBucketConfirm": "このバケット設定を削除してもよろしいですか？（バケットはMinIOに残ります）",
     "uploadSuccess": "{{count}}個のファイルを正常にアップロードしました",
     "uploadFailed": "ファイルのアップロードに失敗しました",
+    "noUploadPermission": "このバケットにファイルをアップロードする権限がありません",
     "createFailed": "バケット設定の追加に失敗しました",
     "loadFailed": "ファイルの読み込みに失敗しました",
     "bucketNotFound": "バケットが見つかりません",
@@ -236,6 +243,13 @@
     "dropFilesHint": "フォルダ構造は保持されます",
     "reauthRequired": "セキュリティチェックに失敗しました。選択したアイテムを削除するには、再度サインインしてください。",
     "configPermissions": "権限の設定",
+    "permissionLevels": {
+      "none": "アクセス拒否",
+      "view": "表示のみ",
+      "upload": "表示とアップロード",
+      "full": "すべての権限",
+      "appliesToLeaders": "リーダーのみ適用"
+    },
     "filter": "フィルター",
     "allFiles": "すべてのファイル",
     "bucketName": "MinIOバケット",
@@ -255,6 +269,8 @@
     "loadingFiles": "ファイルを読み込み中...",
     "deleteConfirm": "{{type}}「{{name}}」を削除しますか？",
     "batchDeleteConfirm": "選択した{{count}}個のアイテムを削除しますか？",
+    "noPermissionTitle": "アクセス権限が付与されていません",
+    "noPermissionMessage": "ドキュメントにアクセスする権限がありません。ドキュメントバケットへのアクセスをリクエストするには、管理者にお問い合わせください。",
     "deleteBucket": "バケットを削除",
     "uploadFiles": "ファイルをアップロード",
     "deleteFailed": "アイテムの削除に失敗しました",

@@ -225,7 +225,7 @@ describe('minioService', () => {
 
       const result = await listObjects('bucket-123');
 
-      expect(mockFetch).toHaveBeenCalledWith('/api/minio/storage/bucket-123/list', {
+      expect(mockFetch).toHaveBeenCalledWith('/api/minio/documents/bucket-123/list', {
         credentials: 'include',
       });
       expect(result).toEqual([mockFileObject]);
@@ -239,7 +239,7 @@ describe('minioService', () => {
       await listObjects('bucket-123', 'folder/subfolder/');
 
       expect(mockFetch).toHaveBeenCalledWith(
-        '/api/minio/storage/bucket-123/list?prefix=folder%2Fsubfolder%2F',
+        '/api/minio/documents/bucket-123/list?prefix=folder%2Fsubfolder%2F',
         { credentials: 'include' }
       );
     });
@@ -258,10 +258,10 @@ describe('minioService', () => {
   describe('uploadFiles', () => {
     // Note: Testing XMLHttpRequest is complex due to its async nature.
     // These tests verify the function signature and FormData construction.
-    
+
     it('should create FormData with files', async () => {
       const mockFile = new File(['content'], 'test.txt', { type: 'text/plain' });
-      
+
       // Mock XHR to simulate successful upload
       const xhrInstance = {
         open: vi.fn(),
@@ -284,15 +284,15 @@ describe('minioService', () => {
         statusText: 'OK',
         responseText: '{}',
       };
-      
+
       // Use function constructor for proper 'new' support
-      global.XMLHttpRequest = function() { return xhrInstance; } as any;
-      
+      global.XMLHttpRequest = function () { return xhrInstance; } as any;
+
       const result = await uploadFiles('bucket-123', [mockFile]);
-      
+
       expect(xhrInstance.open).toHaveBeenCalledWith(
         'POST',
-        '/api/minio/storage/bucket-123/upload'
+        '/api/minio/documents/bucket-123/upload'
       );
       expect(xhrInstance.withCredentials).toBe(true);
       expect(result).toEqual({ success: true });
@@ -301,7 +301,7 @@ describe('minioService', () => {
     it('should include prefix in FormData', async () => {
       const mockFile = new File(['content'], 'test.txt', { type: 'text/plain' });
       let capturedFormData: FormData | undefined;
-      
+
       const xhrInstance = {
         open: vi.fn(),
         send: vi.fn((formData: FormData) => {
@@ -322,11 +322,11 @@ describe('minioService', () => {
         statusText: 'OK',
         responseText: '{}',
       };
-      
-      global.XMLHttpRequest = function() { return xhrInstance; } as any;
-      
+
+      global.XMLHttpRequest = function () { return xhrInstance; } as any;
+
       await uploadFiles('bucket-123', [mockFile], 'folder/');
-      
+
       expect(capturedFormData).toBeDefined();
       expect(capturedFormData!.get('prefix')).toBe('folder/');
     });
@@ -334,7 +334,7 @@ describe('minioService', () => {
     it('should include preserveFolderStructure in FormData when enabled', async () => {
       const mockFile = new File(['content'], 'test.txt', { type: 'text/plain' });
       let capturedFormData: FormData | undefined;
-      
+
       const xhrInstance = {
         open: vi.fn(),
         send: vi.fn((formData: FormData) => {
@@ -355,11 +355,11 @@ describe('minioService', () => {
         statusText: 'OK',
         responseText: '{}',
       };
-      
-      global.XMLHttpRequest = function() { return xhrInstance; } as any;
-      
+
+      global.XMLHttpRequest = function () { return xhrInstance; } as any;
+
       await uploadFiles('bucket-123', [mockFile], '', undefined, true);
-      
+
       expect(capturedFormData).toBeDefined();
       expect(capturedFormData!.get('preserveFolderStructure')).toBe('true');
     });
@@ -368,9 +368,9 @@ describe('minioService', () => {
       // Create mock file with webkitRelativePath
       const mockFile = new File(['content'], 'test.txt', { type: 'text/plain' }) as any;
       mockFile.webkitRelativePath = 'folder/subfolder/test.txt';
-      
+
       let capturedFormData: FormData | undefined;
-      
+
       const xhrInstance = {
         open: vi.fn(),
         send: vi.fn((formData: FormData) => {
@@ -391,11 +391,11 @@ describe('minioService', () => {
         statusText: 'OK',
         responseText: '{}',
       };
-      
-      global.XMLHttpRequest = function() { return xhrInstance; } as any;
-      
+
+      global.XMLHttpRequest = function () { return xhrInstance; } as any;
+
       await uploadFiles('bucket-123', [mockFile], '', undefined, true);
-      
+
       expect(capturedFormData).toBeDefined();
       expect(capturedFormData!.get('filePaths')).toBe('folder/subfolder/test.txt');
       expect(capturedFormData!.get('preserveFolderStructure')).toBe('true');
@@ -404,7 +404,7 @@ describe('minioService', () => {
     it('should call onProgress callback', async () => {
       const mockFile = new File(['content'], 'test.txt', { type: 'text/plain' });
       const onProgress = vi.fn();
-      
+
       const xhrInstance = {
         open: vi.fn(),
         send: vi.fn(),
@@ -431,17 +431,17 @@ describe('minioService', () => {
         statusText: 'OK',
         responseText: '{}',
       };
-      
-      global.XMLHttpRequest = function() { return xhrInstance; } as any;
-      
+
+      global.XMLHttpRequest = function () { return xhrInstance; } as any;
+
       await uploadFiles('bucket-123', [mockFile], '', onProgress);
-      
+
       expect(onProgress).toHaveBeenCalledWith(50);
     });
 
     it('should reject on HTTP error status', async () => {
       const mockFile = new File(['content'], 'test.txt', { type: 'text/plain' });
-      
+
       const xhrInstance = {
         open: vi.fn(),
         send: vi.fn(),
@@ -460,9 +460,9 @@ describe('minioService', () => {
         statusText: 'Internal Server Error',
         responseText: '',
       };
-      
-      global.XMLHttpRequest = function() { return xhrInstance; } as any;
-      
+
+      global.XMLHttpRequest = function () { return xhrInstance; } as any;
+
       await expect(uploadFiles('bucket-123', [mockFile])).rejects.toThrow(
         'Upload failed: Internal Server Error'
       );
@@ -470,7 +470,7 @@ describe('minioService', () => {
 
     it('should reject on network error', async () => {
       const mockFile = new File(['content'], 'test.txt', { type: 'text/plain' });
-      
+
       const xhrInstance = {
         open: vi.fn(),
         send: vi.fn(),
@@ -485,9 +485,9 @@ describe('minioService', () => {
         statusText: '',
         responseText: '',
       };
-      
-      global.XMLHttpRequest = function() { return xhrInstance; } as any;
-      
+
+      global.XMLHttpRequest = function () { return xhrInstance; } as any;
+
       await expect(uploadFiles('bucket-123', [mockFile])).rejects.toThrow('Upload failed');
     });
   });
@@ -498,7 +498,7 @@ describe('minioService', () => {
 
       await createFolder('bucket-123', 'new-folder');
 
-      expect(mockFetch).toHaveBeenCalledWith('/api/minio/storage/bucket-123/folder', {
+      expect(mockFetch).toHaveBeenCalledWith('/api/minio/documents/bucket-123/folder', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         credentials: 'include',
@@ -511,7 +511,7 @@ describe('minioService', () => {
 
       await createFolder('bucket-123', 'subfolder', 'parent/');
 
-      expect(mockFetch).toHaveBeenCalledWith('/api/minio/storage/bucket-123/folder', {
+      expect(mockFetch).toHaveBeenCalledWith('/api/minio/documents/bucket-123/folder', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         credentials: 'include',
@@ -537,7 +537,7 @@ describe('minioService', () => {
 
       await deleteObject('bucket-123', 'path/to/file.txt', false);
 
-      expect(mockFetch).toHaveBeenCalledWith('/api/minio/storage/bucket-123/delete', {
+      expect(mockFetch).toHaveBeenCalledWith('/api/minio/documents/bucket-123/delete', {
         method: 'DELETE',
         headers: { 'Content-Type': 'application/json' },
         credentials: 'include',
@@ -550,7 +550,7 @@ describe('minioService', () => {
 
       await deleteObject('bucket-123', 'path/to/folder/', true);
 
-      expect(mockFetch).toHaveBeenCalledWith('/api/minio/storage/bucket-123/delete', {
+      expect(mockFetch).toHaveBeenCalledWith('/api/minio/documents/bucket-123/delete', {
         method: 'DELETE',
         headers: { 'Content-Type': 'application/json' },
         credentials: 'include',
@@ -581,7 +581,7 @@ describe('minioService', () => {
 
       await batchDelete('bucket-123', objects);
 
-      expect(mockFetch).toHaveBeenCalledWith('/api/minio/storage/bucket-123/batch-delete', {
+      expect(mockFetch).toHaveBeenCalledWith('/api/minio/documents/bucket-123/batch-delete', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         credentials: 'include',
@@ -615,7 +615,7 @@ describe('minioService', () => {
       const result = await getDownloadUrl('bucket-123', 'path/to/file.pdf');
 
       expect(mockFetch).toHaveBeenCalledWith(
-        '/api/minio/storage/bucket-123/download/path/to/file.pdf',
+        '/api/minio/documents/bucket-123/download/path/to/file.pdf',
         { credentials: 'include' }
       );
       expect(result).toBe('https://minio.example.com/bucket/file.pdf?token=abc');

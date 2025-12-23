@@ -39,6 +39,12 @@
     "team": "Team",
     "permissions": "Permissions"
   },
+  "dialog": {
+    "confirm": "Confirm",
+    "cancel": "Cancel",
+    "confirmTitle": "Confirm Action",
+    "close": "Close"
+  },
   "nav": {
     "aiChat": "Chat",
     "aiSearch": "Search",
@@ -204,6 +210,7 @@
     "deleteBucketConfirm": "Are you sure you want to remove this bucket configuration? (The bucket will remain in MinIO)",
     "uploadSuccess": "Uploaded {{count}} file(s) successfully",
     "uploadFailed": "Failed to upload files",
+    "noUploadPermission": "You don't have permission to upload files to this bucket",
     "createFailed": "Failed to add bucket configuration",
     "loadFailed": "Failed to load files",
     "bucketNotFound": "Bucket not found",
@@ -236,6 +243,13 @@
     "dropFilesHint": "Folder structure will be preserved",
     "reauthRequired": "Security check failed. Please sign in again to delete selected items.",
     "configPermissions": "Configure Permissions",
+    "permissionLevels": {
+      "none": "Access Denied",
+      "view": "View Only",
+      "upload": "View & Upload",
+      "full": "All Permissions",
+      "appliesToLeaders": "Applies to Leaders only"
+    },
     "filter": "Filter",
     "allFiles": "All Files",
     "bucketName": "MinIO Bucket",
@@ -255,6 +269,8 @@
     "loadingFiles": "Loading files...",
     "deleteConfirm": "Delete {{type}} \"{{name}}\"?",
     "batchDeleteConfirm": "Delete {{count}} selected items?",
+    "noPermissionTitle": "No Access Granted",
+    "noPermissionMessage": "You don't have permission to access any documents. Please contact your administrator to request access to document buckets.",
     "deleteBucket": "Delete Bucket",
     "uploadFiles": "Upload Files",
     "deleteFailed": "Failed to remove item",
