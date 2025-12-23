@@ -422,7 +422,38 @@
     "page": "Page {{page}} of {{totalPages}}",
     "noLogs": "No audit logs found",
     "noPermission": "You do not have permission to view audit logs.",
-    "fetchError": "Failed to fetch audit logs"
+    "fetchError": "Failed to fetch audit logs",
+    "actions": {
+      "login": "Login",
+      "logout": "Logout",
+      "login_failed": "Login Failed",
+      "create_user": "Create User",
+      "update_user": "Update User",
+      "delete_user": "Delete User",
+      "update_role": "Update Role",
+      "create_bucket": "Create Bucket",
+      "delete_bucket": "Delete Bucket",
+      "upload_file": "Upload File",
+      "delete_file": "Delete File",
+      "download_file": "Download File",
+      "create_folder": "Create Folder",
+      "delete_folder": "Delete Folder",
+      "update_config": "Update Config",
+      "reload_config": "Reload Config",
+      "run_migration": "Run Migration",
+      "system_start": "System Start",
+      "system_stop": "System Stop"
+    },
+    "resourceTypes": {
+      "user": "User",
+      "session": "Session",
+      "bucket": "Bucket",
+      "file": "File",
+      "folder": "Folder",
+      "config": "Config",
+      "system": "System",
+      "role": "Role"
+    }
   },
   "storage": {
     "title": "Storages",

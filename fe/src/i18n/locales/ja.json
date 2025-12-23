@@ -421,7 +421,38 @@
     "page": "{{totalPages}}ページ中 {{page}}ページ",
     "noLogs": "監査ログが見つかりません",
     "noPermission": "監査ログを表示する権限がありません。",
-    "fetchError": "監査ログの取得に失敗しました"
+    "fetchError": "監査ログの取得に失敗しました",
+    "actions": {
+      "login": "ログイン",
+      "logout": "ログアウト",
+      "login_failed": "ログイン失敗",
+      "create_user": "ユーザー作成",
+      "update_user": "ユーザー更新",
+      "delete_user": "ユーザー削除",
+      "update_role": "役割更新",
+      "create_bucket": "バケット作成",
+      "delete_bucket": "バケット削除",
+      "upload_file": "ファイルアップロード",
+      "delete_file": "ファイル削除",
+      "download_file": "ファイルダウンロード",
+      "create_folder": "フォルダ作成",
+      "delete_folder": "フォルダ削除",
+      "update_config": "設定更新",
+      "reload_config": "設定再読み込み",
+      "run_migration": "マイグレーション実行",
+      "system_start": "システム起動",
+      "system_stop": "システム停止"
+    },
+    "resourceTypes": {
+      "user": "ユーザー",
+      "session": "セッション",
+      "bucket": "バケット",
+      "file": "ファイル",
+      "folder": "フォルダ",
+      "config": "設定",
+      "system": "システム",
+      "role": "役割"
+    }
   },
   "storage": {
     "title": "ストレージ",

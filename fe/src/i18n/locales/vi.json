@@ -421,7 +421,38 @@
     "page": "Trang {{page}} / {{totalPages}}",
     "noLogs": "Không tìm thấy nhật ký kiểm toán",
     "noPermission": "Bạn không có quyền xem nhật ký kiểm toán.",
-    "fetchError": "Không thể tải nhật ký kiểm toán"
+    "fetchError": "Không thể tải nhật ký kiểm toán",
+    "actions": {
+      "login": "Đăng nhập",
+      "logout": "Đăng xuất",
+      "login_failed": "Đăng nhập thất bại",
+      "create_user": "Tạo người dùng",
+      "update_user": "Cập nhật người dùng",
+      "delete_user": "Xóa người dùng",
+      "update_role": "Cập nhật vai trò",
+      "create_bucket": "Tạo Bucket",
+      "delete_bucket": "Xóa Bucket",
+      "upload_file": "Tải lên tệp",
+      "delete_file": "Xóa tệp",
+      "download_file": "Tải xuống tệp",
+      "create_folder": "Tạo thư mục",
+      "delete_folder": "Xóa thư mục",
+      "update_config": "Cập nhật cấu hình",
+      "reload_config": "Tải lại cấu hình",
+      "run_migration": "Chạy Migration",
+      "system_start": "Khởi động hệ thống",
+      "system_stop": "Dừng hệ thống"
+    },
+    "resourceTypes": {
+      "user": "Người dùng",
+      "session": "Phiên làm việc",
+      "bucket": "Bucket",
+      "file": "Tệp tin",
+      "folder": "Thư mục",
+      "config": "Cấu hình",
+      "system": "Hệ thống",
+      "role": "Vai trò"
+    }
   },
   "storage": {
     "title": "Lưu trữ",

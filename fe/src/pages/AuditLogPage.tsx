@@ -13,11 +13,11 @@
 import { useState, useEffect, useCallback } from 'react';
 import { useAuth } from '../hooks/useAuth';
 import { useTranslation } from 'react-i18next';
-import { 
-    Search, 
-    Filter, 
-    ChevronLeft, 
-    ChevronRight, 
+import {
+    Search,
+    Filter,
+    ChevronLeft,
+    ChevronRight,
     RefreshCw,
     User,
     Clock,
@@ -77,42 +77,50 @@ interface Filters {
 /**
  * Format action type for display with color coding.
  */
-function getActionBadge(action: string): { label: string; className: string } {
+function getActionBadge(action: string, t: any): { label: string; className: string } {
     const actionMap: Record<string, { label: string; className: string }> = {
-        login: { label: 'Login', className: 'bg-green-100 text-green-800 dark:bg-green-900/30 dark:text-green-300' },
-        logout: { label: 'Logout', className: 'bg-slate-100 text-slate-800 dark:bg-slate-700 dark:text-slate-300' },
-        login_failed: { label: 'Login Failed', className: 'bg-red-100 text-red-800 dark:bg-red-900/30 dark:text-red-300' },
-        create_user: { label: 'Create User', className: 'bg-blue-100 text-blue-800 dark:bg-blue-900/30 dark:text-blue-300' },
-        update_user: { label: 'Update User', className: 'bg-yellow-100 text-yellow-800 dark:bg-yellow-900/30 dark:text-yellow-300' },
-        delete_user: { label: 'Delete User', className: 'bg-red-100 text-red-800 dark:bg-red-900/30 dark:text-red-300' },
-        update_role: { label: 'Update Role', className: 'bg-purple-100 text-purple-800 dark:bg-purple-900/30 dark:text-purple-300' },
-        create_bucket: { label: 'Create Bucket', className: 'bg-blue-100 text-blue-800 dark:bg-blue-900/30 dark:text-blue-300' },
-        delete_bucket: { label: 'Delete Bucket', className: 'bg-red-100 text-red-800 dark:bg-red-900/30 dark:text-red-300' },
-        upload_file: { label: 'Upload File', className: 'bg-green-100 text-green-800 dark:bg-green-900/30 dark:text-green-300' },
-        delete_file: { label: 'Delete File', className: 'bg-red-100 text-red-800 dark:bg-red-900/30 dark:text-red-300' },
-        update_config: { label: 'Update Config', className: 'bg-yellow-100 text-yellow-800 dark:bg-yellow-900/30 dark:text-yellow-300' },
+        login: { label: t('auditLog.actions.login'), className: 'bg-green-100 text-green-800 dark:bg-green-900/30 dark:text-green-300' },
+        logout: { label: t('auditLog.actions.logout'), className: 'bg-slate-100 text-slate-800 dark:bg-slate-700 dark:text-slate-300' },
+        login_failed: { label: t('auditLog.actions.login_failed'), className: 'bg-red-100 text-red-800 dark:bg-red-900/30 dark:text-red-300' },
+        create_user: { label: t('auditLog.actions.create_user'), className: 'bg-blue-100 text-blue-800 dark:bg-blue-900/30 dark:text-blue-300' },
+        update_user: { label: t('auditLog.actions.update_user'), className: 'bg-yellow-100 text-yellow-800 dark:bg-yellow-900/30 dark:text-yellow-300' },
+        delete_user: { label: t('auditLog.actions.delete_user'), className: 'bg-red-100 text-red-800 dark:bg-red-900/30 dark:text-red-300' },
+        update_role: { label: t('auditLog.actions.update_role'), className: 'bg-purple-100 text-purple-800 dark:bg-purple-900/30 dark:text-purple-300' },
+        create_bucket: { label: t('auditLog.actions.create_bucket'), className: 'bg-blue-100 text-blue-800 dark:bg-blue-900/30 dark:text-blue-300' },
+        delete_bucket: { label: t('auditLog.actions.delete_bucket'), className: 'bg-red-100 text-red-800 dark:bg-red-900/30 dark:text-red-300' },
+        upload_file: { label: t('auditLog.actions.upload_file'), className: 'bg-green-100 text-green-800 dark:bg-green-900/30 dark:text-green-300' },
+        delete_file: { label: t('auditLog.actions.delete_file'), className: 'bg-red-100 text-red-800 dark:bg-red-900/30 dark:text-red-300' },
+        download_file: { label: t('auditLog.actions.download_file'), className: 'bg-blue-100 text-blue-800 dark:bg-blue-900/30 dark:text-blue-300' },
+        create_folder: { label: t('auditLog.actions.create_folder'), className: 'bg-blue-100 text-blue-800 dark:bg-blue-900/30 dark:text-blue-300' },
+        delete_folder: { label: t('auditLog.actions.delete_folder'), className: 'bg-red-100 text-red-800 dark:bg-red-900/30 dark:text-red-300' },
+        update_config: { label: t('auditLog.actions.update_config'), className: 'bg-yellow-100 text-yellow-800 dark:bg-yellow-900/30 dark:text-yellow-300' },
+        reload_config: { label: t('auditLog.actions.reload_config'), className: 'bg-yellow-100 text-yellow-800 dark:bg-yellow-900/30 dark:text-yellow-300' },
+        run_migration: { label: t('auditLog.actions.run_migration'), className: 'bg-purple-100 text-purple-800 dark:bg-purple-900/30 dark:text-purple-300' },
+        system_start: { label: t('auditLog.actions.system_start'), className: 'bg-green-100 text-green-800 dark:bg-green-900/30 dark:text-green-300' },
+        system_stop: { label: t('auditLog.actions.system_stop'), className: 'bg-red-100 text-red-800 dark:bg-red-900/30 dark:text-red-300' },
     };
 
-    return actionMap[action] || { 
-        label: action.replace(/_/g, ' ').replace(/\b\w/g, l => l.toUpperCase()), 
-        className: 'bg-slate-100 text-slate-800 dark:bg-slate-700 dark:text-slate-300' 
+    return actionMap[action] || {
+        label: t(`auditLog.actions.${action}`, { defaultValue: action.replace(/_/g, ' ').replace(/\b\w/g, l => l.toUpperCase()) }),
+        className: 'bg-slate-100 text-slate-800 dark:bg-slate-700 dark:text-slate-300'
     };
 }
 
 /**
  * Format resource type for display.
  */
-function formatResourceType(type: string): string {
+function formatResourceType(type: string, t: any): string {
     const typeMap: Record<string, string> = {
-        user: 'User',
-        session: 'Session',
-        bucket: 'Bucket',
-        file: 'File',
-        config: 'Config',
-        system: 'System',
-        role: 'Role',
+        user: t('auditLog.resourceTypes.user'),
+        session: t('auditLog.resourceTypes.session'),
+        bucket: t('auditLog.resourceTypes.bucket'),
+        file: t('auditLog.resourceTypes.file'),
+        folder: t('auditLog.resourceTypes.folder'),
+        config: t('auditLog.resourceTypes.config'),
+        system: t('auditLog.resourceTypes.system'),
+        role: t('auditLog.resourceTypes.role'),
     };
-    return typeMap[type] || type.replace(/_/g, ' ').replace(/\b\w/g, l => l.toUpperCase());
+    return typeMap[type] || t(`auditLog.resourceTypes.${type}`, { defaultValue: type.replace(/_/g, ' ').replace(/\b\w/g, l => l.toUpperCase()) });
 }
 
 /**
@@ -127,7 +135,7 @@ function formatDateTime(dateString: string): string {
  */
 function formatDetails(details: Record<string, any>): string {
     if (!details || Object.keys(details).length === 0) return '-';
-    
+
     const entries = Object.entries(details)
         .filter(([_, value]) => value !== null && value !== undefined)
         .map(([key, value]) => {
@@ -135,7 +143,7 @@ function formatDetails(details: Record<string, any>): string {
             const formattedValue = typeof value === 'object' ? JSON.stringify(value) : String(value);
             return `${formattedKey}: ${formattedValue}`;
         });
-    
+
     return entries.join(', ');
 }
 
@@ -155,7 +163,7 @@ function formatDetails(details: Record<string, any>): string {
 export default function AuditLogPage() {
     const { t } = useTranslation();
     const { user: currentUser } = useAuth();
-    
+
     // Data state
     const [logs, setLogs] = useState<AuditLogEntry[]>([]);
     const [pagination, setPagination] = useState<Pagination>({
@@ -166,7 +174,7 @@ export default function AuditLogPage() {
     });
     const [isLoading, setIsLoading] = useState(true);
     const [error, setError] = useState<string | null>(null);
-    
+
     // Filter state
     const [filters, setFilters] = useState<Filters>({
         search: '',
@@ -176,7 +184,7 @@ export default function AuditLogPage() {
         endDate: '',
     });
     const [showFilters, setShowFilters] = useState(false);
-    
+
     // Available filter options
     const [actionTypes, setActionTypes] = useState<string[]>([]);
     const [resourceTypes, setResourceTypes] = useState<string[]>([]);
@@ -191,27 +199,27 @@ export default function AuditLogPage() {
     const fetchLogs = useCallback(async (page: number = 1) => {
         setIsLoading(true);
         setError(null);
-        
+
         try {
             const params = new URLSearchParams({
                 page: String(page),
                 limit: String(pagination.limit),
             });
-            
+
             if (filters.search) params.append('search', filters.search);
             if (filters.action) params.append('action', filters.action);
             if (filters.resourceType) params.append('resourceType', filters.resourceType);
             if (filters.startDate) params.append('startDate', filters.startDate);
             if (filters.endDate) params.append('endDate', filters.endDate);
-            
+
             const response = await fetch(`${API_BASE_URL}/api/audit?${params}`, {
                 credentials: 'include',
             });
-            
+
             if (!response.ok) {
                 throw new Error(t('auditLog.fetchError'));
             }
-            
+
             const data: AuditLogResponse = await response.json();
             setLogs(data.data);
             setPagination(data.pagination);
@@ -231,7 +239,7 @@ export default function AuditLogPage() {
                 fetch(`${API_BASE_URL}/api/audit/actions`, { credentials: 'include' }),
                 fetch(`${API_BASE_URL}/api/audit/resource-types`, { credentials: 'include' }),
             ]);
-            
+
             if (actionsRes.ok) {
                 const actions = await actionsRes.json();
                 setActionTypes(actions);
@@ -318,15 +326,14 @@ export default function AuditLogPage() {
                             className="w-full pl-10 pr-4 py-2 border border-slate-200 dark:border-slate-700 rounded-lg bg-white dark:bg-slate-800 text-slate-900 dark:text-white focus:ring-2 focus:ring-primary-500 focus:border-transparent"
                         />
                     </div>
-                    
+
                     {/* Filter Toggle */}
                     <button
                         onClick={() => setShowFilters(!showFilters)}
-                        className={`flex items-center gap-2 px-4 py-2 rounded-lg border transition-colors ${
-                            showFilters || hasActiveFilters
+                        className={`flex items-center gap-2 px-4 py-2 rounded-lg border transition-colors ${showFilters || hasActiveFilters
                                 ? 'bg-primary-50 border-primary-300 text-primary-700 dark:bg-primary-900/30 dark:border-primary-700 dark:text-primary-300'
                                 : 'border-slate-200 dark:border-slate-700 text-slate-600 dark:text-slate-400 hover:bg-slate-50 dark:hover:bg-slate-800'
-                        }`}
+                            }`}
                     >
                         <Filter className="w-4 h-4" />
                         {t('auditLog.filters')}
@@ -334,7 +341,7 @@ export default function AuditLogPage() {
                             <span className="ml-1 w-2 h-2 rounded-full bg-primary-500" />
                         )}
                     </button>
-                    
+
                     {/* Refresh */}
                     <button
                         onClick={() => fetchLogs(pagination.page)}
@@ -377,12 +384,12 @@ export default function AuditLogPage() {
                                     <option value="">{t('auditLog.allActions')}</option>
                                     {actionTypes.map(action => (
                                         <option key={action} value={action}>
-                                            {getActionBadge(action).label}
+                                            {getActionBadge(action, t).label}
                                         </option>
                                     ))}
                                 </select>
                             </div>
-                            
+
                             {/* Resource Type Filter */}
                             <div>
                                 <label className="block text-xs text-slate-500 dark:text-slate-400 mb-1">
@@ -396,12 +403,12 @@ export default function AuditLogPage() {
                                     <option value="">{t('auditLog.allResourceTypes')}</option>
                                     {resourceTypes.map(type => (
                                         <option key={type} value={type}>
-                                            {formatResourceType(type)}
+                                            {formatResourceType(type, t)}
                                         </option>
                                     ))}
                                 </select>
                             </div>
-                            
+
                             {/* Start Date */}
                             <div>
                                 <label className="block text-xs text-slate-500 dark:text-slate-400 mb-1">
@@ -417,7 +424,7 @@ export default function AuditLogPage() {
                                     />
                                 </div>
                             </div>
-                            
+
                             {/* End Date */}
                             <div>
                                 <label className="block text-xs text-slate-500 dark:text-slate-400 mb-1">
@@ -440,10 +447,10 @@ export default function AuditLogPage() {
 
             {/* Results Summary */}
             <div className="mb-2 text-sm text-slate-500 dark:text-slate-400">
-                {t('auditLog.showing', { 
+                {t('auditLog.showing', {
                     from: Math.min((pagination.page - 1) * pagination.limit + 1, pagination.total),
                     to: Math.min(pagination.page * pagination.limit, pagination.total),
-                    total: pagination.total 
+                    total: pagination.total
                 })}
             </div>
 
@@ -500,7 +507,7 @@ export default function AuditLogPage() {
                             </thead>
                             <tbody className="divide-y divide-slate-200 dark:divide-slate-700">
                                 {logs.map((log) => {
-                                    const actionBadge = getActionBadge(log.action);
+                                    const actionBadge = getActionBadge(log.action, t);
                                     return (
                                         <tr key={log.id} className="hover:bg-slate-50 dark:hover:bg-slate-700/30 transition-colors">
                                             <td className="p-3 text-sm text-slate-600 dark:text-slate-300 whitespace-nowrap">
@@ -522,7 +529,7 @@ export default function AuditLogPage() {
                                                 </span>
                                             </td>
                                             <td className="p-3 text-sm text-slate-600 dark:text-slate-300">
-                                                {formatResourceType(log.resource_type)}
+                                                {formatResourceType(log.resource_type, t)}
                                             </td>
                                             <td className="p-3 text-sm text-slate-500 dark:text-slate-400 max-w-[300px]">
                                                 <span className="truncate block" title={formatDetails(log.details)}>
@@ -555,7 +562,7 @@ export default function AuditLogPage() {
                         >
                             <ChevronLeft className="w-4 h-4" />
                         </button>
-                        
+
                         {/* Page Numbers */}
                         <div className="flex items-center gap-1">
                             {Array.from({ length: Math.min(5, pagination.totalPages) }, (_, i) => {
@@ -569,24 +576,23 @@ export default function AuditLogPage() {
                                 } else {
                                     pageNum = pagination.page - 2 + i;
                                 }
-                                
+
                                 return (
                                     <button
                                         key={pageNum}
                                         onClick={() => handlePageChange(pageNum)}
                                         disabled={isLoading}
-                                        className={`w-8 h-8 rounded-lg text-sm font-medium transition-colors ${
-                                            pageNum === pagination.page
+                                        className={`w-8 h-8 rounded-lg text-sm font-medium transition-colors ${pageNum === pagination.page
                                                 ? 'bg-primary-600 text-white'
                                                 : 'text-slate-600 dark:text-slate-400 hover:bg-slate-100 dark:hover:bg-slate-800'
-                                        }`}
+                                            }`}
                                     >
                                         {pageNum}
                                     </button>
                                 );
                             })}
                         </div>
-                        
+
                         <button
                             onClick={() => handlePageChange(pagination.page + 1)}
                             disabled={pagination.page >= pagination.totalPages || isLoading}
