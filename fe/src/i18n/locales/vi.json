@@ -7,6 +7,7 @@
     "save": "Lưu",
     "cancel": "Hủy",
     "close": "Đóng",
+    "hide": "Ẩn",
     "delete": "Xóa",
     "settings": "Cài đặt",
     "checkingSession": "Đang kiểm tra phiên...",
@@ -37,7 +38,19 @@
     "add": "Thêm",
     "user": "Người dùng",
     "team": "Nhóm",
-    "permissions": "Quyền hạn"
+    "permissions": "Quyền hạn",
+    "message": "Thông báo",
+    "period": "Giai đoạn",
+    "status": "Trạng thái",
+    "startDate": "Ngày bắt đầu",
+    "endDate": "Ngày kết thúc",
+    "backgroundColor": "Màu nền",
+    "fontColor": "Màu chữ",
+    "active": "Hoạt động",
+    "inactive": "Không hoạt động",
+    "dismissible": "Có thể ẩn",
+    "characters": "Ký tự",
+    "fillRequiredFields": "Vui lòng điền đầy đủ thông tin bắt buộc"
   },
   "dialog": {
     "confirm": "Xác nhận",
@@ -61,6 +74,7 @@
     "tokenizer": "Bộ đếm Token",
     "signOut": "Đăng xuất",
     "knowledgeBase": "Cơ sở tri thức",
+    "broadcastMessages": "Thông báo",
     "expandMenu": "Mở rộng menu",
     "administrators": "Quản trị",
     "collapseMenu": "Thu gọn menu"
@@ -95,6 +109,9 @@
     "error": "Đăng nhập thất bại",
     "rootLogin": "Đăng nhập với Root",
     "rootLoginTitle": "Đăng nhập Root"
+  },
+  "admin": {
+    "broadcastMessages": "Thông báo hệ thống"
   },
   "settings": {
     "title": "Cài đặt",

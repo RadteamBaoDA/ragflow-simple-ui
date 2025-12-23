@@ -55,6 +55,7 @@ import documentPermissionRoutes from './routes/document-permission.routes.js';
 import auditRoutes from './routes/audit.routes.js';
 import externalRoutes from './routes/external/index.js';
 import previewRoutes from './routes/preview.routes.js';
+import broadcastMessageRoutes from './routes/broadcast-message.routes.js';
 import { externalTraceService } from './services/external-trace.service.js';
 import { runMigrations } from './db/migrations/runner.js';
 import { cronService } from './services/cron.service.js';
@@ -410,6 +411,7 @@ app.use('/api/document-permissions', documentPermissionRoutes);
 app.use('/api/audit', auditRoutes);
 app.use('/api/external', externalRoutes);
 app.use('/api/preview', previewRoutes);
+app.use('/api/broadcast-messages', broadcastMessageRoutes);
 
 /**
  * 404 handler for undefined API routes.

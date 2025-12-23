@@ -61,6 +61,7 @@ const TokenizerPage = lazy(() => import('./pages/TokenizerPage'));
 const StoragePage = lazy(() => import('./pages/StoragePage'));
 /** RAGFlow Config page - admin only */
 const KnowledgeBaseConfigPage = lazy(() => import('./pages/KnowledgeBaseConfigPage'));
+const BroadcastMessagePage = lazy(() => import('./pages/BroadcastMessagePage'));
 
 // Initialize i18n for internationalization
 import './i18n';
@@ -174,6 +175,11 @@ function App() {
                   <Route path="/iam/teams" element={
                     <AdminRoute>
                       <TeamManagementPage />
+                    </AdminRoute>
+                  } />
+                  <Route path="/broadcast-messages" element={
+                    <AdminRoute>
+                      <BroadcastMessagePage />
                     </AdminRoute>
                   } />
 

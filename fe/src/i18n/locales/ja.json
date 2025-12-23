@@ -7,6 +7,7 @@
     "save": "保存",
     "cancel": "キャンセル",
     "close": "閉じる",
+    "hide": "非表示",
     "delete": "削除",
     "settings": "設定",
     "checkingSession": "セッションを確認中...",
@@ -37,7 +38,19 @@
     "add": "追加",
     "user": "ユーザー",
     "team": "チーム",
-    "permissions": "権限"
+    "permissions": "権限",
+    "message": "メッセージ",
+    "period": "期間",
+    "status": "ステータス",
+    "startDate": "開始日",
+    "endDate": "終了日",
+    "backgroundColor": "背景色",
+    "fontColor": "フォント色",
+    "active": "有効",
+    "inactive": "無効",
+    "dismissible": "非表示可能",
+    "characters": "文字",
+    "fillRequiredFields": "必須項目を入力してください"
   },
   "dialog": {
     "confirm": "確認",
@@ -61,6 +74,7 @@
     "tokenizer": "トークナイザー",
     "signOut": "サインアウト",
     "knowledgeBase": "ナレッジベース",
+    "broadcastMessages": "一斉通知",
     "expandMenu": "メニューを展開",
     "administrators": "管理者",
     "collapseMenu": "メニューを折りたたむ"
@@ -95,6 +109,9 @@
     "error": "ログインに失敗しました",
     "rootLogin": "Rootとしてログイン",
     "rootLoginTitle": "Rootログイン"
+  },
+  "admin": {
+    "broadcastMessages": "一斉通知管理"
   },
   "settings": {
     "title": "設定",

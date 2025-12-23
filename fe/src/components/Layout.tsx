@@ -45,10 +45,12 @@ import {
   ChevronDown,
   User as UserIcon,
   UserCog,
+  Megaphone,
 } from 'lucide-react';
 
 import logo from '../assets/logo.png';
 import logoDark from '../assets/logo-dark.png';
+import BroadcastBanner from './BroadcastBanner';
 
 // ============================================================================
 // Sub-components
@@ -155,6 +157,8 @@ function Layout() {
         return t('storage.title');
       case '/knowledge-base/config':
         return t('knowledgeBaseConfig.title');
+      case '/broadcast-messages':
+        return t('admin.broadcastMessages');
       default:
         return t('common.appName');
     }
@@ -163,7 +167,7 @@ function Layout() {
   // Auto-expand parent menus when their children are active
   const isKnowledgeBaseActive = ['/documents', '/knowledge-base/config', '/storage-dashboard'].includes(location.pathname);
   const isIamActive = ['/user-management', '/iam/teams'].includes(location.pathname);
-  const isAdministratorsActive = ['/audit-log', '/system-tools', '/system-monitor', '/tokenizer'].includes(location.pathname);
+  const isAdministratorsActive = ['/audit-log', '/system-tools', '/system-monitor', '/tokenizer', '/broadcast-messages'].includes(location.pathname);
 
   // Combine manual toggle with auto-expand logic
   const shouldExpandKnowledgeBase = isKnowledgeBaseExpanded || isKnowledgeBaseActive;
@@ -318,6 +322,10 @@ function Layout() {
                     <FileCode size={18} />
                     <span>{t('nav.tokenizer')}</span>
                   </NavLink>
+                  <NavLink to="/broadcast-messages" className={({ isActive }) => `sidebar-link ${isActive ? 'active' : ''}`} title={t('nav.broadcastMessages')}>
+                    <Megaphone size={18} />
+                    <span>{t('nav.broadcastMessages')}</span>
+                  </NavLink>
 
                 </div>
               )}
@@ -353,6 +361,7 @@ function Layout() {
       </aside>
 
       <main className="flex-1 flex flex-col bg-slate-50 dark:bg-slate-900 overflow-hidden">
+        <BroadcastBanner />
         <header className="bg-white dark:bg-slate-800 border-b border-slate-200 dark:border-slate-700 px-8 h-16 flex justify-between items-center">
           <h1 className="text-2xl font-semibold text-slate-800 dark:text-slate-100">{getPageTitle()}</h1>
 

@@ -179,12 +179,44 @@ export const migration: Migration = {
         await db.query('CREATE INDEX IF NOT EXISTS idx_document_permissions_entity ON document_permissions(entity_type, entity_id)');
         await db.query('CREATE INDEX IF NOT EXISTS idx_document_permissions_bucket ON document_permissions(bucket_id)');
 
+        // 12. Broadcast Messages
+        await db.query(`
+            CREATE TABLE IF NOT EXISTS broadcast_messages (
+                id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
+                message TEXT NOT NULL,
+                starts_at TIMESTAMP WITH TIME ZONE NOT NULL,
+                ends_at TIMESTAMP WITH TIME ZONE NOT NULL,
+                color VARCHAR(50) DEFAULT '#E75E40',
+                font_color VARCHAR(50) DEFAULT '#FFFFFF',
+                is_active BOOLEAN DEFAULT true,
+                is_dismissible BOOLEAN DEFAULT true,
+                created_at TIMESTAMP WITH TIME ZONE DEFAULT NOW(),
+                updated_at TIMESTAMP WITH TIME ZONE DEFAULT NOW()
+            )
+        `);
+        await db.query('CREATE INDEX IF NOT EXISTS idx_broadcast_messages_active ON broadcast_messages(is_active, starts_at, ends_at)');
+
+        // 13. User Dismissed Broadcasts (Junction for persistence)
+        await db.query(`
+            CREATE TABLE IF NOT EXISTS user_dismissed_broadcasts (
+                user_id TEXT NOT NULL,
+                broadcast_id UUID NOT NULL,
+                dismissed_at TIMESTAMP WITH TIME ZONE DEFAULT NOW(),
+                PRIMARY KEY (user_id, broadcast_id),
+                FOREIGN KEY (user_id) REFERENCES users(id) ON DELETE CASCADE,
+                FOREIGN KEY (broadcast_id) REFERENCES broadcast_messages(id) ON DELETE CASCADE
+            )
+        `);
+        await db.query('CREATE INDEX IF NOT EXISTS idx_user_dismissed_broadcasts_user ON user_dismissed_broadcasts(user_id)');
+
         log.info('Final schema created successfully');
     },
 
     async down(db: DatabaseAdapter): Promise<void> {
         log.info('Reverting migration: 001_initial_schema');
 
+        await db.query('DROP TABLE IF EXISTS user_dismissed_broadcasts');
+        await db.query('DROP TABLE IF EXISTS broadcast_messages');
         await db.query('DROP TABLE IF EXISTS document_permissions');
         await db.query('DROP TABLE IF EXISTS user_ip_history');
         await db.query('DROP TABLE IF EXISTS audit_logs');

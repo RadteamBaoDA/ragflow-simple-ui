@@ -50,6 +50,7 @@ function SettingsDialog() {
       open={isSettingsOpen}
       onClose={closeSettings}
       title={t('settings.title')}
+      maxWidth="xl"
       footer={
         <button onClick={closeSettings} className="btn btn-primary px-6">
           {t('common.close')}
