@@ -40,7 +40,7 @@ const router = Router();
 router.use(requireAuth);
 
 // Apply storage:read permission to all routes by default (allows listing/downloading)
-import { storagePermissionService, PermissionLevel } from "../services/storage-permission.service.js";
+import { documentPermissionService, PermissionLevel } from "../services/document-permission.service.js";
 
 const requireStoragePermission = (requiredLevel: PermissionLevel) => {
     return async (req: Request, res: Response, next: any) => {
@@ -51,8 +51,13 @@ const requireStoragePermission = (requiredLevel: PermissionLevel) => {
             // Admins bypass
             if (user.role === 'admin') return next();
 
-            const level = await storagePermissionService.resolveUserPermission(user.id);
-            if (level >= requiredLevel) {
+            const bucketId = req.params["bucketId"];
+            if (!bucketId && requiredLevel > PermissionLevel.NONE) {
+                return res.status(400).json({ error: "Bucket ID is required" });
+            }
+
+            const permissionLevel = await documentPermissionService.resolveUserPermission(user.id, bucketId || '');
+            if (permissionLevel >= requiredLevel) {
                 return next();
             }
 

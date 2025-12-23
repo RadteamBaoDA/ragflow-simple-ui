@@ -143,7 +143,7 @@ function Layout() {
         return t('pages.systemTools.title');
       case '/system-monitor':
         return t('pages.systemMonitor.title');
-      case '/storage':
+      case '/documents':
         return t('pages.storage.title');
       case '/user-management':
         return t('userManagement.title');
@@ -159,6 +159,16 @@ function Layout() {
         return t('common.appName');
     }
   };
+
+  // Auto-expand parent menus when their children are active
+  const isKnowledgeBaseActive = ['/documents', '/knowledge-base/config', '/storage-dashboard'].includes(location.pathname);
+  const isIamActive = ['/user-management', '/iam/teams'].includes(location.pathname);
+  const isAdministratorsActive = ['/audit-log', '/system-tools', '/system-monitor', '/tokenizer'].includes(location.pathname);
+
+  // Combine manual toggle with auto-expand logic
+  const shouldExpandKnowledgeBase = isKnowledgeBaseExpanded || isKnowledgeBaseActive;
+  const shouldExpandIam = isIamExpanded || isIamActive;
+  const shouldExpandAdministrators = isAdministratorsExpanded || isAdministratorsActive;
 
   // Determine if source selection dropdowns should be shown
   // Only show when multiple sources are configured
@@ -211,14 +221,14 @@ function Layout() {
                 {!isCollapsed && (
                   <>
                     <span className="flex-1 text-left">{t('nav.knowledgeBase')}</span>
-                    {isKnowledgeBaseExpanded ? <ChevronDown size={16} /> : <ChevronRight size={16} />}
+                    {shouldExpandKnowledgeBase ? <ChevronDown size={16} /> : <ChevronRight size={16} />}
                   </>
                 )}
               </button>
 
-              {(!isCollapsed && isKnowledgeBaseExpanded) && (
+              {(!isCollapsed && shouldExpandKnowledgeBase) && (
                 <div className="pl-4 flex flex-col gap-1">
-                  <NavLink to="/storage" className={({ isActive }) => `sidebar-link ${isActive ? 'active' : ''}`} title={t('nav.storage')}>
+                  <NavLink to="/documents" className={({ isActive }) => `sidebar-link ${isActive ? 'active' : ''}`} title={t('nav.storage')}>
                     <HardDrive size={18} />
                     <span>{t('nav.storage')}</span>
                   </NavLink>
@@ -255,12 +265,12 @@ function Layout() {
                 {!isCollapsed && (
                   <>
                     <span className="flex-1 text-left">{t('nav.iam')}</span>
-                    {isIamExpanded ? <ChevronDown size={16} /> : <ChevronRight size={16} />}
+                    {shouldExpandIam ? <ChevronDown size={16} /> : <ChevronRight size={16} />}
                   </>
                 )}
               </button>
 
-              {(!isCollapsed && isIamExpanded) && (
+              {(!isCollapsed && shouldExpandIam) && (
                 <div className="pl-4 flex flex-col gap-1">
                   <NavLink to="/user-management" className={({ isActive }) => `sidebar-link ${isActive ? 'active' : ''}`} title={t('nav.userManagement')}>
                     <UserIcon size={18} />
@@ -285,12 +295,12 @@ function Layout() {
                 {!isCollapsed && (
                   <>
                     <span className="flex-1 text-left">{t('nav.administrators')}</span>
-                    {isAdministratorsExpanded ? <ChevronDown size={16} /> : <ChevronRight size={16} />}
+                    {shouldExpandAdministrators ? <ChevronDown size={16} /> : <ChevronRight size={16} />}
                   </>
                 )}
               </button>
 
-              {(!isCollapsed && isAdministratorsExpanded) && (
+              {(!isCollapsed && shouldExpandAdministrators) && (
                 <div className="pl-4 flex flex-col gap-1">
                   <NavLink to="/audit-log" className={({ isActive }) => `sidebar-link ${isActive ? 'active' : ''}`} title={t('nav.auditLog')}>
                     <ClipboardList size={18} />
@@ -368,7 +378,7 @@ function Layout() {
             />
           )}
         </header>
-        <div className={`flex-1 overflow-hidden ${['/ai-chat', '/ai-search', '/storage', '/system-tools', '/storage-dashboard', '/ragflow-config', '/iam/teams'].includes(location.pathname) ? '' : 'p-8 overflow-auto'}`}>
+        <div className={`flex-1 overflow-hidden ${['/ai-chat', '/ai-search', '/documents', '/system-tools', '/storage-dashboard', '/ragflow-config', '/iam/teams'].includes(location.pathname) ? '' : 'p-8 overflow-auto'}`}>
           <Outlet />
         </div>
       </main>

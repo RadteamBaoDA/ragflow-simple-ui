@@ -1,23 +1,26 @@
 import { useState } from 'react';
 import { useTranslation } from 'react-i18next';
-import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
+import { useQuery, useQueryClient } from '@tanstack/react-query';
 import { Dialog } from './Dialog';
 import { teamService } from '../services/teamService';
 import { userService } from '../services/userService';
 import { getAllPermissions, setPermission, PermissionLevel } from '../services/minioService';
 import { Search, Users, User as UserIcon, Loader2 } from 'lucide-react';
 
-interface StoragePermissionsModalProps {
+interface DocumentPermissionModalProps {
     isOpen: boolean;
     onClose: () => void;
+    bucketId?: string;
     bucketName?: string;
 }
 
-export function StoragePermissionsModal({ isOpen, onClose, bucketName }: StoragePermissionsModalProps) {
+export function DocumentPermissionModal({ isOpen, onClose, bucketId, bucketName }: DocumentPermissionModalProps) {
     const { t } = useTranslation();
     const queryClient = useQueryClient();
     const [searchTerm, setSearchTerm] = useState('');
     const [activeTab, setActiveTab] = useState<'users' | 'teams'>('users');
+    const [pendingChanges, setPendingChanges] = useState<Record<string, { type: 'user' | 'team', level: number }>>({});
+    const [isSaving, setIsSaving] = useState(false);
 
     // Fetch Lists
     const { data: teams = [] } = useQuery({
@@ -27,41 +30,64 @@ export function StoragePermissionsModal({ isOpen, onClose, bucketName }: Storage
 
     const { data: users = [] } = useQuery({
         queryKey: ['users', 'permissions'],
-        queryFn: () => userService.getAllUsers(['user', 'leader']),
+        queryFn: () => userService.getAllUsers(['leader']),
     });
 
     // Fetch Active Permissions
     const { data: permissions = [], isLoading: isLoadingPerms } = useQuery({
-        queryKey: ['storage-permissions'],
-        queryFn: getAllPermissions,
-    });
-
-    // Mutation to update permission
-    const updatePermissionMutation = useMutation({
-        mutationFn: async ({ entityType, entityId, level }: { entityType: 'user' | 'team', entityId: string, level: number }) => {
-            await setPermission(entityType, entityId, level);
-        },
-        onSuccess: () => {
-            queryClient.invalidateQueries({ queryKey: ['storage-permissions'] });
-            queryClient.invalidateQueries({ queryKey: ['minio-permissions'] }); // For effective permission
-        }
+        queryKey: ['document-permissions', bucketId],
+        queryFn: () => getAllPermissions(bucketId),
+        enabled: isOpen,
     });
 
     // Helper: Get current level for an entity
     const getLevel = (type: 'user' | 'team', id: string) => {
+        const key = `${type}:${id}`;
+        if (pendingChanges[key]) return pendingChanges[key].level;
+
         const perm = permissions.find(p => p.entity_type === type && p.entity_id === id);
         return perm ? perm.permission_level : PermissionLevel.NONE;
     };
 
     const handleLevelChange = (type: 'user' | 'team', id: string, newLevel: number) => {
-        updatePermissionMutation.mutate({ entityType: type, entityId: id, level: newLevel });
+        const key = `${type}:${id}`;
+        setPendingChanges(prev => ({
+            ...prev,
+            [key]: { type, level: newLevel }
+        }));
+    };
+
+    const handleSave = async () => {
+        if (!bucketId || Object.keys(pendingChanges).length === 0) return;
+
+        setIsSaving(true);
+        try {
+            for (const key of Object.keys(pendingChanges)) {
+                const change = pendingChanges[key];
+                if (!change) continue;
+
+                const { type, level } = change;
+                const entityId = key.split(':')[1];
+                if (!entityId) continue;
+
+                await setPermission(type, entityId, bucketId, level);
+            }
+            queryClient.invalidateQueries({ queryKey: ['document-permissions', bucketId] });
+            queryClient.invalidateQueries({ queryKey: ['minio-permissions', bucketId] });
+            setPendingChanges({});
+            onClose();
+        } catch (error) {
+            console.error('Failed to save permissions', error);
+        } finally {
+            setIsSaving(false);
+        }
     };
 
     const levels = [
-        { value: PermissionLevel.NONE, label: 'Access Denied', color: 'text-gray-500' },
-        { value: PermissionLevel.VIEW, label: 'View Only', color: 'text-blue-600' },
-        { value: PermissionLevel.UPLOAD, label: 'View & Upload', color: 'text-green-600' },
-        { value: PermissionLevel.FULL, label: 'All Permissions', color: 'text-purple-600 font-semibold' },
+        { value: PermissionLevel.NONE, label: t('documents.permissionLevels.none'), color: 'text-gray-500' },
+        { value: PermissionLevel.VIEW, label: t('documents.permissionLevels.view'), color: 'text-blue-600' },
+        { value: PermissionLevel.UPLOAD, label: t('documents.permissionLevels.upload'), color: 'text-green-600' },
+        { value: PermissionLevel.FULL, label: t('documents.permissionLevels.full'), color: 'text-purple-600 font-semibold' },
     ];
 
     const filteredUsers = users.filter(user =>
@@ -79,6 +105,24 @@ export function StoragePermissionsModal({ isOpen, onClose, bucketName }: Storage
             title={`${t('documents.configPermissions') || 'Storage Permissions'}${bucketName ? `: ${bucketName}` : ''}`}
             maxWidth="none"
             className="w-[70%]"
+            footer={
+                <div className="flex gap-2">
+                    <button
+                        onClick={onClose}
+                        className="px-4 py-2 text-sm font-medium text-gray-700 bg-white border border-gray-300 rounded-md hover:bg-gray-50 dark:bg-slate-800 dark:text-gray-300 dark:border-slate-600 dark:hover:bg-slate-700"
+                    >
+                        {t('common.cancel') || 'Cancel'}
+                    </button>
+                    <button
+                        onClick={handleSave}
+                        disabled={isSaving || Object.keys(pendingChanges).length === 0}
+                        className="flex items-center gap-2 px-6 py-2 text-sm font-semibold text-white bg-gradient-to-r from-primary-500 to-primary-600 rounded-md shadow-lg shadow-primary-500/30 hover:from-primary-600 hover:to-primary-700 hover:shadow-xl hover:shadow-primary-500/40 transition-all duration-200 disabled:opacity-50 disabled:cursor-not-allowed disabled:shadow-none"
+                    >
+                        {isSaving && <Loader2 className="animate-spin" size={16} />}
+                        {t('common.save') || 'Save'}
+                    </button>
+                </div>
+            }
         >
             <div className="flex flex-col h-[600px] w-full">
                 <div className="flex items-center gap-4 mb-4">
@@ -200,7 +244,7 @@ export function StoragePermissionsModal({ isOpen, onClose, bucketName }: Storage
                                                         ))}
                                                     </select>
                                                     <div className="text-[10px] text-gray-400 mt-1">
-                                                        Applies to Leaders only
+                                                        {t('documents.permissionLevels.appliesToLeaders')}
                                                     </div>
                                                 </td>
                                             </tr>

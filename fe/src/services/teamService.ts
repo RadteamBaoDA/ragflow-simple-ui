@@ -34,7 +34,8 @@ export const teamService = {
         const response = await fetch(`${config.apiBaseUrl}/api/teams`, {
             headers: {
                 'Authorization': `Bearer ${localStorage.getItem('token')}`
-            }
+            },
+            credentials: 'include'
         });
         if (!response.ok) throw new Error('Failed to fetch teams');
         return response.json();
@@ -47,6 +48,7 @@ export const teamService = {
                 'Content-Type': 'application/json',
                 'Authorization': `Bearer ${localStorage.getItem('token')}`
             },
+            credentials: 'include',
             body: JSON.stringify(data)
         });
         if (!response.ok) throw new Error('Failed to create team');
@@ -60,6 +62,7 @@ export const teamService = {
                 'Content-Type': 'application/json',
                 'Authorization': `Bearer ${localStorage.getItem('token')}`
             },
+            credentials: 'include',
             body: JSON.stringify(data)
         });
         if (!response.ok) throw new Error('Failed to update team');
@@ -71,7 +74,8 @@ export const teamService = {
             method: 'DELETE',
             headers: {
                 'Authorization': `Bearer ${localStorage.getItem('token')}`
-            }
+            },
+            credentials: 'include'
         });
         if (!response.ok) throw new Error('Failed to delete team');
     },
@@ -80,7 +84,8 @@ export const teamService = {
         const response = await fetch(`${config.apiBaseUrl}/api/teams/${teamId}/members`, {
             headers: {
                 'Authorization': `Bearer ${localStorage.getItem('token')}`
-            }
+            },
+            credentials: 'include'
         });
         if (!response.ok) throw new Error('Failed to fetch team members');
         return response.json();
@@ -93,7 +98,8 @@ export const teamService = {
             method: 'DELETE',
             headers: {
                 'Authorization': `Bearer ${localStorage.getItem('token')}`
-            }
+            },
+            credentials: 'include'
         });
         if (!response.ok) throw new Error('Failed to remove member');
     },
@@ -105,6 +111,7 @@ export const teamService = {
                 'Content-Type': 'application/json',
                 'Authorization': `Bearer ${localStorage.getItem('token')}`
             },
+            credentials: 'include',
             body: JSON.stringify({ userIds })
         });
 
@@ -121,6 +128,7 @@ export const teamService = {
                 'Content-Type': 'application/json',
                 'Authorization': `Bearer ${localStorage.getItem('token')}`
             },
+            credentials: 'include',
             body: JSON.stringify({ permissions })
         });
         if (!response.ok) throw new Error('Failed to grant permissions');

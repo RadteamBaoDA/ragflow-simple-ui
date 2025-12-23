@@ -7,7 +7,7 @@
  * - Folder management and batch operations
  * 
  * All operations require authentication and appropriate permissions.
- * Used by the Knowledge Base Documents page (MinIOManagerPage).
+ * Used by the Knowledge Base Documents page (DocumentManagerPage).
  * 
  * @module services/minioService
  */
@@ -30,6 +30,7 @@ export interface StoragePermission {
     id: string;
     entity_type: 'user' | 'team';
     entity_id: string;
+    bucket_id: string;
     permission_level: number;
     created_at: string;
     updated_at: string;
@@ -221,7 +222,7 @@ export const listObjects = async (
     bucketId: string,
     prefix: string = ''
 ): Promise<FileObject[]> => {
-    let url = `${API_BASE_URL}/api/minio/storage/${bucketId}/list`;
+    let url = `${API_BASE_URL}/api/minio/documents/${bucketId}/list`;
     if (prefix) {
         url += `?prefix=${encodeURIComponent(prefix)}`;
     }
@@ -277,7 +278,7 @@ export const uploadFiles = async (
     }
 
     // Build URL with prefix as query parameter (backend expects it in query string)
-    let uploadUrl = `${API_BASE_URL}/api/minio/storage/${bucketId}/upload`;
+    let uploadUrl = `${API_BASE_URL}/api/minio/documents/${bucketId}/upload`;
     if (prefix) {
         uploadUrl += `?prefix=${encodeURIComponent(prefix)}`;
     }
@@ -323,7 +324,7 @@ export const createFolder = async (
     folderName: string,
     prefix: string = ''
 ): Promise<void> => {
-    const response = await fetch(`${API_BASE_URL}/api/minio/storage/${bucketId}/folder`, {
+    const response = await fetch(`${API_BASE_URL}/api/minio/documents/${bucketId}/folder`, {
         method: 'POST',
         headers: {
             'Content-Type': 'application/json',
@@ -353,7 +354,7 @@ export const deleteObject = async (
     objectName: string,
     isFolder: boolean
 ): Promise<void> => {
-    const response = await fetch(`${API_BASE_URL}/api/minio/storage/${bucketId}/delete`, {
+    const response = await fetch(`${API_BASE_URL}/api/minio/documents/${bucketId}/delete`, {
         method: 'DELETE',
         headers: {
             'Content-Type': 'application/json',
@@ -381,7 +382,7 @@ export const batchDelete = async (
     bucketId: string,
     objects: Array<{ name: string; isFolder: boolean }>
 ): Promise<void> => {
-    const response = await fetch(`${API_BASE_URL}/api/minio/storage/${bucketId}/batch-delete`, {
+    const response = await fetch(`${API_BASE_URL}/api/minio/documents/${bucketId}/batch-delete`, {
         method: 'POST',
         headers: {
             'Content-Type': 'application/json',
@@ -411,7 +412,7 @@ export const batchDelete = async (
  * @throws Error if URL generation fails
  */
 export const getDownloadUrl = async (bucketId: string, objectPath: string, preview: boolean = false): Promise<string> => {
-    let url = `${API_BASE_URL}/api/minio/storage/${bucketId}/download/${objectPath}`;
+    let url = `${API_BASE_URL}/api/minio/documents/${bucketId}/download/${objectPath}`;
     if (preview) {
         url += '?preview=true';
     }
@@ -441,7 +442,7 @@ export const checkFilesExistence = async (
     bucketId: string,
     files: string[]
 ): Promise<{ exists: string[] }> => {
-    const response = await fetch(`${API_BASE_URL}/api/minio/storage/${bucketId}/check-existence`, {
+    const response = await fetch(`${API_BASE_URL}/api/minio/documents/${bucketId}/check-existence`, {
         method: 'POST',
         headers: {
             'Content-Type': 'application/json',
@@ -598,8 +599,8 @@ export const deleteAccessKey = async (accessKey: string): Promise<void> => {
 /**
  * Get the effective storage permission level for the current user.
  */
-export const getEffectivePermission = async (): Promise<number> => {
-    const response = await fetch(`${API_BASE_URL}/api/storage-permissions/resolve`, {
+export const getEffectivePermission = async (bucketId: string): Promise<number> => {
+    const response = await fetch(`${API_BASE_URL}/api/document-permissions/resolve?bucketId=${bucketId}`, {
         credentials: 'include',
     });
     if (!response.ok) {
@@ -612,8 +613,11 @@ export const getEffectivePermission = async (): Promise<number> => {
 /**
  * Get all configured storage permissions (Admin only).
  */
-export const getAllPermissions = async (): Promise<StoragePermission[]> => {
-    const response = await fetch(`${API_BASE_URL}/api/storage-permissions`, {
+export const getAllPermissions = async (bucketId?: string): Promise<StoragePermission[]> => {
+    const url = bucketId
+        ? `${API_BASE_URL}/api/document-permissions?bucketId=${bucketId}`
+        : `${API_BASE_URL}/api/document-permissions`;
+    const response = await fetch(url, {
         credentials: 'include',
     });
     if (!response.ok) {
@@ -625,12 +629,12 @@ export const getAllPermissions = async (): Promise<StoragePermission[]> => {
 /**
  * Set storage permission for a user or team.
  */
-export const setPermission = async (entityType: 'user' | 'team', entityId: string, level: number): Promise<void> => {
-    const response = await fetch(`${API_BASE_URL}/api/storage-permissions`, {
+export const setPermission = async (entityType: 'user' | 'team', entityId: string, bucketId: string, level: number): Promise<void> => {
+    const response = await fetch(`${API_BASE_URL}/api/document-permissions`, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         credentials: 'include',
-        body: JSON.stringify({ entityType, entityId, level }),
+        body: JSON.stringify({ entityType, entityId, bucketId, level }),
     });
     if (!response.ok) {
         throw new Error('Failed to set permission');

@@ -51,7 +51,7 @@ const SystemMonitorPage = lazy(() => import('./pages/SystemMonitorPage'));
 /** Error display page - 403, 404, 500 errors */
 const ErrorPage = lazy(() => import('./pages/ErrorPage'));
 /** MinIO storage manager - admin/manager only */
-const MinIOManagerPage = lazy(() => import('./pages/MinIOManagerPage'));
+const DocumentManagerPage = lazy(() => import('./pages/DocumentManagerPage'));
 /** Audit log viewer - admin only */
 const AuditLogPage = lazy(() => import('./pages/AuditLogPage'));
 /** Tokenizer tool - admin only */
@@ -144,9 +144,9 @@ function App() {
                     <SystemMonitorPage />
                   </AdminRoute>
                 } />
-                <Route path="/storage" element={
+                <Route path="/documents" element={
                   <RoleRoute allowedRoles={['admin', 'leader']}>
-                    <MinIOManagerPage />
+                    <DocumentManagerPage />
                   </RoleRoute>
                 } />
                 <Route path="/audit-log" element={

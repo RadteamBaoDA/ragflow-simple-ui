@@ -1,5 +1,5 @@
 /**
- * @fileoverview Knowledge Base Documents page (MinIO storage manager).
+ * @fileoverview Knowledge Base Documents page (Documents storage manager).
  * 
  * File manager interface for document storage using MinIO:
  * - Browse document buckets (configurations stored in database)
@@ -11,7 +11,7 @@
  * 
  * Available to admins and managers.
  * 
- * @module pages/MinIOManagerPage
+ * @module pages/DocumentManagerPage
  */
 
 import { useState, useEffect, useRef, useCallback, useMemo } from 'react';
@@ -40,7 +40,7 @@ import {
     PermissionLevel,
     getEffectivePermission
 } from '../services/minioService';
-import { StoragePermissionsModal } from '../components/StoragePermissionsModal';
+import { DocumentPermissionModal } from '../components/DocumentPermissionModal';
 import { formatFileSize } from '../utils/format';
 
 // ============================================================================
@@ -90,7 +90,7 @@ const formatDateTime = (date: Date, locale: string): string => {
 // ============================================================================
 
 /**
- * MinIO storage manager page component.
+ * Documents storage manager page component.
  * 
  * Features:
  * - Bucket selection dropdown (rendered in header via portal)
@@ -107,14 +107,14 @@ const formatDateTime = (date: Date, locale: string): string => {
  * Admin-only features:
  * - Add and remove bucket configurations (does not affect MinIO)
  */
-const MinIOManagerPage = () => {
+const DocumentManagerPage = () => {
     const { user } = useAuth();
     const [effectivePermission, setEffectivePermission] = useState<number>(PermissionLevel.NONE);
     const [isPermissionsModalOpen, setIsPermissionsModalOpen] = useState(false);
     const canWrite = effectivePermission >= PermissionLevel.UPLOAD;
     const canDelete = effectivePermission >= PermissionLevel.FULL;
     const isAdmin = user?.role === 'admin';
-    const canManagePermissions = user?.permissions?.includes('manage_system') || isAdmin;
+    const canManagePermissions = isAdmin;
     const { t, i18n } = useTranslation();
 
     // Bucket and object state
@@ -184,12 +184,44 @@ const MinIOManagerPage = () => {
 
 
 
-    // Fetch effective permission
+    // Fetch effective permission and poll for changes
+    // Polling ensures permission changes by admin are reflected without page reload (security)
     useEffect(() => {
-        getEffectivePermission()
-            .then(setEffectivePermission)
-            .catch(err => console.error('Failed to fetch storage permissions', err));
-    }, [user?.id]); // Re-fetch when user changes
+        if (!selectedBucket) {
+            setEffectivePermission(PermissionLevel.NONE);
+            return;
+        }
+
+        const fetchPermission = async () => {
+            try {
+                const permission = await getEffectivePermission(selectedBucket);
+                const previousPermission = effectivePermission;
+                setEffectivePermission(permission);
+
+                // If permission changed to NONE (revoked), reload file list and show error
+                if (previousPermission !== PermissionLevel.NONE && permission === PermissionLevel.NONE) {
+                    setError(t('documents.accessDenied'));
+                    loadObjects(); // Reload to clear file list or show proper state
+                }
+            } catch (err) {
+                console.error('Failed to fetch storage permissions', err);
+                // Handle 403 errors - permission revoked
+                if (err instanceof Error && err.message.includes('403')) {
+                    setEffectivePermission(PermissionLevel.NONE);
+                    setError(t('documents.accessDenied'));
+                    loadObjects(); // Reload file list on permission error
+                }
+            }
+        };
+
+        // Initial fetch
+        fetchPermission();
+
+        // Poll every 30 seconds to detect permission changes
+        const pollInterval = setInterval(fetchPermission, 30000);
+
+        return () => clearInterval(pollInterval);
+    }, [user?.id, selectedBucket, t]); // Re-fetch when user or bucket changes
 
 
     // Handle bucket selection with localStorage persistence
@@ -252,7 +284,7 @@ const MinIOManagerPage = () => {
                 result = result.filter(obj => {
                     if (obj.isFolder) return false; // Optionally hide folders when filtering by file type? Or keep them? Usually hiding them makes more sense if looking for specific files.
                     // Let's keep folders if we want to navigate, but if we are filtering for "PDFs" we probably just want to see PDFs in current directory.
-                    // MinIO listObjects is non-recursive (by default/implementation usually), so we only see current level.
+                    // Documents listObjects is non-recursive (by default/implementation usually), so we only see current level.
                     // If I filter by PDF, I probably don't want to see folders unless I can look inside them.
                     // But if I can't recurse easily here, maybe hiding folders is better.
                     // Let's hide folders when a category filter is active for clarity.
@@ -415,7 +447,12 @@ const MinIOManagerPage = () => {
         setIsDragging(false);
         dragCounter.current = 0;
 
-        if (!selectedBucket || uploading || !canWrite) return;
+        if (!selectedBucket || uploading) return;
+
+        if (!canWrite) {
+            setError(t('documents.noUploadPermission'));
+            return;
+        }
 
         const items = e.dataTransfer.items;
         if (!items || items.length === 0) return;
@@ -664,6 +701,11 @@ const MinIOManagerPage = () => {
     const handleUpload = async (fileList: FileList, preserveFolderStructure: boolean = false) => {
         if (!selectedBucket || fileList.length === 0) return;
 
+        if (!canWrite) {
+            setError(t('documents.noUploadPermission'));
+            return;
+        }
+
         const files = Array.from(fileList);
 
         // Calculate target paths to check for existence
@@ -890,6 +932,12 @@ const MinIOManagerPage = () => {
     };
 
     const handlePreview = async (obj: FileObject) => {
+        // Check permission before allowing preview
+        if (effectivePermission < PermissionLevel.VIEW) {
+            setError(t('documents.accessDenied'));
+            return;
+        }
+
         if (!isPreviewSupported(obj.name)) return;
 
         try {
@@ -1012,6 +1060,7 @@ const MinIOManagerPage = () => {
                         value={selectedBucket}
                         onChange={handleBucketSelect}
                         options={bucketOptions}
+                        disabled={buckets.length === 0}
                         className="w-64"
                     />
 
@@ -1299,199 +1348,217 @@ const MinIOManagerPage = () => {
                         </div>
                     </div>
                 )}
-                {/* Table Header - Fixed */}
-                <div className="flex-shrink-0 bg-gray-50 dark:bg-gray-900 border-b border-gray-200 dark:border-gray-700">
-                    <table className="w-full table-fixed">
-                        <thead>
-                            <tr>
-                                <th className="w-10 px-3 py-3">
-                                    <input
-                                        type="checkbox"
-                                        className="rounded border-gray-300 text-primary dark:text-blue-500 focus:ring-primary dark:focus:ring-blue-500"
-                                        disabled={!selectedBucket || filteredObjects.length === 0}
-                                        onChange={(e) => {
-                                            if (e.target.checked) {
-                                                setSelectedItems(new Set(filteredObjects.map(o => o.name)));
-                                            } else {
-                                                setSelectedItems(new Set());
-                                            }
-                                        }}
-                                        checked={filteredObjects.length > 0 && selectedItems.size === filteredObjects.length}
-                                    />
-                                </th>
-                                <th
-                                    className="text-left px-4 py-3 text-sm font-medium text-gray-700 dark:text-gray-300 cursor-pointer hover:bg-gray-100 dark:hover:bg-gray-800 transition-colors select-none group whitespace-nowrap"
-                                    onClick={() => setSortConfig({
-                                        key: 'name',
-                                        direction: sortConfig.key === 'name' && sortConfig.direction === 'asc' ? 'desc' : 'asc'
-                                    })}
-                                >
-                                    <div className="flex items-center gap-1">
-                                        {t('documents.name')}
-                                        {sortConfig.key === 'name' ? (
-                                            sortConfig.direction === 'asc' ? <ArrowUp className="w-3 h-3 text-primary dark:text-blue-500" /> : <ArrowDown className="w-3 h-3 text-primary dark:text-blue-500" />
-                                        ) : (
-                                            <ArrowUp className="w-3 h-3 text-gray-300 opacity-0 group-hover:opacity-100 transition-opacity" />
-                                        )}
-                                    </div>
-                                </th>
-                                <th
-                                    className="w-32 text-right px-4 py-3 text-sm font-medium text-gray-700 dark:text-gray-300 cursor-pointer hover:bg-gray-100 dark:hover:bg-gray-800 transition-colors select-none group whitespace-nowrap"
-                                    onClick={() => setSortConfig({
-                                        key: 'size',
-                                        direction: sortConfig.key === 'size' && sortConfig.direction === 'asc' ? 'desc' : 'asc'
-                                    })}
-                                >
-                                    <div className="flex items-center justify-end gap-1">
-                                        {t('documents.size')}
-                                        {sortConfig.key === 'size' ? (
-                                            sortConfig.direction === 'asc' ? <ArrowUp className="w-3 h-3 text-primary dark:text-blue-500" /> : <ArrowDown className="w-3 h-3 text-primary dark:text-blue-500" />
-                                        ) : (
-                                            <ArrowUp className="w-3 h-3 text-gray-300 opacity-0 group-hover:opacity-100 transition-opacity" />
-                                        )}
-                                    </div>
-                                </th>
-                                <th
-                                    className="w-52 text-left px-4 py-3 text-sm font-medium text-gray-700 dark:text-gray-300 cursor-pointer hover:bg-gray-100 dark:hover:bg-gray-800 transition-colors select-none group whitespace-nowrap"
-                                    onClick={() => setSortConfig({
-                                        key: 'lastModified',
-                                        direction: sortConfig.key === 'lastModified' && sortConfig.direction === 'asc' ? 'desc' : 'asc'
-                                    })}
-                                >
-                                    <div className="flex items-center gap-1">
-                                        {t('documents.modified')}
-                                        {sortConfig.key === 'lastModified' ? (
-                                            sortConfig.direction === 'asc' ? <ArrowUp className="w-3 h-3 text-primary dark:text-blue-500" /> : <ArrowDown className="w-3 h-3 text-primary dark:text-blue-500" />
-                                        ) : (
-                                            <ArrowUp className="w-3 h-3 text-gray-300 opacity-0 group-hover:opacity-100 transition-opacity" />
-                                        )}
-                                    </div>
-                                </th>
-                                <th className="w-28 text-right px-4 py-3 text-sm font-medium text-gray-700 dark:text-gray-300 whitespace-nowrap">{t('documents.actions')}</th>
-                            </tr>
-                        </thead>
-                    </table>
-                </div>
 
-                {/* Scrollable Table Body */}
-                <div
-                    ref={tableContainerRef}
-                    className="flex-1 overflow-auto"
-                    onScroll={handleScroll}
-                >
-                    {loading ? (
-                        <div className="flex flex-col items-center justify-center py-12 text-gray-500 dark:text-gray-400">
-                            <RefreshCw className="w-8 h-8 animate-spin text-primary" />
-                            <span className="mt-2">{t('documents.loadingFiles')}</span>
+                {/* No buckets message for leaders OR Table */}
+                {!isAdmin && buckets.length === 0 && !loading ? (
+                    <div className="flex-1 flex items-center justify-center p-8">
+                        <div className="text-center max-w-md">
+                            <AlertCircle className="w-16 h-16 text-yellow-500 mx-auto mb-4" />
+                            <h3 className="text-xl font-semibold text-gray-900 dark:text-white mb-2">
+                                {t('documents.noPermissionTitle')}
+                            </h3>
+                            <p className="text-gray-600 dark:text-gray-400">
+                                {t('documents.noPermissionMessage')}
+                            </p>
                         </div>
-                    ) : !selectedBucket ? (
-                        <div className="flex flex-col items-center justify-center py-12 text-gray-500 dark:text-gray-400">
-                            <HardDrive className="w-12 h-12 text-gray-300 dark:text-gray-600" />
-                            <span className="mt-2 text-lg font-medium">{t('documents.noBucketSelected')}</span>
-                            <span className="text-sm">{t('documents.selectBucketPrompt')}</span>
-                        </div>
-                    ) : bucketSyncError ? (
-                        <div className="flex flex-col items-center justify-center py-12 text-gray-500 dark:text-gray-400">
-                            <AlertCircle className="w-12 h-12 text-amber-500" />
-                            <span className="mt-2 text-lg font-medium text-amber-600 dark:text-amber-400">{t('documents.bucketSyncError')}</span>
-                            <span className="text-sm text-center max-w-md mt-2">{bucketSyncError}</span>
-                            {isAdmin && (
-                                <button
-                                    onClick={() => handleDeleteBucket(selectedBucket)}
-                                    className="mt-4 px-4 py-2 bg-red-600 hover:bg-red-700 text-white rounded-lg transition-colors flex items-center gap-2"
-                                >
-                                    <Trash2 className="w-4 h-4" />
-                                    {t('documents.removeBucketConfig')}
-                                </button>
-                            )}
-                        </div>
-                    ) : objects.length === 0 ? (
-                        <div className="flex flex-col items-center justify-center py-12 text-gray-500 dark:text-gray-400">
-                            <FolderPlus className="w-12 h-12 text-gray-300 dark:text-gray-600" />
-                            <span className="mt-2 text-lg font-medium">{t('documents.emptyBucket')}</span>
-                            <span className="text-sm">{t('documents.uploadPrompt')}</span>
-                        </div>
-                    ) : filteredObjects.length === 0 ? (
-                        <div className="flex flex-col items-center justify-center py-12 text-gray-500 dark:text-gray-400">
-                            <Search className="w-12 h-12 text-gray-300 dark:text-gray-600" />
-                            <span className="mt-2 text-lg font-medium">{t('documents.noSearchResults')}</span>
-                            <span className="text-sm">{t('documents.noSearchResultsHint')}</span>
-                        </div>
-                    ) : (
-                        <div style={{ height: virtualScrollData.totalHeight, position: 'relative' }}>
-                            <table className="w-full table-fixed" style={{ position: 'absolute', top: virtualScrollData.offsetY }}>
-                                <tbody className="divide-y divide-gray-200 dark:divide-gray-700">
-                                    {virtualScrollData.visibleItems.map((obj: FileObject) => (
-                                        <tr
-                                            key={obj.name}
-                                            className={`hover:bg-gray-50 dark:hover:bg-gray-900/50 transition-colors ${selectedItems.has(obj.name) ? 'bg-blue-50 dark:bg-blue-900/30' : ''}`}
-                                            style={{ height: ROW_HEIGHT }}
+                    </div>
+                ) : (
+                    <>
+                        {/* Table Header - Fixed */}
+                        <div className="flex-shrink-0 bg-gray-50 dark:bg-gray-900 border-b border-gray-200 dark:border-gray-700">
+                            <table className="w-full table-fixed">
+                                <thead>
+                                    <tr>
+                                        <th className="w-10 px-3 py-3">
+                                            <input
+                                                type="checkbox"
+                                                className="rounded border-gray-300 text-primary dark:text-blue-500 focus:ring-primary dark:focus:ring-blue-500"
+                                                disabled={!selectedBucket || filteredObjects.length === 0}
+                                                onChange={(e) => {
+                                                    if (e.target.checked) {
+                                                        setSelectedItems(new Set(filteredObjects.map(o => o.name)));
+                                                    } else {
+                                                        setSelectedItems(new Set());
+                                                    }
+                                                }}
+                                                checked={filteredObjects.length > 0 && selectedItems.size === filteredObjects.length}
+                                            />
+                                        </th>
+                                        <th
+                                            className="text-left px-4 py-3 text-sm font-medium text-gray-700 dark:text-gray-300 cursor-pointer hover:bg-gray-100 dark:hover:bg-gray-800 transition-colors select-none group whitespace-nowrap"
+                                            onClick={() => setSortConfig({
+                                                key: 'name',
+                                                direction: sortConfig.key === 'name' && sortConfig.direction === 'asc' ? 'desc' : 'asc'
+                                            })}
                                         >
-                                            <td className="w-10 px-3 py-3">
-                                                <input
-                                                    type="checkbox"
-                                                    checked={selectedItems.has(obj.name)}
-                                                    onChange={() => toggleSelection(obj.name)}
-                                                    className="rounded border-gray-300 text-primary dark:text-blue-500 focus:ring-primary dark:focus:ring-blue-500"
-                                                />
-                                            </td>
-                                            <td className="px-4 py-3">
-                                                <button
-                                                    onClick={() => obj.isFolder && navigateToFolder(obj)}
-                                                    className={`flex items-center gap-2 text-left truncate max-w-full ${obj.isFolder ? 'text-primary dark:text-blue-400 hover:text-primary-hover dark:hover:text-blue-300 font-medium' : 'text-gray-900 dark:text-white'}`}
-                                                >
-                                                    {obj.isFolder ? <span className="text-xl flex-shrink-0">📁</span> : getFileIcon(obj.name)}
-                                                    <span className="truncate">{obj.name}</span>
-                                                </button>
-                                            </td>
-                                            <td className="w-24 px-4 py-3 text-sm text-gray-600 dark:text-gray-400 text-right">
-                                                {obj.isFolder ? '-' : formatFileSize(obj.size)}
-                                            </td>
-                                            <td className="w-52 px-4 py-3 text-sm text-gray-600 dark:text-gray-400">
-                                                {formatDateTime(new Date(obj.lastModified), i18n.language)}
-                                            </td>
-                                            <td className="w-20 px-4 py-3 text-right">
-                                                <div className="flex items-center justify-end gap-2">
-                                                    {!obj.isFolder && (
-                                                        <>
-                                                            <button
-                                                                onClick={() => handlePreview(obj)}
-                                                                disabled={!isPreviewSupported(obj.name)}
-                                                                className={`p-1.5 rounded-lg transition-colors ${isPreviewSupported(obj.name)
-                                                                    ? 'hover:bg-gray-100 dark:hover:bg-gray-700 text-gray-600 dark:text-gray-400 hover:text-primary'
-                                                                    : 'text-gray-300 dark:text-gray-700 cursor-not-allowed'
-                                                                    }`}
-                                                                title={isPreviewSupported(obj.name) ? t('documents.preview') : t('documents.previewNotSupported')}
-                                                            >
-                                                                <Eye className="w-4 h-4" />
-                                                            </button>
-                                                            <button
-                                                                onClick={() => handleDownload(obj)}
-                                                                className="p-1.5 hover:bg-gray-100 dark:hover:bg-gray-700 rounded-lg text-gray-600 dark:text-gray-400 hover:text-primary transition-colors"
-                                                                title={t('documents.download')}
-                                                            >
-                                                                <Download className="w-4 h-4" />
-                                                            </button>
-                                                        </>
-                                                    )}
-                                                    {canDelete && (
-                                                        <button
-                                                            onClick={() => handleDelete(obj)}
-                                                            className="p-1.5 hover:bg-red-50 dark:hover:bg-red-900/20 rounded-lg text-gray-400 hover:text-red-600 transition-colors"
-                                                            title={t('common.delete')}
-                                                        >
-                                                            <Trash2 className="w-4 h-4" />
-                                                        </button>
-                                                    )}
-                                                </div>
-                                            </td>
-                                        </tr>
-                                    ))}
-                                </tbody>
+                                            <div className="flex items-center gap-1">
+                                                {t('documents.name')}
+                                                {sortConfig.key === 'name' ? (
+                                                    sortConfig.direction === 'asc' ? <ArrowUp className="w-3 h-3 text-primary dark:text-blue-500" /> : <ArrowDown className="w-3 h-3 text-primary dark:text-blue-500" />
+                                                ) : (
+                                                    <ArrowUp className="w-3 h-3 text-gray-300 opacity-0 group-hover:opacity-100 transition-opacity" />
+                                                )}
+                                            </div>
+                                        </th>
+                                        <th
+                                            className="w-32 text-right px-4 py-3 text-sm font-medium text-gray-700 dark:text-gray-300 cursor-pointer hover:bg-gray-100 dark:hover:bg-gray-800 transition-colors select-none group whitespace-nowrap"
+                                            onClick={() => setSortConfig({
+                                                key: 'size',
+                                                direction: sortConfig.key === 'size' && sortConfig.direction === 'asc' ? 'desc' : 'asc'
+                                            })}
+                                        >
+                                            <div className="flex items-center justify-end gap-1">
+                                                {t('documents.size')}
+                                                {sortConfig.key === 'size' ? (
+                                                    sortConfig.direction === 'asc' ? <ArrowUp className="w-3 h-3 text-primary dark:text-blue-500" /> : <ArrowDown className="w-3 h-3 text-primary dark:text-blue-500" />
+                                                ) : (
+                                                    <ArrowUp className="w-3 h-3 text-gray-300 opacity-0 group-hover:opacity-100 transition-opacity" />
+                                                )}
+                                            </div>
+                                        </th>
+                                        <th
+                                            className="w-52 text-left px-4 py-3 text-sm font-medium text-gray-700 dark:text-gray-300 cursor-pointer hover:bg-gray-100 dark:hover:bg-gray-800 transition-colors select-none group whitespace-nowrap"
+                                            onClick={() => setSortConfig({
+                                                key: 'lastModified',
+                                                direction: sortConfig.key === 'lastModified' && sortConfig.direction === 'asc' ? 'desc' : 'asc'
+                                            })}
+                                        >
+                                            <div className="flex items-center gap-1">
+                                                {t('documents.modified')}
+                                                {sortConfig.key === 'lastModified' ? (
+                                                    sortConfig.direction === 'asc' ? <ArrowUp className="w-3 h-3 text-primary dark:text-blue-500" /> : <ArrowDown className="w-3 h-3 text-primary dark:text-blue-500" />
+                                                ) : (
+                                                    <ArrowUp className="w-3 h-3 text-gray-300 opacity-0 group-hover:opacity-100 transition-opacity" />
+                                                )}
+                                            </div>
+                                        </th>
+                                        <th className="w-28 text-right px-4 py-3 text-sm font-medium text-gray-700 dark:text-gray-300 whitespace-nowrap">{t('documents.actions')}</th>
+                                    </tr>
+                                </thead>
                             </table>
                         </div>
-                    )}
-                </div>
+
+                        {/* Scrollable Table Body */}
+                        <div
+                            ref={tableContainerRef}
+                            className="flex-1 overflow-auto"
+                            onScroll={handleScroll}
+                        >
+                            {loading ? (
+                                <div className="flex flex-col items-center justify-center py-12 text-gray-500 dark:text-gray-400">
+                                    <RefreshCw className="w-8 h-8 animate-spin text-primary" />
+                                    <span className="mt-2">{t('documents.loadingFiles')}</span>
+                                </div>
+                            ) : !selectedBucket ? (
+                                <div className="flex flex-col items-center justify-center py-12 text-gray-500 dark:text-gray-400">
+                                    <HardDrive className="w-12 h-12 text-gray-300 dark:text-gray-600" />
+                                    <span className="mt-2 text-lg font-medium">{t('documents.noBucketSelected')}</span>
+                                    <span className="text-sm">{t('documents.selectBucketPrompt')}</span>
+                                </div>
+                            ) : bucketSyncError ? (
+                                <div className="flex flex-col items-center justify-center py-12 text-gray-500 dark:text-gray-400">
+                                    <AlertCircle className="w-12 h-12 text-amber-500" />
+                                    <span className="mt-2 text-lg font-medium text-amber-600 dark:text-amber-400">{t('documents.bucketSyncError')}</span>
+                                    <span className="text-sm text-center max-w-md mt-2">{bucketSyncError}</span>
+                                    {isAdmin && (
+                                        <button
+                                            onClick={() => handleDeleteBucket(selectedBucket)}
+                                            className="mt-4 px-4 py-2 bg-red-600 hover:bg-red-700 text-white rounded-lg transition-colors flex items-center gap-2"
+                                        >
+                                            <Trash2 className="w-4 h-4" />
+                                            {t('documents.removeBucketConfig')}
+                                        </button>
+                                    )}
+                                </div>
+                            ) : objects.length === 0 ? (
+                                <div className="flex flex-col items-center justify-center py-12 text-gray-500 dark:text-gray-400">
+                                    <FolderPlus className="w-12 h-12 text-gray-300 dark:text-gray-600" />
+                                    <span className="mt-2 text-lg font-medium">{t('documents.emptyBucket')}</span>
+                                    <span className="text-sm">{t('documents.uploadPrompt')}</span>
+                                </div>
+                            ) : filteredObjects.length === 0 ? (
+                                <div className="flex flex-col items-center justify-center py-12 text-gray-500 dark:text-gray-400">
+                                    <Search className="w-12 h-12 text-gray-300 dark:text-gray-600" />
+                                    <span className="mt-2 text-lg font-medium">{t('documents.noSearchResults')}</span>
+                                    <span className="text-sm">{t('documents.noSearchResultsHint')}</span>
+                                </div>
+                            ) : (
+                                <div style={{ height: virtualScrollData.totalHeight, position: 'relative' }}>
+                                    <table className="w-full table-fixed" style={{ position: 'absolute', top: virtualScrollData.offsetY }}>
+                                        <tbody className="divide-y divide-gray-200 dark:divide-gray-700">
+                                            {virtualScrollData.visibleItems.map((obj: FileObject) => (
+                                                <tr
+                                                    key={obj.name}
+                                                    className={`hover:bg-gray-50 dark:hover:bg-gray-900/50 transition-colors ${selectedItems.has(obj.name) ? 'bg-blue-50 dark:bg-blue-900/30' : ''}`}
+                                                    style={{ height: ROW_HEIGHT }}
+                                                >
+                                                    <td className="w-10 px-3 py-3">
+                                                        <input
+                                                            type="checkbox"
+                                                            checked={selectedItems.has(obj.name)}
+                                                            onChange={() => toggleSelection(obj.name)}
+                                                            className="rounded border-gray-300 text-primary dark:text-blue-500 focus:ring-primary dark:focus:ring-blue-500"
+                                                        />
+                                                    </td>
+                                                    <td className="px-4 py-3">
+                                                        <button
+                                                            onClick={() => obj.isFolder && navigateToFolder(obj)}
+                                                            className={`flex items-center gap-2 text-left truncate max-w-full ${obj.isFolder ? 'text-primary dark:text-blue-400 hover:text-primary-hover dark:hover:text-blue-300 font-medium' : 'text-gray-900 dark:text-white'}`}
+                                                        >
+                                                            {obj.isFolder ? <span className="text-xl flex-shrink-0">📁</span> : getFileIcon(obj.name)}
+                                                            <span className="truncate">{obj.name}</span>
+                                                        </button>
+                                                    </td>
+                                                    <td className="w-24 px-4 py-3 text-sm text-gray-600 dark:text-gray-400 text-right">
+                                                        {obj.isFolder ? '-' : formatFileSize(obj.size)}
+                                                    </td>
+                                                    <td className="w-52 px-4 py-3 text-sm text-gray-600 dark:text-gray-400">
+                                                        {formatDateTime(new Date(obj.lastModified), i18n.language)}
+                                                    </td>
+                                                    <td className="w-20 px-4 py-3 text-right">
+                                                        <div className="flex items-center justify-end gap-2">
+                                                            {!obj.isFolder && (
+                                                                <>
+                                                                    <button
+                                                                        onClick={() => handlePreview(obj)}
+                                                                        disabled={!isPreviewSupported(obj.name)}
+                                                                        className={`p-1.5 rounded-lg transition-colors ${isPreviewSupported(obj.name)
+                                                                            ? 'hover:bg-gray-100 dark:hover:bg-gray-700 text-gray-600 dark:text-gray-400 hover:text-primary'
+                                                                            : 'text-gray-300 dark:text-gray-700 cursor-not-allowed'
+                                                                            }`}
+                                                                        title={isPreviewSupported(obj.name) ? t('documents.preview') : t('documents.previewNotSupported')}
+                                                                    >
+                                                                        <Eye className="w-4 h-4" />
+                                                                    </button>
+                                                                    <button
+                                                                        onClick={() => handleDownload(obj)}
+                                                                        className="p-1.5 hover:bg-gray-100 dark:hover:bg-gray-700 rounded-lg text-gray-600 dark:text-gray-400 hover:text-primary transition-colors"
+                                                                        title={t('documents.download')}
+                                                                    >
+                                                                        <Download className="w-4 h-4" />
+                                                                    </button>
+                                                                </>
+                                                            )}
+                                                            {canDelete && (
+                                                                <button
+                                                                    onClick={() => handleDelete(obj)}
+                                                                    className="p-1.5 hover:bg-red-50 dark:hover:bg-red-900/20 rounded-lg text-gray-400 hover:text-red-600 transition-colors"
+                                                                    title={t('common.delete')}
+                                                                >
+                                                                    <Trash2 className="w-4 h-4" />
+                                                                </button>
+                                                            )}
+                                                        </div>
+                                                    </td>
+                                                </tr>
+                                            ))}
+                                        </tbody>
+                                    </table>
+                                </div>
+                            )}
+                        </div>
+                    </>
+                )}
             </div>
 
 
@@ -1805,13 +1872,14 @@ const MinIOManagerPage = () => {
             )}
 
             {/* Storage Permissions Modal */}
-            <StoragePermissionsModal
+            <DocumentPermissionModal
                 isOpen={isPermissionsModalOpen}
                 onClose={() => setIsPermissionsModalOpen(false)}
+                bucketId={selectedBucket}
                 bucketName={selectedBucketInfo?.display_name || selectedBucketInfo?.bucket_name || selectedBucket || ''}
             />
         </div>
     );
 };
 
-export default MinIOManagerPage;
+export default DocumentManagerPage;
