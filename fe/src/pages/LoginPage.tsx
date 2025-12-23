@@ -19,6 +19,7 @@ import { useSettings } from '../contexts/SettingsContext';
 import { Dialog } from '../components/Dialog';
 import logo from '../assets/logo.png';
 import logoDark from '../assets/logo-dark.png';
+import BroadcastBanner from '../components/BroadcastBanner';
 
 /** API base URL from environment */
 const API_BASE_URL = import.meta.env.VITE_API_BASE_URL || '';
@@ -168,16 +169,17 @@ function LoginPage() {
   }
 
   return (
-    <div className="min-h-screen bg-slate-50 dark:bg-slate-900 flex items-center justify-center">
-      <div className="bg-white dark:bg-slate-800 p-8 rounded-lg shadow-lg max-w-md w-full">
+    <div className="min-h-screen bg-slate-50 dark:bg-slate-900 flex items-center justify-center p-4">
+      <div className="bg-white dark:bg-slate-800 p-8 rounded-lg shadow-lg max-w-lg w-full overflow-hidden">
         <div className={`text-center mb-8 ${resolvedTheme === 'dark' ? '' : 'bg-white p-4 rounded-lg'}`}>
           <div className="flex justify-center mb-4">
             <img
               src={logoSrc}
               alt="Knowledge Base"
-              className="w-full h-auto object-contain"
+              className="max-w-[300px] w-full h-auto object-contain"
             />
           </div>
+          <BroadcastBanner inline className="mt-2" />
           <p className="text-slate-600 dark:text-slate-400">{t('login.subtitle')}</p>
         </div>
 

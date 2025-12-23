@@ -6,6 +6,7 @@ import { userService } from '../services/userService';
 import { User } from '../hooks/useAuth';
 import UserMultiSelect from '../components/UserMultiSelect';
 import { useConfirm } from '../components/ConfirmDialog';
+import { Dialog } from '../components/Dialog';
 
 export default function TeamManagementPage() {
     const { t } = useTranslation();
@@ -242,167 +243,152 @@ export default function TeamManagementPage() {
             )}
 
             {/* Create/Edit Modal */}
-            {(isCreateModalOpen || isEditModalOpen) && (
-                <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/50 backdrop-blur-sm">
-                    <div className="bg-white dark:bg-slate-800 rounded-xl shadow-xl w-full max-w-md p-6">
-                        <div className="flex justify-between items-center mb-6">
-                            <h2 className="text-xl font-bold text-slate-900 dark:text-white">
-                                {isCreateModalOpen ? t('iam.teams.create') : t('iam.teams.edit')}
-                            </h2>
-                            <button
-                                onClick={closeModals}
-                                className="text-slate-400 hover:text-slate-600 dark:hover:text-slate-200"
-                            >
-                                <X size={24} />
-                            </button>
-                        </div>
-                        <form onSubmit={isCreateModalOpen ? handleCreate : handleUpdate}>
-                            <div className="space-y-4">
-                                <div>
-                                    <label className="block text-sm font-medium text-slate-700 dark:text-slate-300 mb-1">
-                                        {t('iam.teams.name')}
-                                    </label>
-                                    <input
-                                        type="text"
-                                        required
-                                        value={formData.name}
-                                        onChange={e => setFormData({ ...formData, name: e.target.value })}
-                                        className="w-full px-3 py-2 rounded-lg border border-slate-300 dark:border-slate-600 bg-white dark:bg-slate-700 text-slate-900 dark:text-white focus:ring-2 focus:ring-blue-500 outline-none"
-                                    />
-                                </div>
-                                <div>
-                                    <label className="block text-sm font-medium text-slate-700 dark:text-slate-300 mb-1">
-                                        {t('iam.teams.projectName')}
-                                    </label>
-                                    <input
-                                        type="text"
-                                        value={formData.project_name}
-                                        onChange={e => setFormData({ ...formData, project_name: e.target.value })}
-                                        className="w-full px-3 py-2 rounded-lg border border-slate-300 dark:border-slate-600 bg-white dark:bg-slate-700 text-slate-900 dark:text-white focus:ring-2 focus:ring-blue-500 outline-none"
-                                    />
-                                </div>
-                                <div>
-                                    <label className="block text-sm font-medium text-slate-700 dark:text-slate-300 mb-1">
-                                        {t('iam.teams.formDescription')}
-                                    </label>
-                                    <textarea
-                                        value={formData.description}
-                                        onChange={e => setFormData({ ...formData, description: e.target.value })}
-                                        className="w-full px-3 py-2 rounded-lg border border-slate-300 dark:border-slate-600 bg-white dark:bg-slate-700 text-slate-900 dark:text-white focus:ring-2 focus:ring-blue-500 outline-none h-24 resize-none"
-                                    />
-                                </div>
-                            </div>
-                            <div className="flex justify-end gap-3 mt-6">
-                                <button
-                                    type="button"
-                                    onClick={closeModals}
-                                    className="px-4 py-2 text-slate-700 dark:text-slate-300 hover:bg-slate-100 dark:hover:bg-slate-700 rounded-lg transition-colors"
-                                >
-                                    {t('common.cancel')}
-                                </button>
-                                <button
-                                    type="submit"
-                                    className="px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition-colors"
-                                >
-                                    {t('common.save')}
-                                </button>
-                            </div>
-                        </form>
+            <Dialog
+                open={isCreateModalOpen || isEditModalOpen}
+                onClose={closeModals}
+                title={isCreateModalOpen ? t('iam.teams.create') : t('iam.teams.edit')}
+                maxWidth="xl"
+                footer={
+                    <>
+                        <button
+                            type="button"
+                            onClick={closeModals}
+                            className="px-4 py-2 text-slate-700 dark:text-slate-300 hover:bg-slate-100 dark:hover:bg-slate-700 rounded-lg transition-colors"
+                        >
+                            {t('common.cancel')}
+                        </button>
+                        <button
+                            onClick={() => {
+                                const e = { preventDefault: () => { } } as React.FormEvent;
+                                isCreateModalOpen ? handleCreate(e) : handleUpdate(e);
+                            }}
+                            className="px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition-colors"
+                        >
+                            {t('common.save')}
+                        </button>
+                    </>
+                }
+            >
+                <div className="space-y-4">
+                    <div>
+                        <label className="block text-sm font-medium text-slate-700 dark:text-slate-300 mb-1">
+                            {t('iam.teams.name')}
+                        </label>
+                        <input
+                            type="text"
+                            required
+                            value={formData.name}
+                            onChange={e => setFormData({ ...formData, name: e.target.value })}
+                            className="w-full px-3 py-2 rounded-lg border border-slate-300 dark:border-slate-600 bg-white dark:bg-slate-700 text-slate-900 dark:text-white focus:ring-2 focus:ring-blue-500 outline-none"
+                        />
+                    </div>
+                    <div>
+                        <label className="block text-sm font-medium text-slate-700 dark:text-slate-300 mb-1">
+                            {t('iam.teams.projectName')}
+                        </label>
+                        <input
+                            type="text"
+                            value={formData.project_name}
+                            onChange={e => setFormData({ ...formData, project_name: e.target.value })}
+                            className="w-full px-3 py-2 rounded-lg border border-slate-300 dark:border-slate-600 bg-white dark:bg-slate-700 text-slate-900 dark:text-white focus:ring-2 focus:ring-blue-500 outline-none"
+                        />
+                    </div>
+                    <div>
+                        <label className="block text-sm font-medium text-slate-700 dark:text-slate-300 mb-1">
+                            {t('iam.teams.formDescription')}
+                        </label>
+                        <textarea
+                            value={formData.description}
+                            onChange={e => setFormData({ ...formData, description: e.target.value })}
+                            className="w-full px-3 py-2 rounded-lg border border-slate-300 dark:border-slate-600 bg-white dark:bg-slate-700 text-slate-900 dark:text-white focus:ring-2 focus:ring-blue-500 outline-none h-24 resize-none"
+                        />
                     </div>
                 </div>
-            )}
+            </Dialog>
 
-            {/* Members Modal - simplified for now */}
-            {isMembersModalOpen && selectedTeam && (
-                <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/50 backdrop-blur-sm">
-                    <div className="bg-white dark:bg-slate-800 rounded-xl shadow-xl w-full max-w-2xl p-6 h-[600px] flex flex-col">
-                        <div className="flex justify-between items-center mb-6">
-                            <h2 className="text-xl font-bold text-slate-900 dark:text-white">
-                                {t('iam.teams.members')} - {selectedTeam.name}
-                            </h2>
-                            <button
-                                onClick={closeModals}
-                                className="text-slate-400 hover:text-slate-600 dark:hover:text-slate-200"
-                            >
-                                <X size={24} />
-                            </button>
+            {/* Members Modal */}
+            <Dialog
+                open={isMembersModalOpen && !!selectedTeam}
+                onClose={closeModals}
+                title={`${t('iam.teams.members')} - ${selectedTeam?.name}`}
+                maxWidth="3xl"
+                className="h-[600px]"
+            >
+                <div className="h-full flex flex-col">
+                    {/* Add Member Section */}
+                    <div className="mb-6 flex gap-2 items-start shrink-0">
+                        <div className="flex-1">
+                            <UserMultiSelect
+                                users={availableUsers}
+                                selectedUserIds={selectedUserIds}
+                                onChange={setSelectedUserIds}
+                                placeholder={t('iam.teams.selectUser')}
+                            />
                         </div>
+                        <button
+                            onClick={handleAddMember}
+                            disabled={selectedUserIds.length === 0}
+                            className="px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition-colors disabled:opacity-50 disabled:cursor-not-allowed flex items-center gap-2 h-[42px] mt-1"
+                        >
+                            <Plus size={18} />
+                            {t('common.add')}
+                        </button>
+                    </div>
 
-                        {/* Add Member Section */}
-                        <div className="mb-6 flex gap-2 items-start">
-                            <div className="flex-1">
-                                <UserMultiSelect
-                                    users={availableUsers}
-                                    selectedUserIds={selectedUserIds}
-                                    onChange={setSelectedUserIds}
-                                    placeholder={t('iam.teams.selectUser')}
-                                />
-                            </div>
-                            <button
-                                onClick={handleAddMember}
-                                disabled={selectedUserIds.length === 0}
-                                className="px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition-colors disabled:opacity-50 disabled:cursor-not-allowed flex items-center gap-2 h-[42px] mt-1"
-                            >
-                                <Plus size={18} />
-                                {t('common.add')}
-                            </button>
+                    {/* Inline Error Message */}
+                    {addMemberError && (
+                        <div className="mb-4 p-3 bg-red-100 dark:bg-red-900/30 text-red-700 dark:text-red-300 rounded-lg text-sm shrink-0">
+                            {addMemberError}
                         </div>
+                    )}
 
-                        {/* Inline Error Message */}
-                        {addMemberError && (
-                            <div className="mb-4 p-3 bg-red-100 dark:bg-red-900/30 text-red-700 dark:text-red-300 rounded-lg text-sm">
-                                {addMemberError}
+                    <div className="flex-1 overflow-auto border dark:border-slate-700 rounded-lg">
+                        <table className="w-full">
+                            <thead className="bg-slate-50 dark:bg-slate-700/50 sticky top-0">
+                                <tr>
+                                    <th className="px-4 py-3 text-left text-xs font-medium text-slate-500 uppercase tracking-wider">{t('userManagement.user')}</th>
+                                    <th className="px-4 py-3 text-left text-xs font-medium text-slate-500 uppercase tracking-wider">{t('iam.teams.role')}</th>
+                                    <th className="px-4 py-3 text-right text-xs font-medium text-slate-500 uppercase tracking-wider">{t('common.actions')}</th>
+                                </tr>
+                            </thead>
+                            <tbody className="divide-y divide-slate-200 dark:divide-slate-700 text-slate-600 dark:text-slate-400">
+                                {members.map(member => (
+                                    <tr key={member.id} className="hover:bg-slate-50 dark:hover:bg-slate-700/50 transition-colors">
+                                        <td className="px-4 py-3 text-sm">
+                                            <div className="font-medium text-slate-900 dark:text-white">{member.display_name}</div>
+                                            <div className="text-xs text-slate-500">{member.email}</div>
+                                        </td>
+                                        <td className="px-4 py-3 text-sm">
+                                            <span className={`px-2 py-1 rounded-full text-xs font-medium ${member.role === 'leader' ? 'bg-purple-100 text-purple-800 dark:bg-purple-900/30 dark:text-purple-300' : 'bg-slate-100 text-slate-800 dark:bg-slate-700 dark:text-slate-300'}`}>
+                                                {t(`iam.teams.${member.role}`)}
+                                            </span>
+                                        </td>
+                                        <td className="px-4 py-3 text-right text-sm">
+                                            <button
+                                                onClick={async () => {
+                                                    const confirmed = await confirm({ message: t('common.confirmDelete'), variant: 'danger' });
+                                                    if (confirmed && selectedTeam) {
+                                                        await teamService.removeMember(selectedTeam.id, member.id);
+                                                        loadMembers(selectedTeam.id);
+                                                    }
+                                                }}
+                                                className="text-red-600 hover:text-red-900 font-medium"
+                                            >
+                                                {t('common.delete')}
+                                            </button>
+                                        </td>
+                                    </tr>
+                                ))}
+                            </tbody>
+                        </table>
+                        {members.length === 0 && (
+                            <div className="text-center py-12 text-slate-500 italic">
+                                {t('common.noData')}
                             </div>
                         )}
-
-                        <div className="flex-1 overflow-auto">
-                            <table className="w-full">
-                                <thead className="bg-slate-50 dark:bg-slate-700/50 sticky top-0">
-                                    <tr>
-                                        <th className="px-4 py-3 text-left text-xs font-medium text-slate-500 uppercase tracking-wider">{t('userManagement.user')}</th>
-                                        <th className="px-4 py-3 text-left text-xs font-medium text-slate-500 uppercase tracking-wider">{t('iam.teams.role')}</th>
-                                        <th className="px-4 py-3 text-right text-xs font-medium text-slate-500 uppercase tracking-wider">{t('common.actions')}</th>
-                                    </tr>
-                                </thead>
-                                <tbody className="divide-y divide-slate-200 dark:divide-slate-700">
-                                    {members.map(member => (
-                                        <tr key={member.id}>
-                                            <td className="px-4 py-3 text-sm text-slate-900 dark:text-white">
-                                                <div>{member.display_name}</div>
-                                                <div className="text-xs text-slate-500">{member.email}</div>
-                                            </td>
-                                            <td className="px-4 py-3 text-sm text-slate-500 dark:text-slate-400">
-                                                <span className={`px-2 py-1 rounded-full text-xs ${member.role === 'leader' ? 'bg-purple-100 text-purple-800' : 'bg-slate-100 text-slate-800'}`}>
-                                                    {t(`iam.teams.${member.role}`)}
-                                                </span>
-                                            </td>
-                                            <td className="px-4 py-3 text-right text-sm">
-                                                <button
-                                                    onClick={async () => {
-                                                        const confirmed = await confirm({ message: t('common.confirmDelete'), variant: 'danger' });
-                                                        if (confirmed) {
-                                                            await teamService.removeMember(selectedTeam.id, member.id);
-                                                            loadMembers(selectedTeam.id);
-                                                        }
-                                                    }}
-                                                    className="text-red-600 hover:text-red-900"
-                                                >
-                                                    {t('common.delete')}
-                                                </button>
-                                            </td>
-                                        </tr>
-                                    ))}
-                                </tbody>
-                            </table>
-                            {members.length === 0 && (
-                                <div className="text-center py-8 text-slate-500">
-                                    {t('common.noData')}
-                                </div>
-                            )}
-                        </div>
                     </div>
                 </div>
-            )}
+            </Dialog>
 
         </div>
     );

@@ -458,6 +458,7 @@ export default function UserManagementPage() {
                 open={isIpDialogOpen}
                 onClose={() => setIsIpDialogOpen(false)}
                 title={t('userManagement.ipHistoryTitle')}
+                maxWidth="3xl"
                 footer={
                     <button
                         onClick={() => setIsIpDialogOpen(false)}
@@ -612,6 +613,7 @@ export default function UserManagementPage() {
                 open={isPermissionModalOpen}
                 onClose={() => setIsPermissionModalOpen(false)}
                 title={t('userManagement.grantPermissions')}
+                maxWidth="2xl"
                 footer={
                     <>
                         <button
