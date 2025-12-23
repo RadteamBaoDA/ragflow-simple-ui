@@ -39,6 +39,12 @@
     "team": "チーム",
     "permissions": "権限"
   },
+  "dialog": {
+    "confirm": "確認",
+    "cancel": "キャンセル",
+    "confirmTitle": "操作の確認",
+    "close": "閉じる"
+  },
   "nav": {
     "aiChat": "チャット",
     "aiSearch": "検索",

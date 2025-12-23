@@ -42,6 +42,7 @@ import {
 } from '../services/minioService';
 import { DocumentPermissionModal } from '../components/DocumentPermissionModal';
 import { formatFileSize } from '../utils/format';
+import { useConfirm } from '../components/ConfirmDialog';
 
 // ============================================================================
 // Constants
@@ -116,6 +117,7 @@ const DocumentManagerPage = () => {
     const isAdmin = user?.role === 'admin';
     const canManagePermissions = isAdmin;
     const { t, i18n } = useTranslation();
+    const confirm = useConfirm();
 
     // Bucket and object state
     const [buckets, setBuckets] = useState<MinioBucket[]>([]);
@@ -644,7 +646,11 @@ const DocumentManagerPage = () => {
     };
 
     const handleDeleteBucket = async (bucketId: string) => {
-        if (!confirm(t('documents.deleteBucketConfirm'))) return;
+        const confirmed = await confirm({
+            message: t('documents.deleteBucketConfirm'),
+            variant: 'danger'
+        });
+        if (!confirmed) return;
 
         try {
             await deleteBucket(bucketId);
@@ -817,7 +823,11 @@ const DocumentManagerPage = () => {
     };
 
     const handleDelete = async (obj: FileObject) => {
-        if (!confirm(t('documents.deleteConfirm', { type: obj.isFolder ? t('documents.folder') : t('documents.file'), name: obj.name }))) return;
+        const confirmed = await confirm({
+            message: t('documents.deleteConfirm', { type: obj.isFolder ? t('documents.folder') : t('documents.file'), name: obj.name }),
+            variant: 'danger'
+        });
+        if (!confirmed) return;
 
         setDeleting(true);
         setDeleteProgress({ current: 0, total: 1 });
@@ -840,7 +850,11 @@ const DocumentManagerPage = () => {
 
     const handleBatchDelete = async () => {
         if (selectedItems.size === 0) return;
-        if (!confirm(t('documents.batchDeleteConfirm', { count: selectedItems.size }))) return;
+        const confirmed = await confirm({
+            message: t('documents.batchDeleteConfirm', { count: selectedItems.size }),
+            variant: 'danger'
+        });
+        if (!confirmed) return;
 
         setDeleting(true);
         const objectsToDelete = objects

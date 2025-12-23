@@ -39,6 +39,12 @@
     "team": "Team",
     "permissions": "Permissions"
   },
+  "dialog": {
+    "confirm": "Confirm",
+    "cancel": "Cancel",
+    "confirmTitle": "Confirm Action",
+    "close": "Close"
+  },
   "nav": {
     "aiChat": "Chat",
     "aiSearch": "Search",

@@ -39,6 +39,12 @@
     "team": "Nhóm",
     "permissions": "Quyền hạn"
   },
+  "dialog": {
+    "confirm": "Xác nhận",
+    "cancel": "Hủy",
+    "confirmTitle": "Xác nhận Hành động",
+    "close": "Đóng"
+  },
   "nav": {
     "aiChat": "Trò chuyện",
     "aiSearch": "Tìm kiếm",

@@ -68,11 +68,11 @@
   input[type="datetime-local"] {
     color-scheme: light;
   }
-  
+
   .dark input[type="datetime-local"] {
     color-scheme: dark;
   }
-  
+
   /* Style the native calendar picker icon for light mode */
   input[type="datetime-local"]::-webkit-calendar-picker-indicator {
     cursor: pointer;
@@ -83,20 +83,46 @@
     filter: invert(20%) sepia(80%) saturate(2000%) hue-rotate(220deg);
     opacity: 0.8;
   }
-  
+
   input[type="datetime-local"]::-webkit-calendar-picker-indicator:hover {
     background-color: rgba(13, 38, 207, 0.1);
     opacity: 1;
   }
-  
+
   /* Style the native calendar picker icon for dark mode - bright and visible */
   .dark input[type="datetime-local"]::-webkit-calendar-picker-indicator {
     filter: invert(60%) sepia(80%) saturate(1000%) hue-rotate(200deg) brightness(1.2);
     opacity: 1;
   }
-  
+
   .dark input[type="datetime-local"]::-webkit-calendar-picker-indicator:hover {
     background-color: rgba(61, 84, 230, 0.2);
     filter: invert(60%) sepia(80%) saturate(1000%) hue-rotate(200deg) brightness(1.4);
+  }
+}
+
+@layer utilities {
+
+  /* Hide scrollbar while maintaining scroll functionality */
+  .scrollbar-hide {
+    -ms-overflow-style: none !important;
+    /* IE and Edge */
+    scrollbar-width: none !important;
+    /* Firefox */
+  }
+
+  .scrollbar-hide::-webkit-scrollbar {
+    display: none !important;
+    /* Chrome, Safari and Opera */
+    width: 0 !important;
+    height: 0 !important;
+  }
+
+  .scrollbar-hide::-webkit-scrollbar-track {
+    display: none !important;
+  }
+
+  .scrollbar-hide::-webkit-scrollbar-thumb {
+    display: none !important;
   }
 }

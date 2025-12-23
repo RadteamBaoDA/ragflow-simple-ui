@@ -197,7 +197,7 @@ function Layout() {
           </button>
         </div>
 
-        <nav className="flex flex-col gap-2 flex-1 mt-4">
+        <nav className="flex flex-col gap-2 flex-1 mt-4 overflow-y-auto scrollbar-hide px-2">
           {config.features.enableAiChat && (
             <NavLink to="/ai-chat" className={({ isActive }) => `sidebar-link ${isActive ? 'active' : ''} ${isCollapsed ? 'justify-center px-2' : ''}`} title={t('nav.aiChat')}>
               <MessageSquare size={20} />
@@ -323,8 +323,6 @@ function Layout() {
               )}
             </div>
           )}
-
-
 
 
 
