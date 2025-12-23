@@ -1,143 +1,114 @@
-# Knowledge Base
+# RAGFlow Simple UI
 
-A RAGFlow-powered knowledge base portal with AI Chat and AI Search interfaces, featuring Azure Entra ID authentication, role-based access control, MinIO object storage, and comprehensive audit logging.
+A high-performance, enterprise-ready Management UI for RAGFlow, designed to bridge the gap between raw AI engines and business workflows. It provides a secure, localized, and feature-rich portal with Azure Entra ID authentication, advanced RBAC, and integrated observability.
 
-## Key Features
+## 🚀 Key Features
 
 | Feature | Description |
-|---------|-------------|
-| 🤖 **AI Chat & Search** | Embedded RAGFlow interfaces with multiple source support |
-| 🔐 **Azure AD SSO** | Microsoft Entra ID authentication with avatar sync |
-| 👥 **RBAC** | Admin, Manager, User roles with granular permissions |
-| 📁 **MinIO Storage** | Object storage for knowledge base documents |
-| 📋 **Audit Logs** | Comprehensive user action tracking for compliance |
-| 🌍 **i18n** | English, Japanese, Vietnamese support |
-| 🎨 **Theming** | Light, Dark, System theme preferences |
-| 📊 **Observability** | Langfuse integration for AI monitoring |
-| 📝 **Rotating Logs** | Daily log rotation with 1-year retention |
+| :--- | :--- |
+| 🤖 **AI Chat & Search** | Refined interfaces for RAGFlow, with session history and full-text search. |
+| 📁 **MinIO Storage Manager** | Enterprise document management with PDF, Word, and Excel previews. |
+| 🔐 **Azure Entra AD SSO** | Seamless Microsoft enterprise authentication with avatar synchronization. |
+| 👥 **Enterprise RBAC** | Granular multi-tier permissions: Admin, Manager, and User roles. |
+| 🏢 **Team Management** | Multi-tenant team structures for isolated document and flow access. |
+| 📢 **Broadcast System** | Real-time system-wide announcements for all active users. |
+| 🕵️ **Comprehensive Auditing** | Localized audit logs tracking every user action for compliance. |
+| 🖥️ **System Monitoring** | Real-time health metrics, resource usage, and diagnostics. |
+| 🌍 **Global Localization** | Full support for English, Vietnamese, and Japanese (i18n). |
+| 🎨 **Dynamic Theming** | Elegant Light, Dark, and System theme synchronization. |
+| 🔢 **AI Tokenizer** | Built-in tool for estimating token counts for various LLM models. |
+| 📊 **Observability** | Native Langfuse integration for tracing AI interactions. |
 
-## Architecture
+## 🏗️ Architecture
 
-```
-┌─────────────────────────────────────────────────────────────┐
-│                        Frontend                              │
-│              React + Vite + Tailwind (Port 5173)            │
-├─────────────────────────────────────────────────────────────┤
-│                        Backend                               │
-│              Express + TypeScript (Port 3001)                │
-├──────────────┬──────────────┬──────────────┬────────────────┤
-│  PostgreSQL  │    Redis     │    MinIO     │   RAGFlow      │
-│   Database   │   Sessions   │   Storage    │   AI Engine    │
-└──────────────┴──────────────┴──────────────┴────────────────┘
+```mermaid
+graph TD
+    Client[Frontend: React + Vite]
+    BE[Backend: Express + TS]
+    DB[(PostgreSQL)]
+    Redis[(Redis)]
+    MinIO[(MinIO Object Storage)]
+    RAGFlow[[RAGFlow AI Engine]]
+    Langfuse[[Langfuse Observability]]
+
+    Client <--> BE
+    BE <--> DB
+    BE <--> Redis
+    BE <--> MinIO
+    BE <--> RAGFlow
+    BE -.-> Langfuse
 ```
 
 **Tech Stack:**
-- **Frontend**: React 18, Vite, Tailwind CSS, React Query, i18next, Lucide Icons
-- **Backend**: Express.js, TypeScript, Winston (logging)
-- **Database**: PostgreSQL
-- **Session**: Redis (prod) / Memory (dev)
-- **Storage**: MinIO object storage
-- **Auth**: Azure Entra ID OAuth2
+- **Frontend**: React 18, Vite, Ant Design, Tailwind CSS, React Query, i18next
+- **Backend**: Express.js, TypeScript, Winston (Daily Rotate), Node-cron
+- **Database**: PostgreSQL (Prisma/Knex-ready migrations)
+- **Session**: Redis (Session persistence & rate limiting)
+- **Storage**: MinIO SDK (S3 compatible)
+- **Auth**: Azure Entra ID (OAuth2/OpenID Connect)
+- **Monitoring**: Langfuse API integration
 
-## Quick Start (Docker)
+## 📂 Project Structure
 
 ```bash
-# Clone repository
-git clone https://github.com/user/knowledge-base.git
-cd knowledge-base
-
-# Configure environment
-cp be/.env.example be/.env
-# Edit be/.env with your settings
-
-# Start with Docker Compose
-docker-compose up -d
+├── be/                 # Backend (Express + TypeScript)
+│   ├── src/
+│   │   ├── config/     # RBAC roles, CORS, and env configuration
+│   │   ├── db/         # Migrations and database adapters
+│   │   ├── middleware/ # Auth, rate-limit, and audit interceptors
+│   │   ├── routes/     # API endpoints
+│   │   └── services/   # Business logic (MinIO, RAGFlow, Audit)
+│   └── scripts/        # Database maintenance & seeding
+├── fe/                 # Frontend (React + Vite)
+│   ├── src/
+│   │   ├── components/ # Atomic UI components & Document Previewer
+│   │   ├── locales/    # i18n translation files (en, vi, ja)
+│   │   ├── pages/      # Feature modules (Chat, Search, Admin)
+│   │   └── services/   # Type-safe API clients
+├── docker/             # Dockerization & deployment configs
+└── docs/               # Detailed technical documentation
 ```
 
-Access at: `http://localhost:5173`
-
-## Configuration
-
-### Required Environment Variables
-
-```env
-# Azure AD (Required for SSO)
-AZURE_AD_CLIENT_ID=your-client-id
-AZURE_AD_CLIENT_SECRET=your-client-secret
-AZURE_AD_TENANT_ID=your-tenant-id
-
-# RAGFlow URLs
-RAGFLOW_AI_CHAT_URL=http://ragflow:8888/chat
-RAGFLOW_AI_SEARCH_URL=http://ragflow:8888/search
-
-# Database
-DB_HOST=postgres
-DB_NAME=knowledge_base
-```
-
-See [docs/configuration.md](docs/configuration.md) for full configuration options.
-
-## Developer Guide
+## 🛠️ Developer Guide
 
 ### Prerequisites
-- Node.js 18+
-- npm 9+
-- PostgreSQL 14+
-- Redis (optional)
+- **Node.js**: 22+ (LTS)
+- **npm**: 10+
+- **PostgreSQL**: 15+
+- **MinIO**: High-performance object storage setup
+- **Redis**: Required for production session management
 
 ### Local Development
 
 ```bash
-# Install dependencies
+# 1. Install dependencies for the workspace
 npm install
 
-# Run migrations
+# 2. Setup Environment Variables
+# Copy be/.env.example to be/.env and fill in Azure/MinIO/RAGFlow credentials
+
+# 3. Run Database Migrations
 npm run db:migrate -w be
 
-# Start development servers
+# 4. Start Development Servers
 npm run dev
 ```
 
-| Command | Description |
-|---------|-------------|
-| `npm run dev` | Start both FE & BE |
-| `npm run dev:fe` | Frontend only (port 5173) |
-| `npm run dev:be` | Backend only (port 3001) |
-| `npm run build` | Build for production |
-| `npm run db:migrate -w be` | Run migrations |
+| Command | Action |
+| :--- | :--- |
+| `npm run dev` | Spins up both FE (5173) and BE (3001) |
+| `npm run build` | Production build for both tiers |
+| `npm run build:prod` | Optimized production build without source maps |
+| `npm run lint` | Run project-wide ESLint checks |
 
-### Project Structure
+## 📖 Documentation
 
-```
-├── be/                 # Backend (Express + TypeScript)
-│   └── src/
-│       ├── config/     # Configuration & RBAC
-│       ├── db/         # Database adapters & migrations
-│       ├── middleware/ # Auth middleware
-│       ├── routes/     # API routes
-│       └── services/   # Business logic
-├── fe/                 # Frontend (React + Vite)
-│   └── src/
-│       ├── components/ # UI components
-│       ├── contexts/   # React contexts
-│       ├── hooks/      # Custom hooks
-│       ├── i18n/       # Internationalization
-│       ├── pages/      # Route pages
-│       └── services/   # API clients
-└── docs/               # Documentation
-```
+Explore our detailed guides in the `docs/` folder:
+- [Configuration Guide](docs/configuration.md)
+- [Deployment Strategy](docs/deployment.md)
+- [API Reference](docs/api-reference.md)
+- [RBAC Policy](docs/architecture.md)
 
-## Documentation
+## 📄 License
 
-| Document | Description |
-|----------|-------------|
-| [Configuration](docs/configuration.md) | Environment variables & setup options |
-| [API Reference](docs/api-reference.md) | REST API endpoints documentation |
-| [Architecture](docs/architecture.md) | System design & data flow |
-| [Deployment](docs/deployment.md) | Production deployment guide |
-| [Development](docs/development.md) | Developer setup & guidelines |
-| [Security Review](docs/security-review.md) | OWASP security audit report |
-
-## License
-
-MIT
+This project is licensed under the MIT License - see the [LICENSE](LICENSE) file for details.
