@@ -63,7 +63,7 @@ function getClientIp(req: Request): string {
  * @returns {Array<User>} List of all users
  * @returns {500} If database query fails
  */
-router.get('/', requirePermission('manage_users'), async (req: Request, res: Response) => {
+router.get('/', requireAuth, async (req: Request, res: Response) => {
     try {
         const roles = req.query.roles ? (req.query.roles as string).split(',') : undefined;
         const users = await userService.getAllUsers(roles as any);

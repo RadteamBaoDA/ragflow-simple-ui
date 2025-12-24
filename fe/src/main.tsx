@@ -50,6 +50,17 @@ const queryClient = new QueryClient({
     onError: (error: any) => {
       // Show error notification globally
       const errorMessage = error.message || i18n.t('common.error');
+
+      // Try to translate if it looks like a code (e.g. REAUTH_REQUIRED)
+      // Check if the message exists in errors namespace
+      if (typeof errorMessage === 'string') {
+        const errorKey = `errors.${errorMessage}`;
+        if (i18n.exists(errorKey)) {
+          globalMessage.error(i18n.t(errorKey));
+          return;
+        }
+      }
+
       globalMessage.error(errorMessage);
     },
   }),

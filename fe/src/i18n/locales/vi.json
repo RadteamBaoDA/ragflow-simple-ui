@@ -233,11 +233,11 @@
     "title": "Tài liệu Kho Kiến Thức",
     "noBucketSelected": "Chưa chọn Bucket",
     "selectBucketPrompt": "Vui lòng chọn một bucket từ góc trên bên phải để xem tệp.",
-    "selectBucketPlaceholder": "Chọn một bucket từ MinIO",
+    "selectBucketPlaceholder": "Chọn một bucket từ Documents",
     "emptyBucket": "Không tìm thấy tài liệu",
     "uploadPrompt": "Tải lên tệp để bắt đầu.",
     "createBucket": "Thêm cấu hình Bucket",
-    "deleteBucketConfirm": "Bạn có chắc chắn muốn xóa cấu hình bucket này không? (Bucket sẽ vẫn còn trong MinIO)",
+    "deleteBucketConfirm": "Bạn có chắc chắn muốn xóa cấu hình bucket này không? (Bucket sẽ vẫn còn trong Documents Storage)",
     "uploadSuccess": "Đã tải lên {{count}} tệp thành công",
     "uploadFailed": "Không thể tải lên tệp",
     "noUploadPermission": "Bạn không có quyền tải lên tệp vào bucket này",
@@ -282,13 +282,13 @@
     },
     "filter": "Lọc",
     "allFiles": "Tất cả tệp",
-    "bucketName": "Bucket MinIO",
+    "bucketName": "Bucket Documents",
     "displayName": "Tên hiển thị",
     "description": "Mô tả",
     "bucketNamePlaceholder": "vd: user-uploads, documents-2024",
     "displayNamePlaceholder": "vd: Tải lên của người dùng, Tài liệu công ty",
     "descriptionPlaceholder": "vd: Lưu trữ ảnh hồ sơ và tài liệu do người dùng tải lên",
-    "bucketNameHelper": "Chọn một bucket có sẵn từ máy chủ MinIO",
+    "bucketNameHelper": "Chọn một bucket có sẵn từ máy chủ Documents",
     "displayNameHelper": "Tên dễ đọc hiển thị trong bảng",
     "descriptionHelper": "Mục đích của bucket này để quản lý dễ dàng",
     "bucketNameRequired": "Tên bucket là bắt buộc",
@@ -492,7 +492,7 @@
   },
   "storage": {
     "title": "Lưu trữ",
-    "subtitle": "Quản lý bucket MinIO và xem thống kê",
+    "subtitle": "Quản lý bucket Documents và xem thống kê",
     "createButton": "Tạo Bucket",
     "search": {
       "placeholder": "Tìm kiếm bucket..."
@@ -599,5 +599,8 @@
     "addSuccess": "Thêm nguồn thành công",
     "updateSuccess": "Cập nhật nguồn thành công",
     "deleteSuccess": "Xóa nguồn thành công"
+  },
+  "errors": {
+    "REAUTH_REQUIRED": "Yêu cầu xác thực lại"
   }
 }

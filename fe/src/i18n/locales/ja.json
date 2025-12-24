@@ -233,11 +233,11 @@
     "title": "ナレッジベースドキュメント",
     "noBucketSelected": "バケットが選択されていません",
     "selectBucketPrompt": "ファイルを表示するには、右上のバケットを選択してください。",
-    "selectBucketPlaceholder": "MinIOからバケットを選択",
+    "selectBucketPlaceholder": "Documentsからバケットを選択",
     "emptyBucket": "ドキュメントが見つかりません",
     "uploadPrompt": "ファイルをアップロードして開始します。",
     "createBucket": "バケット設定を追加",
-    "deleteBucketConfirm": "このバケット設定を削除してもよろしいですか？（バケットはMinIOに残ります）",
+    "deleteBucketConfirm": "このバケット設定を削除してもよろしいですか？（バケットはDocuments Storageに残ります）",
     "uploadSuccess": "{{count}}個のファイルを正常にアップロードしました",
     "uploadFailed": "ファイルのアップロードに失敗しました",
     "noUploadPermission": "このバケットにファイルをアップロードする権限がありません",
@@ -282,13 +282,13 @@
     },
     "filter": "フィルター",
     "allFiles": "すべてのファイル",
-    "bucketName": "MinIOバケット",
+    "bucketName": "Documentsバケット",
     "displayName": "表示名",
     "description": "説明",
     "bucketNamePlaceholder": "例: user-uploads, documents-2024",
     "displayNamePlaceholder": "例: ユーザーアップロード、会社ドキュメント",
     "descriptionPlaceholder": "例: ユーザーがアップロードしたプロフィール画像とドキュメントを保存",
-    "bucketNameHelper": "MinIOサーバーから既存のバケットを選択",
+    "bucketNameHelper": "Documentsサーバーから既存のバケットを選択",
     "displayNameHelper": "テーブルに表示される人間が読める名前",
     "descriptionHelper": "管理を容易にするためのこのバケットの目的",
     "bucketNameRequired": "バケット名は必須です",
@@ -492,7 +492,7 @@
   },
   "storage": {
     "title": "ストレージ",
-    "subtitle": "MinIOバケットの管理と統計の表示",
+    "subtitle": "Documentsバケットの管理と統計の表示",
     "createButton": "バケット作成",
     "stats": {
       "totalBuckets": "総バケット数",
@@ -585,5 +585,8 @@
     "addSuccess": "ソースが正常に追加されました",
     "updateSuccess": "ソースが正常に更新されました",
     "deleteSuccess": "ソースが正常に削除されました"
+  },
+  "errors": {
+    "REAUTH_REQUIRED": "再認証が必要です"
   }
 }

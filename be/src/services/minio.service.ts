@@ -95,11 +95,17 @@ class MinioService {
 
     async createBucket(bucketName: string, description: string, user?: { id: string, email: string, ip?: string }): Promise<any> {
         try {
-            const exists = await this.client.bucketExists(bucketName);
-            if (exists) {
-                throw new Error(`Bucket '${bucketName}' already exists`);
+            // 1. Check if configured in DB
+            const existingConfig = await ModelFactory.minioBucket.findByName(bucketName);
+            if (existingConfig) {
+                throw new Error(`Bucket '${bucketName}' is already configured in the system.`);
             }
-            await this.client.makeBucket(bucketName, 'us-east-1');
+
+            // 2. config in MinIO
+            const exists = await this.client.bucketExists(bucketName);
+            if (!exists) {
+                await this.client.makeBucket(bucketName, 'us-east-1');
+            }
 
             const bucket = await ModelFactory.minioBucket.create({
                 bucket_name: bucketName,
@@ -158,7 +164,7 @@ class MinioService {
         for await (const obj of stream) {
             if (obj.prefix) {
                 objects.push({
-                    name: obj.prefix,
+                    name: obj.prefix.replace(/\/$/, ''),
                     size: 0,
                     lastModified: new Date(),
                     etag: '',
@@ -166,6 +172,9 @@ class MinioService {
                     prefix: obj.prefix
                 });
             } else if (obj.name) {
+                // Skip folder placeholder objects (objects ending with /)
+                if (obj.name.endsWith('/')) continue;
+
                 objects.push({
                     name: obj.name,
                     size: obj.size,
@@ -198,19 +207,6 @@ class MinioService {
                 await this.client.putObject(bucketName, objectName, file, size, metaData);
             }
 
-            if (userId) {
-                const user = await ModelFactory.user.findById(userId);
-                if (user) {
-                    await auditService.log({
-                        userId,
-                        userEmail: user.email,
-                        action: AuditAction.UPLOAD_FILE,
-                        resourceType: AuditResourceType.FILE,
-                        resourceId: `${bucketName}/${objectName}`,
-                        details: { size: file.size }
-                    });
-                }
-            }
 
             return { message: 'File uploaded' };
         } catch (error) {
@@ -229,18 +225,6 @@ class MinioService {
 
     async deleteFile(bucketName: string, fileName: string, userId?: string): Promise<void> {
         await this.deleteObject(bucketName, fileName);
-        if (userId) {
-            const user = await ModelFactory.user.findById(userId);
-            if (user) {
-                await auditService.log({
-                    userId,
-                    userEmail: user.email,
-                    action: AuditAction.DELETE_FILE,
-                    resourceType: AuditResourceType.FILE,
-                    resourceId: `${bucketName}/${fileName}`
-                });
-            }
-        }
     }
 
     async checkFileExists(bucketName: string, objectName: string): Promise<boolean> {
@@ -264,6 +248,10 @@ class MinioService {
         if (names.length > 0) {
             await this.client.removeObjects(bucketName, names);
         }
+    }
+
+    async deleteObjects(bucketName: string, objectNames: string[]): Promise<void> {
+        await this.client.removeObjects(bucketName, objectNames);
     }
 
     async getDownloadUrl(bucketName: string, objectName: string, expiry: number = 3600, disposition?: string): Promise<string> {
@@ -339,6 +327,24 @@ class MinioService {
             topBuckets: bucketStats.sort((a, b) => b.size - a.size),
             topFiles: allFiles,
         };
+    }
+
+    async getAvailableBuckets(): Promise<any[]> {
+        // 1. Get all actual buckets from MinIO
+        const minioBuckets = await this.listBuckets();
+
+        // 2. Get all configured buckets from DB
+        const configuredBuckets = await ModelFactory.minioBucket.findAll({});
+        const configuredNames = new Set(configuredBuckets.map(b => b.bucket_name));
+
+        // 3. Filter out buckets that are already configured
+        // And Map to simpler format
+        return minioBuckets
+            .filter(b => b.name && !configuredNames.has(b.name))
+            .map(b => ({
+                name: b.name,
+                creationDate: b.creationDate
+            }));
     }
 
     async getBucketStats(bucketName: string): Promise<any> {

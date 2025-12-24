@@ -234,11 +234,11 @@
     "title": "Knowledge Base Documents",
     "noBucketSelected": "No Bucket Selected",
     "selectBucketPrompt": "Please select a bucket from the top right to view files.",
-    "selectBucketPlaceholder": "Select a bucket from MinIO",
+    "selectBucketPlaceholder": "Select a bucket from Documents",
     "emptyBucket": "No documents found",
     "uploadPrompt": "Upload files to get started.",
     "createBucket": "Add Bucket Configuration",
-    "deleteBucketConfirm": "Are you sure you want to remove this bucket configuration? (The bucket will remain in MinIO)",
+    "deleteBucketConfirm": "Are you sure you want to remove this bucket configuration? (The bucket will remain in Documents Storage)",
     "uploadSuccess": "Uploaded {{count}} file(s) successfully",
     "uploadFailed": "Failed to upload files",
     "noUploadPermission": "You don't have permission to upload files to this bucket",
@@ -283,13 +283,13 @@
     },
     "filter": "Filter",
     "allFiles": "All Files",
-    "bucketName": "MinIO Bucket",
+    "bucketName": "Documents Bucket",
     "displayName": "Display Name",
     "description": "Description",
     "bucketNamePlaceholder": "e.g. user-uploads, documents-2024",
     "displayNamePlaceholder": "e.g. User Uploads, Company Docs",
     "descriptionPlaceholder": "e.g. Stores user profile pictures and documents",
-    "bucketNameHelper": "Name of the existing bucket on MinIO server",
+    "bucketNameHelper": "Name of the existing bucket on Documents server",
     "displayNameHelper": "Human-readable name shown in the table",
     "descriptionHelper": "Purpose of this bucket for easier management",
     "bucketNameRequired": "Bucket name is required",
@@ -493,7 +493,7 @@
   },
   "storage": {
     "title": "Storages",
-    "subtitle": "Manage MinIO buckets and view statistics",
+    "subtitle": "Manage Documents buckets and view statistics",
     "createButton": "Create Bucket",
     "search": {
       "placeholder": "Search buckets..."
@@ -600,5 +600,8 @@
     "addSuccess": "Source added successfully",
     "updateSuccess": "Source updated successfully",
     "deleteSuccess": "Source deleted successfully"
+  },
+  "errors": {
+    "REAUTH_REQUIRED": "Re-authentication required"
   }
 }

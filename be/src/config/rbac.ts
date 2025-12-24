@@ -118,8 +118,6 @@ export const ROLE_PERMISSIONS: Record<Role, Permission[]> = {
         'manage_users', // Leaders can view/edit users but maybe restricted (logic in service)
         'view_analytics',
         'view_system_tools',
-        'storage:read',
-        'storage:write',
     ],
     /** Regular user has basic content access */
     user: [

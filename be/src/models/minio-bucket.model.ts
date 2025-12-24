@@ -10,6 +10,10 @@ export class MinioBucketModel extends BaseModel<MinioBucket> {
   async findByName(bucketName: string): Promise<MinioBucket | undefined> {
     return this.knex(this.tableName).where({ bucket_name: bucketName }).first();
   }
+
+  async findByIds(ids: string[]): Promise<MinioBucket[]> {
+    return this.knex(this.tableName).whereIn('id', ids).orderBy('created_at', 'desc');
+  }
 }
 
 export class CreateMinioBucketDto {

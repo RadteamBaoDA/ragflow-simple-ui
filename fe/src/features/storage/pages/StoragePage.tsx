@@ -89,8 +89,12 @@ const StoragePage = () => {
                 });
                 return newStats;
             });
-        } catch (error) {
-            message.error(t('storage.error.load'));
+        } catch (error: any) {
+            // Suppress 403 errors (Access Denied) as usually the UI handles permission checks
+            // or the user is just redirected. We don't want to show a toast in this case.
+            if (error?.status !== 403 && !error?.message?.includes('403')) {
+                message.error(t('storage.error.load'));
+            }
         } finally {
             setLoading(false);
         }

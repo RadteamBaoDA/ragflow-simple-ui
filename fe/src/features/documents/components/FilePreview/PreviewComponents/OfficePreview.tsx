@@ -115,12 +115,12 @@ export const OfficePreview: React.FC<OfficePreviewProps> = ({ url }) => {
         const html = XLSX.utils.sheet_to_html(worksheet, { id: 'excel-preview', editable: false });
 
         setContent(
-            <div className="w-full h-full overflow-auto p-4 bg-white dark:bg-gray-900">
+            <div className="w-full h-full overflow-auto p-4 bg-white dark:bg-gray-900 dark:text-gray-200">
                 <style>{`
                     #excel-preview { border-collapse: collapse; width: max-content; min-width: 100%; }
                     #excel-preview td, #excel-preview th { border: 1px solid #ddd; padding: 8px; white-space: nowrap; }
                     #excel-preview tr:nth-child(even) { background-color: #f2f2f2; }
-                    .dark #excel-preview td, .dark #excel-preview th { border-color: #444; }
+                    .dark #excel-preview td, .dark #excel-preview th { border-color: #444; color: #e5e7eb; }
                     .dark #excel-preview tr:nth-child(even) { background-color: #1f2937; }
                 `}</style>
                 <div dangerouslySetInnerHTML={{ __html: html }} />

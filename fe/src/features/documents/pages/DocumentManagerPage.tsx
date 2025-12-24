@@ -3,7 +3,7 @@
  * 
  * File manager interface for document storage using MinIO:
  * - Browse document buckets (configurations stored in database)
- * - Browse files and folders in realtime from MinIO
+ * - Browse file and folders in realtime from Documents Storage
  * - Upload files with progress indicator
  * - Download files
  * - Delete files and folders (single and batch)
@@ -95,7 +95,7 @@ const formatDateTime = (date: Date, locale: string): string => {
  * 
  * Features:
  * - Bucket selection dropdown (rendered in header via portal)
- * - File/folder listing in realtime from MinIO
+ * - File/folder listing in realtime from Documents Storage
  * - Multi-select with checkbox
  * - Upload with progress indicator
  * - Download and delete actions
@@ -106,7 +106,7 @@ const formatDateTime = (date: Date, locale: string): string => {
  * - Write: Upload/Delete (Admin/Leader only)
  * 
  * Admin-only features:
- * - Add and remove bucket configurations (does not affect MinIO)
+ * - Add and remove bucket configurations (does not affect Documents Storage)
  */
 const DocumentManagerPage = () => {
     const { user } = useAuth();
@@ -210,7 +210,8 @@ const DocumentManagerPage = () => {
                 // Handle 403 errors - permission revoked
                 if (err instanceof Error && err.message.includes('403')) {
                     setEffectivePermission(PermissionLevel.NONE);
-                    setError(t('documents.accessDenied'));
+                    // Suppress error message for 403
+                    // setError(t('documents.accessDenied'));
                     loadObjects(); // Reload file list on permission error
                 }
             }
@@ -636,6 +637,9 @@ const DocumentManagerPage = () => {
             // Check if this is a bucket sync error (bucket configured but not in MinIO)
             if (err instanceof MinioServiceError && err.code === 'BUCKET_NOT_IN_STORAGE') {
                 setBucketSyncError(err.message);
+                setObjects([]);
+            } else if (err instanceof Error && (err.message.includes('403') || (err as any).status === 403)) {
+                // Suppress 403 errors and clear objects
                 setObjects([]);
             } else {
                 setError(err instanceof Error ? err.message : t('documents.loadFailed'));
