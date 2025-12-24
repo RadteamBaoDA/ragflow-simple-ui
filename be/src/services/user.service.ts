@@ -21,6 +21,7 @@ import { query, queryOne } from '../db/index.js';
 import { config } from '../config/index.js';
 import { log } from './logger.service.js';
 import { AzureAdUser } from './auth.service.js';
+import { auditService, AuditAction, AuditResourceType } from './audit.service.js';
 
 // ============================================================================
 // TYPE DEFINITIONS
@@ -208,6 +209,17 @@ export class UserService {
                         `UPDATE users SET ${updates.join(', ')} WHERE id = $${paramIndex}`,
                         values
                     );
+
+                    // Log audit event for user update (sync from Azure AD)
+                    // This is usually done by system/login process, but we attribute it to the user themselves
+                    await auditService.log({
+                        userId: existingUser.id,
+                        userEmail: existingUser.email,
+                        action: AuditAction.UPDATE_USER,
+                        resourceType: AuditResourceType.USER,
+                        resourceId: existingUser.id,
+                        details: { source: 'AzureAD Sync', updates: updates },
+                    });
                 }
 
                 // Parse permissions from JSON string if needed
@@ -250,6 +262,16 @@ export class UserService {
                     newUser.updated_at,
                 ]
             );
+
+            // Log audit event for user creation
+            await auditService.log({
+                userId: newUser.id,
+                userEmail: newUser.email,
+                action: AuditAction.CREATE_USER,
+                resourceType: AuditResourceType.USER,
+                resourceId: newUser.id,
+                details: { source: 'AzureAD Login' },
+            });
 
             return newUser;
         } catch (error) {
@@ -340,11 +362,22 @@ export class UserService {
      * @param userId - ID of user to update
      * @param permissions - Array of permission strings
      */
-    async updateUserPermissions(userId: string, permissions: string[]): Promise<void> {
+    async updateUserPermissions(userId: string, permissions: string[], actor?: { id: string, email: string }): Promise<void> {
         await query(
             'UPDATE users SET permissions = $1, updated_at = NOW() WHERE id = $2',
             [JSON.stringify(permissions), userId]
         );
+
+        if (actor) {
+            await auditService.log({
+                userId: actor.id,
+                userEmail: actor.email,
+                action: AuditAction.UPDATE_USER,
+                resourceType: AuditResourceType.USER,
+                resourceId: userId,
+                details: { action: 'update_permissions', permissions },
+            });
+        }
     }
 
     /**

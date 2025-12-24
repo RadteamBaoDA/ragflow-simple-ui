@@ -47,6 +47,11 @@ export const AuditAction = {
     UPDATE_USER: 'update_user',
     DELETE_USER: 'delete_user',
     UPDATE_ROLE: 'update_role',
+
+    // Team management actions
+    CREATE_TEAM: 'create_team',
+    UPDATE_TEAM: 'update_team',
+    DELETE_TEAM: 'delete_team',
     
     // Storage actions - buckets
     CREATE_BUCKET: 'create_bucket',
@@ -64,6 +69,11 @@ export const AuditAction = {
     // Configuration actions
     UPDATE_CONFIG: 'update_config',
     RELOAD_CONFIG: 'reload_config',
+
+    // Knowledge Base actions
+    CREATE_SOURCE: 'create_source',
+    UPDATE_SOURCE: 'update_source',
+    DELETE_SOURCE: 'delete_source',
     
     // System actions
     RUN_MIGRATION: 'run_migration',
@@ -78,10 +88,12 @@ export type AuditActionType = typeof AuditAction[keyof typeof AuditAction];
  */
 export const AuditResourceType = {
     USER: 'user',
+    TEAM: 'team',
     SESSION: 'session',
     BUCKET: 'bucket',
     FILE: 'file',
     CONFIG: 'config',
+    KNOWLEDGE_BASE_SOURCE: 'knowledge_base_source',
     SYSTEM: 'system',
     ROLE: 'role',
 } as const;
