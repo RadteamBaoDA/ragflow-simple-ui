@@ -150,6 +150,4 @@ be/.data/knowledge-base.db
 
 # Backend config JSON files (contain environment-specific settings)
 be/src/config/*.json
-fe/src/assets/logo-dark.png
-fe/src/assets/logo.png
 be/temp

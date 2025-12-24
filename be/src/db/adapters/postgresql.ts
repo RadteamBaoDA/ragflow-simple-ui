@@ -13,7 +13,7 @@
  * @module db/adapters/postgresql
  */
 
-import { Pool, PoolClient } from 'pg';
+import { Pool } from 'pg';
 import { DatabaseAdapter, DatabaseClient } from '../types.js';
 import { log } from '../../services/logger.service.js';
 

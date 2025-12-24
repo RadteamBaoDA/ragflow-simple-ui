@@ -1,6 +1,6 @@
 import { useState, useEffect, useRef } from 'react';
 import { useTranslation } from 'react-i18next';
-import { Plus, Edit, Trash2, Users, Search, X } from 'lucide-react';
+import { Plus, Edit, Trash2, Users, Search } from 'lucide-react';
 import { teamService, Team, TeamMember } from '../services/teamService';
 import { userService } from '../services/userService';
 import { User } from '../hooks/useAuth';
