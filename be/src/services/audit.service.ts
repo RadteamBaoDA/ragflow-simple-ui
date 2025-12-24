@@ -74,6 +74,18 @@ export const AuditAction = {
     CREATE_SOURCE: 'create_source',
     UPDATE_SOURCE: 'update_source',
     DELETE_SOURCE: 'delete_source',
+
+    // Broadcast Message actions
+    CREATE_BROADCAST: 'create_broadcast',
+    UPDATE_BROADCAST: 'update_broadcast',
+    DELETE_BROADCAST: 'delete_broadcast',
+    DISMISS_BROADCAST: 'dismiss_broadcast',
+
+    // Permission actions
+    SET_PERMISSION: 'set_permission',
+
+    // Storage actions - batch
+    BATCH_DELETE: 'batch_delete',
     
     // System actions
     RUN_MIGRATION: 'run_migration',
@@ -94,6 +106,8 @@ export const AuditResourceType = {
     FILE: 'file',
     CONFIG: 'config',
     KNOWLEDGE_BASE_SOURCE: 'knowledge_base_source',
+    BROADCAST_MESSAGE: 'broadcast_message',
+    PERMISSION: 'permission',
     SYSTEM: 'system',
     ROLE: 'role',
 } as const;

@@ -4,6 +4,7 @@
 
 import { getAdapter } from '../db/index.js';
 import { log } from './logger.service.js';
+import { auditService, AuditAction, AuditResourceType } from './audit.service.js';
 
 export interface BroadcastMessage {
     id: string;
@@ -67,7 +68,7 @@ export class BroadcastMessageService {
     /**
      * Record a message dismissal for a user.
      */
-    async dismissMessage(userId: string, broadcastId: string): Promise<void> {
+    async dismissMessage(userId: string, broadcastId: string, userEmail?: string): Promise<void> {
         const db = await getAdapter();
         try {
             const query = `
@@ -76,6 +77,16 @@ export class BroadcastMessageService {
                 ON CONFLICT (user_id, broadcast_id) DO NOTHING
             `;
             await db.query(query, [userId, broadcastId]);
+
+            // Log audit event for message dismissal
+            await auditService.log({
+                userId,
+                userEmail: userEmail || 'unknown',
+                action: AuditAction.DISMISS_BROADCAST,
+                resourceType: AuditResourceType.BROADCAST_MESSAGE,
+                resourceId: broadcastId,
+            });
+
             log.info('Broadcast message dismissed by user', { userId, broadcastId });
         } catch (error) {
             log.error('Failed to dismiss broadcast message', { userId, broadcastId, error: String(error) });
@@ -100,7 +111,10 @@ export class BroadcastMessageService {
     /**
      * Create a new broadcast message.
      */
-    async createMessage(data: Omit<BroadcastMessage, 'id' | 'created_at' | 'updated_at'>): Promise<BroadcastMessage> {
+    async createMessage(
+        data: Omit<BroadcastMessage, 'id' | 'created_at' | 'updated_at'>,
+        user?: { id: string, email: string }
+    ): Promise<BroadcastMessage> {
         const db = await getAdapter();
         try {
             const query = `
@@ -120,6 +134,18 @@ export class BroadcastMessageService {
             if (!result[0]) {
                 throw new Error('Failed to create broadcast message: No result returned');
             }
+
+            if (user) {
+                await auditService.log({
+                    userId: user.id,
+                    userEmail: user.email,
+                    action: AuditAction.CREATE_BROADCAST,
+                    resourceType: AuditResourceType.BROADCAST_MESSAGE,
+                    resourceId: result[0].id,
+                    details: { message: data.message },
+                });
+            }
+
             return result[0];
         } catch (error) {
             log.error('Failed to create broadcast message', { error: String(error) });
@@ -130,7 +156,11 @@ export class BroadcastMessageService {
     /**
      * Update an existing broadcast message.
      */
-    async updateMessage(id: string, data: Partial<Omit<BroadcastMessage, 'id' | 'created_at' | 'updated_at'>>): Promise<BroadcastMessage | null> {
+    async updateMessage(
+        id: string,
+        data: Partial<Omit<BroadcastMessage, 'id' | 'created_at' | 'updated_at'>>,
+        user?: { id: string, email: string }
+    ): Promise<BroadcastMessage | null> {
         const db = await getAdapter();
         try {
             const fields: string[] = [];
@@ -179,6 +209,18 @@ export class BroadcastMessageService {
             `;
 
             const result = await db.query<BroadcastMessage>(query, values);
+
+            if (user && result[0]) {
+                await auditService.log({
+                    userId: user.id,
+                    userEmail: user.email,
+                    action: AuditAction.UPDATE_BROADCAST,
+                    resourceType: AuditResourceType.BROADCAST_MESSAGE,
+                    resourceId: id,
+                    details: { changes: data },
+                });
+            }
+
             return result[0] || null;
         } catch (error) {
             log.error('Failed to update broadcast message', { id, error: String(error) });
@@ -189,10 +231,21 @@ export class BroadcastMessageService {
     /**
      * Delete a broadcast message.
      */
-    async deleteMessage(id: string): Promise<boolean> {
+    async deleteMessage(id: string, user?: { id: string, email: string }): Promise<boolean> {
         const db = await getAdapter();
         try {
             const result = await db.query('DELETE FROM broadcast_messages WHERE id = $1', [id]);
+
+            if (user) {
+                await auditService.log({
+                    userId: user.id,
+                    userEmail: user.email,
+                    action: AuditAction.DELETE_BROADCAST,
+                    resourceType: AuditResourceType.BROADCAST_MESSAGE,
+                    resourceId: id,
+                });
+            }
+
             return result.length > 0; // In this adapter, query might return affected rows if implemented that way, but let's check one more time.
         } catch (error) {
             log.error('Failed to delete broadcast message', { id, error: String(error) });

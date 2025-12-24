@@ -98,6 +98,23 @@ function getActionBadge(action: string, t: any): { label: string; className: str
         run_migration: { label: t('auditLog.actions.run_migration'), className: 'bg-purple-100 text-purple-800 dark:bg-purple-900/30 dark:text-purple-300' },
         system_start: { label: t('auditLog.actions.system_start'), className: 'bg-green-100 text-green-800 dark:bg-green-900/30 dark:text-green-300' },
         system_stop: { label: t('auditLog.actions.system_stop'), className: 'bg-red-100 text-red-800 dark:bg-red-900/30 dark:text-red-300' },
+
+        // Broadcast
+        create_broadcast: { label: t('auditLog.actions.create_broadcast'), className: 'bg-blue-100 text-blue-800 dark:bg-blue-900/30 dark:text-blue-300' },
+        update_broadcast: { label: t('auditLog.actions.update_broadcast'), className: 'bg-yellow-100 text-yellow-800 dark:bg-yellow-900/30 dark:text-yellow-300' },
+        delete_broadcast: { label: t('auditLog.actions.delete_broadcast'), className: 'bg-red-100 text-red-800 dark:bg-red-900/30 dark:text-red-300' },
+        dismiss_broadcast: { label: t('auditLog.actions.dismiss_broadcast'), className: 'bg-slate-100 text-slate-800 dark:bg-slate-700 dark:text-slate-300' },
+
+        // Permission
+        set_permission: { label: t('auditLog.actions.set_permission'), className: 'bg-purple-100 text-purple-800 dark:bg-purple-900/30 dark:text-purple-300' },
+
+        // Knowledge Base
+        create_source: { label: t('auditLog.actions.create_source'), className: 'bg-blue-100 text-blue-800 dark:bg-blue-900/30 dark:text-blue-300' },
+        update_source: { label: t('auditLog.actions.update_source'), className: 'bg-yellow-100 text-yellow-800 dark:bg-yellow-900/30 dark:text-yellow-300' },
+        delete_source: { label: t('auditLog.actions.delete_source'), className: 'bg-red-100 text-red-800 dark:bg-red-900/30 dark:text-red-300' },
+
+        // Storage Batch
+        batch_delete: { label: t('auditLog.actions.batch_delete'), className: 'bg-red-100 text-red-800 dark:bg-red-900/30 dark:text-red-300' },
     };
 
     return actionMap[action] || {
@@ -119,6 +136,9 @@ function formatResourceType(type: string, t: any): string {
         config: t('auditLog.resourceTypes.config'),
         system: t('auditLog.resourceTypes.system'),
         role: t('auditLog.resourceTypes.role'),
+        broadcast_message: t('auditLog.resourceTypes.broadcast_message'),
+        permission: t('auditLog.resourceTypes.permission'),
+        knowledge_base_source: t('auditLog.resourceTypes.knowledge_base_source'),
     };
     return typeMap[type] || t(`auditLog.resourceTypes.${type}`, { defaultValue: type.replace(/_/g, ' ').replace(/\b\w/g, l => l.toUpperCase()) });
 }

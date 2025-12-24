@@ -51,7 +51,8 @@ router.post('/', requireRole('admin'), async (req: Request, res: Response) => {
             }
         }
 
-        await documentPermissionService.setPermission(entityType, entityId, bucketId, Number(level));
+        const actor = req.user ? { id: req.user.id, email: req.user.email } : undefined;
+        await documentPermissionService.setPermission(entityType, entityId, bucketId, Number(level), actor);
         return res.json({ success: true });
     } catch (error) {
         log.error('Failed to set document permission', { error });
