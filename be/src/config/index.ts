@@ -21,7 +21,7 @@ import dotenv from 'dotenv';
 import { readFileSync, existsSync } from 'fs';
 import { join, dirname } from 'path';
 import { fileURLToPath } from 'url';
-import { log } from '../services/logger.service.js';
+// import { log } from '../services/logger.service.js';
 
 /** ESM-compatible __filename resolution */
 const __filename = fileURLToPath(import.meta.url);

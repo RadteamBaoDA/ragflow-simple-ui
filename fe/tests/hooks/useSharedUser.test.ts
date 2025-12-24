@@ -10,6 +10,7 @@
 
 import { describe, it, expect, beforeEach, vi, afterEach } from 'vitest';
 import { renderHook, act, waitFor } from '@testing-library/react';
+import { useState, useEffect, useCallback } from 'react';
 
 // ============================================================================
 // Types
@@ -94,8 +95,6 @@ function clearSharedUser(): void {
 // ============================================================================
 // Hook Implementation (simplified for testing)
 // ============================================================================
-
-import { useState, useEffect, useCallback } from 'react';
 
 function useSharedUser() {
   const [user, setUser] = useState<SharedUser | null>(() => getSharedUserSync());
