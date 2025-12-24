@@ -581,6 +581,7 @@
     "permissionsTitle": "権限: {{sourceName}}",
     "publicAccess": "システム全体へのアクセス",
     "publicAccessDesc": "すべての認証済みユーザーにこのソースへのアクセスを許可します。",
+    "publicOnlyNote": "パブリックソースのみをシステムデフォルトとして設定できます。",
     "addSuccess": "ソースが正常に追加されました",
     "updateSuccess": "ソースが正常に更新されました",
     "deleteSuccess": "ソースが正常に削除されました"

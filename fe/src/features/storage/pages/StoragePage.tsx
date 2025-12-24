@@ -24,6 +24,7 @@ interface BucketStats {
     objectCount: number;
     totalSize: number;
     loading: boolean;
+    loaded: boolean;
     error?: boolean;
 }
 
@@ -83,7 +84,7 @@ const StoragePage = () => {
                     if (existingStat) {
                         newStats[b.name] = existingStat;
                     } else {
-                        newStats[b.name] = { objectCount: 0, totalSize: 0, loading: false, error: false };
+                        newStats[b.name] = { objectCount: 0, totalSize: 0, loading: false, loaded: false, error: false };
                     }
                 });
                 return newStats;
@@ -243,6 +244,7 @@ const StoragePage = () => {
                 objectCount: prev[name]?.objectCount || 0,
                 totalSize: prev[name]?.totalSize || 0,
                 loading: true,
+                loaded: false,
                 error: false
             }
         }));
@@ -254,6 +256,7 @@ const StoragePage = () => {
                     objectCount: bucketStats.objectCount,
                     totalSize: bucketStats.totalSize,
                     loading: false,
+                    loaded: true,
                     error: false
                 }
             }));
@@ -264,6 +267,7 @@ const StoragePage = () => {
                     objectCount: prev[name]?.objectCount || 0,
                     totalSize: prev[name]?.totalSize || 0,
                     loading: false,
+                    loaded: false,
                     error: true
                 }
             }));
@@ -297,10 +301,11 @@ const StoragePage = () => {
             key: 'objects',
             render: (_: any, record: Bucket) => {
                 const stat = stats[record.name];
-                // Check if not loaded (default/initial state)
-                const isInitial = stat && stat.objectCount === 0 && stat.totalSize === 0 && !stat.loading && !stat.error;
+                const isLoaded = stat && stat.loaded;
+                const isError = stat && stat.error;
+                const isLoading = stat && stat.loading;
 
-                if (!stat || isInitial) {
+                if (!stat || (!isLoaded && !isLoading && !isError)) {
                     return (
                         <Button
                             type="link"
@@ -312,8 +317,8 @@ const StoragePage = () => {
                         </Button>
                     );
                 }
-                if (stat.loading) return <Spin size="small" />;
-                if (stat.error) return <Tag color="red">{t('error')}</Tag>;
+                if (isLoading) return <Spin size="small" />;
+                if (isError) return <Tag color="red">{t('error')}</Tag>;
                 return stat.objectCount.toLocaleString();
             }
         },

@@ -595,6 +595,7 @@
     "permissionsTitle": "Phân quyền: {{sourceName}}",
     "publicAccess": "Truy cập toàn hệ thống",
     "publicAccessDesc": "Cho phép tất cả người dùng đã xác thực truy cập nguồn này.",
+    "publicOnlyNote": "Chỉ các nguồn công khai mới có thể được đặt làm mặc định hệ thống.",
     "addSuccess": "Thêm nguồn thành công",
     "updateSuccess": "Cập nhật nguồn thành công",
     "deleteSuccess": "Xóa nguồn thành công"

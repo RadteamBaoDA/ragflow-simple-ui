@@ -276,8 +276,68 @@ class MinioService {
 
     async getGlobalStats(): Promise<any> {
         const buckets = await this.listBuckets();
+        let totalObjects = 0;
+        let totalSize = 0;
+        const distribution = {
+            '<1MB': 0,
+            '1MB-10MB': 0,
+            '10MB-100MB': 0,
+            '100MB-1GB': 0,
+            '1GB-5GB': 0,
+            '5GB-10GB': 0,
+            '>10GB': 0,
+        };
+        const bucketStats: { name: string; size: number; objectCount: number }[] = [];
+        const allFiles: { name: string; size: number; lastModified: Date; bucketName: string }[] = [];
+
+        for (const bucket of buckets) {
+            let bObjects = 0;
+            let bSize = 0;
+            try {
+                const stream = this.client.listObjects(bucket.name, '', true);
+                for await (const obj of stream) {
+                    if (obj.name && !obj.name.endsWith('/')) {
+                        bObjects++;
+                        const size = obj.size || 0;
+                        bSize += size;
+
+                        // Add to distribution
+                        if (size < 1024 * 1024) distribution['<1MB']++;
+                        else if (size < 10 * 1024 * 1024) distribution['1MB-10MB']++;
+                        else if (size < 100 * 1024 * 1024) distribution['10MB-100MB']++;
+                        else if (size < 1024 * 1024 * 1024) distribution['100MB-1GB']++;
+                        else if (size < 5 * 1024 * 1024 * 1024) distribution['1GB-5GB']++;
+                        else if (size < 10 * 1024 * 1024 * 1024) distribution['5GB-10GB']++;
+                        else distribution['>10GB']++;
+
+                        // Add to all files (keep it reasonably sized)
+                        if (allFiles.length < 100 || size > (allFiles[allFiles.length - 1]?.size || 0)) {
+                            allFiles.push({
+                                name: obj.name,
+                                size,
+                                lastModified: obj.lastModified,
+                                bucketName: bucket.name,
+                            });
+                            allFiles.sort((a, b) => b.size - a.size);
+                            if (allFiles.length > 100) allFiles.pop();
+                        }
+                    }
+                }
+                bucketStats.push({ name: bucket.name, size: bSize, objectCount: bObjects });
+                totalObjects += bObjects;
+                totalSize += bSize;
+            } catch (err) {
+                log.error(`Failed to get stats for bucket ${bucket.name}`, { error: String(err) });
+            }
+        }
+
         return {
             totalBuckets: buckets.length,
+            totalObjects,
+            totalSize,
+            distribution,
+            topBuckets: bucketStats.sort((a, b) => b.size - a.size),
+            topFiles: allFiles,
         };
     }
 

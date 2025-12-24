@@ -184,12 +184,17 @@ export default function KnowledgeBaseConfigPage() {
                             disabled={!configQuery.data}
                         >
                             <option value="">{t('common.select') || 'Select a source'}</option>
-                            {(activeTab === 'chat' ? configQuery.data?.chatSources : configQuery.data?.searchSources)?.map((source: KnowledgeBaseSource) => (
-                                <option key={source.id} value={source.id}>
-                                    {source.name}
-                                </option>
-                            ))}
+                            {(activeTab === 'chat' ? configQuery.data?.chatSources : configQuery.data?.searchSources)
+                                ?.filter((source: KnowledgeBaseSource) => source.access_control?.public)
+                                .map((source: KnowledgeBaseSource) => (
+                                    <option key={source.id} value={source.id}>
+                                        {source.name}
+                                    </option>
+                                ))}
                         </select>
+                        <p className="mt-1 text-xs text-gray-500 dark:text-gray-400">
+                            {t('knowledgeBaseConfig.publicOnlyNote') || 'Only public sources can be set as system defaults.'}
+                        </p>
                     </div>
                     <button
                         onClick={handleSaveDefault}

@@ -596,6 +596,7 @@
     "permissionsTitle": "Permissions: {{sourceName}}",
     "publicAccess": "System-wide Access",
     "publicAccessDesc": "Allow all authenticated users to access this source.",
+    "publicOnlyNote": "Only public sources can be set as system defaults.",
     "addSuccess": "Source added successfully",
     "updateSuccess": "Source updated successfully",
     "deleteSuccess": "Source deleted successfully"
