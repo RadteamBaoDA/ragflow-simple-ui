@@ -37,7 +37,7 @@ export function PermissionsSelector({
     // Fetch Users
     const usersQuery = useQuery({
         queryKey: ['users', 'permissions'],
-        queryFn: () => userService.getAllUsers(['user', 'leader', 'admin']),
+        queryFn: () => userService.getAllUsers(['user', 'leader']),
         enabled: !isPublic,
     });
 

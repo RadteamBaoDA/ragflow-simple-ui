@@ -7,7 +7,8 @@ import { getClientIp } from '@/utils/ip.js';
 export class UserController {
   async getUsers(req: Request, res: Response): Promise<void> {
     try {
-      const users = await userService.getAllUsers();
+      const roles = req.query.roles ? (req.query.roles as string).split(',') : undefined;
+      const users = await userService.getAllUsers(roles);
       res.json(users);
     } catch (error) {
       log.error('Failed to fetch users', { error: String(error) });
