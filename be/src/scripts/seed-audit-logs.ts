@@ -11,8 +11,8 @@
  * @module scripts/seed-audit-logs
  */
 
-import { getAdapter } from '../db/index.js';
-import { log } from '../services/logger.service.js';
+import { getAdapter } from '@/db/index.js';
+import { log } from '@/services/logger.service.js';
 
 // ============================================================================
 // Test Data Configuration
@@ -114,7 +114,7 @@ function generateDetails(action: string, resourceType: string): Record<string, a
             return { bucketName: `bucket-${Math.floor(Math.random() * 20)}`, region: 'ap-southeast-1' };
         case 'upload_file':
         case 'delete_file':
-            return { 
+            return {
                 fileName: `document-${Math.floor(Math.random() * 1000)}.${randomElement(['pdf', 'docx', 'xlsx', 'png'])}`,
                 fileSize: Math.floor(Math.random() * 10000000),
                 bucket: `bucket-${Math.floor(Math.random() * 5)}`
@@ -131,7 +131,7 @@ function generateDetails(action: string, resourceType: string): Record<string, a
  */
 function generateResourceId(resourceType: string): string | null {
     if (Math.random() < 0.1) return null; // 10% chance of null
-    
+
     switch (resourceType) {
         case 'user':
             return `user-${Math.floor(Math.random() * 100).toString().padStart(3, '0')}`;
@@ -154,22 +154,22 @@ function generateResourceId(resourceType: string): string | null {
 
 async function seedAuditLogs() {
     log.debug('Starting audit log seed script...', { totalRecords: TOTAL_RECORDS, batchSize: BATCH_SIZE });
-    
+
     const db = await getAdapter();
     const startTime = Date.now();
-    
+
     let insertedCount = 0;
     const totalBatches = Math.ceil(TOTAL_RECORDS / BATCH_SIZE);
-    
+
     for (let batch = 0; batch < totalBatches; batch++) {
         const batchStart = Date.now();
         const recordsInBatch = Math.min(BATCH_SIZE, TOTAL_RECORDS - insertedCount);
-        
+
         // Build bulk insert values
         const values: any[] = [];
         const placeholders: string[] = [];
         let paramIndex = 1;
-        
+
         for (let i = 0; i < recordsInBatch; i++) {
             const user = randomElement(SAMPLE_USERS);
             const action = randomElement(ACTIONS);
@@ -178,7 +178,7 @@ async function seedAuditLogs() {
             const resourceId = generateResourceId(resourceType);
             const ip = randomElement(SAMPLE_IPS);
             const createdAt = randomDate();
-            
+
             placeholders.push(`($${paramIndex}, $${paramIndex + 1}, $${paramIndex + 2}, $${paramIndex + 3}, $${paramIndex + 4}, $${paramIndex + 5}, $${paramIndex + 6}, $${paramIndex + 7})`);
             values.push(
                 user.id,
@@ -192,21 +192,21 @@ async function seedAuditLogs() {
             );
             paramIndex += 8;
         }
-        
+
         // Execute bulk insert
         const sql = `
             INSERT INTO audit_logs (user_id, user_email, action, resource_type, resource_id, details, ip_address, created_at)
             VALUES ${placeholders.join(', ')}
         `;
-        
+
         await db.query(sql, values);
-        
+
         insertedCount += recordsInBatch;
         const batchTime = Date.now() - batchStart;
         const progress = ((insertedCount / TOTAL_RECORDS) * 100).toFixed(1);
         const elapsed = ((Date.now() - startTime) / 1000).toFixed(1);
         const rate = (insertedCount / parseFloat(elapsed)).toFixed(0);
-        
+
         log.debug(`Batch ${batch + 1}/${totalBatches} completed`, {
             inserted: insertedCount,
             progress: `${progress}%`,
@@ -215,18 +215,18 @@ async function seedAuditLogs() {
             rate: `${rate} records/s`
         });
     }
-    
+
     const totalTime = ((Date.now() - startTime) / 1000).toFixed(1);
-    log.debug('Audit log seed completed!', { 
-        totalRecords: insertedCount, 
+    log.debug('Audit log seed completed!', {
+        totalRecords: insertedCount,
         totalTime: `${totalTime}s`,
         averageRate: `${(insertedCount / parseFloat(totalTime)).toFixed(0)} records/s`
     });
-    
+
     // Verify count
     const result = await db.query<{ count: string }>('SELECT COUNT(*) as count FROM audit_logs');
     log.debug('Total audit logs in database:', { count: result[0]?.count });
-    
+
     process.exit(0);
 }
 

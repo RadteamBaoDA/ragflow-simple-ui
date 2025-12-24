@@ -6,8 +6,8 @@
  */
 
 import { Request, Response } from 'express';
-import { config } from '../config/index.js';
-import { log } from '../services/logger.service.js';
+import { config } from '@/config/index.js';
+import { log } from '@/services/logger.service.js';
 
 /**
  * Middleware to check if external trace API is enabled.

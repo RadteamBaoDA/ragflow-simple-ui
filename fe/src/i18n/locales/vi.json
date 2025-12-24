@@ -50,7 +50,11 @@
     "inactive": "Không hoạt động",
     "dismissible": "Có thể ẩn",
     "characters": "Ký tự",
-    "fillRequiredFields": "Vui lòng điền đầy đủ thông tin bắt buộc"
+    "fillRequiredFields": "Vui lòng điền đầy đủ thông tin bắt buộc",
+    "saveSuccess": "Lưu thành công",
+    "updateSuccess": "Cập nhật thành công",
+    "deleteSuccess": "Xóa thành công",
+    "createSuccess": "Tạo thành công"
   },
   "dialog": {
     "confirm": "Xác nhận",
@@ -94,7 +98,10 @@
       "role": "Vai trò",
       "leader": "Trưởng nhóm",
       "member": "Thành viên",
-      "selectUser": "Chọn thành viên"
+      "selectUser": "Chọn người dùng",
+      "addMemberSuccess": "Đã thêm thành viên thành công",
+      "addMemberError": "Không thể thêm thành viên",
+      "removeMemberSuccess": "Đã xóa thành viên thành công"
     },
     "permissions": {
       "title": "Quản lý Phân quyền",
@@ -111,7 +118,11 @@
     "rootLoginTitle": "Đăng nhập Root"
   },
   "admin": {
-    "broadcastMessages": "Thông báo hệ thống"
+    "broadcastMessages": "Thông báo hệ thống",
+    "broadcast": {
+      "saveSuccess": "Đã lưu thông báo thành công",
+      "deleteSuccess": "Đã xóa thông báo thành công"
+    }
   },
   "settings": {
     "title": "Cài đặt",
@@ -145,7 +156,10 @@
     "confirmDeleteMessage": "Bạn có chắc chắn muốn xóa {{count}} phiên đã chọn không? Hành động này không thể hoàn tác.",
     "deleteAllTitle": "Xóa tất cả lịch sử",
     "deleteAllMessage": "Bạn có chắc chắn muốn xóa TẤT CẢ các phiên trò chuyện không? Điều này sẽ xóa vĩnh viễn toàn bộ lịch sử trò chuyện của bạn và không thể hoàn tác.",
-    "deleting": "Đang xóa..."
+    "deleting": "Đang xóa...",
+    "deleteSuccess": "Đã xóa phiên trò chuyện",
+    "bulkDeleteSuccess": "Đã xóa {{count}} phiên thành công",
+    "deleteAllSuccess": "Đã xóa toàn bộ lịch sử trò chuyện"
   },
   "iframe": {
     "loadingChat": "Đang tải Trò chuyện...",
@@ -220,11 +234,11 @@
     "title": "Tài liệu Kho Kiến Thức",
     "noBucketSelected": "Chưa chọn Bucket",
     "selectBucketPrompt": "Vui lòng chọn một bucket từ góc trên bên phải để xem tệp.",
-    "selectBucketPlaceholder": "Chọn một bucket từ MinIO",
+    "selectBucketPlaceholder": "Chọn một bucket từ Documents",
     "emptyBucket": "Không tìm thấy tài liệu",
     "uploadPrompt": "Tải lên tệp để bắt đầu.",
     "createBucket": "Thêm cấu hình Bucket",
-    "deleteBucketConfirm": "Bạn có chắc chắn muốn xóa cấu hình bucket này không? (Bucket sẽ vẫn còn trong MinIO)",
+    "deleteBucketConfirm": "Bạn có chắc chắn muốn xóa cấu hình bucket này không? (Bucket sẽ vẫn còn trong Documents Storage)",
     "uploadSuccess": "Đã tải lên {{count}} tệp thành công",
     "uploadFailed": "Không thể tải lên tệp",
     "noUploadPermission": "Bạn không có quyền tải lên tệp vào bucket này",
@@ -269,13 +283,13 @@
     },
     "filter": "Lọc",
     "allFiles": "Tất cả tệp",
-    "bucketName": "Bucket MinIO",
+    "bucketName": "Bucket Documents",
     "displayName": "Tên hiển thị",
     "description": "Mô tả",
     "bucketNamePlaceholder": "vd: user-uploads, documents-2024",
     "displayNamePlaceholder": "vd: Tải lên của người dùng, Tài liệu công ty",
     "descriptionPlaceholder": "vd: Lưu trữ ảnh hồ sơ và tài liệu do người dùng tải lên",
-    "bucketNameHelper": "Chọn một bucket có sẵn từ máy chủ MinIO",
+    "bucketNameHelper": "Chọn một bucket có sẵn từ máy chủ Documents",
     "displayNameHelper": "Tên dễ đọc hiển thị trong bảng",
     "descriptionHelper": "Mục đích của bucket này để quản lý dễ dàng",
     "bucketNameRequired": "Tên bucket là bắt buộc",
@@ -348,7 +362,18 @@
     "lastAccess": "Lần truy cập cuối",
     "noIpHistory": "Không có lịch sử truy cập",
     "viewIpHistory": "Xem Lịch sử IP",
-    "ipHistoryTitle": "Lịch sử IP Truy cập"
+    "ipHistoryTitle": "Lịch sử IP Truy cập",
+    "roleUpdateSuccess": "Cập nhật vai trò người dùng thành công",
+    "permissionsUpdateSuccess": "Cập nhật quyền thành công",
+    "grantPermissions": "Cấp quyền",
+    "permissions": "Quyền hạn",
+    "permissionLabels": {
+      "view_chat": "Truy cập AI Chat",
+      "view_search": "Truy cập AI Search",
+      "manage_knowledge": "Truy cập Knowledge Base",
+      "manage_users": "Quản lý người dùng",
+      "view_system_monitor": "Giám sát hệ thống"
+    }
   },
   "systemTools": {
     "title": "Công cụ Giám sát Hệ thống",
@@ -468,7 +493,7 @@
   },
   "storage": {
     "title": "Lưu trữ",
-    "subtitle": "Quản lý bucket MinIO và xem thống kê",
+    "subtitle": "Quản lý bucket Documents và xem thống kê",
     "createButton": "Tạo Bucket",
     "search": {
       "placeholder": "Tìm kiếm bucket..."
@@ -570,6 +595,13 @@
     "pageInfo": "Trang {{current}} trên {{total}}",
     "permissionsTitle": "Phân quyền: {{sourceName}}",
     "publicAccess": "Truy cập toàn hệ thống",
-    "publicAccessDesc": "Cho phép tất cả người dùng đã xác thực truy cập nguồn này."
+    "publicAccessDesc": "Cho phép tất cả người dùng đã xác thực truy cập nguồn này.",
+    "publicOnlyNote": "Chỉ các nguồn công khai mới có thể được đặt làm mặc định hệ thống.",
+    "addSuccess": "Thêm nguồn thành công",
+    "updateSuccess": "Cập nhật nguồn thành công",
+    "deleteSuccess": "Xóa nguồn thành công"
+  },
+  "errors": {
+    "REAUTH_REQUIRED": "Yêu cầu xác thực lại"
   }
 }

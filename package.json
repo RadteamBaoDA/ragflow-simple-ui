@@ -23,6 +23,7 @@
   },
   "devDependencies": {
     "@types/jszip": "^3.4.0",
+    "@types/nprogress": "^0.2.3",
     "concurrently": "^9.1.0",
     "dotenv": "^16.4.5",
     "vite-plugin-top-level-await": "^1.6.0",
@@ -30,5 +31,8 @@
   },
   "engines": {
     "node": ">=18.0.0"
+  },
+  "dependencies": {
+    "nprogress": "^0.2.0"
   }
 }

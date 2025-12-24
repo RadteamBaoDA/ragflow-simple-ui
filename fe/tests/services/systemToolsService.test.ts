@@ -12,7 +12,7 @@ import {
   getSystemTools,
   reloadSystemTools,
   type SystemTool,
-} from '../../src/services/systemToolsService';
+} from '@/features/system/api/systemToolsService';
 
 // ============================================================================
 // Mock Setup

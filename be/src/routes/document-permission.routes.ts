@@ -1,9 +1,9 @@
 import { Router, Request, Response } from 'express';
-import { requireAuth, requirePermission, requireRole } from '../middleware/auth.middleware.js';
-import { documentPermissionService, PermissionLevel } from '../services/document-permission.service.js';
-import { userService } from '../services/user.service.js';
-import { log } from '../services/logger.service.js';
-import { getClientIp } from '../utils/ip.js';
+import { requireAuth, requirePermission, requireRole } from '@/middleware/auth.middleware.js';
+import { documentPermissionService, PermissionLevel } from '@/services/document-permission.service.js';
+import { userService } from '@/services/user.service.js';
+import { log } from '@/services/logger.service.js';
+import { getClientIp } from '@/utils/ip.js';
 
 const router = Router();
 

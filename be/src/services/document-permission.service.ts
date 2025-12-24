@@ -1,106 +1,101 @@
-import { query, queryOne } from '../db/index.js';
-import { log } from './logger.service.js';
-import { auditService, AuditAction, AuditResourceType } from './audit.service.js';
 
-export enum PermissionLevel {
-    NONE = 0,
-    VIEW = 1,
-    UPLOAD = 2,
-    FULL = 3
-}
+import { ModelFactory } from '@/models/factory.js';
+import { log } from '@/services/logger.service.js';
+import { auditService, AuditAction, AuditResourceType } from '@/services/audit.service.js';
+import { DocumentPermission, PermissionLevel } from '@/models/types.js';
 
-export interface DocumentPermission {
-    id: string;
-    entity_type: 'user' | 'team';
-    entity_id: string;
-    bucket_id: string;
-    permission_level: PermissionLevel;
-    created_at: string;
-    updated_at: string;
-}
+export { PermissionLevel };
 
 export class DocumentPermissionService {
-    /**
-     * Get permission level for a specific entity.
-     */
-    async getPermission(entityType: 'user' | 'team', entityId: string, bucketId: string): Promise<PermissionLevel> {
-        const result = await queryOne<{ permission_level: number }>(
-            'SELECT permission_level FROM document_permissions WHERE entity_type::text = $1::text AND entity_id::text = $2::text AND bucket_id::text = $3::text',
-            [entityType, entityId, bucketId]
-        );
-        return result?.permission_level ?? PermissionLevel.NONE;
+    async getPermission(entityType: string, entityId: string, bucketId: string): Promise<PermissionLevel> {
+        const result = await ModelFactory.documentPermission.findByEntityAndBucket(entityType, entityId, bucketId);
+        return (result?.permission_level as unknown as PermissionLevel) ?? PermissionLevel.NONE;
     }
 
-    /**
-     * Set permission level for an entity.
-     */
     async setPermission(
-        entityType: 'user' | 'team',
+        entityType: string,
         entityId: string,
         bucketId: string,
         level: PermissionLevel,
-        actor?: { id: string, email: string }
+        actor?: { id: string, email: string, ip?: string }
     ): Promise<void> {
-        await query(
-            `INSERT INTO document_permissions (entity_type, entity_id, bucket_id, permission_level, updated_at)
-             VALUES ($1, $2, $3, $4, NOW())
-             ON CONFLICT (entity_type, entity_id, bucket_id)
-             DO UPDATE SET permission_level = $4, updated_at = NOW()`,
-            [entityType, entityId, bucketId, level]
-        );
+        try {
+            const existing = await ModelFactory.documentPermission.findByEntityAndBucket(entityType, entityId, bucketId);
+            if (existing) {
+                await ModelFactory.documentPermission.update(existing.id, { permission_level: level });
+            } else {
+                await ModelFactory.documentPermission.create({
+                    entity_type: entityType,
+                    entity_id: entityId,
+                    bucket_id: bucketId,
+                    permission_level: level
+                });
+            }
 
-        if (actor) {
-            await auditService.log({
-                userId: actor.id,
-                userEmail: actor.email,
-                action: AuditAction.SET_PERMISSION,
-                resourceType: AuditResourceType.PERMISSION,
-                resourceId: `${entityType}:${entityId}:${bucketId}`,
-                details: { entityType, entityId, bucketId, level },
-            });
+            if (actor) {
+                await auditService.log({
+                    userId: actor.id,
+                    userEmail: actor.email,
+                    action: AuditAction.SET_PERMISSION,
+                    resourceType: AuditResourceType.PERMISSION,
+                    resourceId: `${entityType}:${entityId}:${bucketId}`,
+                    details: { entityType, entityId, bucketId, level },
+                    ipAddress: actor.ip,
+                });
+            }
+        } catch (error) {
+            log.error('Failed to set permission', { error: String(error) });
+            throw error;
         }
     }
 
-    /**
-     * Resolve effective permission for a user.
-     * Considers user's direct permission AND permissions of teams they lead.
-     * Members do NOT inherit team permissions.
-     */
     async resolveUserPermission(userId: string, bucketId: string): Promise<PermissionLevel> {
-        // 1. Get user's direct permission for this bucket
+        // Superuser bypass: Admins always have FULL access
+        const user = await ModelFactory.user.findById(userId);
+        if (user?.role === 'admin') {
+            return PermissionLevel.FULL;
+        }
+
         const userPerm = await this.getPermission('user', userId, bucketId);
 
-        // 2. Get permissions of teams where user is a LEADER for this bucket
-        const teamPerms = await query<{ permission_level: number }>(
-            `SELECT sp.permission_level
-             FROM document_permissions sp
-             JOIN user_teams ut ON sp.entity_id::text = ut.team_id::text
-             WHERE sp.entity_type::text = 'team'
-               AND sp.bucket_id::text = $2::text
-               AND ut.user_id::text = $1::text
-               AND ut.role::text = 'leader'`,
-            [userId, bucketId]
-        );
+        // Get teams where user is leader
+        // Assuming findByUserId returns UserTeams, need to filter by role manually or if model supports
+        const userTeams = await ModelFactory.userTeam.findAll({
+            user_id: userId, role: 'leader'
+        });
 
-        // 3. Return the maximum permission level
+        const teamIds = userTeams.map((ut: any) => ut.team_id);
+
+        if (teamIds.length === 0) return userPerm;
+
         let maxPerm = userPerm;
-        for (const p of teamPerms) {
-            if (p.permission_level > maxPerm) {
-                maxPerm = p.permission_level;
+
+        for (const teamId of teamIds) {
+            const teamPerm = await this.getPermission('team', teamId, bucketId);
+            if (teamPerm > maxPerm) {
+                maxPerm = teamPerm;
             }
         }
 
         return maxPerm;
     }
 
-    /**
-     * Get all permissions (for admin UI).
-     */
+    async getPermissions(bucketId: string): Promise<DocumentPermission[]> {
+        return ModelFactory.documentPermission.findAll({ bucket_id: bucketId });
+    }
+
+    async setPermissions(bucketId: string, permissions: any[], actor?: { id: string, email: string, ip?: string }): Promise<void> {
+        if (!Array.isArray(permissions)) return;
+
+        await Promise.all(permissions.map(p =>
+            this.setPermission(p.entityType, p.entityId, bucketId, p.level, actor)
+        ));
+    }
+
+    // Alias for controller compat if needed
     async getAllPermissions(bucketId?: string): Promise<DocumentPermission[]> {
-        if (bucketId) {
-            return query<DocumentPermission>('SELECT * FROM document_permissions WHERE bucket_id::text = $1::text', [bucketId]);
-        }
-        return query<DocumentPermission>('SELECT * FROM document_permissions');
+        if (bucketId) return this.getPermissions(bucketId);
+        return ModelFactory.documentPermission.findAll();
     }
 }
 

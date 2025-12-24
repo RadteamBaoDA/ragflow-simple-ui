@@ -15,9 +15,9 @@
  * @module db/migrations/001_initial_schema
  */
 
-import { Migration } from './types.js';
-import { DatabaseAdapter } from '../types.js';
-import { log } from '../../services/logger.service.js';
+import { Migration } from '@/db/migrations/types.js';
+import { DatabaseAdapter } from '@/db/types.js';
+import { log } from '@/services/logger.service.js';
 
 export const migration: Migration = {
     name: '001_initial_schema',
@@ -28,7 +28,7 @@ export const migration: Migration = {
         // 1. Users
         await db.query(`
             CREATE TABLE IF NOT EXISTS users (
-                id TEXT PRIMARY KEY,
+                id TEXT PRIMARY KEY DEFAULT (gen_random_uuid()::TEXT),
                 email TEXT UNIQUE NOT NULL,
                 display_name TEXT NOT NULL,
                 role TEXT NOT NULL DEFAULT 'user',
@@ -44,7 +44,7 @@ export const migration: Migration = {
         // 2. Teams
         await db.query(`
             CREATE TABLE IF NOT EXISTS teams (
-                id TEXT PRIMARY KEY,
+                id TEXT PRIMARY KEY DEFAULT (gen_random_uuid()::TEXT),
                 name TEXT NOT NULL,
                 project_name TEXT,
                 description TEXT,
@@ -71,7 +71,7 @@ export const migration: Migration = {
         // 4. Chat Sessions
         await db.query(`
             CREATE TABLE IF NOT EXISTS chat_sessions (
-                id TEXT PRIMARY KEY,
+                id TEXT PRIMARY KEY DEFAULT (gen_random_uuid()::TEXT),
                 user_id TEXT NOT NULL,
                 title TEXT NOT NULL,
                 created_at TIMESTAMP WITH TIME ZONE DEFAULT NOW(),
@@ -83,7 +83,7 @@ export const migration: Migration = {
         // 5. Chat Messages
         await db.query(`
             CREATE TABLE IF NOT EXISTS chat_messages (
-                id TEXT PRIMARY KEY,
+                id TEXT PRIMARY KEY DEFAULT (gen_random_uuid()::TEXT),
                 session_id TEXT NOT NULL,
                 role TEXT NOT NULL,
                 content TEXT NOT NULL,
@@ -95,7 +95,7 @@ export const migration: Migration = {
         // 6. MinIO Buckets
         await db.query(`
             CREATE TABLE IF NOT EXISTS minio_buckets (
-                id TEXT PRIMARY KEY,
+                id TEXT PRIMARY KEY DEFAULT (gen_random_uuid()::TEXT),
                 bucket_name TEXT NOT NULL UNIQUE,
                 display_name TEXT NOT NULL,
                 description TEXT,
@@ -118,7 +118,7 @@ export const migration: Migration = {
         // 8. Knowledge Base Sources
         await db.query(`
             CREATE TABLE IF NOT EXISTS knowledge_base_sources (
-                id TEXT PRIMARY KEY,
+                id TEXT PRIMARY KEY DEFAULT (gen_random_uuid()::TEXT),
                 type TEXT NOT NULL,
                 name TEXT NOT NULL,
                 url TEXT NOT NULL,

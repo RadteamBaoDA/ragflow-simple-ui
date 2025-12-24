@@ -3,7 +3,9 @@ import react from '@vitejs/plugin-react';
 import path from 'path';
 import fs from 'fs';
 
+// @ts-ignore
 import wasm from "vite-plugin-wasm";
+// @ts-ignore
 import topLevelAwait from "vite-plugin-top-level-await";
 
 // Helper to parse .env file
@@ -107,6 +109,12 @@ export default defineConfig(({ mode }) => {
           changeOrigin: true,
           secure: false,
         },
+      },
+      hmr: {
+        host: devDomain === 'localhost' ? 'localhost' : devDomain,
+        clientPort: devDomain === 'localhost' ? devPort : 443,
+        protocol: devDomain === 'localhost' ? (useHttps ? 'wss' : 'ws') : 'wss',
+        overlay: true
       },
     },
     define: {

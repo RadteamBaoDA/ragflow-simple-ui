@@ -51,7 +51,11 @@
     "inactive": "Inactive",
     "dismissible": "Dismissible",
     "characters": "Characters",
-    "fillRequiredFields": "Please fill in all required fields"
+    "fillRequiredFields": "Please fill in all required fields",
+    "saveSuccess": "Saved successfully",
+    "updateSuccess": "Updated successfully",
+    "deleteSuccess": "Deleted successfully",
+    "createSuccess": "Created successfully"
   },
   "dialog": {
     "confirm": "Confirm",
@@ -95,7 +99,10 @@
       "role": "Role",
       "leader": "Leader",
       "member": "Member",
-      "selectUser": "Select User"
+      "selectUser": "Select User",
+      "addMemberSuccess": "Members added successfully",
+      "addMemberError": "Failed to add member",
+      "removeMemberSuccess": "Member removed successfully"
     },
     "permissions": {
       "title": "Permission Management",
@@ -112,7 +119,11 @@
     "rootLoginTitle": "Root Login"
   },
   "admin": {
-    "broadcastMessages": "Broadcast Messages"
+    "broadcastMessages": "Broadcast Messages",
+    "broadcast": {
+      "saveSuccess": "Broadcast message saved successfully",
+      "deleteSuccess": "Broadcast message deleted successfully"
+    }
   },
   "settings": {
     "title": "Settings",
@@ -146,7 +157,10 @@
     "confirmDeleteMessage": "Are you sure you want to delete {{count}} selected session(s)? This action cannot be undone.",
     "deleteAllTitle": "Delete All History",
     "deleteAllMessage": "Are you sure you want to delete ALL chat sessions? This will permanently remove all your chat history and cannot be undone.",
-    "deleting": "Deleting..."
+    "deleting": "Deleting...",
+    "deleteSuccess": "Chat session deleted successfully",
+    "bulkDeleteSuccess": "{{count}} sessions deleted successfully",
+    "deleteAllSuccess": "All chat history cleared successfully"
   },
   "iframe": {
     "loadingChat": "Loading Chat...",
@@ -221,11 +235,11 @@
     "title": "Knowledge Base Documents",
     "noBucketSelected": "No Bucket Selected",
     "selectBucketPrompt": "Please select a bucket from the top right to view files.",
-    "selectBucketPlaceholder": "Select a bucket from MinIO",
+    "selectBucketPlaceholder": "Select a bucket from Documents",
     "emptyBucket": "No documents found",
     "uploadPrompt": "Upload files to get started.",
     "createBucket": "Add Bucket Configuration",
-    "deleteBucketConfirm": "Are you sure you want to remove this bucket configuration? (The bucket will remain in MinIO)",
+    "deleteBucketConfirm": "Are you sure you want to remove this bucket configuration? (The bucket will remain in Documents Storage)",
     "uploadSuccess": "Uploaded {{count}} file(s) successfully",
     "uploadFailed": "Failed to upload files",
     "noUploadPermission": "You don't have permission to upload files to this bucket",
@@ -270,13 +284,13 @@
     },
     "filter": "Filter",
     "allFiles": "All Files",
-    "bucketName": "MinIO Bucket",
+    "bucketName": "Documents Bucket",
     "displayName": "Display Name",
     "description": "Description",
     "bucketNamePlaceholder": "e.g. user-uploads, documents-2024",
     "displayNamePlaceholder": "e.g. User Uploads, Company Docs",
     "descriptionPlaceholder": "e.g. Stores user profile pictures and documents",
-    "bucketNameHelper": "Name of the existing bucket on MinIO server",
+    "bucketNameHelper": "Name of the existing bucket on Documents server",
     "displayNameHelper": "Human-readable name shown in the table",
     "descriptionHelper": "Purpose of this bucket for easier management",
     "bucketNameRequired": "Bucket name is required",
@@ -349,7 +363,18 @@
     "lastAccess": "Last Access",
     "noIpHistory": "No access history",
     "viewIpHistory": "View IP History",
-    "ipHistoryTitle": "Access IP History"
+    "ipHistoryTitle": "Access IP History",
+    "roleUpdateSuccess": "User role updated successfully",
+    "permissionsUpdateSuccess": "Permissions updated successfully",
+    "grantPermissions": "Grant Permissions",
+    "permissions": "Permissions",
+    "permissionLabels": {
+      "view_chat": "AI Chat Access",
+      "view_search": "AI Search Access",
+      "manage_knowledge": "Knowledge Base Access",
+      "manage_users": "Manage Users",
+      "view_system_monitor": "System Monitor"
+    }
   },
   "systemTools": {
     "title": "System Monitoring Tools",
@@ -469,7 +494,7 @@
   },
   "storage": {
     "title": "Storages",
-    "subtitle": "Manage MinIO buckets and view statistics",
+    "subtitle": "Manage Documents buckets and view statistics",
     "createButton": "Create Bucket",
     "search": {
       "placeholder": "Search buckets..."
@@ -571,6 +596,13 @@
     "pageInfo": "Page {{current}} of {{total}}",
     "permissionsTitle": "Permissions: {{sourceName}}",
     "publicAccess": "System-wide Access",
-    "publicAccessDesc": "Allow all authenticated users to access this source."
+    "publicAccessDesc": "Allow all authenticated users to access this source.",
+    "publicOnlyNote": "Only public sources can be set as system defaults.",
+    "addSuccess": "Source added successfully",
+    "updateSuccess": "Source updated successfully",
+    "deleteSuccess": "Source deleted successfully"
+  },
+  "errors": {
+    "REAUTH_REQUIRED": "Re-authentication required"
   }
 }

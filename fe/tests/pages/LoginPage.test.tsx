@@ -12,7 +12,7 @@ import { describe, it, expect, vi, beforeEach } from 'vitest';
 import { render, screen, waitFor } from '@testing-library/react';
 import userEvent from '@testing-library/user-event';
 import { MemoryRouter, Routes, Route } from 'react-router-dom';
-import LoginPage from '../../src/pages/LoginPage';
+import LoginPage from '@/features/auth/pages/LoginPage';
 
 // ============================================================================
 // Mocks
@@ -20,14 +20,21 @@ import LoginPage from '../../src/pages/LoginPage';
 
 // Mock useAuth hook
 const mockUseAuth = vi.fn();
-vi.mock('../../src/hooks/useAuth', () => ({
+vi.mock('@/features/auth/hooks/useAuth', () => ({
   useAuth: () => mockUseAuth(),
 }));
 
 // Mock useSettings hook
 const mockUseSettings = vi.fn();
-vi.mock('../../src/contexts/SettingsContext', () => ({
+vi.mock('@/app/contexts/SettingsContext', () => ({
   useSettings: () => mockUseSettings(),
+}));
+
+// Mock broadcastMessageService - try both alias and relative just in case
+vi.mock('@/features/broadcast/api/broadcastMessageService', () => ({
+  broadcastMessageService: {
+    getActiveMessages: vi.fn().mockResolvedValue([]),
+  },
 }));
 
 // Mock useNavigate
@@ -101,9 +108,23 @@ describe('LoginPage', () => {
     vi.clearAllMocks();
     document.documentElement.classList.remove('dark');
     // Mock fetch for auth config
-    global.fetch = vi.fn().mockResolvedValue({
-      ok: true,
-      json: () => Promise.resolve({ enableRootLogin: false }),
+    global.fetch = vi.fn().mockImplementation((url) => {
+      if (url.includes('/api/auth/config')) {
+        return Promise.resolve({
+          ok: true,
+          json: () => Promise.resolve({ enableRootLogin: false }),
+        });
+      }
+      if (url.includes('/api/broadcast-messages/active')) {
+        return Promise.resolve({
+          ok: true,
+          json: () => Promise.resolve([]),
+        });
+      }
+      return Promise.resolve({
+          ok: true,
+          json: () => Promise.resolve({}),
+      });
     });
   });
 
@@ -192,17 +213,36 @@ describe('LoginPage', () => {
   describe('root login', () => {
     beforeEach(() => {
       // Enable root login in config
-      global.fetch = vi.fn().mockResolvedValue({
-        ok: true,
-        json: () => Promise.resolve({ enableRootLogin: true }),
+      global.fetch = vi.fn().mockImplementation((url) => {
+        if (url.includes('/api/auth/config')) {
+          return Promise.resolve({
+            ok: true,
+            json: () => Promise.resolve({ enableRootLogin: true }),
+          });
+        }
+        if (url.includes('/api/broadcast-messages/active')) {
+          return Promise.resolve({
+            ok: true,
+            json: () => Promise.resolve([]),
+          });
+        }
+        return Promise.resolve({ ok: true, json: () => Promise.resolve({}) });
       });
     });
 
     it('should not show root login button by default', () => {
       // With enableRootLogin: false
-      global.fetch = vi.fn().mockResolvedValue({
-        ok: true,
-        json: () => Promise.resolve({ enableRootLogin: false }),
+      global.fetch = vi.fn().mockImplementation((url) => {
+          if (url.includes('/api/auth/config')) {
+            return Promise.resolve({
+              ok: true,
+              json: () => Promise.resolve({ enableRootLogin: false }),
+            });
+          }
+           if (url.includes('/api/broadcast-messages/active')) {
+             return Promise.resolve({ ok: true, json: () => Promise.resolve([]) });
+           }
+          return Promise.resolve({ ok: true, json: () => Promise.resolve({}) });
       });
 
       renderLoginPage();
@@ -312,9 +352,20 @@ describe('LoginPage', () => {
       await user.type(passwordInput, 'password');
 
       // Mock successful login response
-      global.fetch = vi.fn().mockResolvedValueOnce({
-        ok: true,
-        json: () => Promise.resolve({ success: true }),
+      global.fetch = vi.fn().mockImplementation((url, options) => {
+        if (url.includes('/api/auth/login/root')) {
+           return Promise.resolve({
+             ok: true,
+             json: () => Promise.resolve({ success: true }),
+           });
+        }
+        if (url.includes('/api/broadcast-messages/active')) {
+            return Promise.resolve({ ok: true, json: () => Promise.resolve([]) });
+        }
+        if (url.includes('/api/auth/config')) {
+            return Promise.resolve({ ok: true, json: () => Promise.resolve({ enableRootLogin: true }) });
+        }
+        return Promise.resolve({ ok: true, json: () => Promise.resolve({}) });
       });
 
       // Click login button
@@ -344,9 +395,20 @@ describe('LoginPage', () => {
       });
 
       // Mock failed login response
-      global.fetch = vi.fn().mockResolvedValueOnce({
-        ok: false,
-        json: () => Promise.resolve({ error: 'Invalid credentials' }),
+      global.fetch = vi.fn().mockImplementation((url) => {
+          if (url.includes('/api/auth/login/root')) {
+             return Promise.resolve({
+                ok: false,
+                json: () => Promise.resolve({ error: 'Invalid credentials' }),
+             });
+          }
+          if (url.includes('/api/broadcast-messages/active')) {
+             return Promise.resolve({ ok: true, json: () => Promise.resolve([]) });
+          }
+          if (url.includes('/api/auth/config')) {
+             return Promise.resolve({ ok: true, json: () => Promise.resolve({ enableRootLogin: true }) });
+          }
+          return Promise.resolve({ ok: true, json: () => Promise.resolve({}) });
       });
 
       // Click login button
@@ -376,10 +438,21 @@ describe('LoginPage', () => {
       });
 
       // Mock failed login response without error message
-      global.fetch = vi.fn().mockResolvedValueOnce({
-        ok: false,
-        json: () => Promise.resolve({}),
-      });
+       global.fetch = vi.fn().mockImplementation((url) => {
+           if (url.includes('/api/auth/login/root')) {
+              return Promise.resolve({
+                 ok: false,
+                 json: () => Promise.resolve({}),
+              });
+           }
+           if (url.includes('/api/broadcast-messages/active')) {
+              return Promise.resolve({ ok: true, json: () => Promise.resolve([]) });
+           }
+           if (url.includes('/api/auth/config')) {
+              return Promise.resolve({ ok: true, json: () => Promise.resolve({ enableRootLogin: true }) });
+           }
+           return Promise.resolve({ ok: true, json: () => Promise.resolve({}) });
+       });
 
       // Click login button
       const loginButton = screen.getByRole('button', { name: /common.login/i });
@@ -408,7 +481,18 @@ describe('LoginPage', () => {
       });
 
       // Mock network failure
-      global.fetch = vi.fn().mockRejectedValueOnce(new Error('Network error'));
+      global.fetch = vi.fn().mockImplementation((url) => {
+         if (url.includes('/api/auth/login/root')) {
+             return Promise.reject(new Error('Network error'));
+         }
+         if (url.includes('/api/broadcast-messages/active')) {
+             return Promise.resolve({ ok: true, json: () => Promise.resolve([]) });
+         }
+         if (url.includes('/api/auth/config')) {
+             return Promise.resolve({ ok: true, json: () => Promise.resolve({ enableRootLogin: true }) });
+         }
+         return Promise.resolve({ ok: true, json: () => Promise.resolve({}) });
+      });
 
       // Click login button
       const loginButton = screen.getByRole('button', { name: /common.login/i });
@@ -494,7 +578,15 @@ describe('LoginPage', () => {
 
   describe('fetch config error handling', () => {
     it('should handle config fetch failure gracefully', async () => {
-      global.fetch = vi.fn().mockRejectedValue(new Error('Failed'));
+      global.fetch = vi.fn().mockImplementation((url) => {
+          if (url.includes('/api/auth/config')) {
+             return Promise.reject(new Error('Failed'));
+          }
+          if (url.includes('/api/broadcast-messages/active')) {
+             return Promise.resolve({ ok: true, json: () => Promise.resolve([]) });
+          }
+          return Promise.resolve({ ok: true, json: () => Promise.resolve({}) });
+      });
 
       renderLoginPage();
 
@@ -505,9 +597,17 @@ describe('LoginPage', () => {
     });
 
     it('should handle non-ok config response', async () => {
-      global.fetch = vi.fn().mockResolvedValue({
-        ok: false,
-        json: () => Promise.resolve({ error: 'Server error' }),
+      global.fetch = vi.fn().mockImplementation((url) => {
+          if (url.includes('/api/auth/config')) {
+             return Promise.resolve({
+               ok: false,
+               json: () => Promise.resolve({ error: 'Server error' }),
+             });
+          }
+          if (url.includes('/api/broadcast-messages/active')) {
+             return Promise.resolve({ ok: true, json: () => Promise.resolve([]) });
+          }
+          return Promise.resolve({ ok: true, json: () => Promise.resolve({}) });
       });
 
       renderLoginPage();

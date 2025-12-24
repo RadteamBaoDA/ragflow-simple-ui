@@ -10,7 +10,7 @@
  */
 
 import { describe, it, expect, beforeEach, afterEach, vi } from 'vitest';
-import { api, apiFetch, AuthenticationError } from '../../src/lib/api';
+import { api, apiFetch, AuthenticationError } from '@/lib/api';
 
 // ============================================================================
 // Helper Functions

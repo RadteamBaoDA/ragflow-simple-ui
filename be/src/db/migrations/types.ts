@@ -7,7 +7,7 @@
  * @module db/migrations/types
  */
 
-import { DatabaseAdapter } from '../types.js';
+import { DatabaseAdapter } from '@/db/types.js';
 
 /**
  * Database migration interface.
@@ -36,7 +36,7 @@ export interface Migration {
      * Used to track which migrations have been applied.
      */
     name: string;
-    
+
     /**
      * Apply the migration (forward migration).
      * Creates tables, adds columns, creates indexes, etc.
@@ -44,7 +44,7 @@ export interface Migration {
      * @param db - Database adapter for executing queries
      */
     up(db: DatabaseAdapter): Promise<void>;
-    
+
     /**
      * Reverse the migration (rollback).
      * Drops tables, removes columns, removes indexes, etc.

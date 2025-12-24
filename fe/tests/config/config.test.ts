@@ -9,7 +9,7 @@
  */
 
 import { describe, it, expect } from 'vitest';
-import { config } from '../../src/config';
+import { config } from '@/config';
 
 // ============================================================================
 // Helper Function Tests

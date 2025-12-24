@@ -19,10 +19,10 @@
  * const user = await queryOne<User>('SELECT * FROM users WHERE id = $1', [userId]);
  */
 
-import { config } from '../config/index.js';
-import { PostgreSQLAdapter } from './adapters/postgresql.js';
-import { DatabaseAdapter } from './types.js';
-import { log } from '../services/logger.service.js';
+import { config } from '@/config/index.js';
+import { PostgreSQLAdapter } from '@/db/adapters/postgresql.js';
+import { DatabaseAdapter } from '@/db/types.js';
+import { log } from '@/services/logger.service.js';
 
 /** Singleton database adapter instance */
 let adapter: DatabaseAdapter | null = null;

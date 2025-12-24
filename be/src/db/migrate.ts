@@ -10,7 +10,7 @@
  * @module db/migrate
  */
 
-import { getPool, closePool } from './index.js';
+import { getPool, closePool } from '@/db/index.js';
 
 /**
  * Legacy migration definitions.
@@ -74,13 +74,13 @@ const migrations = [
  */
 async function runMigrations(): Promise<void> {
   const pool = getPool() as { query: (text: string, params?: any[]) => Promise<{ rows: any[] }> } | null;
-  
+
   if (!pool) {
     throw new Error('Database pool not initialized. This script is deprecated - use npm run db:migrate instead.');
   }
-  
+
   console.log('🔄 Running database migrations...');
-  
+
   // Ensure migrations tracking table exists first
   await pool.query(`
     CREATE TABLE IF NOT EXISTS migrations (
@@ -89,7 +89,7 @@ async function runMigrations(): Promise<void> {
       executed_at TIMESTAMP WITH TIME ZONE DEFAULT NOW()
     );
   `);
-  
+
   // Process each migration
   for (const migration of migrations) {
     // Check if migration has already been executed
@@ -97,11 +97,11 @@ async function runMigrations(): Promise<void> {
       'SELECT name FROM migrations WHERE name = $1',
       [migration.name]
     );
-    
+
     if (result.rows.length === 0) {
       // Migration not yet run - execute it
       console.log(`  ⏳ Running migration: ${migration.name}`);
-      
+
       try {
         await pool.query(migration.up);
         // Record successful migration
@@ -119,7 +119,7 @@ async function runMigrations(): Promise<void> {
       console.log(`  ⏭️  Skipping: ${migration.name} (already executed)`);
     }
   }
-  
+
   console.log('✅ All migrations completed!');
 }
 

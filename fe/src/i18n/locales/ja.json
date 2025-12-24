@@ -50,7 +50,11 @@
     "inactive": "無効",
     "dismissible": "非表示可能",
     "characters": "文字",
-    "fillRequiredFields": "必須項目を入力してください"
+    "fillRequiredFields": "必須項目を入力してください",
+    "saveSuccess": "正常に保存されました",
+    "updateSuccess": "正常に更新されました",
+    "deleteSuccess": "正常に削除されました",
+    "createSuccess": "正常に作成されました"
   },
   "dialog": {
     "confirm": "確認",
@@ -94,7 +98,10 @@
       "role": "役割",
       "leader": "リーダー",
       "member": "メンバー",
-      "selectUser": "ユーザーを選択"
+      "selectUser": "ユーザーを選択",
+      "addMemberSuccess": "メンバーを正常に追加しました",
+      "addMemberError": "メンバーの追加に失敗しました",
+      "removeMemberSuccess": "メンバーを正常に削除しました"
     },
     "permissions": {
       "title": "権限管理",
@@ -111,7 +118,11 @@
     "rootLoginTitle": "Rootログイン"
   },
   "admin": {
-    "broadcastMessages": "一斉通知管理"
+    "broadcastMessages": "一斉通知管理",
+    "broadcast": {
+      "saveSuccess": "一斉通知が正常に保存されました",
+      "deleteSuccess": "一斉通知が正常に削除されました"
+    }
   },
   "settings": {
     "title": "設定",
@@ -145,7 +156,10 @@
     "confirmDeleteMessage": "選択した{{count}}件のセッションを削除してもよろしいですか？この操作は元に戻せません。",
     "deleteAllTitle": "すべての履歴を削除",
     "deleteAllMessage": "すべてのチャットセッションを削除してもよろしいですか？これにより、すべてのチャット履歴が完全に削除され、元に戻すことはできません。",
-    "deleting": "削除中..."
+    "deleting": "削除中...",
+    "deleteSuccess": "チャットセッションが正常に削除されました",
+    "bulkDeleteSuccess": "{{count}}件のセッションが正常に削除されました",
+    "deleteAllSuccess": "すべてのチャット履歴が正常に削除されました"
   },
   "iframe": {
     "loadingChat": "AIチャットを読み込み中...",
@@ -220,11 +234,11 @@
     "title": "ナレッジベースドキュメント",
     "noBucketSelected": "バケットが選択されていません",
     "selectBucketPrompt": "ファイルを表示するには、右上のバケットを選択してください。",
-    "selectBucketPlaceholder": "MinIOからバケットを選択",
+    "selectBucketPlaceholder": "Documentsからバケットを選択",
     "emptyBucket": "ドキュメントが見つかりません",
     "uploadPrompt": "ファイルをアップロードして開始します。",
     "createBucket": "バケット設定を追加",
-    "deleteBucketConfirm": "このバケット設定を削除してもよろしいですか？（バケットはMinIOに残ります）",
+    "deleteBucketConfirm": "このバケット設定を削除してもよろしいですか？（バケットはDocuments Storageに残ります）",
     "uploadSuccess": "{{count}}個のファイルを正常にアップロードしました",
     "uploadFailed": "ファイルのアップロードに失敗しました",
     "noUploadPermission": "このバケットにファイルをアップロードする権限がありません",
@@ -269,13 +283,13 @@
     },
     "filter": "フィルター",
     "allFiles": "すべてのファイル",
-    "bucketName": "MinIOバケット",
+    "bucketName": "Documentsバケット",
     "displayName": "表示名",
     "description": "説明",
     "bucketNamePlaceholder": "例: user-uploads, documents-2024",
     "displayNamePlaceholder": "例: ユーザーアップロード、会社ドキュメント",
     "descriptionPlaceholder": "例: ユーザーがアップロードしたプロフィール画像とドキュメントを保存",
-    "bucketNameHelper": "MinIOサーバーから既存のバケットを選択",
+    "bucketNameHelper": "Documentsサーバーから既存のバケットを選択",
     "displayNameHelper": "テーブルに表示される人間が読める名前",
     "descriptionHelper": "管理を容易にするためのこのバケットの目的",
     "bucketNameRequired": "バケット名は必須です",
@@ -348,7 +362,18 @@
     "lastAccess": "最終アクセス",
     "noIpHistory": "アクセス履歴がありません",
     "viewIpHistory": "IP履歴を表示",
-    "ipHistoryTitle": "アクセスIP履歴"
+    "ipHistoryTitle": "アクセスIP履歴",
+    "roleUpdateSuccess": "ユーザーの役割が正常に更新されました",
+    "permissionsUpdateSuccess": "権限が正常に更新されました",
+    "grantPermissions": "権限の付与",
+    "permissions": "権限",
+    "permissionLabels": {
+      "view_chat": "AIチャットへのアクセス",
+      "view_search": "AI検索へのアクセス",
+      "manage_knowledge": "ナレッジベースへのアクセス",
+      "manage_users": "ユーザー管理",
+      "view_system_monitor": "システムモニター"
+    }
   },
   "systemTools": {
     "title": "システム監視ツール",
@@ -468,7 +493,7 @@
   },
   "storage": {
     "title": "ストレージ",
-    "subtitle": "MinIOバケットの管理と統計の表示",
+    "subtitle": "Documentsバケットの管理と統計の表示",
     "createButton": "バケット作成",
     "stats": {
       "totalBuckets": "総バケット数",
@@ -556,6 +581,13 @@
     "pageInfo": "ページ {{current}} / {{total}}",
     "permissionsTitle": "権限: {{sourceName}}",
     "publicAccess": "システム全体へのアクセス",
-    "publicAccessDesc": "すべての認証済みユーザーにこのソースへのアクセスを許可します。"
+    "publicAccessDesc": "すべての認証済みユーザーにこのソースへのアクセスを許可します。",
+    "publicOnlyNote": "パブリックソースのみをシステムデフォルトとして設定できます。",
+    "addSuccess": "ソースが正常に追加されました",
+    "updateSuccess": "ソースが正常に更新されました",
+    "deleteSuccess": "ソースが正常に削除されました"
+  },
+  "errors": {
+    "REAUTH_REQUIRED": "再認証が必要です"
   }
 }

@@ -3,10 +3,10 @@
  */
 
 import { Router, Request, Response } from 'express';
-import { broadcastMessageService } from '../services/broadcast-message.service.js';
-import { log } from '../services/logger.service.js';
-import { requirePermission } from '../middleware/auth.middleware.js';
-import { getClientIp } from '../utils/ip.js';
+import { broadcastMessageService } from '@/services/broadcast-message.service.js';
+import { log } from '@/services/logger.service.js';
+import { requirePermission } from '@/middleware/auth.middleware.js';
+import { getClientIp } from '@/utils/ip.js';
 
 const router = Router();
 

@@ -2,9 +2,9 @@
  * @fileoverview Service for managing broadcast messages.
  */
 
-import { getAdapter } from '../db/index.js';
-import { log } from './logger.service.js';
-import { auditService, AuditAction, AuditResourceType } from './audit.service.js';
+import { getAdapter } from '@/db/index.js';
+import { log } from '@/services/logger.service.js';
+import { auditService, AuditAction, AuditResourceType } from '@/services/audit.service.js';
 
 export interface BroadcastMessage {
     id: string;

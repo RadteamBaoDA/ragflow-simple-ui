@@ -50,7 +50,10 @@ export type Permission =
     | 'view_history'
     | 'manage_users'
     | 'manage_system'
+    | 'manage_knowledge_base'
     | 'view_analytics'
+    | 'view_system_tools'
+    | 'manage_storage'
     | 'storage:read'
     | 'storage:write'
     | 'storage:delete';
@@ -99,7 +102,10 @@ export const ROLE_PERMISSIONS: Record<Role, Permission[]> = {
         'view_history',
         'manage_users',
         'manage_system',
+        'manage_knowledge_base',
+        'manage_storage',
         'view_analytics',
+        'view_system_tools',
         'storage:read',
         'storage:write',
         'storage:delete',
@@ -111,8 +117,7 @@ export const ROLE_PERMISSIONS: Record<Role, Permission[]> = {
         'view_history',
         'manage_users', // Leaders can view/edit users but maybe restricted (logic in service)
         'view_analytics',
-        'storage:read',
-        'storage:write',
+        'view_system_tools',
     ],
     /** Regular user has basic content access */
     user: [
@@ -141,6 +146,7 @@ export const ROLE_PERMISSIONS: Record<Role, Permission[]> = {
  * hasPermission('user', 'manage_system'); // false
  */
 export const hasPermission = (userRole: string, permission: Permission): boolean => {
+    if (userRole === 'admin') return true;
     const role = userRole as Role;
     const permissions = ROLE_PERMISSIONS[role] || [];
     return permissions.includes(permission);

@@ -19,11 +19,11 @@
  */
 
 import { Router, Request, Response, NextFunction } from 'express';
-import { userService } from '../services/user.service.js';
-import { log } from '../services/logger.service.js';
-import { requireAuth, requirePermission, requireOwnership, requireRecentAuth, REAUTH_REQUIRED_ERROR } from '../middleware/auth.middleware.js';
-import { auditService, AuditAction, AuditResourceType } from '../services/audit.service.js';
-import { isAdminRole } from '../config/rbac.js';
+import { userService } from '@/services/user.service.js';
+import { log } from '@/services/logger.service.js';
+import { requireAuth, requirePermission, requireOwnership, requireRecentAuth, REAUTH_REQUIRED_ERROR } from '@/middleware/auth.middleware.js';
+import { auditService, AuditAction, AuditResourceType } from '@/services/audit.service.js';
+import { isAdminRole } from '@/config/rbac.js';
 
 const router = Router();
 
