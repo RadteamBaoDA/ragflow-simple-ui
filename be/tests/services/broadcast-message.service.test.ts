@@ -71,15 +71,22 @@ describe('BroadcastMessageService', () => {
     describe('deleteMessage', () => {
         it('should delete message and log audit event when user is provided', async () => {
             const user = { id: 'user1', email: 'user1@example.com' };
-            mockDb.query.mockResolvedValue([{ rowCount: 1 }]); // Simulating delete result
+            const message = { id: 'msg1', message: 'Message to delete' };
+
+            // Mock find then delete
+            mockDb.query
+                .mockResolvedValueOnce([message]) // Fetch message
+                .mockResolvedValueOnce([{ rowCount: 1 }]); // Delete result
 
             await broadcastMessageService.deleteMessage('msg1', user);
 
+            expect(mockDb.query).toHaveBeenCalledWith('SELECT * FROM broadcast_messages WHERE id = $1', ['msg1']);
             expect(mockDb.query).toHaveBeenCalledWith('DELETE FROM broadcast_messages WHERE id = $1', ['msg1']);
             expect(auditService.log).toHaveBeenCalledWith(expect.objectContaining({
                 userId: user.id,
                 action: 'delete_broadcast',
-                resourceId: 'msg1'
+                resourceId: 'msg1',
+                details: { message: 'Message to delete' }
             }));
         });
     });

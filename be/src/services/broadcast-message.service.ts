@@ -234,6 +234,10 @@ export class BroadcastMessageService {
     async deleteMessage(id: string, user?: { id: string, email: string }): Promise<boolean> {
         const db = await getAdapter();
         try {
+            // Fetch message before deletion
+            const messages = await db.query<BroadcastMessage>('SELECT * FROM broadcast_messages WHERE id = $1', [id]);
+            const message = messages[0];
+
             const result = await db.query('DELETE FROM broadcast_messages WHERE id = $1', [id]);
 
             if (user) {
@@ -243,6 +247,7 @@ export class BroadcastMessageService {
                     action: AuditAction.DELETE_BROADCAST,
                     resourceType: AuditResourceType.BROADCAST_MESSAGE,
                     resourceId: id,
+                    details: { message: message?.message },
                 });
             }
 

@@ -68,10 +68,15 @@ describe('KnowledgeBaseService', () => {
     describe('deleteSource', () => {
         it('should delete source and log audit event when user is provided', async () => {
             const user = { id: 'user1', email: 'user1@example.com' };
+            vi.mocked(db.queryOne).mockResolvedValue({ name: 'Source to delete' } as any);
             vi.mocked(db.query).mockResolvedValue({} as any);
 
             await knowledgeBaseService.deleteSource('source1', user);
 
+            expect(db.queryOne).toHaveBeenCalledWith(
+                expect.stringContaining('SELECT name FROM knowledge_base_sources'),
+                ['source1']
+            );
             expect(db.query).toHaveBeenCalledWith(
                 'DELETE FROM knowledge_base_sources WHERE id = $1',
                 ['source1']
@@ -79,7 +84,8 @@ describe('KnowledgeBaseService', () => {
             expect(auditService.log).toHaveBeenCalledWith(expect.objectContaining({
                 userId: user.id,
                 action: 'delete_source',
-                resourceId: 'source1'
+                resourceId: 'source1',
+                details: { name: 'Source to delete' }
             }));
         });
     });

@@ -139,6 +139,9 @@ export class TeamService {
      * Delete a team.
      */
     async deleteTeam(id: string, user?: { id: string, email: string }): Promise<void> {
+        // Fetch team details before deletion for audit logging
+        const team = await this.getTeam(id);
+
         await query('DELETE FROM teams WHERE id = $1', [id]);
 
         if (user) {
@@ -148,6 +151,7 @@ export class TeamService {
                 action: AuditAction.DELETE_TEAM,
                 resourceType: AuditResourceType.TEAM,
                 resourceId: id,
+                details: { teamName: team?.name },
             });
         }
     }

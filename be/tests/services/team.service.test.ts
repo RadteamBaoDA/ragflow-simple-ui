@@ -53,15 +53,21 @@ describe('TeamService', () => {
     describe('deleteTeam', () => {
         it('should delete team and log audit event when user is provided', async () => {
             const user = { id: 'user1', email: 'user1@example.com' };
+            const team = { id: 'team1', name: 'Team to Delete' };
+
+            // Mock getTeam (which calls queryOne)
+            vi.mocked(queryOne).mockResolvedValueOnce(team as any);
             vi.mocked(query).mockResolvedValue({} as any);
 
             await teamService.deleteTeam('team1', user);
 
+            expect(queryOne).toHaveBeenCalledWith(expect.stringContaining('SELECT * FROM teams WHERE id ='), ['team1']);
             expect(query).toHaveBeenCalledWith('DELETE FROM teams WHERE id = $1', ['team1']);
             expect(auditService.log).toHaveBeenCalledWith(expect.objectContaining({
                 userId: user.id,
                 action: 'delete_team',
-                resourceId: 'team1'
+                resourceId: 'team1',
+                details: { teamName: 'Team to Delete' }
             }));
         });
     });

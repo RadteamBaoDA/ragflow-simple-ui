@@ -245,6 +245,8 @@ class KnowledgeBaseService {
      * Delete a source.
      */
     async deleteSource(id: string, user?: { id: string, email: string }): Promise<void> {
+        const source = await db.queryOne<{ name: string }>('SELECT name FROM knowledge_base_sources WHERE id = $1', [id]);
+
         await db.query('DELETE FROM knowledge_base_sources WHERE id = $1', [id]);
 
         if (user) {
@@ -254,6 +256,7 @@ class KnowledgeBaseService {
                 action: AuditAction.DELETE_SOURCE,
                 resourceType: AuditResourceType.KNOWLEDGE_BASE_SOURCE,
                 resourceId: id,
+                details: { name: source?.name },
             });
         }
 
