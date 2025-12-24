@@ -1,12 +1,12 @@
 
 import { Router } from 'express';
 import { KnowledgeBaseController } from '@/controllers/knowledge-base.controller.js';
-import { requirePermission } from '@/middleware/auth.middleware.js';
+import { requirePermission, requireAuth } from '@/middleware/auth.middleware.js';
 
 const router = Router();
 const controller = new KnowledgeBaseController();
 
-router.get('/config', controller.getConfig.bind(controller));
+router.get('/config', requireAuth, controller.getConfig.bind(controller));
 router.post('/config', requirePermission('manage_knowledge_base'), controller.updateConfig.bind(controller));
 router.get('/sources', requirePermission('manage_knowledge_base'), controller.getSources.bind(controller));
 router.post('/sources', requirePermission('manage_knowledge_base'), controller.createSource.bind(controller));

@@ -43,7 +43,17 @@ function LogoutPage() {
    * The backend handles session cleanup and Azure AD logout.
    */
   useEffect(() => {
-    window.location.href = '/api/auth/logout';
+    const performLogout = async () => {
+      try {
+        await fetch('/api/auth/logout', { method: 'POST', credentials: 'include' });
+      } catch (error) {
+        console.error('Logout failed', error);
+      } finally {
+        // Redirect to login page after logout attempt
+        window.location.href = '/login';
+      }
+    };
+    performLogout();
   }, []);
 
   return (

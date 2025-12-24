@@ -1,8 +1,10 @@
 
 import { ModelFactory } from '@/models/factory.js';
+import { db } from '@/db/knex.js'; // Added import
 import { log } from '@/services/logger.service.js';
 import { auditService, AuditAction, AuditResourceType } from '@/services/audit.service.js';
 import { KnowledgeBaseSource } from '@/models/types.js';
+import { teamService } from '@/services/team.service.js'; // Added import
 
 export interface AccessControl {
     public: boolean;
@@ -22,6 +24,51 @@ export class KnowledgeBaseService {
 
     async getAllSources(): Promise<KnowledgeBaseSource[]> {
         return this.getSources();
+    }
+
+    /**
+     * Get sources available to a specific user based on ACL.
+     * Admins see all sources.
+     * Regular users see public sources and those they have explicit access to.
+     */
+    async getAvailableSources(user?: any): Promise<KnowledgeBaseSource[]> {
+        // If no user, only return public sources
+        if (!user) {
+            const sources = await ModelFactory.knowledgeBaseSource.findAll();
+            return sources.filter(s => {
+                const ac = typeof s.access_control === 'string' ? JSON.parse(s.access_control) : s.access_control;
+                return ac?.public === true;
+            });
+        }
+
+        // Admins see everything
+        if (user.role === 'admin') {
+            return this.getSources();
+        }
+
+        // Get user's teams
+        const userTeams = await teamService.getUserTeams(user.id);
+        const teamIds = userTeams.map(t => t.id);
+
+        // Fetch all sources and filter in code for simplicity with JSONB handling
+        // OR use a raw knex query for better performance if many sources
+        const allSources = await ModelFactory.knowledgeBaseSource.findAll();
+
+        return allSources.filter(s => {
+            const ac = typeof s.access_control === 'string' ? JSON.parse(s.access_control) : s.access_control;
+            if (!ac) return false;
+
+            // 1. Public access
+            if (ac.public === true) return true;
+
+            // 2. Individual user access
+            if (ac.user_ids && Array.isArray(ac.user_ids) && ac.user_ids.includes(user.id)) return true;
+
+            // 3. Team access
+            if (ac.team_ids && Array.isArray(ac.team_ids) && teamIds.some(tid => ac.team_ids.includes(tid))) return true;
+
+            return false;
+        }).sort((a, b) => a.name.localeCompare(b.name));
     }
 
     async getSourcesPaginated(type: string, page: number, limit: number): Promise<any> {
@@ -151,15 +198,14 @@ export class KnowledgeBaseService {
     }
 
     async getConfig(user?: any): Promise<any> {
-        const chatSources = await this.getSources();
-        const searchSources = await this.getSources();
+        const availableSources = await this.getAvailableSources(user);
 
         const defaultChatSourceId = await ModelFactory.systemConfig.findById('defaultChatSourceId');
         const defaultSearchSourceId = await ModelFactory.systemConfig.findById('defaultSearchSourceId');
 
         return {
-            chatSources: chatSources.filter(s => s.type === 'chat'),
-            searchSources: searchSources.filter(s => s.type === 'search'),
+            chatSources: availableSources.filter(s => s.type === 'chat'),
+            searchSources: availableSources.filter(s => s.type === 'search'),
             defaultChatSourceId: defaultChatSourceId?.value || '',
             defaultSearchSourceId: defaultSearchSourceId?.value || ''
         };

@@ -50,6 +50,12 @@ export class DocumentPermissionService {
     }
 
     async resolveUserPermission(userId: string, bucketId: string): Promise<PermissionLevel> {
+        // Superuser bypass: Admins always have FULL access
+        const user = await ModelFactory.user.findById(userId);
+        if (user?.role === 'admin') {
+            return PermissionLevel.FULL;
+        }
+
         const userPerm = await this.getPermission('user', userId, bucketId);
 
         // Get teams where user is leader

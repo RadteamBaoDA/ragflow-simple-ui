@@ -2,18 +2,9 @@
 import { Request, Response, NextFunction } from 'express';
 import { log } from '@/services/logger.service.js';
 import { User } from '@/models/types.js';
+import { hasPermission, Role, Permission, ADMIN_ROLES } from '@/config/rbac.js';
 
-export type Role = 'admin' | 'leader' | 'user';
-export type Permission = string;
-export const ADMIN_ROLES: Role[] = ['admin'];
 export const REAUTH_REQUIRED_ERROR = 'REAUTH_REQUIRED';
-
-export function hasPermission(role: string, permission: Permission): boolean {
-  if (role === 'admin') return true;
-  if (role === 'leader' && (permission.startsWith('view_') || permission === 'manage_users')) return true;
-  if (role === 'user' && permission.startsWith('view_')) return true;
-  return false;
-}
 
 export function updateAuthTimestamp(req: Request, isReauth: boolean = false): void {
   if (req.session) {

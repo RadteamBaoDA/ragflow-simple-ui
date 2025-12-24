@@ -141,9 +141,16 @@ export function AuthProvider({ children }: AuthProviderProps) {
     console.log('[Auth] Logging out...');
     setUser(null);
     setIsLoading(false);
-    // Redirect to backend logout which clears session and optionally Azure AD
-    window.location.href = `${API_BASE_URL}/api/auth/logout`;
-  }, []);
+    // Use POST for logout to match backend route
+    fetch(`${API_BASE_URL}/api/auth/logout`, { method: 'POST', credentials: 'include' })
+      .then(() => {
+        navigate('/login');
+      })
+      .catch((err) => {
+        console.error('[Auth] Logout failed:', err);
+        navigate('/login');
+      });
+  }, [navigate]);
 
   /**
    * Effect: Check session on mount for protected routes.

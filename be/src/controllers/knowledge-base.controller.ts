@@ -17,7 +17,7 @@ export class KnowledgeBaseController {
 
     async createSource(req: Request, res: Response): Promise<void> {
         try {
-            const user = req.user ? { id: req.user.id, email: req.user.email, ip: getClientIp(req) } : undefined;
+            const user = req.user ? { id: req.user.id, email: req.user.email, role: req.user.role, ip: getClientIp(req) } : undefined;
             const source = await knowledgeBaseService.createSource(req.body, user);
             res.status(201).json(source);
         } catch (error) {
@@ -33,7 +33,7 @@ export class KnowledgeBaseController {
             return;
         }
         try {
-            const user = req.user ? { id: req.user.id, email: req.user.email, ip: getClientIp(req) } : undefined;
+            const user = req.user ? { id: req.user.id, email: req.user.email, role: req.user.role, ip: getClientIp(req) } : undefined;
             const source = await knowledgeBaseService.updateSource(id, req.body, user);
             if (!source) {
                 res.status(404).json({ error: 'Source not found' });
@@ -53,7 +53,7 @@ export class KnowledgeBaseController {
             return;
         }
         try {
-            const user = req.user ? { id: req.user.id, email: req.user.email, ip: getClientIp(req) } : undefined;
+            const user = req.user ? { id: req.user.id, email: req.user.email, role: req.user.role, ip: getClientIp(req) } : undefined;
             await knowledgeBaseService.deleteSource(id, user);
             res.status(204).send();
         } catch (error) {
@@ -64,7 +64,7 @@ export class KnowledgeBaseController {
 
     async getConfig(req: Request, res: Response): Promise<void> {
         try {
-            const user = req.user ? { id: req.user.id, email: req.user.email, ip: getClientIp(req) } : undefined;
+            const user = req.user ? { id: req.user.id, email: req.user.email, role: req.user.role, ip: getClientIp(req) } : undefined;
             const config = await knowledgeBaseService.getConfig(user);
             res.json(config);
         } catch (error) {
@@ -75,7 +75,7 @@ export class KnowledgeBaseController {
 
     async updateConfig(req: Request, res: Response): Promise<void> {
         try {
-            const user = req.user ? { id: req.user.id, email: req.user.email, ip: getClientIp(req) } : undefined;
+            const user = req.user ? { id: req.user.id, email: req.user.email, role: req.user.role, ip: getClientIp(req) } : undefined;
             await knowledgeBaseService.updateConfig(req.body, user);
             res.status(204).send();
         } catch (error) {
