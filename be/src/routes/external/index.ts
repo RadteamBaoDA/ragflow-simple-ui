@@ -1,10 +1,12 @@
 import { Router, Request, Response } from 'express';
 import { checkEnabled } from '../../middleware/external.middleware.js';
 import traceRoutes from '@/routes/external/trace.routes.js';
+import historyRoutes from '@/routes/external/history.routes.js';
 
 const router = Router();
 
 router.use('/trace', traceRoutes);
+router.use('/history', historyRoutes);
 
 /**
  * GET /api/external/health
