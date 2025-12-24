@@ -7,7 +7,7 @@ This file provides context, build instructions, and coding standards for the RAG
 
 
 ## 1. Project Overview
-RAGFlow is an opensource UI centrailze and manage AI Search and Chat and Knowledge base in one repo, backend is using nodejs and frontend is reactjs.
+RAGFlow Simple UI is an opensource UI centrailze and manage AI Search and Chat and Knowledge base in one repo, backend is using nodejs and frontend is reactjs.
 
 - **Backend**: Nodejs 22+ (ExpressJS)
 - **Frontend**: TypeScript, React, vite
