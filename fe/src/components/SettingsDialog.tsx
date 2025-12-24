@@ -12,7 +12,7 @@
  */
 
 import { useTranslation } from 'react-i18next';
-import { useSettings, SUPPORTED_LANGUAGES, Theme } from '../contexts/SettingsContext';
+import { useSettings, SUPPORTED_LANGUAGES, Theme } from '@/app/contexts/SettingsContext';
 import { LanguageCode } from '../i18n';
 import { Dialog } from './Dialog';
 import { RadioGroup } from './RadioGroup';
