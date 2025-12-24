@@ -14,8 +14,8 @@
  */
 
 import { Pool } from 'pg';
-import { DatabaseAdapter, DatabaseClient } from '../types.js';
-import { log } from '../../services/logger.service.js';
+import { DatabaseAdapter, DatabaseClient } from '@/db/types.js';
+import { log } from '@/services/logger.service.js';
 
 /**
  * PostgreSQL database adapter.

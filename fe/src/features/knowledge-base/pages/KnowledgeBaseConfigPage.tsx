@@ -21,10 +21,12 @@ export default function KnowledgeBaseConfigPage() {
 
     // --- Default URL Mutation ---
     const updateConfigMutation = useMutation({
+        mutationKey: ['update', 'systemConfig'],
         mutationFn: updateSystemConfig,
         onSuccess: () => {
             queryClient.invalidateQueries({ queryKey: ['knowledgeBaseConfig'] });
-        }
+        },
+        meta: { successMessage: t('common.saveSuccess') || 'Configuration saved' }
     });
 
     const [defaultSourceId, setDefaultSourceId] = useState('');
@@ -102,26 +104,32 @@ export default function KnowledgeBaseConfigPage() {
 
     // --- Mutations ---
     const createMutation = useMutation({
+        mutationKey: ['create', 'source'],
         mutationFn: (data: { name: string, url: string, access_control: AccessControl }) => addSource(activeTab, data.name, data.url, data.access_control),
         onSuccess: () => {
             queryClient.invalidateQueries({ queryKey: ['knowledgeBaseConfig'] });
             setIsDialogOpen(false);
-        }
+        },
+        meta: { successMessage: t('knowledgeBaseConfig.addSuccess') || 'Source added successfully' }
     });
 
     const updateMutation = useMutation({
+        mutationKey: ['update', 'source'],
         mutationFn: (data: { id: string, name: string, url: string, access_control?: AccessControl }) => updateSource(data.id, data.name, data.url, data.access_control),
         onSuccess: () => {
             queryClient.invalidateQueries({ queryKey: ['knowledgeBaseConfig'] });
             setIsDialogOpen(false);
-        }
+        },
+        meta: { successMessage: t('knowledgeBaseConfig.updateSuccess') || 'Source updated successfully' }
     });
 
     const deleteMutation = useMutation({
+        mutationKey: ['delete', 'source'],
         mutationFn: deleteSource,
         onSuccess: () => {
             queryClient.invalidateQueries({ queryKey: ['knowledgeBaseConfig'] });
-        }
+        },
+        meta: { successMessage: t('knowledgeBaseConfig.deleteSuccess') || 'Source deleted successfully' }
     });
 
     const handleSubmitSource = () => {

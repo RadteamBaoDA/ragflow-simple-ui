@@ -2,64 +2,64 @@
  * @fileoverview Admin page for managing broadcast messages.
  */
 
-import React, { useEffect, useState } from 'react';
+import React, { useState } from 'react';
 import { createPortal } from 'react-dom';
 import { useTranslation } from 'react-i18next';
 import { broadcastMessageService } from '../api/broadcastMessageService';
 import { BroadcastMessage } from '../types';
 import { Plus, Edit2, Trash2, CheckCircle, XCircle } from 'lucide-react';
 import { Dialog } from '@/components/Dialog';
+import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 
 const BroadcastMessagePage: React.FC = () => {
     const { t } = useTranslation();
-    const [messages, setMessages] = useState<BroadcastMessage[]>([]);
-    const [isLoading, setIsLoading] = useState(true);
+    const queryClient = useQueryClient();
     const [isDialogOpen, setIsDialogOpen] = useState(false);
     const [editingMessage, setEditingMessage] = useState<Partial<BroadcastMessage> | null>(null);
 
-    const fetchMessages = async () => {
-        setIsLoading(true);
-        try {
-            const data = await broadcastMessageService.getAllMessages();
-            setMessages(data);
-        } catch (err) {
-            console.error('Failed to fetch messages:', err);
-        } finally {
-            setIsLoading(false);
-        }
-    };
+    // Fetch Messages Query
+    const { data: messages = [], isLoading } = useQuery({
+        queryKey: ['broadcastMessages'],
+        queryFn: broadcastMessageService.getAllMessages
+    });
 
-    useEffect(() => {
-        fetchMessages();
-    }, []);
+    // Mutations
+    const saveMutation = useMutation({
+        mutationKey: ['save', 'broadcastMessage'],
+        mutationFn: (msg: Partial<BroadcastMessage>) => {
+            if (msg.id) {
+                return broadcastMessageService.updateMessage(msg.id, msg);
+            } else {
+                return broadcastMessageService.createMessage(msg as any);
+            }
+        },
+        onSuccess: () => {
+            setIsDialogOpen(false);
+            queryClient.invalidateQueries({ queryKey: ['broadcastMessages'] });
+        },
+        meta: { successMessage: t('broadcast.saveSuccess') || 'Message saved successfully' }
+    });
+
+    const deleteMutation = useMutation({
+        mutationKey: ['delete', 'broadcastMessage'],
+        mutationFn: broadcastMessageService.deleteMessage,
+        onSuccess: () => {
+            queryClient.invalidateQueries({ queryKey: ['broadcastMessages'] });
+        },
+        meta: { successMessage: t('broadcast.deleteSuccess') || 'Message deleted successfully' }
+    });
 
     const handleSave = async () => {
         if (!editingMessage?.message || !editingMessage?.starts_at || !editingMessage?.ends_at) {
             alert(t('common.fillRequiredFields'));
             return;
         }
-
-        try {
-            if (editingMessage.id) {
-                await broadcastMessageService.updateMessage(editingMessage.id, editingMessage);
-            } else {
-                await broadcastMessageService.createMessage(editingMessage as any);
-            }
-            setIsDialogOpen(false);
-            fetchMessages();
-        } catch (err) {
-            console.error('Failed to save message:', err);
-        }
+        saveMutation.mutate(editingMessage);
     };
 
     const handleDelete = async (id: string) => {
         if (!confirm(t('common.confirmDelete'))) return;
-        try {
-            await broadcastMessageService.deleteMessage(id);
-            fetchMessages();
-        } catch (err) {
-            console.error('Failed to delete message:', err);
-        }
+        deleteMutation.mutate(id);
     };
 
     const renderHeaderActions = () => {

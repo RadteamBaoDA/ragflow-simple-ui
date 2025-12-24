@@ -85,7 +85,7 @@ export const ConfirmProvider: React.FC<ConfirmProviderProps> = ({ children }) =>
     };
 
     return (
-        <ConfirmContext.Provider value={{ confirm }}>
+        <ConfirmContext value={{ confirm }}>
             {children}
 
             {isOpen && options && (
@@ -146,6 +146,6 @@ export const ConfirmProvider: React.FC<ConfirmProviderProps> = ({ children }) =>
                     </div>
                 </div>
             )}
-        </ConfirmContext.Provider>
+        </ConfirmContext>
     );
 };

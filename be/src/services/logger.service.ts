@@ -26,7 +26,7 @@
 import winston from 'winston';
 import DailyRotateFile from 'winston-daily-rotate-file';
 import { join } from 'path';
-import { config } from '../config/index.js';
+import { config } from '@/config/index.js';
 
 // ============================================================================
 // CONFIGURATION

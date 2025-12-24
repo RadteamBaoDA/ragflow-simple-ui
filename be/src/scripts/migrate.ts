@@ -14,9 +14,9 @@
  * @module scripts/migrate
  */
 
-import { getAdapter, closePool } from '../db/index.js';
-import { runMigrations } from '../db/migrations/runner.js';
-import { log } from '../services/logger.service.js';
+import { getAdapter, closePool } from '@/db/index.js';
+import { runMigrations } from '@/db/migrations/runner.js';
+import { log } from '@/services/logger.service.js';
 
 /**
  * Main migration script entry point.
@@ -25,15 +25,15 @@ import { log } from '../services/logger.service.js';
 async function main() {
   try {
     log.info('Starting manual migration...');
-    
+
     // Initialize database adapter
     const db = await getAdapter();
-    
+
     // Execute pending migrations
     await runMigrations(db);
-    
+
     log.info('Manual migration completed successfully');
-    
+
     // Cleanup and exit
     await closePool();
     process.exit(0);

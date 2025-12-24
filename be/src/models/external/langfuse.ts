@@ -1,11 +1,11 @@
 
 import { Langfuse } from 'langfuse';
-import { config } from '../../config/index.js';
+import { config } from '@/config/index.js';
 
 class LangfuseSingleton {
   private static instance: Langfuse;
 
-  private constructor() {}
+  private constructor() { }
 
   public static getInstance(): Langfuse {
     if (!LangfuseSingleton.instance) {

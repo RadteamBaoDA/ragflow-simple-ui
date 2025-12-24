@@ -1,7 +1,7 @@
 
 import { Router } from 'express';
-import { PreviewController } from '../controllers/preview.controller.js';
-import { requirePermission } from '../middleware/auth.middleware.js';
+import { PreviewController } from '@/controllers/preview.controller.js';
+import { requirePermission } from '@/middleware/auth.middleware.js';
 
 const router = Router();
 const controller = new PreviewController();

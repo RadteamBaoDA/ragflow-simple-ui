@@ -1,11 +1,11 @@
 
 import knex from 'knex';
-import dbConfig from './knexfile.js';
+import dbConfig from '@/db/knexfile.js';
 
 class KnexSingleton {
   private static instance: knex.Knex;
 
-  private constructor() {}
+  private constructor() { }
 
   public static getInstance(): knex.Knex {
     if (!KnexSingleton.instance) {

@@ -1,7 +1,7 @@
 
 import { Router } from 'express';
-import { MinioRawController } from '../controllers/minio-raw.controller.js';
-import { requireRole } from '../middleware/auth.middleware.js';
+import { MinioRawController } from '@/controllers/minio-raw.controller.js';
+import { requireRole } from '@/middleware/auth.middleware.js';
 
 const router = Router();
 const controller = new MinioRawController();

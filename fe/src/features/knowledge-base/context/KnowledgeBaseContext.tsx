@@ -175,7 +175,7 @@ export function KnowledgeBaseProvider({ children }: KnowledgeBaseProviderProps) 
     }, [user?.id]);
 
     return (
-        <KnowledgeBaseContext.Provider
+        <KnowledgeBaseContext
             value={{
                 config,
                 selectedChatSourceId,
@@ -187,7 +187,7 @@ export function KnowledgeBaseProvider({ children }: KnowledgeBaseProviderProps) 
             }}
         >
             {children}
-        </KnowledgeBaseContext.Provider>
+        </KnowledgeBaseContext>
     );
 }
 

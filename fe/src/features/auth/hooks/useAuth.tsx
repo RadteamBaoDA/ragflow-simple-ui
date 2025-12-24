@@ -181,7 +181,7 @@ export function AuthProvider({ children }: AuthProviderProps) {
     logout,
   };
 
-  return <AuthContext.Provider value={value}>{children}</AuthContext.Provider>;
+  return <AuthContext value={value}>{children}</AuthContext>;
 }
 
 // ============================================================================

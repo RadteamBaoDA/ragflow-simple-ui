@@ -12,7 +12,8 @@
 import React from 'react';
 import ReactDOM from 'react-dom/client';
 import { BrowserRouter } from 'react-router-dom';
-import { QueryClient, QueryClientProvider } from '@tanstack/react-query';
+import { QueryClient, QueryClientProvider, MutationCache } from '@tanstack/react-query';
+import { message } from 'antd';
 import App from '@/app/App';
 import './index.css';
 
@@ -21,11 +22,7 @@ import './index.css';
 // ============================================================================
 
 /**
- * React Query client with default options.
- * 
- * Configuration:
- * - staleTime: 5 minutes - data remains fresh for 5 minutes
- * - retry: 1 - retry failed requests once before throwing
+ * React Query client with default options and global notification handlers.
  */
 const queryClient = new QueryClient({
   defaultOptions: {
@@ -34,6 +31,27 @@ const queryClient = new QueryClient({
       retry: 1,
     },
   },
+  mutationCache: new MutationCache({
+    onSuccess: (_data, _variables, _context, mutation) => {
+      // Check if the mutation meta has a custom success message
+      // Or use a default one for POST/PUT/DELETE
+      const isCrud = mutation.options.mutationKey?.some(key =>
+        ['create', 'update', 'delete', 'save', 'remove'].includes(String(key).toLowerCase())
+      );
+
+      // If meta provides a success message, show it
+      if (mutation.options.meta?.successMessage) {
+        message.success(mutation.options.meta.successMessage as string);
+      } else if (isCrud) {
+        message.success('Action completed successfully');
+      }
+    },
+    onError: (error: any) => {
+      // Show error notification globally
+      const errorMessage = error.message || 'An unexpected error occurred';
+      message.error(errorMessage);
+    },
+  }),
 });
 
 // ============================================================================

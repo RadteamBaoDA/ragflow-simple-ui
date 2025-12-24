@@ -13,9 +13,9 @@
  */
 
 import { Router, Request, Response } from 'express';
-import { auditService } from '../services/audit.service.js';
-import { log } from '../services/logger.service.js';
-import { requireAuth, requireRole } from '../middleware/auth.middleware.js';
+import { auditService } from '@/services/audit.service.js';
+import { log } from '@/services/logger.service.js';
+import { requireAuth, requireRole } from '@/middleware/auth.middleware.js';
 
 const router = Router();
 

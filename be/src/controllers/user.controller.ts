@@ -1,8 +1,8 @@
 
 import { Request, Response } from 'express';
-import { userService } from '../services/user.service.js';
-import { log } from '../services/logger.service.js';
-import { getClientIp } from '../utils/ip.js';
+import { userService } from '@/services/user.service.js';
+import { log } from '@/services/logger.service.js';
+import { getClientIp } from '@/utils/ip.js';
 
 export class UserController {
   async getUsers(req: Request, res: Response): Promise<void> {

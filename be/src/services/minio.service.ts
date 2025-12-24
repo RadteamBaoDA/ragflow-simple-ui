@@ -4,11 +4,11 @@ import { Readable } from 'stream';
 import * as http from 'http';
 import * as https from 'https';
 import * as crypto from 'crypto';
-import { minioClient } from '../models/external/minio.js';
-import { ModelFactory } from '../models/factory.js';
-import { log } from './logger.service.js';
-import { auditService, AuditAction, AuditResourceType } from './audit.service.js';
-import { config } from '../config/index.js';
+import { minioClient } from '@/models/external/minio.js';
+import { ModelFactory } from '@/models/factory.js';
+import { log } from '@/services/logger.service.js';
+import { auditService, AuditAction, AuditResourceType } from '@/services/audit.service.js';
+import { config } from '@/config/index.js';
 
 export interface FileObject {
     name: string;
@@ -127,15 +127,15 @@ class MinioService {
     }
 
     async deleteBucket(bucketName: string, user?: { id: string, email: string, ip?: string }): Promise<void> {
-         try {
-             await this.client.removeBucket(bucketName);
+        try {
+            await this.client.removeBucket(bucketName);
 
-             const bucket = await ModelFactory.minioBucket.findByName(bucketName);
-             if (bucket) {
-                 await ModelFactory.minioBucket.delete(bucket.id);
-             }
+            const bucket = await ModelFactory.minioBucket.findByName(bucketName);
+            if (bucket) {
+                await ModelFactory.minioBucket.delete(bucket.id);
+            }
 
-             if (user) {
+            if (user) {
                 await auditService.log({
                     userId: user.id,
                     userEmail: user.email,
@@ -144,11 +144,11 @@ class MinioService {
                     resourceId: bucketName,
                     ipAddress: user.ip,
                 });
-             }
-         } catch (error) {
-             log.error('Failed to delete bucket', { bucketName, error: String(error) });
-             throw error;
-         }
+            }
+        } catch (error) {
+            log.error('Failed to delete bucket', { bucketName, error: String(error) });
+            throw error;
+        }
     }
 
     async listObjects(bucketName: string, prefix: string = '', recursive: boolean = false): Promise<FileObject[]> {
@@ -194,13 +194,13 @@ class MinioService {
             } else if (file.path) {
                 await this.client.fPutObject(bucketName, objectName, file.path, metaData);
             } else if (file instanceof Readable) {
-                 const size = (file as any).size || undefined;
-                 await this.client.putObject(bucketName, objectName, file, size, metaData);
+                const size = (file as any).size || undefined;
+                await this.client.putObject(bucketName, objectName, file, size, metaData);
             }
 
-             if (userId) {
-                 const user = await ModelFactory.user.findById(userId);
-                 if (user) {
+            if (userId) {
+                const user = await ModelFactory.user.findById(userId);
+                if (user) {
                     await auditService.log({
                         userId,
                         userEmail: user.email,
@@ -209,13 +209,13 @@ class MinioService {
                         resourceId: `${bucketName}/${objectName}`,
                         details: { size: file.size }
                     });
-                 }
-             }
+                }
+            }
 
             return { message: 'File uploaded' };
         } catch (error) {
-             log.error('Failed to upload file', { bucketName, error: String(error) });
-             throw error;
+            log.error('Failed to upload file', { bucketName, error: String(error) });
+            throw error;
         }
     }
 
@@ -229,9 +229,9 @@ class MinioService {
 
     async deleteFile(bucketName: string, fileName: string, userId?: string): Promise<void> {
         await this.deleteObject(bucketName, fileName);
-         if (userId) {
-             const user = await ModelFactory.user.findById(userId);
-             if (user) {
+        if (userId) {
+            const user = await ModelFactory.user.findById(userId);
+            if (user) {
                 await auditService.log({
                     userId,
                     userEmail: user.email,
@@ -239,8 +239,8 @@ class MinioService {
                     resourceType: AuditResourceType.FILE,
                     resourceId: `${bucketName}/${fileName}`
                 });
-             }
-         }
+            }
+        }
     }
 
     async checkFileExists(bucketName: string, objectName: string): Promise<boolean> {

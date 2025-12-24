@@ -1,11 +1,11 @@
 
 import * as Minio from 'minio';
-import { config } from '../../config/index.js';
+import { config } from '@/config/index.js';
 
 class MinioSingleton {
   private static instance: Minio.Client;
 
-  private constructor() {}
+  private constructor() { }
 
   public static getInstance(): Minio.Client {
     if (!MinioSingleton.instance) {

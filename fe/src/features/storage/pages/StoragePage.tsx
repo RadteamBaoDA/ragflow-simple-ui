@@ -1,8 +1,8 @@
 import { useState, useEffect } from 'react';
 import { useTranslation } from 'react-i18next';
 import {
-    Table, Card, Button, Modal, Input, message,
-    Space, Statistic, Row, Col, Typography, Spin, Tag, Tooltip, Tabs
+    Table, Card, Button, Modal, Input,
+    Space, Statistic, Row, Col, Typography, Spin, Tag, Tooltip, Tabs, App
 } from 'antd';
 import {
     Database, Plus, Trash2, RefreshCw, Server, Search, FileText, HardDrive, LayoutDashboard
@@ -29,6 +29,7 @@ interface BucketStats {
 
 const StoragePage = () => {
     const { t } = useTranslation();
+    const { message } = App.useApp();
     const [buckets, setBuckets] = useState<Bucket[]>([]);
     const [loading, setLoading] = useState(false);
     const [createModalVisible, setCreateModalVisible] = useState(false);
@@ -125,7 +126,7 @@ const StoragePage = () => {
             setKeysLoading(false);
         }
     };
-
+    
     const handleCreateKey = async () => {
         setCreatingKey(true);
         try {
@@ -133,12 +134,12 @@ const StoragePage = () => {
             // MinIO admin response usually contains 'credentials' with 'accessKey' and 'secretKey'
             const creds = result.credentials || { accessKey: result.accessKey, secretKey: result.secretKey };
             setGeneratedCredentials(creds);
-
+    
             setCreateKeyModalVisible(false);
             setCredsModalVisible(true);
             message.success(t('storage.keys.create.success'));
             loadAccessKeys();
-
+    
             setKeyName('');
             setKeyDesc('');
         } catch (error) {
@@ -147,7 +148,7 @@ const StoragePage = () => {
             setCreatingKey(false);
         }
     };
-
+    
     const handleDeleteKey = async (accessKey: string) => {
         try {
             await deleteAccessKey(accessKey);
@@ -595,7 +596,7 @@ const StoragePage = () => {
             ),
             children: (
                 <div className="space-y-6">
-                    <Card className="shadow-sm" bodyStyle={{ paddingBottom: '24px' }}>
+                    <Card className="shadow-sm" styles={{ body: { paddingBottom: '24px' } }}>
                         <div className="mb-4 flex justify-between items-center">
                             <div className="flex items-center space-x-2">
                                 <Input

@@ -15,9 +15,9 @@
  * @module db/migrations/001_initial_schema
  */
 
-import { Migration } from './types.js';
-import { DatabaseAdapter } from '../types.js';
-import { log } from '../../services/logger.service.js';
+import { Migration } from '@/db/migrations/types.js';
+import { DatabaseAdapter } from '@/db/types.js';
+import { log } from '@/services/logger.service.js';
 
 export const migration: Migration = {
     name: '001_initial_schema',

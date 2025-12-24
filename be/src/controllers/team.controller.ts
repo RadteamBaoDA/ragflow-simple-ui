@@ -1,8 +1,8 @@
 
 import { Request, Response } from 'express';
-import { teamService } from '../services/team.service.js';
-import { log } from '../services/logger.service.js';
-import { getClientIp } from '../utils/ip.js';
+import { teamService } from '@/services/team.service.js';
+import { log } from '@/services/logger.service.js';
+import { getClientIp } from '@/utils/ip.js';
 
 export class TeamController {
   async getTeams(req: Request, res: Response): Promise<void> {

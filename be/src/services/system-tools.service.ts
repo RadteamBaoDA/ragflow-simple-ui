@@ -3,8 +3,8 @@ import fs from 'fs/promises';
 import { constants } from 'fs';
 import path from 'path';
 import { fileURLToPath } from 'url';
-import { log } from './logger.service.js';
-import { config } from '../config/index.js';
+import { log } from '@/services/logger.service.js';
+import { config } from '@/config/index.js';
 
 const __filename = fileURLToPath(import.meta.url);
 const __dirname = path.dirname(__filename);
@@ -41,14 +41,14 @@ class SystemToolsService {
             try {
                 await fs.access(envPath, constants.F_OK);
                 return envPath;
-            } catch {}
+            } catch { }
         }
 
         const dockerPath = '/app/config/system-tools.config.json';
         try {
             await fs.access(dockerPath, constants.F_OK);
             return dockerPath;
-        } catch {}
+        } catch { }
 
         const fallbackPath = path.join(__dirname, '../config/system-tools.config.json');
         return fallbackPath;
@@ -104,16 +104,16 @@ class SystemToolsService {
     }
 
     async runTool(id: string, params: any): Promise<any> {
-         const tool = this.tools.find(t => t.id === id);
-         if (!tool) throw new Error('Tool not found');
-         return { message: `Tool ${tool.name} executed`, params };
+        const tool = this.tools.find(t => t.id === id);
+        if (!tool) throw new Error('Tool not found');
+        return { message: `Tool ${tool.name} executed`, params };
     }
 
     async getSystemHealth(): Promise<any> {
         const os = await import('os');
 
         // Check Database - Knex
-        const { db } = await import('../db/knex.js');
+        const { db } = await import('@/db/knex.js');
         let dbStatus = false;
         try {
             await db.raw('SELECT 1');
@@ -122,7 +122,7 @@ class SystemToolsService {
             dbStatus = false;
         }
 
-        const { minioService } = await import('./minio.service.js');
+        const { minioService } = await import('@/services/minio.service.js');
         const minioEnabled = !!(process.env.MINIO_ACCESS_KEY && process.env.MINIO_SECRET_KEY);
         let minioStatus = 'disconnected';
         if (minioEnabled) {
@@ -137,6 +137,25 @@ class SystemToolsService {
         const langfuseEnabled = !!(config.langfuse.publicKey && config.langfuse.secretKey && config.langfuse.baseUrl);
         const langfuseStatus = langfuseEnabled ? 'enabled' : 'disabled';
 
+        // Check Redis for session
+        let redisStatus = 'disconnected';
+        try {
+            const { createClient } = await import('redis');
+            const client = createClient({
+                url: config.redis.url,
+                socket: {
+                    connectTimeout: 2000
+                }
+            });
+            client.on('error', () => { }); // Prevent crash on error
+            await client.connect();
+            await client.ping();
+            redisStatus = 'connected';
+            await client.disconnect();
+        } catch (e) {
+            redisStatus = 'disconnected';
+        }
+
         return {
             timestamp: new Date().toISOString(),
             services: {
@@ -144,6 +163,11 @@ class SystemToolsService {
                     status: dbStatus ? 'connected' : 'disconnected',
                     enabled: true,
                     host: config.database.host,
+                },
+                redis: {
+                    status: redisStatus,
+                    enabled: true,
+                    host: config.redis.host,
                 },
                 minio: {
                     status: minioStatus,
@@ -169,7 +193,7 @@ class SystemToolsService {
                 totalMemory: os.totalmem(),
                 osRelease: os.release(),
                 osType: os.type(),
-                 disk: await (async () => {
+                disk: await (async () => {
                     try {
                         const stats = await fs.statfs(process.cwd());
                         return {

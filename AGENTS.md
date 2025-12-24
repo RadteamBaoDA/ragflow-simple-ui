@@ -51,6 +51,9 @@ RAGFlow Simple UI is an opensource UI centrailze and manage AI Search and Chat a
 ## 4 Coding Standards & Guidelines
 1. General
 - terminal using is git bash(linux command). If change too much need run : npm run build 
+- TypeScript strict mode
+- Single quotes, no semicolons
+- Use functional patterns where possible
 
 2. FE 
 - when add new page must implement locales for new html string in en, vi, jp.

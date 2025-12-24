@@ -1,6 +1,6 @@
 
 import 'express-session';
-import { User as DBUser } from '../models/types.js';
+import { User as DBUser } from '@/models/types.js';
 
 declare module 'express-session' {
   interface SessionData {
@@ -17,7 +17,7 @@ declare module 'express-session' {
 declare global {
   namespace Express {
     // Extend the default empty User interface
-    interface User extends DBUser {}
+    interface User extends DBUser { }
 
     interface Request {
       user?: User;

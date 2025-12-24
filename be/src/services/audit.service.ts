@@ -1,7 +1,7 @@
 
-import { ModelFactory } from '../models/factory.js';
-import { log } from './logger.service.js';
-import { AuditLog } from '../models/types.js';
+import { ModelFactory } from '@/models/factory.js';
+import { log } from '@/services/logger.service.js';
+import { AuditLog } from '@/models/types.js';
 
 export const AuditAction = {
     CREATE_USER: 'create_user',
@@ -125,40 +125,40 @@ class AuditService {
     }
 
     async getLogs(filters: any = {}, limit: number = 50, offset: number = 0): Promise<AuditLogResponse> {
-         const whereClause: any = {};
-         if (filters.userId) whereClause.user_id = filters.userId;
-         if (filters.action) whereClause.action = filters.action;
-         if (filters.resourceType) whereClause.resource_type = filters.resourceType;
+        const whereClause: any = {};
+        if (filters.userId) whereClause.user_id = filters.userId;
+        if (filters.action) whereClause.action = filters.action;
+        if (filters.resourceType) whereClause.resource_type = filters.resourceType;
 
-         // Use DB pagination
-         const data = await ModelFactory.auditLog.findAll(whereClause, {
-             orderBy: { created_at: 'desc' },
-             limit,
-             offset
-         });
+        // Use DB pagination
+        const data = await ModelFactory.auditLog.findAll(whereClause, {
+            orderBy: { created_at: 'desc' },
+            limit,
+            offset
+        });
 
-         // Need count for pagination metadata.
-         // Assuming client doesn't strictly need total or we fetch it separately.
-         // For now, returning length + offset as approximation or 0 if empty.
-         const total = data.length + offset + (data.length === limit ? limit : 0); // rough estimate
+        // Need count for pagination metadata.
+        // Assuming client doesn't strictly need total or we fetch it separately.
+        // For now, returning length + offset as approximation or 0 if empty.
+        const total = data.length + offset + (data.length === limit ? limit : 0); // rough estimate
 
-         const totalPages = Math.ceil(total / limit);
-         const page = Math.floor(offset / limit) + 1;
+        const totalPages = Math.ceil(total / limit);
+        const page = Math.floor(offset / limit) + 1;
 
-         const parsedData = data.map(entry => ({
-             ...entry,
-             details: typeof entry.details === 'string' ? JSON.parse(entry.details as string) : entry.details
-         }));
+        const parsedData = data.map(entry => ({
+            ...entry,
+            details: typeof entry.details === 'string' ? JSON.parse(entry.details as string) : entry.details
+        }));
 
-         return {
-             data: parsedData,
-             pagination: {
-                 page,
-                 limit,
-                 total,
-                 totalPages
-             }
-         };
+        return {
+            data: parsedData,
+            pagination: {
+                page,
+                limit,
+                total,
+                totalPages
+            }
+        };
     }
 
     async getResourceHistory(resourceType: string, resourceId: string): Promise<AuditLog[]> {
@@ -168,9 +168,9 @@ class AuditService {
         }, { orderBy: { created_at: 'desc' } });
 
         return logs.map(entry => ({
-             ...entry,
-             details: typeof entry.details === 'string' ? JSON.parse(entry.details as string) : entry.details
-         }));
+            ...entry,
+            details: typeof entry.details === 'string' ? JSON.parse(entry.details as string) : entry.details
+        }));
     }
 
     async exportLogsToCsv(filters: any): Promise<string> {

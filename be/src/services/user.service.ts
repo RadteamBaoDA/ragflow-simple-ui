@@ -1,9 +1,10 @@
 
-import { ModelFactory } from '../models/factory.js';
-import { log } from './logger.service.js';
-import { AzureAdUser } from './auth.service.js';
-import { auditService, AuditAction, AuditResourceType } from './audit.service.js';
-import { User, UserIpHistory } from '../models/types.js';
+import { ModelFactory } from '@/models/factory.js';
+import { config } from '@/config/index.js';
+import { log } from '@/services/logger.service.js';
+import { AzureAdUser } from '@/services/auth.service.js';
+import { auditService, AuditAction, AuditResourceType } from '@/services/audit.service.js';
+import { User, UserIpHistory } from '@/models/types.js';
 
 export class UserService {
     async initializeRootUser(): Promise<void> {
@@ -14,7 +15,7 @@ export class UserService {
                 return;
             }
 
-            const rootUserEmail = process.env['KB_ROOT_USER'] || 'admin@localhost';
+            const rootUserEmail = config.rootUser;
 
             log.debug('Initializing root user', { email: rootUserEmail });
 
@@ -130,9 +131,9 @@ export class UserService {
     }
 
     async createUser(data: any, user?: { id: string, email: string, ip?: string }): Promise<User> {
-         const newUser = await ModelFactory.user.create(data);
-         if (user) {
-             await auditService.log({
+        const newUser = await ModelFactory.user.create(data);
+        if (user) {
+            await auditService.log({
                 userId: user.id,
                 userEmail: user.email,
                 action: AuditAction.CREATE_USER,
@@ -140,15 +141,15 @@ export class UserService {
                 resourceId: newUser.id,
                 details: { source: 'Admin Create' },
                 ipAddress: user.ip,
-             });
-         }
-         return newUser;
+            });
+        }
+        return newUser;
     }
 
     async updateUser(id: string, data: any, user?: { id: string, email: string, ip?: string }): Promise<User | undefined> {
-         const updatedUser = await ModelFactory.user.update(id, data);
-         if (user && updatedUser) {
-             await auditService.log({
+        const updatedUser = await ModelFactory.user.update(id, data);
+        if (user && updatedUser) {
+            await auditService.log({
                 userId: user.id,
                 userEmail: user.email,
                 action: AuditAction.UPDATE_USER,
@@ -156,15 +157,15 @@ export class UserService {
                 resourceId: id,
                 details: { source: 'Admin Update', changes: data },
                 ipAddress: user.ip,
-             });
-         }
-         return updatedUser;
+            });
+        }
+        return updatedUser;
     }
 
     async deleteUser(id: string, user?: { id: string, email: string, ip?: string }): Promise<void> {
-         await ModelFactory.user.delete(id);
-         if (user) {
-             await auditService.log({
+        await ModelFactory.user.delete(id);
+        if (user) {
+            await auditService.log({
                 userId: user.id,
                 userEmail: user.email,
                 action: AuditAction.DELETE_USER,
@@ -172,8 +173,8 @@ export class UserService {
                 resourceId: id,
                 details: { source: 'Admin Delete' },
                 ipAddress: user.ip,
-             });
-         }
+            });
+        }
     }
 
     async getUserById(userId: string): Promise<User | undefined> {
@@ -207,16 +208,16 @@ export class UserService {
         }
 
         try {
-             const existing = await ModelFactory.userIpHistory.findByUserAndIp(userId, ipAddress);
-             if (existing) {
-                 await ModelFactory.userIpHistory.update(existing.id, { last_accessed_at: new Date() });
-             } else {
-                 await ModelFactory.userIpHistory.create({
-                     user_id: userId,
-                     ip_address: ipAddress,
-                     last_accessed_at: new Date()
-                 });
-             }
+            const existing = await ModelFactory.userIpHistory.findByUserAndIp(userId, ipAddress);
+            if (existing) {
+                await ModelFactory.userIpHistory.update(existing.id, { last_accessed_at: new Date() });
+            } else {
+                await ModelFactory.userIpHistory.create({
+                    user_id: userId,
+                    ip_address: ipAddress,
+                    last_accessed_at: new Date()
+                });
+            }
             log.debug('User IP recorded', { userId, ipAddress: ipAddress.substring(0, 20) });
         } catch (error) {
             log.warn('Failed to record user IP', {

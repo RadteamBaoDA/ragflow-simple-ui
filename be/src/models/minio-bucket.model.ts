@@ -1,7 +1,7 @@
 
-import { BaseModel } from './base.model.js';
-import { db } from '../db/knex.js';
-import { MinioBucket } from './types.js';
+import { BaseModel } from '@/models/base.model.js';
+import { db } from '@/db/knex.js';
+import { MinioBucket } from '@/models/types.js';
 
 export class MinioBucketModel extends BaseModel<MinioBucket> {
   protected tableName = 'minio_buckets';
@@ -13,11 +13,11 @@ export class MinioBucketModel extends BaseModel<MinioBucket> {
 }
 
 export class CreateMinioBucketDto {
-    name: string;
-    description?: string | undefined; // Align with exactOptionalPropertyTypes
+  name: string;
+  description?: string | undefined; // Align with exactOptionalPropertyTypes
 
-    constructor(name: string, description?: string) {
-        this.name = name;
-        this.description = description;
-    }
+  constructor(name: string, description?: string) {
+    this.name = name;
+    this.description = description;
+  }
 }

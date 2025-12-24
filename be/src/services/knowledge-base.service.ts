@@ -1,8 +1,8 @@
 
-import { ModelFactory } from '../models/factory.js';
-import { log } from './logger.service.js';
-import { auditService, AuditAction, AuditResourceType } from './audit.service.js';
-import { KnowledgeBaseSource } from '../models/types.js';
+import { ModelFactory } from '@/models/factory.js';
+import { log } from '@/services/logger.service.js';
+import { auditService, AuditAction, AuditResourceType } from '@/services/audit.service.js';
+import { KnowledgeBaseSource } from '@/models/types.js';
 
 export interface AccessControl {
     public: boolean;
@@ -47,7 +47,7 @@ export class KnowledgeBaseService {
         }
 
         if (user) {
-             await auditService.log({
+            await auditService.log({
                 userId: user.id,
                 userEmail: user.email,
                 action: AuditAction.UPDATE_CONFIG,

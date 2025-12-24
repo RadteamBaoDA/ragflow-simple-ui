@@ -1,8 +1,8 @@
 
-import { langfuseClient } from '../models/external/langfuse.js';
-import { ModelFactory } from '../models/factory.js';
-import { config } from '../config/index.js';
-import { log } from './logger.service.js';
+import { langfuseClient } from '@/models/external/langfuse.js';
+import { ModelFactory } from '@/models/factory.js';
+import { config } from '@/config/index.js';
+import { log } from '@/services/logger.service.js';
 import { createClient } from 'redis';
 
 export interface ExternalTraceParams {

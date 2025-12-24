@@ -83,11 +83,11 @@ export function Dialog({
     };
 
     return (
-        <Transition appear show={open} as={Fragment}>
+        <Transition appear show={open} as={Fragment as any}>
             <HeadlessDialog as="div" className="relative z-50" onClose={onClose}>
                 {/* Backdrop */}
                 <Transition.Child
-                    as={Fragment}
+                    as={Fragment as any}
                     enter="ease-out duration-300"
                     enterFrom="opacity-0"
                     enterTo="opacity-100"
@@ -102,7 +102,7 @@ export function Dialog({
                 <div className="fixed inset-0 overflow-y-auto">
                     <div className="flex min-h-full items-center justify-center p-4">
                         <Transition.Child
-                            as={Fragment}
+                            as={Fragment as any}
                             enter="ease-out duration-300"
                             enterFrom="opacity-0 scale-95"
                             enterTo="opacity-100 scale-100"
@@ -128,11 +128,11 @@ export function Dialog({
 
                                 {/* Body */}
                                 <div className="text-slate-600 dark:text-slate-400 flex-1 min-h-0">
-                                    {children}
+                                    {children as any}
                                 </div>
 
                                 {/* Footer */}
-                                {footer && (
+                                {!!footer && (
                                     <div className="mt-6 flex justify-end gap-2">
                                         {footer}
                                     </div>

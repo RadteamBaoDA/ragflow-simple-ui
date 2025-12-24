@@ -9,8 +9,8 @@
  */
 
 import { createClient } from 'redis';
-import { config } from '../config/index.js';
-import { log } from './logger.service.js';
+import { config } from '@/config/index.js';
+import { log } from '@/services/logger.service.js';
 
 /** Redis client type alias */
 export type RedisClient = ReturnType<typeof createClient>;

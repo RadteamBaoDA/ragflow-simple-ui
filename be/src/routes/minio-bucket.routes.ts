@@ -1,8 +1,8 @@
 
 import { Router } from 'express';
-import { MinioBucketController } from '../controllers/minio-bucket.controller.js';
-import { requirePermission } from '../middleware/auth.middleware.js';
-import { CreateMinioBucketDto } from '../models/minio-bucket.model.js'; // Ensure imported if validation logic uses it
+import { MinioBucketController } from '@/controllers/minio-bucket.controller.js';
+import { requirePermission } from '@/middleware/auth.middleware.js';
+import { CreateMinioBucketDto } from '@/models/minio-bucket.model.js';
 
 const router = Router();
 const controller = new MinioBucketController();

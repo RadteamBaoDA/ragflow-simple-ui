@@ -1,7 +1,7 @@
 
 import { Request, Response, NextFunction } from 'express';
-import { log } from '../services/logger.service.js';
-import { User } from '../models/types.js';
+import { log } from '@/services/logger.service.js';
+import { User } from '@/models/types.js';
 
 export type Role = 'admin' | 'leader' | 'user';
 export type Permission = string;
@@ -95,19 +95,19 @@ export function requirePermission(permission: Permission) {
     }
 
     if (user.permissions) {
-        let perms: string[] = [];
-        if (typeof user.permissions === 'string') {
-            try {
-                perms = JSON.parse(user.permissions);
-            } catch { perms = []; }
-        } else if (Array.isArray(user.permissions)) {
-            perms = user.permissions;
-        }
+      let perms: string[] = [];
+      if (typeof user.permissions === 'string') {
+        try {
+          perms = JSON.parse(user.permissions);
+        } catch { perms = []; }
+      } else if (Array.isArray(user.permissions)) {
+        perms = user.permissions;
+      }
 
-        if (perms.includes(permission)) {
-            next();
-            return;
-        }
+      if (perms.includes(permission)) {
+        next();
+        return;
+      }
     }
 
     log.warn('Access denied: missing permission', {

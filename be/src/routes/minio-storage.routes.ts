@@ -1,7 +1,7 @@
 
 import { Router } from 'express';
-import { MinioStorageController } from '../controllers/minio-storage.controller.js';
-import { requirePermission } from '../middleware/auth.middleware.js';
+import { MinioStorageController } from '@/controllers/minio-storage.controller.js';
+import { requirePermission } from '@/middleware/auth.middleware.js';
 import multer from 'multer';
 
 const router = Router();

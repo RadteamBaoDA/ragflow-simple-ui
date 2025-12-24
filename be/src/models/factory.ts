@@ -1,17 +1,17 @@
 
-import { UserModel } from './user.model.js';
-import { TeamModel } from './team.model.js';
-import { UserTeamModel } from './user-team.model.js';
-import { ChatSessionModel } from './chat-session.model.js';
-import { ChatMessageModel } from './chat-message.model.js';
-import { MinioBucketModel } from './minio-bucket.model.js';
-import { SystemConfigModel } from './system-config.model.js';
-import { KnowledgeBaseSourceModel } from './knowledge-base-source.model.js';
-import { AuditLogModel } from './audit-log.model.js';
-import { UserIpHistoryModel } from './user-ip-history.model.js';
-import { DocumentPermissionModel } from './document-permission.model.js';
-import { BroadcastMessageModel } from './broadcast-message.model.js';
-import { UserDismissedBroadcastModel } from './user-dismissed-broadcast.model.js';
+import { UserModel } from '@/models/user.model.js';
+import { TeamModel } from '@/models/team.model.js';
+import { UserTeamModel } from '@/models/user-team.model.js';
+import { ChatSessionModel } from '@/models/chat-session.model.js';
+import { ChatMessageModel } from '@/models/chat-message.model.js';
+import { MinioBucketModel } from '@/models/minio-bucket.model.js';
+import { SystemConfigModel } from '@/models/system-config.model.js';
+import { KnowledgeBaseSourceModel } from '@/models/knowledge-base-source.model.js';
+import { AuditLogModel } from '@/models/audit-log.model.js';
+import { UserIpHistoryModel } from '@/models/user-ip-history.model.js';
+import { DocumentPermissionModel } from '@/models/document-permission.model.js';
+import { BroadcastMessageModel } from '@/models/broadcast-message.model.js';
+import { UserDismissedBroadcastModel } from '@/models/user-dismissed-broadcast.model.js';
 
 export class ModelFactory {
   private static userModel: UserModel;

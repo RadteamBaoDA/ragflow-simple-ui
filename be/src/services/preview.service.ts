@@ -3,10 +3,10 @@ import fs from 'fs';
 import fsPromises from 'fs/promises';
 import { constants } from 'fs';
 import path from 'path';
-import { minioService } from './minio.service.js';
-import { ModelFactory } from '../models/factory.js';
-import { config } from '../config/index.js';
-import { log } from './logger.service.js';
+import { minioService } from '@/services/minio.service.js';
+import { ModelFactory } from '@/models/factory.js';
+import { config } from '@/config/index.js';
+import { log } from '@/services/logger.service.js';
 
 const tempDir = path.resolve(config.tempCachePath);
 if (!fs.existsSync(tempDir)) {
@@ -20,8 +20,8 @@ export class PreviewService {
         // Try resolve bucket name from ID if UUID
         const uuidRegex = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;
         if (uuidRegex.test(bucketName)) {
-             const bucket = await ModelFactory.minioBucket.findById(bucketName);
-             if (bucket) targetBucketName = bucket.bucket_name;
+            const bucket = await ModelFactory.minioBucket.findById(bucketName);
+            if (bucket) targetBucketName = bucket.bucket_name;
         }
 
         const safeKey = fileName.replace(/[^a-zA-Z0-9.\-_/]/g, '_');
@@ -50,7 +50,7 @@ export class PreviewService {
         }
 
         if (!useCache) {
-             try {
+            try {
                 // Use minioService helper or direct client
                 const { minioClient } = await import('../models/external/minio.js');
                 await minioClient.fGetObject(targetBucketName, fileName, localFilePath);
@@ -58,10 +58,10 @@ export class PreviewService {
                 const now = new Date();
                 await fsPromises.utimes(localFilePath, now, now);
                 log.info('File cached successfully', { bucketName: targetBucketName, fileName, localFilePath });
-             } catch (error) {
+            } catch (error) {
                 log.error('Failed to download file for preview', { error, bucketName: targetBucketName, fileName });
                 throw error;
-             }
+            }
         }
 
         return localFilePath;

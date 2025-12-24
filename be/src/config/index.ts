@@ -113,6 +113,10 @@ export const config = {
   /** Production mode flag */
   isProduction,
 
+  /** Root user configuration */
+  rootUser: process.env['KB_ROOT_USER'] || 'admin@localhost',
+  rootPassword: process.env['KB_ROOT_PASSWORD'] || 'admin',
+
   /**
    * Whether to ignore self-signed SSL certificates.
    * WARNING: This makes the application insecure and should only be used in development/testing.

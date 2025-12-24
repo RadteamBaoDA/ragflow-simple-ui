@@ -1,7 +1,7 @@
 
-import { BaseModel } from './base.model.js';
-import { db } from '../db/knex.js';
-import { UserTeam } from './types.js';
+import { BaseModel } from '@/models/base.model.js';
+import { db } from '@/db/knex.js';
+import { UserTeam } from '@/models/types.js';
 
 export class UserTeamModel extends BaseModel<UserTeam> {
   protected tableName = 'user_teams';

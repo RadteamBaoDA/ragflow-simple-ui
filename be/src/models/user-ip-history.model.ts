@@ -1,7 +1,7 @@
 
-import { BaseModel } from './base.model.js';
-import { db } from '../db/knex.js';
-import { UserIpHistory } from './types.js';
+import { BaseModel } from '@/models/base.model.js';
+import { db } from '@/db/knex.js';
+import { UserIpHistory } from '@/models/types.js';
 
 export class UserIpHistoryModel extends BaseModel<UserIpHistory> {
   protected tableName = 'user_ip_history';

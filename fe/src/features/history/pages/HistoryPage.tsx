@@ -133,15 +133,15 @@ async function deleteAllSessions(): Promise<{ deleted: number }> {
 function HistoryPage() {
   const { t, i18n } = useTranslation();
   const queryClient = useQueryClient();
-  
+
   // Search and filter state
   const [searchQuery, setSearchQuery] = useState('');
   const [startDate, setStartDate] = useState('');
   const [endDate, setEndDate] = useState('');
-  
+
   // Selection state
   const [selectedSessions, setSelectedSessions] = useState<Set<string>>(new Set());
-  
+
   // Dialog state
   const [showDeleteConfirm, setShowDeleteConfirm] = useState(false);
   const [deleteAllConfirm, setDeleteAllConfirm] = useState(false);
@@ -167,27 +167,33 @@ function HistoryPage() {
   });
 
   const deleteMutation = useMutation({
+    mutationKey: ['delete', 'chatSession'],
     mutationFn: deleteChatSession,
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ['chatSessions'] });
     },
+    meta: { successMessage: t('history.deleteSuccess') || 'Session deleted' }
   });
 
   const bulkDeleteMutation = useMutation({
+    mutationKey: ['delete', 'chatSessions', 'bulk'],
     mutationFn: deleteChatSessions,
     onSuccess: () => {
       setSelectedSessions(new Set());
       queryClient.invalidateQueries({ queryKey: ['chatSessions'] });
     },
+    meta: { successMessage: t('history.bulkDeleteSuccess') || 'Sessions deleted' }
   });
 
   const deleteAllMutation = useMutation({
+    mutationKey: ['delete', 'chatSessions', 'all'],
     mutationFn: deleteAllSessions,
     onSuccess: () => {
       setSelectedSessions(new Set());
       setDeleteAllConfirm(false);
       queryClient.invalidateQueries({ queryKey: ['chatSessions'] });
     },
+    meta: { successMessage: t('history.deleteAllSuccess') || 'All sessions deleted' }
   });
 
   const handleSearch = (e: React.FormEvent) => {
@@ -353,8 +359,8 @@ function HistoryPage() {
             <div
               key={session.id}
               className={`bg-white dark:bg-slate-800 border rounded-lg p-6 transition-all ${selectedSessions.has(session.id)
-                  ? 'border-primary bg-blue-50 dark:bg-blue-900/20'
-                  : 'border-slate-200 dark:border-slate-700 hover:shadow-lg'
+                ? 'border-primary bg-blue-50 dark:bg-blue-900/20'
+                : 'border-slate-200 dark:border-slate-700 hover:shadow-lg'
                 }`}
             >
               <div className="flex items-start justify-between">

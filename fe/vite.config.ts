@@ -110,6 +110,12 @@ export default defineConfig(({ mode }) => {
           secure: false,
         },
       },
+      hmr: {
+        host: devDomain === 'localhost' ? 'localhost' : devDomain,
+        clientPort: devDomain === 'localhost' ? devPort : 443,
+        protocol: devDomain === 'localhost' ? (useHttps ? 'wss' : 'ws') : 'wss',
+        overlay: true
+      },
     },
     define: {
       '__SHARED_STORAGE_DOMAIN__': JSON.stringify(env.SHARED_STORAGE_DOMAIN || '.localhost'),

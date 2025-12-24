@@ -361,30 +361,30 @@ const SystemMonitorPage = () => {
                                 <ServiceCard
                                     title="Database"
                                     icon={Database}
-                                    status={health.services.database.status}
-                                    enabled={health.services.database.enabled}
-                                    subtext={health.services.database.host}
+                                    status={health.services?.database?.status || 'unknown'}
+                                    enabled={health.services?.database?.enabled || false}
+                                    subtext={health.services?.database?.host}
                                 />
                                 <ServiceCard
                                     title="Redis Cache"
                                     icon={Zap}
-                                    status={health.services.redis.status}
-                                    enabled={health.services.redis.enabled}
-                                    subtext={health.services.redis.host}
+                                    status={health.services?.redis?.status || 'unknown'}
+                                    enabled={health.services?.redis?.enabled || false}
+                                    subtext={health.services?.redis?.host}
                                 />
                                 <ServiceCard
                                     title="MinIO Storage"
                                     icon={HardDrive}
-                                    status={health.services.minio.status}
-                                    enabled={health.services.minio.enabled}
-                                    subtext={health.services.minio.host}
+                                    status={health.services?.minio?.status || 'unknown'}
+                                    enabled={health.services?.minio?.enabled || false}
+                                    subtext={health.services?.minio?.host}
                                 />
                                 <ServiceCard
                                     title="Langfuse Trace"
                                     icon={Activity}
-                                    status={health.services.langfuse.status}
-                                    enabled={health.services.langfuse.enabled}
-                                    subtext={health.services.langfuse.host}
+                                    status={health.services?.langfuse?.status || 'unknown'}
+                                    enabled={health.services?.langfuse?.enabled || false}
+                                    subtext={health.services?.langfuse?.host}
                                 />
                             </div>
                         </section>

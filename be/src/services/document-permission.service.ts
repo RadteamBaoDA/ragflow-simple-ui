@@ -1,8 +1,8 @@
 
-import { ModelFactory } from '../models/factory.js';
-import { log } from './logger.service.js';
-import { auditService, AuditAction, AuditResourceType } from './audit.service.js';
-import { DocumentPermission, PermissionLevel } from '../models/types.js';
+import { ModelFactory } from '@/models/factory.js';
+import { log } from '@/services/logger.service.js';
+import { auditService, AuditAction, AuditResourceType } from '@/services/audit.service.js';
+import { DocumentPermission, PermissionLevel } from '@/models/types.js';
 
 export { PermissionLevel };
 
@@ -65,10 +65,10 @@ export class DocumentPermissionService {
         let maxPerm = userPerm;
 
         for (const teamId of teamIds) {
-             const teamPerm = await this.getPermission('team', teamId, bucketId);
-             if (teamPerm > maxPerm) {
-                 maxPerm = teamPerm;
-             }
+            const teamPerm = await this.getPermission('team', teamId, bucketId);
+            if (teamPerm > maxPerm) {
+                maxPerm = teamPerm;
+            }
         }
 
         return maxPerm;

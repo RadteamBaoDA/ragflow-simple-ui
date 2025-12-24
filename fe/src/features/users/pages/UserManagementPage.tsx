@@ -16,6 +16,7 @@
 import { useState, useEffect } from 'react';
 import { useAuth, User } from '@/features/auth';
 import { Dialog } from '@/components/Dialog';
+import { useMutation } from '@tanstack/react-query';
 import { userService } from '../api/userService';
 import { Mail, Edit2, Globe, Search, Filter, X, ArrowUp, ArrowDown, AlertCircle } from 'lucide-react';
 import { useTranslation } from 'react-i18next';
@@ -176,6 +177,44 @@ export default function UserManagementPage() {
     };
 
     // ============================================================================
+    // Mutations
+    // ============================================================================
+
+    const updateRoleMutation = useMutation({
+        mutationKey: ['update', 'user', 'role'],
+        mutationFn: async ({ userId, role }: { userId: string, role: string }) => {
+            const response = await fetch(`${API_BASE_URL}/api/users/${userId}/role`, {
+                method: 'PUT',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({ role }),
+                credentials: 'include',
+            });
+            if (!response.ok) {
+                const data = await response.json().catch(() => ({}));
+                throw new Error(data.error || 'Failed to update role');
+            }
+            return response.json();
+        },
+        onSuccess: (_data, variables) => {
+            // Update local state if needed, but easier to just invalidate or update users array
+            setUsers(prev => prev.map(u => u.id === variables.userId ? { ...u, role: variables.role as any } : u));
+            setIsEditModalOpen(false);
+        },
+        meta: { successMessage: t('userManagement.roleUpdateSuccess') || 'User role updated successfully' }
+    });
+
+    const updatePermissionsMutation = useMutation({
+        mutationKey: ['update', 'user', 'permissions'],
+        mutationFn: ({ userId, permissions }: { userId: string, permissions: string[] }) =>
+            userService.updateUserPermissions(userId, permissions),
+        onSuccess: (_data, variables) => {
+            setUsers(prev => prev.map(u => u.id === variables.userId ? { ...u, permissions: variables.permissions } : u));
+            setIsPermissionModalOpen(false);
+        },
+        meta: { successMessage: t('userManagement.permissionsUpdateSuccess') || 'User permissions updated successfully' }
+    });
+
+    // ============================================================================
     const [saveError, setSaveError] = useState<string | null>(null);
 
     // Permission Dialog State
@@ -202,15 +241,7 @@ export default function UserManagementPage() {
 
     const handleSavePermissions = async () => {
         if (!selectedUser) return;
-        try {
-            await userService.updateUserPermissions(selectedUser.id, selectedPermissions);
-            // Update local state
-            setUsers(users.map(u => u.id === selectedUser.id ? { ...u, permissions: selectedPermissions } : u));
-            setIsPermissionModalOpen(false);
-        } catch (error) {
-            console.error('Failed to update permissions:', error);
-            // Optionally set error state to show in modal
-        }
+        updatePermissionsMutation.mutate({ userId: selectedUser.id, permissions: selectedPermissions });
     };
 
 
@@ -219,28 +250,7 @@ export default function UserManagementPage() {
      */
     const handleSaveRole = async () => {
         if (!selectedUser) return;
-        setSaveError(null);
-
-        try {
-            const response = await fetch(`${API_BASE_URL}/api/users/${selectedUser.id}/role`, {
-                method: 'PUT',
-                headers: { 'Content-Type': 'application/json' },
-                body: JSON.stringify({ role: newRole }),
-                credentials: 'include',
-            });
-
-            if (!response.ok) {
-                const data = await response.json().catch(() => ({}));
-                throw new Error(data.error || 'Failed to update role');
-            }
-
-            // Update local state to reflect change
-            setUsers(users.map(u => u.id === selectedUser.id ? { ...u, role: newRole } : u));
-            setIsEditModalOpen(false);
-        } catch (err) {
-            console.error('Failed to update role:', err);
-            setSaveError(err instanceof Error ? err.message : 'An error occurred');
-        }
+        updateRoleMutation.mutate({ userId: selectedUser.id, role: newRole });
     };
 
 

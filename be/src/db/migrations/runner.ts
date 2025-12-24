@@ -14,9 +14,9 @@
  * @module db/migrations/runner
  */
 
-import { DatabaseAdapter } from '../types.js';
-import { log } from '../../services/logger.service.js';
-import { migration as migration001 } from './001_initial_schema.js';
+import { DatabaseAdapter } from '@/db/types.js';
+import { log } from '@/services/logger.service.js';
+import { migration as migration001 } from '@/db/migrations/001_initial_schema.js';
 
 /**
  * Ordered list of all migrations.

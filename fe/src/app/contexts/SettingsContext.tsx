@@ -178,7 +178,7 @@ export function SettingsProvider({ children }: SettingsProviderProps) {
   const closeSettings = useCallback(() => setIsSettingsOpen(false), []);
 
   return (
-    <SettingsContext.Provider
+    <SettingsContext
       value={{
         theme,
         setTheme,
@@ -196,9 +196,9 @@ export function SettingsProvider({ children }: SettingsProviderProps) {
           algorithm: isDarkMode ? antTheme.darkAlgorithm : antTheme.defaultAlgorithm,
         }}
       >
-        {children}
+        {children as any}
       </ConfigProvider>
-    </SettingsContext.Provider>
+    </SettingsContext>
   );
 }
 

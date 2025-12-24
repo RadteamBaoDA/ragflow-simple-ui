@@ -16,7 +16,7 @@ import {
     ALLOWED_DOCUMENT_EXTENSIONS,
     FILE_SIGNATURES,
     CONTENT_TYPE_EXTENSION_MAP,
-} from '../config/file-upload.config.js';
+} from '@/config/file-upload.config.js';
 
 // ============================================================================
 // Type Definitions
@@ -46,12 +46,12 @@ export interface SanitizeResult {
  */
 export function validateFileExtension(filename: string, useAllowlist: boolean = false): ValidationResult {
     const ext = path.extname(filename).toLowerCase();
-    
+
     // Check for empty extension
     if (!ext) {
         return { isValid: false, error: 'File must have an extension' };
     }
-    
+
     // Check for double extensions (e.g., .jpg.php)
     const parts = filename.split('.');
     if (parts.length > 2) {
@@ -62,17 +62,17 @@ export function validateFileExtension(filename: string, useAllowlist: boolean = 
             }
         }
     }
-    
+
     // Always block dangerous extensions
     if (DANGEROUS_EXTENSIONS.has(ext)) {
         return { isValid: false, error: `File type not allowed: ${ext}` };
     }
-    
+
     // If using allowlist, check against allowed extensions
     if (useAllowlist && !ALLOWED_DOCUMENT_EXTENSIONS.has(ext)) {
         return { isValid: false, error: `File type not in allowed list: ${ext}` };
     }
-    
+
     return { isValid: true };
 }
 
@@ -90,23 +90,23 @@ export function validateFileExtension(filename: string, useAllowlist: boolean = 
 export function validateContentType(mimetype: string, filename: string): ValidationResult {
     const ext = path.extname(filename).toLowerCase();
     const allowedExtensions = CONTENT_TYPE_EXTENSION_MAP[mimetype];
-    
+
     // If we don't know this content type, log warning but allow
     if (!allowedExtensions) {
-        return { 
-            isValid: true, 
-            warning: `Unknown Content-Type: ${mimetype} for file ${filename}` 
+        return {
+            isValid: true,
+            warning: `Unknown Content-Type: ${mimetype} for file ${filename}`
         };
     }
-    
+
     // Check if extension matches content type
     if (!allowedExtensions.includes(ext)) {
-        return { 
-            isValid: false, 
-            warning: `Content-Type ${mimetype} does not match extension ${ext}` 
+        return {
+            isValid: false,
+            warning: `Content-Type ${mimetype} does not match extension ${ext}`
         };
     }
-    
+
     return { isValid: true };
 }
 
@@ -124,12 +124,12 @@ export function validateContentType(mimetype: string, filename: string): Validat
 export function validateFileSignature(buffer: Buffer, filename: string): ValidationResult {
     const ext = path.extname(filename).toLowerCase();
     const expectedSignatures = FILE_SIGNATURES[ext];
-    
+
     // If we don't have signatures for this type, allow
     if (!expectedSignatures) {
         return { isValid: true };
     }
-    
+
     // Check if any of the expected signatures match
     for (const signature of expectedSignatures) {
         if (buffer.length >= signature.length) {
@@ -139,10 +139,10 @@ export function validateFileSignature(buffer: Buffer, filename: string): Validat
             }
         }
     }
-    
-    return { 
-        isValid: false, 
-        error: `File content does not match ${ext} file signature - possible file type spoofing` 
+
+    return {
+        isValid: false,
+        error: `File content does not match ${ext} file signature - possible file type spoofing`
     };
 }
 
@@ -162,44 +162,44 @@ export function sanitizeFilename(filename: string): SanitizeResult {
     if (!filename || typeof filename !== 'string') {
         return { sanitized: null, error: 'Filename is required' };
     }
-    
+
     // Remove path components (prevent path traversal)
     let sanitized = path.basename(filename);
-    
+
     // Check length (use Buffer to count bytes for UTF-8 safety)
     if (sanitized.length > MAX_FILENAME_LENGTH) {
         return { sanitized: null, error: `Filename too long (max ${MAX_FILENAME_LENGTH} characters)` };
     }
-    
+
     // Block null bytes
     if (sanitized.includes('\0')) {
         return { sanitized: null, error: 'Filename contains null bytes' };
     }
-    
+
     // Block path traversal sequences
     if (sanitized.includes('..') || sanitized.includes('/') || sanitized.includes('\\')) {
         return { sanitized: null, error: 'Filename contains path traversal characters' };
     }
-    
+
     // Remove dangerous control characters (ASCII 0-31 except tab, newline) and special chars
     // Keep: Unicode letters/numbers (\p{L}\p{N}), basic punctuation, space
     // Block: Control chars, path separators, shell metacharacters
     // Using Unicode-aware regex with 'u' flag
     sanitized = sanitized.replace(/[\x00-\x1f\x7f<>:"|?*\\]/gu, '_');
-    
+
     // Prevent leading/trailing periods (hidden files, extension manipulation)
     sanitized = sanitized.replace(/^\.+|\.+$/g, '_');
-    
+
     // Collapse multiple periods/underscores/hyphens
     sanitized = sanitized.replace(/[._-]{2,}/g, '_');
-    
+
     // Trim whitespace
     sanitized = sanitized.trim();
-    
+
     if (!sanitized) {
         return { sanitized: null, error: 'Filename is empty after sanitization' };
     }
-    
+
     return { sanitized };
 }
 
@@ -228,25 +228,25 @@ export function generateSafeFilename(originalFilename: string): string {
  */
 export function sanitizeObjectPath(objectPath: string): string | null {
     if (!objectPath || typeof objectPath !== 'string') return null;
-    
+
     // Block path traversal attempts
     if (objectPath.includes('..') || objectPath.includes('\\')) {
         return null;
     }
-    
+
     // Remove leading slashes
     let sanitized = objectPath.replace(/^\/+/, '');
-    
+
     // Block null bytes
     if (sanitized.includes('\0')) {
         return null;
     }
-    
+
     // Limit path length
     if (sanitized.length > MAX_PATH_LENGTH) {
         return null;
     }
-    
+
     return sanitized;
 }
 
@@ -280,25 +280,25 @@ export function validateUploadedFile(
     options: { useAllowlist?: boolean; validateSignature?: boolean } = {}
 ): ValidationResult {
     const { useAllowlist = false, validateSignature = true } = options;
-    
+
     // 1. Validate filename
     const filenameResult = sanitizeFilename(file.originalname);
     if (!filenameResult.sanitized) {
         return { isValid: false, error: filenameResult.error };
     }
-    
+
     // 2. Validate extension
     const extResult = validateFileExtension(file.originalname, useAllowlist);
     if (!extResult.isValid) {
         return extResult;
     }
-    
+
     // 3. Validate Content-Type
     const contentTypeResult = validateContentType(file.mimetype, file.originalname);
     if (!contentTypeResult.isValid) {
         return contentTypeResult;
     }
-    
+
     // 4. Validate file signature (if enabled and buffer available)
     if (validateSignature && file.buffer) {
         const signatureResult = validateFileSignature(file.buffer, file.originalname);
@@ -306,6 +306,6 @@ export function validateUploadedFile(
             return signatureResult;
         }
     }
-    
+
     return { isValid: true, warning: contentTypeResult.warning };
 }

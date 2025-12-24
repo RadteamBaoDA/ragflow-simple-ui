@@ -9,31 +9,32 @@ import * as http from 'http';
 import * as https from 'https';
 import rateLimit from 'express-rate-limit';
 
-import { config } from './config/index.js';
-import { log } from './services/logger.service.js';
-import { initRedis, getRedisClient, getRedisStatus, shutdownRedis } from './services/redis.service.js';
-import { db } from './db/knex.js';
-import { cronService } from './services/cron.service.js';
-import { knowledgeBaseService } from './services/knowledge-base.service.js';
-import { systemToolsService } from './services/system-tools.service.js';
-import { userService } from './services/user.service.js';
-import { shutdownLangfuse } from './services/langfuse.service.js';
-import { externalTraceService } from './services/external-trace.service.js';
+import { config } from '@/config/index.js';
+import { log } from '@/services/logger.service.js';
+import { initRedis, getRedisClient, getRedisStatus, shutdownRedis } from '@/services/redis.service.js';
+import { db, getAdapter, checkConnection, closePool } from '@/db/index.js';
+import { runMigrations } from '@/db/migrations/runner.js';
+import { cronService } from '@/services/cron.service.js';
+import { knowledgeBaseService } from '@/services/knowledge-base.service.js';
+import { systemToolsService } from '@/services/system-tools.service.js';
+import { userService } from '@/services/user.service.js';
+import { shutdownLangfuse } from '@/services/langfuse.service.js';
+import { externalTraceService } from '@/services/external-trace.service.js';
 
-import authRoutes from './routes/auth.routes.js';
-import knowledgeBaseRoutes from './routes/knowledge-base.routes.js';
-import adminRoutes from './routes/admin.routes.js';
-import userRoutes from './routes/user.routes.js';
-import teamRoutes from './routes/team.routes.js';
-import systemToolsRoutes from './routes/system-tools.routes.js';
-import minioBucketRoutes from './routes/minio-bucket.routes.js';
-import minioRawRoutes from './routes/minio-raw.routes.js';
-import minioStorageRoutes from './routes/minio-storage.routes.js';
-import documentPermissionRoutes from './routes/document-permission.routes.js';
-import auditRoutes from './routes/audit.routes.js';
-import externalRoutes from './routes/external/index.js';
-import previewRoutes from './routes/preview.routes.js';
-import broadcastMessageRoutes from './routes/broadcast-message.routes.js';
+import authRoutes from '@/routes/auth.routes.js';
+import knowledgeBaseRoutes from '@/routes/knowledge-base.routes.js';
+import adminRoutes from '@/routes/admin.routes.js';
+import userRoutes from '@/routes/user.routes.js';
+import teamRoutes from '@/routes/team.routes.js';
+import systemToolsRoutes from '@/routes/system-tools.routes.js';
+import minioBucketRoutes from '@/routes/minio-bucket.routes.js';
+import minioRawRoutes from '@/routes/minio-raw.routes.js';
+import minioStorageRoutes from '@/routes/minio-storage.routes.js';
+import documentPermissionRoutes from '@/routes/document-permission.routes.js';
+import auditRoutes from '@/routes/audit.routes.js';
+import externalRoutes from '@/routes/external/index.js';
+import previewRoutes from '@/routes/preview.routes.js';
+import broadcastMessageRoutes from '@/routes/broadcast-message.routes.js';
 
 const app = express();
 
@@ -110,8 +111,8 @@ const validateContentType = (req: express.Request, res: express.Response, next: 
     if (!contentType) return next();
 
     if (contentType.includes('application/json') ||
-        contentType.includes('multipart/form-data') ||
-        contentType.includes('application/x-www-form-urlencoded')) {
+      contentType.includes('multipart/form-data') ||
+      contentType.includes('application/x-www-form-urlencoded')) {
       return next();
     }
 
@@ -126,13 +127,7 @@ const validateContentType = (req: express.Request, res: express.Response, next: 
 app.get('/health', async (_req, res) => {
   const timestamp = new Date().toISOString();
 
-  let dbConnected = false;
-  try {
-      await db.raw('SELECT 1');
-      dbConnected = true;
-  } catch (e) {
-      dbConnected = false;
-  }
+  const dbConnected = await checkConnection();
 
   const redisStatus = getRedisStatus();
 
@@ -210,20 +205,20 @@ const startServer = async (): Promise<http.Server | https.Server> => {
     await knowledgeBaseService.initialize();
     await systemToolsService.initialize();
 
-    try {
-        await db.raw('SELECT 1');
-        log.info('Database connected successfully');
+    if (await checkConnection()) {
+      log.info('Database connected successfully');
 
-        try {
-            await db.migrate.latest();
-        } catch (error) {
-            log.error('Failed to run migrations', { error });
-            process.exit(1);
-        }
+      try {
+        const adapter = await getAdapter();
+        await runMigrations(adapter);
+      } catch (error) {
+        log.error('Failed to run migrations', { error });
+        process.exit(1);
+      }
 
-        await userService.initializeRootUser();
-    } catch (e) {
-        log.warn('Database connection failed', { error: e });
+      await userService.initializeRootUser();
+    } else {
+      log.warn('Database connection failed');
     }
   });
 
@@ -254,7 +249,7 @@ if (!isTest) {
         log.info('HTTP server closed');
       });
       await shutdownRedis();
-      await db.destroy();
+      await closePool();
       await shutdownLangfuse();
       await externalTraceService.shutdown();
       process.exit(0);

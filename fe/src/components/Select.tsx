@@ -70,7 +70,7 @@ export function Select({ value, onChange, options, icon, disabled = false, class
             {({ open }) => (
                 <div className={`relative inline-block min-w-[200px] ${className}`}>
                     <Listbox.Button className={`relative flex items-center gap-2 w-full px-4 py-2.5 bg-gradient-to-r from-primary/10 to-primary/5 dark:from-slate-800 dark:to-slate-800 dark:bg-slate-800 rounded-lg border border-primary/20 dark:border-slate-600 shadow-sm hover:shadow-md transition-shadow text-left ${disabled ? 'opacity-50 cursor-not-allowed' : ''}`}>
-                        {icon && <span className="text-primary dark:text-blue-400 flex-shrink-0">{icon}</span>}
+                        {!!icon && <span className="text-primary dark:text-blue-400 flex-shrink-0">{icon}</span>}
                         <span className="flex-1 text-sm font-medium text-slate-700 dark:text-slate-200">
                             {selectedOption?.name || 'Select...'}
                         </span>
@@ -82,7 +82,7 @@ export function Select({ value, onChange, options, icon, disabled = false, class
                     </Listbox.Button>
 
                     <Transition
-                        as={Fragment}
+                        as={Fragment as any}
                         leave="transition ease-in duration-100"
                         leaveFrom="opacity-100"
                         leaveTo="opacity-0"
