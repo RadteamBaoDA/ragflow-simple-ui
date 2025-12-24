@@ -56,11 +56,13 @@ import auditRoutes from './routes/audit.routes.js';
 import externalRoutes from './routes/external/index.js';
 import previewRoutes from './routes/preview.routes.js';
 import broadcastMessageRoutes from './routes/broadcast-message.routes.js';
+import ragflowRoutes from './routes/ragflow.js';
 import { externalTraceService } from './services/external-trace.service.js';
 import { runMigrations } from './db/migrations/runner.js';
 import { cronService } from './services/cron.service.js';
 import { knowledgeBaseService } from './services/knowledge-base.service.js';
 import { systemToolsService } from './services/system-tools.service.js';
+import { processHistoryQueue } from './services/queue.service.js';
 
 /**
  * ESM-compatible __filename and __dirname resolution.
@@ -412,6 +414,7 @@ app.use('/api/audit', auditRoutes);
 app.use('/api/external', externalRoutes);
 app.use('/api/preview', previewRoutes);
 app.use('/api/broadcast-messages', broadcastMessageRoutes);
+app.use('/api/ragflow', ragflowRoutes);
 
 /**
  * 404 handler for undefined API routes.
@@ -500,6 +503,11 @@ const startServer = async (): Promise<http.Server | https.Server> => {
     // Initialize async services
     await knowledgeBaseService.initialize();
     await systemToolsService.initialize();
+
+    // Start background tasks
+    processHistoryQueue().catch(err => {
+      log.error('Failed to start history queue processor', { error: err.message });
+    });
 
     // Verify database connectivity
     const dbConnected = await checkConnection();
