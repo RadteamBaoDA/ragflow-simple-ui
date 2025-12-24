@@ -22,7 +22,7 @@ import {
   type MinioBucket,
   type AvailableBucket,
   type FileObject,
-} from '../../src/services/minioService';
+} from '@/features/documents/api/minioService';
 
 // ============================================================================
 // Mock Setup

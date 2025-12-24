@@ -13,7 +13,7 @@
 import { describe, it, expect, vi } from 'vitest';
 import { render, screen, fireEvent, waitFor } from '@testing-library/react';
 import React from 'react';
-import { Dialog } from '../../src/components/Dialog';
+import { Dialog } from '@/components/Dialog';
 
 // ============================================================================
 // Tests
