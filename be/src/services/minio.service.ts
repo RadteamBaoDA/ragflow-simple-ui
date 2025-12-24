@@ -1,170 +1,36 @@
-/**
- * @fileoverview MinIO object storage service.
- * 
- * This module provides integration with MinIO for file storage operations.
- * MinIO is an S3-compatible object storage system used for:
- * - Document and file uploads
- * - Organized storage with buckets and folders
- * - Presigned URLs for secure file downloads
- * 
- * Features:
- * - Bucket management (create, delete, list)
- * - File operations (upload, download, delete)
- * - Folder simulation (MinIO uses flat object keys)
- * - Batch operations for efficiency
- * - Presigned URL generation for secure sharing
- * 
- * @module services/minio
- * @see https://min.io/docs/minio/linux/developers/javascript/minio-javascript.html
- */
 
 import * as Minio from 'minio';
 import { Readable } from 'stream';
 import * as http from 'http';
 import * as https from 'https';
 import * as crypto from 'crypto';
+import { minioClient } from '../models/external/minio.js';
+import { ModelFactory } from '../models/factory.js';
 import { log } from './logger.service.js';
+import { auditService, AuditAction, AuditResourceType } from './audit.service.js';
+import { config } from '../config/index.js';
 
-// ============================================================================
-// TYPE DEFINITIONS
-// ============================================================================
-
-/**
- * MinIO connection configuration.
- */
-interface MinioConfig {
-    /** MinIO server hostname or IP */
-    endPoint: string;
-    /** MinIO server port (default: 9000) */
-    port: number;
-    /** Use SSL/TLS for connections */
-    useSSL: boolean;
-    /** MinIO access key (username) */
-    accessKey: string;
-    /** MinIO secret key (password) */
-    secretKey: string;
-    /** Public endpoint for download URLs (optional) */
-    publicEndPoint?: string;
-}
-
-
-/**
- * Represents a Service Account (Access Key).
- */
-export interface ServiceAccount {
-    accessKey: string;
-    parentUser: string;
-    accountStatus: string;
-    description?: string;
-    name?: string;
-    expiration?: string;
-}
-
-/**
- * Represents a file or folder in MinIO storage.
- */
-interface FileObject {
-    /** Object name (filename or folder name) */
+export interface FileObject {
     name: string;
-    /** Object size in bytes */
     size: number;
-    /** Last modification timestamp */
     lastModified: Date;
-    /** Object ETag for change detection */
     etag: string;
-    /** Whether this is a folder (virtual directory) */
     isFolder: boolean;
-    /** Full prefix path (for folders) */
     prefix?: string;
 }
 
-// ============================================================================
-// MINIO SERVICE CLASS
-// ============================================================================
-
-/**
- * MinIO storage service class.
- * Provides high-level methods for interacting with MinIO object storage.
- * 
- * The service is initialized as a singleton and automatically configured
- * from environment variables on import.
- * 
- * @example
- * import { minioService } from './services/minio.service.js';
- * 
- * // Create a bucket
- * await minioService.createBucket('my-bucket');
- * 
- * // Upload a file
- * await minioService.uploadFile('my-bucket', 'docs/file.pdf', buffer, size);
- * 
- * // Get download URL
- * const url = await minioService.getDownloadUrl('my-bucket', 'docs/file.pdf');
- */
 class MinioService {
-    /** MinIO client instance (null if not configured) */
-    private client: Minio.Client | null = null;
-    /** Configuration loaded from environment */
-    private config: MinioConfig;
+    private client = minioClient;
+    private config = {
+        endPoint: process.env.MINIO_ENDPOINT || 'localhost',
+        port: parseInt(process.env.MINIO_PORT || '9000'),
+        useSSL: process.env.MINIO_USE_SSL === 'true',
+        accessKey: process.env.MINIO_ACCESS_KEY || '',
+        secretKey: process.env.MINIO_SECRET_KEY || '',
+        publicEndPoint: process.env.MINIO_PUBLIC_ENDPOINT,
+    };
 
-    /**
-     * Creates a new MinIO service instance.
-     * Configuration is loaded from environment variables.
-     */
-    constructor() {
-        // Load configuration from environment variables
-        this.config = {
-            endPoint: process.env.MINIO_ENDPOINT || 'localhost',
-            port: parseInt(process.env.MINIO_PORT || '9000'),
-            useSSL: process.env.MINIO_USE_SSL === 'true',
-            accessKey: process.env.MINIO_ACCESS_KEY || '',
-            secretKey: process.env.MINIO_SECRET_KEY || '',
-            ...(process.env.MINIO_PUBLIC_ENDPOINT ? { publicEndPoint: process.env.MINIO_PUBLIC_ENDPOINT } : {}),
-        };
-
-        this.initialize();
-    }
-
-    /**
-     * Initialize the MinIO client connection.
-     * If credentials are not configured, storage features will be disabled.
-     */
-    private initialize(): void {
-        try {
-            // Skip initialization if credentials are missing
-            if (!this.config.accessKey || !this.config.secretKey) {
-                log.warn('MinIO credentials not configured. Storage features will be disabled.');
-                return;
-            }
-
-            // Create MinIO client with configured settings
-            this.client = new Minio.Client({
-                endPoint: this.config.endPoint,
-                port: this.config.port,
-                useSSL: this.config.useSSL,
-                accessKey: this.config.accessKey,
-                secretKey: this.config.secretKey,
-            });
-
-            log.info('MinIO client initialized', {
-                endPoint: this.config.endPoint,
-                port: this.config.port,
-                useSSL: this.config.useSSL,
-            });
-        } catch (error) {
-            log.error('Failed to initialize MinIO client', {
-                error: error instanceof Error ? error.message : String(error),
-            });
-        }
-    }
-
-    /**
-     * Generic helper for MinIO Admin API requests using native http/https with AWS SigV4.
-     * Note: minio-js SDK does not support Admin API, so we use direct HTTP requests.
-     */
     private async adminRequest(method: string, path: string, query: any = {}, body: any = null): Promise<any> {
-        if (!this.config) throw new Error('MinIO config not initialized');
-
         return new Promise((resolve, reject) => {
             const urlPath = `/${path}`;
             const queryString = Object.keys(query).length > 0
@@ -215,647 +81,244 @@ class MinioService {
         });
     }
 
-
-
-    /**
-     * Lists all Service Accounts (Access Keys).
-     */
-    async listServiceAccounts(): Promise<ServiceAccount[]> {
-        const result = await this.adminRequest('GET', 'minio/admin/v3/list-service-accounts');
-        return result?.accounts || [];
-    }
-
-    /**
-     * Creates a new Service Account.
-     */
-    async createServiceAccount(policy: string = 'readwrite', name: string = '', description: string = ''): Promise<any> {
-        // Simplified creation with canned policy if supported, otherwise just creates key
-        const payload = {
-            policy: policy === 'readonly' ? 'readonly' : 'readwrite',
-            name,
-            description,
-            // accessKey, secretKey can be auto-generated
-        };
-        // Note: 'policy' field in add-service-account might need to be a full policy document 
-        // or the API might support canned policy names. 
-        // If this fails, we might need to separate policy assignment.
-        return this.adminRequest('POST', 'minio/admin/v3/add-service-account', {}, payload);
-    }
-
-    /**
-     * Deletes a Service Account.
-     */
-    async deleteServiceAccount(accessKey: string): Promise<void> {
-        await this.adminRequest('POST', 'minio/admin/v3/delete-service-account', {}, { accessKey });
-    }
-
-    /**
-     * Ensure the MinIO client is initialized before operations.
-     * @throws Error if client is not initialized
-     * @returns MinIO client instance
-     */
-    private ensureClient(): Minio.Client {
-        if (!this.client) {
-            throw new Error('MinIO client not initialized. Check configuration.');
-        }
-        return this.client;
-    }
-
-    // ========================================================================
-    // BUCKET OPERATIONS
-    // ========================================================================
-
-    /**
-     * List all buckets in the MinIO server.
-     * @returns Array of bucket information
-     */
     async listBuckets(): Promise<Minio.BucketItemFromList[]> {
-        const client = this.ensureClient();
-        try {
-            return await client.listBuckets();
-        } catch (error) {
-            log.error('Failed to list buckets', {
-                error: error instanceof Error ? error.message : String(error),
-                stack: error instanceof Error ? error.stack : undefined,
-            });
-            throw error;
-        }
+        return this.client.listBuckets();
     }
 
-    /**
-     * Check if a bucket exists.
-     * @param bucketName - Name of the bucket to check
-     * @returns True if bucket exists, false otherwise
-     */
     async bucketExists(bucketName: string): Promise<boolean> {
-        const client = this.ensureClient();
         try {
-            return await client.bucketExists(bucketName);
+            return await this.client.bucketExists(bucketName);
         } catch (error) {
-            log.error('Failed to check bucket existence', {
-                bucketName,
-                error: error instanceof Error ? error.message : String(error),
-            });
             return false;
         }
     }
 
-    /**
-     * Create a new bucket.
-     * @param bucketName - Name for the new bucket (must follow S3 naming rules)
-     * @param region - Optional region for the bucket (default: us-east-1)
-     * @throws Error if bucket already exists or creation fails
-     */
-    async createBucket(bucketName: string, region?: string): Promise<void> {
-        const client = this.ensureClient();
+    async createBucket(bucketName: string, description: string, user?: { id: string, email: string, ip?: string }): Promise<any> {
         try {
-            // Check if bucket already exists
-            const exists = await client.bucketExists(bucketName);
+            const exists = await this.client.bucketExists(bucketName);
             if (exists) {
                 throw new Error(`Bucket '${bucketName}' already exists`);
             }
+            await this.client.makeBucket(bucketName, 'us-east-1');
 
-            await client.makeBucket(bucketName, region || 'us-east-1');
-            log.debug('Bucket created', { bucketName });
-        } catch (error) {
-            log.error('Failed to create bucket', {
-                bucketName,
-                error: error instanceof Error ? error.message : String(error),
+            const bucket = await ModelFactory.minioBucket.create({
+                bucket_name: bucketName,
+                display_name: bucketName,
+                description,
+                created_by: user?.id || 'system'
             });
-            throw error;
-        }
-    }
 
-    /**
-     * Delete an empty bucket.
-     * @param bucketName - Name of the bucket to delete
-     * @throws Error if bucket is not empty or deletion fails
-     */
-    async deleteBucket(bucketName: string): Promise<void> {
-        const client = this.ensureClient();
-        try {
-            await client.removeBucket(bucketName);
-            log.debug('Bucket deleted', { bucketName });
-        } catch (error) {
-            log.error('Failed to delete bucket', {
-                bucketName,
-                error: error instanceof Error ? error.message : String(error),
-            });
-            throw error;
-        }
-    }
-
-    // ========================================================================
-    // OBJECT OPERATIONS
-    // ========================================================================
-
-    /**
-     * List objects in a bucket with optional prefix filtering.
-     * 
-     * This method simulates folder navigation by:
-     * - Grouping objects by path segments when not recursive
-     * - Returning folder entries for directories
-     * - Sorting folders before files alphabetically
-     * 
-     * @param bucketName - Name of the bucket to list
-     * @param prefix - Optional prefix to filter objects (e.g., 'docs/')
-     * @param recursive - If true, list all nested objects; if false, show folder structure
-     * @returns Array of file/folder objects, sorted with folders first
-     */
-    async listObjects(
-        bucketName: string,
-        prefix: string = '',
-        recursive: boolean = false
-    ): Promise<FileObject[]> {
-        const client = this.ensureClient();
-        const objects: FileObject[] = [];
-        const folders = new Set<string>();  // Track folders to avoid duplicates
-
-        try {
-            // Stream objects from MinIO using listObjectsV2 with delimiter for proper folder listing
-            const stream = client.listObjectsV2(bucketName, prefix, recursive, '');
-
-            for await (const obj of stream) {
-                // Handle folder prefixes (virtual directories)
-                if (obj.prefix) {
-                    const folderName = obj.prefix.slice(prefix.length).replace(/\/$/, '');
-                    if (folderName && !folders.has(folderName)) {
-                        folders.add(folderName);
-                        objects.push({
-                            name: folderName,
-                            size: 0,
-                            lastModified: new Date(),
-                            etag: '',
-                            isFolder: true,
-                            prefix: obj.prefix,
-                        });
-                    }
-                }
-                // Handle regular objects (files and folder markers)
-                else if (obj.name) {
-                    // Check if this is a folder marker (ends with /)
-                    if (obj.name.endsWith('/')) {
-                        const folderName = obj.name.slice(prefix.length).replace(/\/$/, '');
-                        if (folderName && !folders.has(folderName)) {
-                            folders.add(folderName);
-                            objects.push({
-                                name: folderName,
-                                size: 0,
-                                lastModified: obj.lastModified || new Date(),
-                                etag: obj.etag || '',
-                                isFolder: true,
-                                prefix: obj.name,
-                            });
-                        }
-                    } else {
-                        // Regular file
-                        const relativePath = obj.name.slice(prefix.length);
-
-                        // If not recursive, check if this file is in a subfolder
-                        if (!recursive) {
-                            const parts = relativePath.split('/');
-                            if (parts.length > 1) {
-                                // This file is in a subfolder - add folder entry instead
-                                const folderName = parts[0];
-                                if (folderName && !folders.has(folderName)) {
-                                    folders.add(folderName);
-                                    const folderPath = prefix + folderName + '/';
-                                    objects.push({
-                                        name: folderName,
-                                        size: 0,
-                                        lastModified: new Date(),
-                                        etag: '',
-                                        isFolder: true,
-                                        prefix: folderPath,
-                                    });
-                                }
-                                continue;  // Skip the file, folder is shown instead
-                            }
-                        }
-
-                        // Add file entry (only files at current level)
-                        if (relativePath && !relativePath.includes('/')) {
-                            objects.push({
-                                name: relativePath,
-                                size: obj.size || 0,
-                                lastModified: obj.lastModified || new Date(),
-                                etag: obj.etag || '',
-                                isFolder: false,
-                            });
-                        }
-                    }
-                }
-            }
-
-            // Sort: folders first, then alphabetically by name
-            return objects.sort((a, b) => {
-                if (a.isFolder && !b.isFolder) return -1;
-                if (!a.isFolder && b.isFolder) return 1;
-                return a.name.localeCompare(b.name);
-            });
-        } catch (error) {
-            log.error('Failed to list objects', {
-                bucketName,
-                prefix,
-                error: error instanceof Error ? error.message : String(error),
-                stack: error instanceof Error ? error.stack : undefined,
-            });
-            throw error;
-        }
-    }
-
-    /**
-     * Upload a file to MinIO.
-     * 
-     * @param bucketName - Target bucket name
-     * @param objectName - Object key (path/filename) in the bucket
-     * @param stream - File content as Buffer or Readable stream
-     * @param size - File size in bytes
-     * @param metadata - Optional metadata (e.g., Content-Type)
-     * @returns Object with etag and optional versionId
-     */
-    async uploadFile(
-        bucketName: string,
-        objectName: string,
-        stream: Buffer | Readable,
-        size: number,
-        metadata?: Record<string, string>
-    ): Promise<{ etag: string; versionId?: string | null }> {
-        const client = this.ensureClient();
-        try {
-            const result = await client.putObject(bucketName, objectName, stream, size, metadata);
-            log.debug('File uploaded', { bucketName, objectName, size });
-            return result;
-        } catch (error) {
-            log.error('Failed to upload file', {
-                bucketName,
-                objectName,
-                size,
-                error: error instanceof Error ? error.message : String(error),
-                stack: error instanceof Error ? error.stack : undefined,
-            });
-            throw error;
-        }
-    }
-
-    /**
-     * Delete a single object from MinIO.
-     * @param bucketName - Bucket containing the object
-     * @param objectName - Object key to delete
-     */
-    async deleteObject(bucketName: string, objectName: string): Promise<void> {
-        const client = this.ensureClient();
-        try {
-            await client.removeObject(bucketName, objectName);
-            log.debug('Object deleted', { bucketName, objectName });
-        } catch (error) {
-            log.error('Failed to delete object', {
-                bucketName,
-                objectName,
-                error: error instanceof Error ? error.message : String(error),
-                stack: error instanceof Error ? error.stack : undefined,
-            });
-            throw error;
-        }
-    }
-
-    /**
-     * Delete multiple objects from MinIO in a single operation.
-     * More efficient than calling deleteObject multiple times.
-     * 
-     * @param bucketName - Bucket containing the objects
-     * @param objectNames - Array of object keys to delete
-     */
-    async deleteObjects(bucketName: string, objectNames: string[]): Promise<void> {
-        const client = this.ensureClient();
-        try {
-            await client.removeObjects(bucketName, objectNames);
-            log.debug('Objects deleted', { bucketName, count: objectNames.length });
-        } catch (error) {
-            log.error('Failed to delete objects', {
-                bucketName,
-                count: objectNames.length,
-                error: error instanceof Error ? error.message : String(error),
-            });
-            throw error;
-        }
-    }
-
-    /**
-     * Delete a folder and all its contents recursively.
-     * 
-     * Since MinIO uses flat object keys, this method:
-     * 1. Lists all objects with the folder prefix
-     * 2. Deletes all found objects in batch
-     * 
-     * @param bucketName - Bucket containing the folder
-     * @param folderPrefix - Folder path (e.g., 'docs/archive/')
-     */
-    async deleteFolder(bucketName: string, folderPrefix: string): Promise<void> {
-        const client = this.ensureClient();
-        try {
-            // Ensure prefix ends with / for folder semantics
-            const prefix = folderPrefix.endsWith('/') ? folderPrefix : folderPrefix + '/';
-
-            // Collect all objects in the folder
-            const objects: string[] = [];
-            const stream = client.listObjects(bucketName, prefix, true);
-
-            for await (const obj of stream) {
-                if (obj.name) {
-                    objects.push(obj.name);
-                }
-            }
-
-            // Delete all objects in batch
-            if (objects.length > 0) {
-                await client.removeObjects(bucketName, objects);
-                log.debug('Folder deleted', { bucketName, folderPrefix, objectCount: objects.length });
-            }
-        } catch (error) {
-            log.error('Failed to delete folder', {
-                bucketName,
-                folderPrefix,
-                error: error instanceof Error ? error.message : String(error),
-            });
-            throw error;
-        }
-    }
-
-    /**
-     * Create a folder (empty marker object) in MinIO.
-     * 
-     * MinIO doesn't have true folders, so we create an empty object
-     * with a trailing slash to simulate folder creation.
-     * 
-     * @param bucketName - Target bucket
-     * @param folderPath - Folder path to create
-     */
-    async createFolder(bucketName: string, folderPath: string): Promise<void> {
-        const client = this.ensureClient();
-        try {
-            // Ensure folder path ends with /
-            const folderName = folderPath.endsWith('/') ? folderPath : folderPath + '/';
-            // Create empty object as folder marker
-            await client.putObject(bucketName, folderName, Buffer.from(''), 0);
-            log.debug('Folder created', { bucketName, folderPath: folderName });
-        } catch (error) {
-            log.error('Failed to create folder', {
-                bucketName,
-                folderPath,
-                error: error instanceof Error ? error.message : String(error),
-            });
-            throw error;
-        }
-    }
-
-    /**
-     * Generate a presigned download URL for an object.
-     * 
-     * The URL allows temporary, secure access to the object
-     * without requiring authentication.
-     * 
-     * @param bucketName - Bucket containing the object
-     * @param objectName - Object key
-     * @param expirySeconds - URL validity period in seconds (default: 1 hour)
-     * @returns Presigned URL string
-     */
-    async getDownloadUrl(
-        bucketName: string,
-        objectName: string,
-        expirySeconds: number = 3600,
-        disposition?: string
-    ): Promise<string> {
-        const client = this.ensureClient();
-        try {
-            const respHeaders: {
-                [key: string]: any
-            } = {};
-            if (disposition) {
-                respHeaders['response-content-disposition'] = disposition;
-            }
-
-            let url = await client.presignedGetObject(bucketName, objectName, expirySeconds, respHeaders);
-
-            // Replace endpoint with public endpoint if configured
-            if (this.config.publicEndPoint) {
-                const urlObj = new URL(url);
-                const publicUrl = new URL(this.config.publicEndPoint);
-
-                // If public endpoint has a protocol, use it
-                if (publicUrl.protocol) {
-                    urlObj.protocol = publicUrl.protocol;
-                }
-
-                // If public endpoint has a port, use it (or clear it if standard)
-                if (publicUrl.port) {
-                    urlObj.port = publicUrl.port;
-                } else if (publicUrl.protocol === 'https:') {
-                    urlObj.port = '';
-                }
-
-                urlObj.hostname = publicUrl.hostname;
-                url = urlObj.toString();
-            }
-
-            log.debug('Generated download URL', { bucketName, objectName, url });
-            return url;
-        } catch (error) {
-            log.error('Failed to generate download URL', {
-                bucketName,
-                objectName,
-                error: error instanceof Error ? error.message : String(error),
-                stack: error instanceof Error ? error.stack : undefined,
-            });
-            throw error;
-        }
-    }
-
-    /**
-     * Get metadata and statistics for an object.
-     * 
-     * @param bucketName - Bucket containing the object
-     * @param objectName - Object key
-     * @returns Object statistics (size, etag, content-type, etc.)
-     */
-    async getObjectStat(bucketName: string, objectName: string): Promise<Minio.BucketItemStat> {
-        const client = this.ensureClient();
-        try {
-            return await client.statObject(bucketName, objectName);
-        } catch (error) {
-            log.error('Failed to get object stat', {
-                bucketName,
-                objectName,
-                error: error instanceof Error ? error.message : String(error),
-            });
-            throw error;
-        }
-    }
-
-    /**
-     * Get bucket information with object count, total size, and size distribution.
-     *
-     * @param bucketName - Name of the bucket
-     * @returns Bucket statistics
-     */
-    async getBucketStats(bucketName: string): Promise<{
-        objectCount: number;
-        totalSize: number;
-        distribution: Record<string, number>;
-        topFiles: { name: string; size: number; lastModified: Date; bucketName: string }[];
-    }> {
-        const client = this.ensureClient();
-        try {
-            let objectCount = 0;
-            let totalSize = 0;
-            const distribution: Record<string, number> = {
-                '<1MB': 0, '1MB-10MB': 0, '10MB-100MB': 0, '100MB-1GB': 0, '1GB-5GB': 0, '5GB-10GB': 0, '>10GB': 0
-            };
-            const topFiles: { name: string; size: number; lastModified: Date; bucketName: string }[] = [];
-
-            const stream = client.listObjects(bucketName, '', true);
-            for await (const obj of stream) {
-                if (obj.name && !obj.name.endsWith('/')) {
-                    objectCount++;
-                    const size = obj.size || 0;
-                    totalSize += size;
-                    const sizeMB = size / (1024 * 1024);
-
-                    if (sizeMB < 1) distribution['<1MB']!++;
-                    else if (sizeMB < 10) distribution['1MB-10MB']!++;
-                    else if (sizeMB < 100) distribution['10MB-100MB']!++;
-                    else if (sizeMB < 1024) distribution['100MB-1GB']!++;
-                    else if (sizeMB < 5 * 1024) distribution['1GB-5GB']!++;
-                    else if (sizeMB < 10 * 1024) distribution['5GB-10GB']!++;
-                    else distribution['>10GB']!++;
-
-                    topFiles.push({
-                        name: obj.name,
-                        size: size,
-                        lastModified: obj.lastModified,
-                        bucketName: bucketName
-                    });
-                    if (topFiles.length > 20) {
-                        topFiles.sort((a, b) => b.size - a.size);
-                        topFiles.length = 20;
-                    }
-                }
-            }
-            topFiles.sort((a, b) => b.size - a.size);
-
-            return { objectCount, totalSize, distribution, topFiles };
-        } catch (error) {
-            log.error('Failed to get bucket stats', {
-                bucketName,
-                error: error instanceof Error ? error.message : String(error),
-            });
-            throw error;
-        }
-    }
-    /**
-     * Get the MinIO client instance.
-     * @returns Minio.Client or throws if not initialized
-     */
-    public getClient(): Minio.Client {
-        return this.ensureClient();
-    }
-    /**
-     * Check if a file exists in the bucket.
-     * @param bucketName - Bucket name
-     * @param objectName - Object name
-     */
-    async checkFileExists(bucketName: string, objectName: string): Promise<boolean> {
-        try {
-            await this.ensureClient().statObject(bucketName, objectName);
-            return true;
-        } catch (error: any) {
-            if (error.code === 'NotFound') {
-                return false;
-            }
-            throw error;
-        }
-    }
-
-    /**
-     * Get global statistics (total buckets, objects, size, distribution).
-     * Aggregates stats from all buckets.
-     */
-    async getGlobalStats(): Promise<{
-        totalBuckets: number;
-        totalObjects: number;
-        totalSize: number;
-        distribution: Record<string, number>;
-        topBuckets: { name: string; size: number; objectCount: number }[];
-        topFiles: { name: string; size: number; lastModified: Date; bucketName: string }[];
-    }> {
-        const buckets = await this.listBuckets();
-        let totalObjects = 0;
-        let totalSize = 0;
-        const totalDistribution: Record<string, number> = {
-            '<1MB': 0, '1MB-10MB': 0, '10MB-100MB': 0, '100MB-1GB': 0, '1GB-5GB': 0, '5GB-10GB': 0, '>10GB': 0
-        };
-        let allTopFiles: { name: string; size: number; lastModified: Date; bucketName: string }[] = [];
-        const bucketStatsList: { name: string; size: number; objectCount: number }[] = [];
-
-        // Fetch bucket stats in parallel
-        const statsPromises = buckets.map(async b => {
-            try {
-                const stats = await this.getBucketStats(b.name);
-                return { name: b.name, ...stats };
-            } catch (e) {
-                return {
-                    name: b.name,
-                    objectCount: 0,
-                    totalSize: 0,
-                    distribution: { '<1MB': 0, '1MB-10MB': 0, '10MB-100MB': 0, '100MB-1GB': 0, '1GB-5GB': 0, '5GB-10GB': 0, '>10GB': 0 },
-                    topFiles: []
-                };
-            }
-        });
-        const results = await Promise.all(statsPromises);
-
-        results.forEach(r => {
-            totalObjects += r.objectCount;
-            totalSize += r.totalSize;
-            if (r.distribution) {
-                Object.keys(r.distribution).forEach(key => {
-                    totalDistribution[key] = (totalDistribution[key] || 0) + (r.distribution[key] || 0);
+            if (user) {
+                await auditService.log({
+                    userId: user.id,
+                    userEmail: user.email,
+                    action: AuditAction.CREATE_BUCKET,
+                    resourceType: AuditResourceType.BUCKET,
+                    resourceId: bucket.id,
+                    details: { bucketName },
+                    ipAddress: user.ip,
                 });
             }
+            return bucket;
+        } catch (error) {
+            log.error('Failed to create bucket', { bucketName, error: String(error) });
+            throw error;
+        }
+    }
 
-            bucketStatsList.push({
-                name: r.name,
-                size: r.totalSize,
-                objectCount: r.objectCount
-            });
-            if (r.topFiles) {
-                allTopFiles = allTopFiles.concat(r.topFiles);
+    async deleteBucket(bucketName: string, user?: { id: string, email: string, ip?: string }): Promise<void> {
+         try {
+             await this.client.removeBucket(bucketName);
+
+             const bucket = await ModelFactory.minioBucket.findByName(bucketName);
+             if (bucket) {
+                 await ModelFactory.minioBucket.delete(bucket.id);
+             }
+
+             if (user) {
+                await auditService.log({
+                    userId: user.id,
+                    userEmail: user.email,
+                    action: AuditAction.DELETE_BUCKET,
+                    resourceType: AuditResourceType.BUCKET,
+                    resourceId: bucketName,
+                    ipAddress: user.ip,
+                });
+             }
+         } catch (error) {
+             log.error('Failed to delete bucket', { bucketName, error: String(error) });
+             throw error;
+         }
+    }
+
+    async listObjects(bucketName: string, prefix: string = '', recursive: boolean = false): Promise<FileObject[]> {
+        const objects: FileObject[] = [];
+        const stream = this.client.listObjectsV2(bucketName, prefix, recursive, '');
+
+        for await (const obj of stream) {
+            if (obj.prefix) {
+                objects.push({
+                    name: obj.prefix,
+                    size: 0,
+                    lastModified: new Date(),
+                    etag: '',
+                    isFolder: true,
+                    prefix: obj.prefix
+                });
+            } else if (obj.name) {
+                objects.push({
+                    name: obj.name,
+                    size: obj.size,
+                    lastModified: obj.lastModified,
+                    etag: obj.etag,
+                    isFolder: false
+                });
             }
-        });
+        }
+        return objects;
+    }
 
-        // Sort and limit top buckets
-        const topBuckets = bucketStatsList.sort((a, b) => b.size - a.size).slice(0, 10);
+    async listFiles(bucketName: string, prefix: string = ''): Promise<FileObject[]> {
+        return this.listObjects(bucketName, prefix, false);
+    }
 
-        // Sort and limit top files global
-        const topFiles = allTopFiles.sort((a, b) => b.size - a.size).slice(0, 10);
+    async uploadFile(bucketName: string, file: any, userId?: string): Promise<any> {
+        try {
+            const objectName = file.originalname || 'unknown';
+            const metaData = {
+                'Content-Type': file.mimetype || 'application/octet-stream'
+            };
 
+            if (file.buffer) {
+                await this.client.putObject(bucketName, objectName, file.buffer, file.size, metaData);
+            } else if (file.path) {
+                await this.client.fPutObject(bucketName, objectName, file.path, metaData);
+            } else if (file instanceof Readable) {
+                 const size = (file as any).size || undefined;
+                 await this.client.putObject(bucketName, objectName, file, size, metaData);
+            }
+
+             if (userId) {
+                 const user = await ModelFactory.user.findById(userId);
+                 if (user) {
+                    await auditService.log({
+                        userId,
+                        userEmail: user.email,
+                        action: AuditAction.UPLOAD_FILE,
+                        resourceType: AuditResourceType.FILE,
+                        resourceId: `${bucketName}/${objectName}`,
+                        details: { size: file.size }
+                    });
+                 }
+             }
+
+            return { message: 'File uploaded' };
+        } catch (error) {
+             log.error('Failed to upload file', { bucketName, error: String(error) });
+             throw error;
+        }
+    }
+
+    async getFileStream(bucketName: string, fileName: string): Promise<Readable> {
+        return this.client.getObject(bucketName, fileName);
+    }
+
+    async deleteObject(bucketName: string, objectName: string): Promise<void> {
+        await this.client.removeObject(bucketName, objectName);
+    }
+
+    async deleteFile(bucketName: string, fileName: string, userId?: string): Promise<void> {
+        await this.deleteObject(bucketName, fileName);
+         if (userId) {
+             const user = await ModelFactory.user.findById(userId);
+             if (user) {
+                await auditService.log({
+                    userId,
+                    userEmail: user.email,
+                    action: AuditAction.DELETE_FILE,
+                    resourceType: AuditResourceType.FILE,
+                    resourceId: `${bucketName}/${fileName}`
+                });
+             }
+         }
+    }
+
+    async checkFileExists(bucketName: string, objectName: string): Promise<boolean> {
+        try {
+            await this.client.statObject(bucketName, objectName);
+            return true;
+        } catch (error: any) {
+            if (error.code === 'NotFound') return false;
+            return false;
+        }
+    }
+
+    async createFolder(bucketName: string, folderPath: string): Promise<void> {
+        const objectName = folderPath.endsWith('/') ? folderPath : `${folderPath}/`;
+        await this.client.putObject(bucketName, objectName, Buffer.from(''), 0);
+    }
+
+    async deleteFolder(bucketName: string, folderPath: string): Promise<void> {
+        const objects = await this.listObjects(bucketName, folderPath, true);
+        const names = objects.map(o => o.name);
+        if (names.length > 0) {
+            await this.client.removeObjects(bucketName, names);
+        }
+    }
+
+    async getDownloadUrl(bucketName: string, objectName: string, expiry: number = 3600, disposition?: string): Promise<string> {
+        const reqParams: any = {};
+        if (disposition) {
+            reqParams['response-content-disposition'] = disposition;
+        }
+        return this.client.presignedGetObject(bucketName, objectName, expiry, reqParams);
+    }
+
+    async getGlobalStats(): Promise<any> {
+        const buckets = await this.listBuckets();
         return {
             totalBuckets: buckets.length,
-            totalObjects,
-            totalSize,
-            distribution: totalDistribution,
-            topBuckets,
-            topFiles
         };
+    }
+
+    async getBucketStats(bucketName: string): Promise<any> {
+        let objectCount = 0;
+        let totalSize = 0;
+        const stream = this.client.listObjects(bucketName, '', true);
+        for await (const obj of stream) {
+            if (obj.name && !obj.name.endsWith('/')) {
+                objectCount++;
+                totalSize += obj.size || 0;
+            }
+        }
+        return { objectCount, totalSize };
+    }
+
+    async listServiceAccounts(): Promise<any[]> {
+        const result = await this.adminRequest('GET', 'minio/admin/v3/list-service-accounts');
+        return result?.accounts || [];
+    }
+
+    async createServiceAccount(policy: string, name: string, description: string): Promise<any> {
+        const payload = {
+            policy: policy === 'readonly' ? 'readonly' : 'readwrite',
+            name,
+            description,
+        };
+        return this.adminRequest('POST', 'minio/admin/v3/add-service-account', {}, payload);
+    }
+
+    async deleteServiceAccount(accessKey: string): Promise<void> {
+        await this.adminRequest('POST', 'minio/admin/v3/delete-service-account', {}, { accessKey });
+    }
+
+    getClient() {
+        return this.client;
+    }
+
+    async getObjectStat(bucketName: string, objectName: string): Promise<Minio.BucketItemStat> {
+        return this.client.statObject(bucketName, objectName);
     }
 }
 
-// ============================================================================
-// EXPORTS
-// ============================================================================
-
-/** Singleton MinIO service instance */
 export const minioService = new MinioService();
-
-/** Export FileObject type for use in other modules */
-export type { FileObject };
