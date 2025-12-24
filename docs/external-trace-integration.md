@@ -1,10 +1,12 @@
-# External Trace API Integration
+# External Trace and Feedback API Integration
 
-This document explains how to integrate with the External Trace API to submit chat logs and traces to Langfuse.
+This document explains how to integrate with the External Trace API to submit chat logs to Langfuse and how to submit user feedback for those traces.
 
 ## Overview
 
 The External Trace API allows external applications to submit chat messages, LLM responses, and metadata to be recorded as traces in Langfuse. This enables observability for external chat interfaces.
+
+Additionally, it provides an endpoint to submit user feedback (scores) for these traces, which is useful for evaluation and monitoring quality.
 
 ## Authentication
 
@@ -12,9 +14,11 @@ All requests must be authenticated using an API key. The API key should be inclu
 
 - **Header Name:** `x-api-key` or `Authorization: Bearer <your-api-key>`
 
-## Endpoint
+---
 
-**POST** `/api/external/trace`
+## 1. Trace API
+
+**Endpoint:** `POST /api/external/trace`
 
 ### Request Body
 
@@ -39,58 +43,6 @@ The request body should be a JSON object with the following fields:
 | `tags` | string[] | Array of tags for filtering in Langfuse. |
 | `usage` | object | Token usage information (`promptTokens`, `completionTokens`, `totalTokens`). |
 
-### Example Request (JavaScript/TypeScript)
-
-```javascript
-const submitTrace = async (email, message, response) => {
-  const response = await fetch('https://your-api-domain.com/api/external/trace', {
-    method: 'POST',
-    headers: {
-      'Content-Type': 'application/json',
-      'x-api-key': 'your-secret-api-key'
-    },
-    body: JSON.stringify({
-      email: email,
-      message: message,
-      role: 'user',
-      response: response, // Optional: if you want to log the response immediately
-      metadata: {
-        source: 'my-custom-app',
-        sessionId: 'session-123'
-      }
-    })
-  });
-
-  if (!response.ok) {
-    const errorData = await response.json();
-    throw new Error(errorData.error || 'Failed to submit trace');
-  }
-
-  return response.json();
-};
-
-// Usage
-const result = await submitTrace('user@example.com', 'Hello AI', 'Hi there!');
-console.log('Trace ID:', result.traceId);
-```
-
-### Example Request (cURL)
-
-```bash
-curl -X POST https://your-api-domain.com/api/external/trace \
-  -H "Content-Type: application/json" \
-  -H "x-api-key: your-secret-api-key" \
-  -d '{
-    "email": "user@example.com",
-    "message": "Explain quantum computing",
-    "role": "user",
-    "metadata": {
-      "source": "terminal",
-      "tags": ["science"]
-    }
-  }'
-```
-
 ### Response
 
 **Success (200 OK):**
@@ -102,31 +54,101 @@ curl -X POST https://your-api-domain.com/api/external/trace \
 }
 ```
 
-**Note:** The `traceId` returned in the response is crucial for submitting user feedback later using the [Feedback API](./external-feedback-integration.md).
+The `traceId` returned in the response is crucial for submitting user feedback.
 
-**Error (400 Bad Request):**
+---
+
+## 2. Feedback API
+
+**Endpoint:** `POST /api/external/trace/feedback`
+
+This endpoint allows you to attach a score (feedback) to an existing trace.
+
+### Request Body
+
+The request body should be a JSON object with the following fields:
+
+| Field | Type | Required | Description |
+| :--- | :--- | :--- | :--- |
+| `email` | string | Yes | The user's email address. Must correspond to a registered user in the system. |
+| `traceId` | string | Yes | The Langfuse trace ID to associate the feedback with (returned from the Trace API). |
+| `value` | number | Yes | The score value (e.g., 1 for thumbs up, 0 for thumbs down, or 1-5 for star ratings). |
+| `name` | string | No | The name of the feedback/score (default: "user-feedback"). |
+| `comment` | string | No | Optional text comment provided by the user. |
+
+### Response
+
+**Success (200 OK):**
 
 ```json
 {
-  "success": false,
-  "error": "Missing or invalid email"
+  "success": true
 }
 ```
 
-**Error (401 Unauthorized):**
+---
 
-```json
-{
-  "success": false,
-  "error": "Invalid or missing API key"
-}
+## Example Workflow (JavaScript/TypeScript)
+
+```javascript
+const API_BASE = 'https://your-api-domain.com/api/external/trace';
+const API_KEY = 'your-secret-api-key';
+
+// 1. Submit a trace
+const submitTrace = async (email, message, response) => {
+  const res = await fetch(API_BASE, {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json', 'x-api-key': API_KEY },
+    body: JSON.stringify({
+      email,
+      message,
+      metadata: { source: 'my-app' }
+    })
+  });
+  return res.json();
+};
+
+// 2. Submit feedback for that trace
+const submitFeedback = async (email, traceId, score, comment) => {
+  const res = await fetch(`${API_BASE}/feedback`, {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json', 'x-api-key': API_KEY },
+    body: JSON.stringify({
+      email,
+      traceId,
+      value: score,
+      comment
+    })
+  });
+  return res.json();
+};
+
+// Usage
+const run = async () => {
+  const traceResult = await submitTrace('user@example.com', 'Hello AI', 'Hi there!');
+  if (traceResult.success) {
+    console.log('Trace created:', traceResult.traceId);
+
+    // Later, if user likes the response:
+    await submitFeedback('user@example.com', traceResult.traceId, 1, 'Great response!');
+    console.log('Feedback submitted');
+  }
+};
+run();
 ```
 
-**Error (403 Forbidden):**
+## Error Handling
+
+Both endpoints return standard HTTP error codes:
+
+*   **400 Bad Request:** Missing or invalid parameters.
+*   **401 Unauthorized:** Invalid or missing API key.
+*   **403 Forbidden:** Email not registered in the system.
+*   **500 Internal Server Error:** Server-side processing error.
 
 ```json
 {
   "success": false,
-  "error": "Invalid email: not registered in system"
+  "error": "Error message description"
 }
 ```

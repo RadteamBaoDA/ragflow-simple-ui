@@ -51,6 +51,17 @@ interface CollectTraceBody {
     };
 }
 
+/**
+ * Request body for collecting feedback.
+ */
+interface CollectFeedbackBody {
+    email: string;
+    traceId: string;
+    value: number;
+    name?: string;
+    comment?: string;
+}
+
 // ============================================================================
 // MIDDLEWARE
 // ============================================================================
@@ -221,4 +232,103 @@ router.post('/', checkEnabled, validateApiKey, async (req: Request, res: Respons
     }
 });
 
+/**
+ * POST /api/external/trace/feedback
+ *
+ * Collect user feedback (scores) for traces.
+ *
+ * Request body:
+ * - email: User's email address (must exist in database)
+ * - traceId: Langfuse trace ID to associate feedback with
+ * - value: Score value (number)
+ * - name (optional): Name of the score (default: user-feedback)
+ * - comment (optional): Text comment
+ *
+ * Response:
+ * - success: boolean
+ * - error: Error message (on failure)
+ */
+router.post('/feedback', checkEnabled, validateApiKey, async (req: Request, res: Response) => {
+    try {
+        const { email, traceId, value, name, comment } = req.body as CollectFeedbackBody;
+
+        // Debug log incoming request
+        log.debug('External feedback request received', {
+            email: email ? `${email.substring(0, 5)}...` : 'undefined',
+            traceId,
+            value,
+            ip: getClientIp(req),
+        });
+
+        // Validate required fields
+        if (!email || typeof email !== 'string') {
+            return res.status(400).json({
+                success: false,
+                error: 'Missing or invalid email'
+            });
+        }
+
+        if (!traceId || typeof traceId !== 'string') {
+            return res.status(400).json({
+                success: false,
+                error: 'Missing or invalid traceId'
+            });
+        }
+
+        if (value === undefined || value === null || typeof value !== 'number') {
+            return res.status(400).json({
+                success: false,
+                error: 'Missing or invalid value (must be a number)'
+            });
+        }
+
+        // Validate email format
+        const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
+        if (!emailRegex.test(email)) {
+            return res.status(400).json({
+                success: false,
+                error: 'Invalid email format'
+            });
+        }
+
+        // Get client IP
+        const ipAddress = getClientIp(req);
+
+        // Collect feedback
+        const result = await externalTraceService.collectFeedback({
+            email: email.trim().toLowerCase(),
+            traceId,
+            value,
+            ipAddress,
+            ...(name && { name }),
+            ...(comment && { comment })
+        });
+
+        if (result.success) {
+            return res.status(200).json({
+                success: true
+            });
+        } else {
+            // Email not in database = 403 Forbidden
+            if (result.error?.includes('not registered')) {
+                return res.status(403).json({
+                    success: false,
+                    error: result.error
+                });
+            }
+            return res.status(500).json({
+                success: false,
+                error: result.error
+            });
+        }
+    } catch (error) {
+        log.error('Error in external feedback endpoint', {
+            error: error instanceof Error ? error.message : String(error)
+        });
+        return res.status(500).json({
+            success: false,
+            error: 'Internal server error'
+        });
+    }
+});
 export default router;

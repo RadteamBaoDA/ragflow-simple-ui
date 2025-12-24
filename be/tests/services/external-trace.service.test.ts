@@ -34,6 +34,7 @@ const mockLangfuseTrace = {
 
 const mockLangfuseClient = {
     trace: vi.fn().mockReturnValue(mockLangfuseTrace),
+    score: vi.fn(),
     flushAsync: vi.fn().mockResolvedValue(undefined),
 };
 
@@ -112,6 +113,12 @@ describe('ExternalTraceService', () => {
             const service = new ExternalTraceService();
             expect(typeof service.shutdown).toBe('function');
         });
+
+        it('should have collectFeedback method', async () => {
+            const { ExternalTraceService } = await import('../../src/services/external-trace.service.js');
+            const service = new ExternalTraceService();
+            expect(typeof service.collectFeedback).toBe('function');
+        });
     });
 
     describe('collectTrace basic functionality', () => {
@@ -143,6 +150,51 @@ describe('ExternalTraceService', () => {
             await service.validateEmailWithCache('redis-test@example.com', '10.0.0.200');
 
             expect(createClient).toHaveBeenCalled();
+        });
+    });
+
+    describe('collectFeedback', () => {
+        const validParams = {
+            email: 'test@example.com',
+            ipAddress: '127.0.0.1',
+            traceId: 'trace-123',
+            value: 1,
+            comment: 'Great job!',
+            name: 'user-satisfaction'
+        };
+
+        it('should successfully collect feedback when email is valid', async () => {
+            const { ExternalTraceService } = await import('../../src/services/external-trace.service.js');
+            const service = new ExternalTraceService();
+
+            // Mock validateEmailWithCache to return true
+            mockRedisClient.get.mockResolvedValue('true');
+
+            const result = await service.collectFeedback(validParams);
+
+            expect(result.success).toBe(true);
+            expect(mockLangfuseClient.score).toHaveBeenCalledWith({
+                traceId: validParams.traceId,
+                name: validParams.name,
+                value: validParams.value,
+                comment: validParams.comment
+            });
+            expect(mockLangfuseClient.flushAsync).toHaveBeenCalled();
+        });
+
+        it('should reject feedback when email is invalid', async () => {
+            const { ExternalTraceService } = await import('../../src/services/external-trace.service.js');
+            const service = new ExternalTraceService();
+
+            // Mock validateEmailWithCache to return false (not in cache and not in db)
+            mockRedisClient.get.mockResolvedValue(null);
+            mockQueryOne.mockResolvedValue(null);
+
+            const result = await service.collectFeedback(validParams);
+
+            expect(result.success).toBe(false);
+            expect(result.error).toContain('Invalid email');
+            expect(mockLangfuseClient.score).not.toHaveBeenCalled();
         });
     });
 });

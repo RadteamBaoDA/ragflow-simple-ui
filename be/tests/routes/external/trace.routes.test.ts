@@ -103,4 +103,58 @@ describe('External Trace Routes', () => {
             expect(response.body.error).toBe('Invalid email: not registered in system');
         });
     });
+
+    describe('POST /api/external/trace/feedback', () => {
+        const validBody = {
+            email: 'test@example.com',
+            traceId: 'trace-123',
+            value: 1,
+            comment: 'Great!',
+            name: 'user-feedback'
+        };
+
+        const apiKey = 'test-api-key';
+
+        it('should return 200 when feedback is collected successfully', async () => {
+            (externalTraceService.collectFeedback as any).mockResolvedValue({ success: true });
+
+            const response = await request(app)
+                .post('/api/external/trace/feedback')
+                .set('x-api-key', apiKey)
+                .send(validBody);
+
+            expect(response.status).toBe(200);
+            expect(response.body.success).toBe(true);
+            expect(externalTraceService.collectFeedback).toHaveBeenCalledWith(expect.objectContaining({
+                email: validBody.email,
+                traceId: validBody.traceId,
+                value: validBody.value
+            }));
+        });
+
+        it('should return 400 when value is missing', async () => {
+            const response = await request(app)
+                .post('/api/external/trace/feedback')
+                .set('x-api-key', apiKey)
+                .send({ ...validBody, value: undefined });
+
+            expect(response.status).toBe(400);
+            expect(response.body.error).toBe('Missing or invalid value (must be a number)');
+        });
+
+        it('should return 403 when email is not registered', async () => {
+            (externalTraceService.collectFeedback as any).mockResolvedValue({
+                success: false,
+                error: 'Invalid email: not registered in system'
+            });
+
+            const response = await request(app)
+                .post('/api/external/trace/feedback')
+                .set('x-api-key', apiKey)
+                .send(validBody);
+
+            expect(response.status).toBe(403);
+            expect(response.body.error).toBe('Invalid email: not registered in system');
+        });
+    });
 });

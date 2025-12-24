@@ -77,6 +77,34 @@ export interface CollectTraceResult {
 }
 
 /**
+ * Parameters for collecting external feedback data.
+ */
+export interface ExternalFeedbackParams {
+    /** User's email address - must exist in database */
+    email: string;
+    /** Client IP address for caching */
+    ipAddress: string;
+    /** Langfuse Trace ID to associate feedback with */
+    traceId: string;
+    /** Score value (e.g., 0-1 for normalized scores, or any number) */
+    value: number;
+    /** Optional name for the score/feedback (default: user-feedback) */
+    name?: string;
+    /** Optional comment provided by the user */
+    comment?: string;
+}
+
+/**
+ * Result of collecting feedback data.
+ */
+export interface CollectFeedbackResult {
+    /** Whether the operation was successful */
+    success: boolean;
+    /** Error message if failed */
+    error?: string;
+}
+
+/**
  * User record for email validation (minimal fields).
  */
 interface UserRecord {
@@ -463,6 +491,65 @@ export class ExternalTraceService {
             return {
                 success: false,
                 error: 'Failed to process chat data'
+            };
+        }
+    }
+
+    /**
+     * Collect feedback data from an external system.
+     */
+    async collectFeedback(params: ExternalFeedbackParams): Promise<CollectFeedbackResult> {
+        const { email, ipAddress, traceId, value, name = 'user-feedback', comment } = params;
+
+        log.debug('Collecting external feedback', {
+            email,
+            traceId,
+            value,
+            ipAddress: ipAddress.substring(0, 20)
+        });
+
+        // Reuse email validation
+        const isValidEmail = await this.validateEmailWithCache(email, ipAddress);
+
+        if (!isValidEmail) {
+            log.warn('External feedback rejected: email not in database', { email });
+            return {
+                success: false,
+                error: 'Invalid email: not registered in system'
+            };
+        }
+
+        try {
+            const langfuse = getLangfuseClient();
+            log.debug('Langfuse client obtained', { clientExists: !!langfuse });
+
+            await langfuse.score({
+                traceId: traceId,
+                name: name,
+                value: value,
+                comment: comment,
+            });
+
+            await langfuse.flushAsync();
+
+            log.info('External feedback collected successfully', {
+                email,
+                traceId,
+                value
+            });
+
+            return {
+                success: true
+            };
+        } catch (error) {
+            log.error('Failed to collect external feedback', {
+                error: error instanceof Error ? error.message : String(error),
+                email,
+                traceId
+            });
+            return {
+                success: false,
+                error: 'Failed to process feedback data'
             };
         }
     }
