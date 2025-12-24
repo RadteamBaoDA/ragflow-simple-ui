@@ -442,7 +442,16 @@
       "reload_config": "Reload Config",
       "run_migration": "Run Migration",
       "system_start": "System Start",
-      "system_stop": "System Stop"
+      "system_stop": "System Stop",
+      "create_broadcast": "Create Broadcast",
+      "update_broadcast": "Update Broadcast",
+      "delete_broadcast": "Delete Broadcast",
+      "dismiss_broadcast": "Dismiss Broadcast",
+      "set_permission": "Set Permission",
+      "create_source": "Create Source",
+      "update_source": "Update Source",
+      "delete_source": "Delete Source",
+      "batch_delete": "Batch Delete"
     },
     "resourceTypes": {
       "user": "User",
@@ -452,7 +461,10 @@
       "folder": "Folder",
       "config": "Config",
       "system": "System",
-      "role": "Role"
+      "role": "Role",
+      "broadcast_message": "Broadcast Message",
+      "permission": "Permission",
+      "knowledge_base_source": "Knowledge Base Source"
     }
   },
   "storage": {

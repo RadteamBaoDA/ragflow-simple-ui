@@ -3,6 +3,7 @@ import { requireAuth, requirePermission, requireRole } from '../middleware/auth.
 import { documentPermissionService, PermissionLevel } from '../services/document-permission.service.js';
 import { userService } from '../services/user.service.js';
 import { log } from '../services/logger.service.js';
+import { getClientIp } from '../utils/ip.js';
 
 const router = Router();
 
@@ -51,7 +52,8 @@ router.post('/', requireRole('admin'), async (req: Request, res: Response) => {
             }
         }
 
-        await documentPermissionService.setPermission(entityType, entityId, bucketId, Number(level));
+        const actor = req.user ? { id: req.user.id, email: req.user.email, ip: getClientIp(req) } : undefined;
+        await documentPermissionService.setPermission(entityType, entityId, bucketId, Number(level), actor);
         return res.json({ success: true });
     } catch (error) {
         log.error('Failed to set document permission', { error });

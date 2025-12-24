@@ -1,5 +1,6 @@
 import { query, queryOne } from '../db/index.js';
 import { log } from './logger.service.js';
+import { auditService, AuditAction, AuditResourceType } from './audit.service.js';
 
 export enum PermissionLevel {
     NONE = 0,
@@ -33,7 +34,13 @@ export class DocumentPermissionService {
     /**
      * Set permission level for an entity.
      */
-    async setPermission(entityType: 'user' | 'team', entityId: string, bucketId: string, level: PermissionLevel): Promise<void> {
+    async setPermission(
+        entityType: 'user' | 'team',
+        entityId: string,
+        bucketId: string,
+        level: PermissionLevel,
+        actor?: { id: string, email: string }
+    ): Promise<void> {
         await query(
             `INSERT INTO document_permissions (entity_type, entity_id, bucket_id, permission_level, updated_at)
              VALUES ($1, $2, $3, $4, NOW())
@@ -41,6 +48,17 @@ export class DocumentPermissionService {
              DO UPDATE SET permission_level = $4, updated_at = NOW()`,
             [entityType, entityId, bucketId, level]
         );
+
+        if (actor) {
+            await auditService.log({
+                userId: actor.id,
+                userEmail: actor.email,
+                action: AuditAction.SET_PERMISSION,
+                resourceType: AuditResourceType.PERMISSION,
+                resourceId: `${entityType}:${entityId}:${bucketId}`,
+                details: { entityType, entityId, bucketId, level },
+            });
+        }
     }
 
     /**

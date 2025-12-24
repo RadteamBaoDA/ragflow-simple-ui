@@ -6,6 +6,7 @@ import { Router, Request, Response } from 'express';
 import { broadcastMessageService } from '../services/broadcast-message.service.js';
 import { log } from '../services/logger.service.js';
 import { requirePermission } from '../middleware/auth.middleware.js';
+import { getClientIp } from '../utils/ip.js';
 
 const router = Router();
 
@@ -42,7 +43,7 @@ router.post('/:id/dismiss', async (req: Request, res: Response) => {
             return res.status(400).json({ error: 'ID is required' });
         }
 
-        await broadcastMessageService.dismissMessage(userId, broadcastId);
+        await broadcastMessageService.dismissMessage(userId, broadcastId, req.user?.email, getClientIp(req));
         return res.json({ success: true });
     } catch (error) {
         log.error('Failed to dismiss broadcast message', { id: req.params.id, error: String(error) });
@@ -74,7 +75,8 @@ router.get('/', requirePermission('manage_system'), async (req: Request, res: Re
  */
 router.post('/', requirePermission('manage_system'), async (req: Request, res: Response) => {
     try {
-        const message = await broadcastMessageService.createMessage(req.body);
+        const user = req.user ? { id: req.user.id, email: req.user.email, ip: getClientIp(req) } : undefined;
+        const message = await broadcastMessageService.createMessage(req.body, user);
         res.status(201).json(message);
     } catch (error) {
         log.error('Failed to create broadcast message', { error: String(error) });
@@ -92,7 +94,8 @@ router.put('/:id', requirePermission('manage_system'), async (req: Request, res:
         if (!id) {
             return res.status(400).json({ error: 'ID is required' });
         }
-        const message = await broadcastMessageService.updateMessage(id, req.body);
+        const user = req.user ? { id: req.user.id, email: req.user.email, ip: getClientIp(req) } : undefined;
+        const message = await broadcastMessageService.updateMessage(id, req.body, user);
         if (!message) {
             return res.status(404).json({ error: 'Broadcast message not found' });
         }
@@ -113,7 +116,8 @@ router.delete('/:id', requirePermission('manage_system'), async (req: Request, r
         if (!id) {
             return res.status(400).json({ error: 'ID is required' });
         }
-        const deleted = await broadcastMessageService.deleteMessage(id);
+        const user = req.user ? { id: req.user.id, email: req.user.email, ip: getClientIp(req) } : undefined;
+        const deleted = await broadcastMessageService.deleteMessage(id, user);
         if (!deleted) {
             return res.status(404).json({ error: 'Broadcast message not found' });
         }

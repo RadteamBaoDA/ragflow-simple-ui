@@ -21,6 +21,7 @@ import { query, queryOne } from '../db/index.js';
 import { config } from '../config/index.js';
 import { log } from './logger.service.js';
 import { AzureAdUser } from './auth.service.js';
+import { auditService, AuditAction, AuditResourceType } from './audit.service.js';
 
 // ============================================================================
 // TYPE DEFINITIONS
@@ -141,10 +142,11 @@ export class UserService {
      * - mobile_phone
      * 
      * @param adUser - User profile from Azure AD
+     * @param ipAddress - Client IP address
      * @returns User record from database (with role and permissions)
      * @throws Error if database operation fails
      */
-    async findOrCreateUser(adUser: AzureAdUser): Promise<User> {
+    async findOrCreateUser(adUser: AzureAdUser, ipAddress?: string): Promise<User> {
         try {
             // Search by ID or Email (supports account linking scenarios)
             const existingUser = await queryOne<User>(
@@ -208,6 +210,18 @@ export class UserService {
                         `UPDATE users SET ${updates.join(', ')} WHERE id = $${paramIndex}`,
                         values
                     );
+
+                    // Log audit event for user update (sync from Azure AD)
+                    // This is usually done by system/login process, but we attribute it to the user themselves
+                    await auditService.log({
+                        userId: existingUser.id,
+                        userEmail: existingUser.email,
+                        action: AuditAction.UPDATE_USER,
+                        resourceType: AuditResourceType.USER,
+                        resourceId: existingUser.id,
+                        details: { source: 'AzureAD Sync', updates: updates },
+                        ipAddress,
+                    });
                 }
 
                 // Parse permissions from JSON string if needed
@@ -250,6 +264,17 @@ export class UserService {
                     newUser.updated_at,
                 ]
             );
+
+            // Log audit event for user creation
+            await auditService.log({
+                userId: newUser.id,
+                userEmail: newUser.email,
+                action: AuditAction.CREATE_USER,
+                resourceType: AuditResourceType.USER,
+                resourceId: newUser.id,
+                details: { source: 'AzureAD Login' },
+                ipAddress,
+            });
 
             return newUser;
         } catch (error) {
@@ -340,11 +365,23 @@ export class UserService {
      * @param userId - ID of user to update
      * @param permissions - Array of permission strings
      */
-    async updateUserPermissions(userId: string, permissions: string[]): Promise<void> {
+    async updateUserPermissions(userId: string, permissions: string[], actor?: { id: string, email: string, ip?: string }): Promise<void> {
         await query(
             'UPDATE users SET permissions = $1, updated_at = NOW() WHERE id = $2',
             [JSON.stringify(permissions), userId]
         );
+
+        if (actor) {
+            await auditService.log({
+                userId: actor.id,
+                userEmail: actor.email,
+                action: AuditAction.UPDATE_USER,
+                resourceType: AuditResourceType.USER,
+                resourceId: userId,
+                details: { action: 'update_permissions', permissions },
+                ipAddress: actor.ip,
+            });
+        }
     }
 
     /**

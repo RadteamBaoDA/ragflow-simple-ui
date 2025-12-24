@@ -10,6 +10,7 @@
 import { v4 as uuidv4 } from 'uuid';
 import { log } from './logger.service.js';
 import { db } from '../db/index.js';
+import { auditService, AuditAction, AuditResourceType } from './audit.service.js';
 
 // ============================================================================
 // TYPE DEFINITIONS
@@ -152,24 +153,56 @@ class KnowledgeBaseService {
     /**
      * Update a system configuration (default source IDs).
      */
-    async saveSystemConfig(key: 'default_chat_source_id' | 'default_search_source_id', value: string): Promise<void> {
+    async saveSystemConfig(key: 'default_chat_source_id' | 'default_search_source_id', value: string, user?: { id: string, email: string, ip?: string }): Promise<void> {
         await db.query(
             `INSERT INTO system_configs (key, value) VALUES ($1, $2)
              ON CONFLICT (key) DO UPDATE SET value = $2, updated_at = NOW()`,
             [key, value]
         );
+
+        if (user) {
+            await auditService.log({
+                userId: user.id,
+                userEmail: user.email,
+                action: AuditAction.UPDATE_CONFIG,
+                resourceType: AuditResourceType.CONFIG,
+                resourceId: key,
+                details: { value },
+                ipAddress: user.ip,
+            });
+        }
+
         log.info(`Updated system config: ${key}`);
     }
 
     /**
      * Add a new source.
      */
-    async addSource(type: 'chat' | 'search', name: string, url: string, access_control: AccessControl = { public: false, team_ids: [], user_ids: [] }): Promise<KnowledgeBaseSource> {
+    async addSource(
+        type: 'chat' | 'search',
+        name: string,
+        url: string,
+        access_control: AccessControl = { public: false, team_ids: [], user_ids: [] },
+        user?: { id: string, email: string, ip?: string }
+    ): Promise<KnowledgeBaseSource> {
         const id = uuidv4();
         await db.query(
             'INSERT INTO knowledge_base_sources (id, type, name, url, access_control) VALUES ($1, $2, $3, $4, $5)',
             [id, type, name, url, JSON.stringify(access_control)]
         );
+
+        if (user) {
+            await auditService.log({
+                userId: user.id,
+                userEmail: user.email,
+                action: AuditAction.CREATE_SOURCE,
+                resourceType: AuditResourceType.KNOWLEDGE_BASE_SOURCE,
+                resourceId: id,
+                details: { type, name, url, access_control },
+                ipAddress: user.ip,
+            });
+        }
+
         log.info(`Added new ${type} source`, { id, name });
         return { id, type, name, url, access_control };
     }
@@ -177,7 +210,13 @@ class KnowledgeBaseService {
     /**
      * Update an existing source.
      */
-    async updateSource(id: string, name: string, url: string, access_control?: AccessControl): Promise<void> {
+    async updateSource(
+        id: string,
+        name: string,
+        url: string,
+        access_control?: AccessControl,
+        user?: { id: string, email: string, ip?: string }
+    ): Promise<void> {
         if (access_control) {
             await db.query(
                 'UPDATE knowledge_base_sources SET name = $1, url = $2, access_control = $3, updated_at = NOW() WHERE id = $4',
@@ -189,14 +228,42 @@ class KnowledgeBaseService {
                 [name, url, id]
             );
         }
+
+        if (user) {
+            await auditService.log({
+                userId: user.id,
+                userEmail: user.email,
+                action: AuditAction.UPDATE_SOURCE,
+                resourceType: AuditResourceType.KNOWLEDGE_BASE_SOURCE,
+                resourceId: id,
+                details: { name, url, access_control },
+                ipAddress: user.ip,
+            });
+        }
+
         log.info('Updated source', { id });
     }
 
     /**
      * Delete a source.
      */
-    async deleteSource(id: string): Promise<void> {
+    async deleteSource(id: string, user?: { id: string, email: string, ip?: string }): Promise<void> {
+        const source = await db.queryOne<{ name: string }>('SELECT name FROM knowledge_base_sources WHERE id = $1', [id]);
+
         await db.query('DELETE FROM knowledge_base_sources WHERE id = $1', [id]);
+
+        if (user) {
+            await auditService.log({
+                userId: user.id,
+                userEmail: user.email,
+                action: AuditAction.DELETE_SOURCE,
+                resourceType: AuditResourceType.KNOWLEDGE_BASE_SOURCE,
+                resourceId: id,
+                details: { name: source?.name },
+                ipAddress: user.ip,
+            });
+        }
+
         log.info('Deleted source', { id });
     }
 }

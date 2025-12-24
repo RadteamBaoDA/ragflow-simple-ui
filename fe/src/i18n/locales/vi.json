@@ -441,7 +441,16 @@
       "reload_config": "Tải lại cấu hình",
       "run_migration": "Chạy Migration",
       "system_start": "Khởi động hệ thống",
-      "system_stop": "Dừng hệ thống"
+      "system_stop": "Dừng hệ thống",
+      "create_broadcast": "Tạo Thông Báo",
+      "update_broadcast": "Cập Nhật Thông Báo",
+      "delete_broadcast": "Xóa Thông Báo",
+      "dismiss_broadcast": "Bỏ Qua Thông Báo",
+      "set_permission": "Thiết Lập Quyền",
+      "create_source": "Tạo Nguồn",
+      "update_source": "Cập Nhật Nguồn",
+      "delete_source": "Xóa Nguồn",
+      "batch_delete": "Xóa Hàng Loạt"
     },
     "resourceTypes": {
       "user": "Người dùng",
@@ -451,7 +460,10 @@
       "folder": "Thư mục",
       "config": "Cấu hình",
       "system": "Hệ thống",
-      "role": "Vai trò"
+      "role": "Vai trò",
+      "broadcast_message": "Thông Báo Hệ Thống",
+      "permission": "Quyền Hạn",
+      "knowledge_base_source": "Nguồn Kiến Thức"
     }
   },
   "storage": {

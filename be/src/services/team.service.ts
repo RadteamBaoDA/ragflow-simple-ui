@@ -9,6 +9,7 @@
 import { v4 as uuidv4 } from 'uuid';
 import { query, queryOne } from '../db/index.js';
 import { log } from './logger.service.js';
+import { auditService, AuditAction, AuditResourceType } from './audit.service.js';
 
 // ============================================================================
 // TYPE DEFINITIONS
@@ -50,7 +51,7 @@ export class TeamService {
     /**
      * Create a new team.
      */
-    async createTeam(data: CreateTeamDTO): Promise<Team> {
+    async createTeam(data: CreateTeamDTO, user?: { id: string, email: string, ip?: string }): Promise<Team> {
         const id = uuidv4();
         const team = await queryOne<Team>(
             `INSERT INTO teams (id, name, project_name, description)
@@ -60,6 +61,19 @@ export class TeamService {
         );
 
         if (!team) throw new Error('Failed to create team');
+
+        if (user) {
+            await auditService.log({
+                userId: user.id,
+                userEmail: user.email,
+                action: AuditAction.CREATE_TEAM,
+                resourceType: AuditResourceType.TEAM,
+                resourceId: team.id,
+                details: { name: team.name },
+                ipAddress: user.ip,
+            });
+        }
+
         return team;
     }
 
@@ -80,7 +94,7 @@ export class TeamService {
     /**
      * Update a team.
      */
-    async updateTeam(id: string, data: UpdateTeamDTO): Promise<Team | undefined> {
+    async updateTeam(id: string, data: UpdateTeamDTO, user?: { id: string, email: string, ip?: string }): Promise<Team | undefined> {
         const updates: string[] = [];
         const values: any[] = [];
         let paramIndex = 1;
@@ -103,39 +117,97 @@ export class TeamService {
         updates.push(`updated_at = NOW()`);
         values.push(id);
 
-        return queryOne<Team>(
+        const updatedTeam = await queryOne<Team>(
             `UPDATE teams SET ${updates.join(', ')} WHERE id = $${paramIndex} RETURNING *`,
             values
         );
+
+        if (user && updatedTeam) {
+            await auditService.log({
+                userId: user.id,
+                userEmail: user.email,
+                action: AuditAction.UPDATE_TEAM,
+                resourceType: AuditResourceType.TEAM,
+                resourceId: updatedTeam.id,
+                details: { changes: data },
+                ipAddress: user.ip,
+            });
+        }
+
+        return updatedTeam;
     }
 
     /**
      * Delete a team.
      */
-    async deleteTeam(id: string): Promise<void> {
+    async deleteTeam(id: string, user?: { id: string, email: string, ip?: string }): Promise<void> {
+        // Fetch team details before deletion for audit logging
+        const team = await this.getTeam(id);
+
         await query('DELETE FROM teams WHERE id = $1', [id]);
+
+        if (user) {
+            await auditService.log({
+                userId: user.id,
+                userEmail: user.email,
+                action: AuditAction.DELETE_TEAM,
+                resourceType: AuditResourceType.TEAM,
+                resourceId: id,
+                details: { teamName: team?.name },
+                ipAddress: user.ip,
+            });
+        }
     }
 
     /**
      * Add a user to a team.
      */
-    async addUserToTeam(teamId: string, userId: string, role: 'member' | 'leader' = 'member'): Promise<void> {
+    async addUserToTeam(
+        teamId: string,
+        userId: string,
+        role: 'member' | 'leader' = 'member',
+        actor?: { id: string, email: string, ip?: string }
+    ): Promise<void> {
         await query(
             `INSERT INTO user_teams (user_id, team_id, role)
              VALUES ($1, $2, $3)
              ON CONFLICT (user_id, team_id) DO UPDATE SET role = $3`,
             [userId, teamId, role]
         );
+
+        if (actor) {
+            await auditService.log({
+                userId: actor.id,
+                userEmail: actor.email,
+                action: AuditAction.UPDATE_TEAM,
+                resourceType: AuditResourceType.TEAM,
+                resourceId: teamId,
+                details: { action: 'add_member', targetUserId: userId, role },
+                ipAddress: actor.ip,
+            });
+        }
     }
 
     /**
      * Remove a user from a team.
      */
-    async removeUserFromTeam(teamId: string, userId: string): Promise<void> {
+    async removeUserFromTeam(teamId: string, userId: string, actor?: { id: string, email: string, ip?: string }): Promise<void> {
         await query(
             'DELETE FROM user_teams WHERE team_id = $1 AND user_id = $2',
             [teamId, userId]
         );
+
+        if (actor) {
+            await auditService.log({
+                userId: actor.id,
+                userEmail: actor.email,
+                action: AuditAction.UPDATE_TEAM,
+                resourceType: AuditResourceType.TEAM,
+                resourceId: teamId,
+                details: { action: 'remove_member', targetUserId: userId },
+                ipAddress: actor.ip,
+            });
+        }
     }
 
     /**
@@ -175,7 +247,7 @@ export class TeamService {
      * - Global 'leader' -> Team 'leader'
      * - Global 'user' -> Team 'member'
      */
-    async addMembersWithAutoRole(teamId: string, userIds: string[]): Promise<void> {
+    async addMembersWithAutoRole(teamId: string, userIds: string[], actor?: { id: string, email: string, ip?: string }): Promise<void> {
         if (!userIds || userIds.length === 0) return;
 
         // 1. Get users' global roles
@@ -198,7 +270,7 @@ export class TeamService {
         // 3. Add users to team in parallel
         await Promise.all(users.map(user => {
             const teamRole = user.role === 'leader' ? 'leader' : 'member';
-            return this.addUserToTeam(teamId, user.id, teamRole);
+            return this.addUserToTeam(teamId, user.id, teamRole, actor);
         }));
     }
 
@@ -206,7 +278,7 @@ export class TeamService {
      * Grant permissions to all members of a team.
      * Merges new permissions with existing ones for each user.
      */
-    async grantPermissionsToTeam(teamId: string, permissionsToGrant: string[]): Promise<void> {
+    async grantPermissionsToTeam(teamId: string, permissionsToGrant: string[], actor?: { id: string, email: string, ip?: string }): Promise<void> {
         // 1. Get all team members
         const members = await this.getTeamMembers(teamId);
 
@@ -244,7 +316,7 @@ export class TeamService {
 
             // Update if changed
             if (newPermissions.length !== currentPermissions.length) {
-                await userService.updateUserPermissions(user.id, newPermissions);
+                await userService.updateUserPermissions(user.id, newPermissions, actor);
             }
         }));
     }

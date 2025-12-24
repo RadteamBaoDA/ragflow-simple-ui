@@ -441,7 +441,16 @@
       "reload_config": "設定再読み込み",
       "run_migration": "マイグレーション実行",
       "system_start": "システム起動",
-      "system_stop": "システム停止"
+      "system_stop": "システム停止",
+      "create_broadcast": "一斉通知作成",
+      "update_broadcast": "一斉通知更新",
+      "delete_broadcast": "一斉通知削除",
+      "dismiss_broadcast": "一斉通知非表示",
+      "set_permission": "権限設定",
+      "create_source": "ソース作成",
+      "update_source": "ソース更新",
+      "delete_source": "ソース削除",
+      "batch_delete": "一括削除"
     },
     "resourceTypes": {
       "user": "ユーザー",
@@ -451,7 +460,10 @@
       "folder": "フォルダ",
       "config": "設定",
       "system": "システム",
-      "role": "役割"
+      "role": "役割",
+      "broadcast_message": "一斉通知",
+      "permission": "権限",
+      "knowledge_base_source": "ナレッジベースソース"
     }
   },
   "storage": {
