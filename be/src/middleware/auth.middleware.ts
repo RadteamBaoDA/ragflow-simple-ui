@@ -357,6 +357,11 @@ export function requirePermission(permission: Permission) {
       return;
     }
 
+    // Populate req.user for downstream use if not already present
+    if (!req.user) {
+      req.user = user;
+    }
+
     // Check role-based permission (from RBAC config)
     if (user.role && hasPermission(user.role, permission)) {
       next();
@@ -404,6 +409,11 @@ export function requireRole(...roles: Role[]) {
     if (!user) {
       res.status(401).json({ error: 'Unauthorized' });
       return;
+    }
+
+    // Populate req.user for downstream use if not already present
+    if (!req.user) {
+      req.user = user;
     }
 
     // Check if user has any of the allowed roles
@@ -459,6 +469,11 @@ export function requireOwnership(
     if (!user) {
       res.status(401).json({ error: 'Unauthorized' });
       return;
+    }
+
+    // Populate req.user for downstream use if not already present
+    if (!req.user) {
+      req.user = user;
     }
 
     // Get the resource owner ID from request parameters
@@ -528,6 +543,11 @@ export function requireOwnershipCustom(
     if (!user) {
       res.status(401).json({ error: 'Unauthorized' });
       return;
+    }
+
+    // Populate req.user for downstream use if not already present
+    if (!req.user) {
+      req.user = user;
     }
 
     const resourceOwnerId = getOwnerId(req);
