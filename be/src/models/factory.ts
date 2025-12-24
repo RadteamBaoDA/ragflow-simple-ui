@@ -12,6 +12,8 @@ import { UserIpHistoryModel } from '@/models/user-ip-history.model.js';
 import { DocumentPermissionModel } from '@/models/document-permission.model.js';
 import { BroadcastMessageModel } from '@/models/broadcast-message.model.js';
 import { UserDismissedBroadcastModel } from '@/models/user-dismissed-broadcast.model.js';
+import { ExternalChatHistoryModel } from '@/models/external-chat-history.model.js';
+import { ExternalSearchHistoryModel } from '@/models/external-search-history.model.js';
 
 export class ModelFactory {
   private static userModel: UserModel;
@@ -27,6 +29,8 @@ export class ModelFactory {
   private static documentPermissionModel: DocumentPermissionModel;
   private static broadcastMessageModel: BroadcastMessageModel;
   private static userDismissedBroadcastModel: UserDismissedBroadcastModel;
+  private static externalChatHistoryModel: ExternalChatHistoryModel;
+  private static externalSearchHistoryModel: ExternalSearchHistoryModel;
 
   static get user() {
     if (!this.userModel) this.userModel = new UserModel();
@@ -91,5 +95,15 @@ export class ModelFactory {
   static get userDismissedBroadcast() {
     if (!this.userDismissedBroadcastModel) this.userDismissedBroadcastModel = new UserDismissedBroadcastModel();
     return this.userDismissedBroadcastModel;
+  }
+
+  static get externalChatHistory() {
+    if (!this.externalChatHistoryModel) this.externalChatHistoryModel = new ExternalChatHistoryModel();
+    return this.externalChatHistoryModel;
+  }
+
+  static get externalSearchHistory() {
+    if (!this.externalSearchHistoryModel) this.externalSearchHistoryModel = new ExternalSearchHistoryModel();
+    return this.externalSearchHistoryModel;
   }
 }

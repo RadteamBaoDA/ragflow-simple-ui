@@ -3,7 +3,7 @@
  */
 
 import { Router, Request, Response, NextFunction } from 'express';
-import { addChatHistoryJob, addSearchHistoryJob } from '@/services/queue.service.js';
+import { queueService } from '@/services/queue.service.js';
 import { log } from '@/services/logger.service.js';
 import { config } from '@/config/index.js';
 
@@ -34,7 +34,7 @@ router.post('/chat', checkApiKey, async (req: Request, res: Response, next: Next
              return
         }
 
-        await addChatHistoryJob({
+        await queueService.addChatHistoryJob({
             sessionId: session_id,
             userId: user_id,
             messages: messages.map((msg: any) => ({
@@ -64,7 +64,7 @@ router.post('/search', checkApiKey, async (req: Request, res: Response, next: Ne
              return
         }
 
-        await addSearchHistoryJob({
+        await queueService.addSearchHistoryJob({
             sessionId: session_id,
             userId: user_id,
             query,

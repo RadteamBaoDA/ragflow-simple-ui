@@ -2,15 +2,17 @@
 import { describe, it, expect, vi, beforeEach, afterEach } from 'vitest';
 import request from 'supertest';
 import { app } from '../../src/index.js';
-import * as queueService from '../../src/services/queue.service.js';
+import { queueService } from '../../src/services/queue.service.js';
 import { config } from '../../src/config/index.js';
 
 // Mock queue service
-vi.mock('@/services/queue.service.js', () => ({
-    initQueues: vi.fn(),
-    addChatHistoryJob: vi.fn(),
-    addSearchHistoryJob: vi.fn(),
-    closeQueues: vi.fn(),
+vi.mock('../../src/services/queue.service.js', () => ({
+    queueService: {
+        initQueues: vi.fn(),
+        addChatHistoryJob: vi.fn(),
+        addSearchHistoryJob: vi.fn(),
+        closeQueues: vi.fn(),
+    }
 }));
 
 // Mock logger

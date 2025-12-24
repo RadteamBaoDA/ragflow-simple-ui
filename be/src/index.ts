@@ -20,7 +20,7 @@ import { systemToolsService } from '@/services/system-tools.service.js';
 import { userService } from '@/services/user.service.js';
 import { shutdownLangfuse } from '@/services/langfuse.service.js';
 import { externalTraceService } from '@/services/external-trace.service.js';
-import { initQueues, closeQueues } from '@/services/queue.service.js';
+import { queueService } from '@/services/queue.service.js';
 
 import authRoutes from '@/routes/auth.routes.js';
 import knowledgeBaseRoutes from '@/routes/knowledge-base.routes.js';
@@ -202,7 +202,7 @@ const startServer = async (): Promise<http.Server | https.Server> => {
     });
 
     cronService.startCleanupJob();
-    await initQueues();
+    await queueService.initQueues();
 
     await knowledgeBaseService.initialize();
     await systemToolsService.initialize();
@@ -253,7 +253,7 @@ if (!isTest) {
       await shutdownRedis();
       await closePool();
       await shutdownLangfuse();
-      await closeQueues();
+      await queueService.closeQueues();
       await externalTraceService.shutdown();
       process.exit(0);
     };
