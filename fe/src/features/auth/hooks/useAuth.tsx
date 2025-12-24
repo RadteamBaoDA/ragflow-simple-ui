@@ -167,6 +167,12 @@ export function AuthProvider({ children }: AuthProviderProps) {
       return;
     }
 
+    // Skip auth check if already authenticated (prevents redundant API calls on navigation)
+    if (user) {
+      setIsLoading(false);
+      return;
+    }
+
     // Check session for protected paths
     console.log('[Auth] Protected path, checking session:', location.pathname);
     checkSession().then(isValid => {
@@ -177,7 +183,7 @@ export function AuthProvider({ children }: AuthProviderProps) {
         navigate(`/login?redirect=${encodeURIComponent(redirectUrl)}`, { replace: true });
       }
     });
-  }, [location.pathname, location.search, checkSession, navigate]);
+  }, [location.pathname, location.search, checkSession, navigate, user]);
 
   const value: AuthContextType = {
     user,

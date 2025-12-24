@@ -100,7 +100,8 @@
       "member": "Thành viên",
       "selectUser": "Chọn người dùng",
       "addMemberSuccess": "Đã thêm thành viên thành công",
-      "addMemberError": "Không thể thêm thành viên"
+      "addMemberError": "Không thể thêm thành viên",
+      "removeMemberSuccess": "Đã xóa thành viên thành công"
     },
     "permissions": {
       "title": "Quản lý Phân quyền",

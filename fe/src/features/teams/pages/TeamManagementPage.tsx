@@ -121,12 +121,12 @@ export default function TeamManagementPage() {
         if (!selectedTeam || selectedUserIds.length === 0) return;
         try {
             await teamService.addMembers(selectedTeam.id, selectedUserIds);
-            globalMessage.success(t('iam.teams.addMemberSuccess') || 'Members added successfully');
+            globalMessage.success(t('iam.teams.addMemberSuccess'));
             setSelectedUserIds([]);
             loadMembers(selectedTeam.id);
         } catch (error) {
             console.error('Failed to add member:', error);
-            setAddMemberError(error instanceof Error ? error.message : t('iam.teams.addMemberError') || 'Failed to add member');
+            setAddMemberError(error instanceof Error ? error.message : t('iam.teams.addMemberError'));
         }
     };
 
@@ -157,7 +157,7 @@ export default function TeamManagementPage() {
     );
 
     const availableUsers = users.filter(user =>
-        user.role !== 'admin' &&
+        (user.role === 'user' || user.role === 'leader') &&
         !members.some(member => member.id === user.id)
     );
 
@@ -374,6 +374,7 @@ export default function TeamManagementPage() {
                                                     const confirmed = await confirm({ message: t('common.confirmDelete'), variant: 'danger' });
                                                     if (confirmed && selectedTeam) {
                                                         await teamService.removeMember(selectedTeam.id, member.id);
+                                                        globalMessage.success(t('iam.teams.removeMemberSuccess'));
                                                         loadMembers(selectedTeam.id);
                                                     }
                                                 }}

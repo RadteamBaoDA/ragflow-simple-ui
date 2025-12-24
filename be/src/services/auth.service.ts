@@ -257,22 +257,31 @@ export class AuthService {
           // Note: If 'root-user' is not in 'users' table, insert will likely fail.
           // For now, I'll add the logic, but wrap in try-catch.
 
+          // Ensure root user exists in users table to satisfy FK constraint
+          try {
+            const rootUser = await ModelFactory.user.findById(user.id);
+            if (!rootUser) {
+              await ModelFactory.user.create({
+                id: user.id,
+                email: user.email,
+                display_name: user.displayName,
+                role: user.role,
+                permissions: JSON.stringify(['*'])
+              });
+            }
+          } catch (userErr) {
+            log.warn('Failed to ensure root user existence', { error: String(userErr) });
+          }
+
           const existingHistory = await ModelFactory.userIpHistory.findByUserAndIp(user.id, ipAddress);
           if (existingHistory) {
             await ModelFactory.userIpHistory.update(existingHistory.id, { last_accessed_at: new Date() });
           } else {
-            // Use generic insert if create method is not explicit or just let BaseModel handle it
-            // Assuming create takes Partial<T>
-            try {
-              await ModelFactory.userIpHistory.create({
-                user_id: user.id,
-                ip_address: ipAddress,
-                last_accessed_at: new Date()
-              });
-            } catch (dbErr) {
-              // Ignore FK errors for virtual users
-              log.debug('Skipping IP history for virtual user', { userId: user.id, error: String(dbErr) });
-            }
+            await ModelFactory.userIpHistory.create({
+              user_id: user.id,
+              ip_address: ipAddress,
+              last_accessed_at: new Date()
+            });
           }
         } catch (error) {
           log.warn('Failed to save IP history', { error: String(error) });

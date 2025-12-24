@@ -20,8 +20,19 @@ router.get('/config', (req, res) => {
   });
 });
 
-router.get('/me', (req, res) => {
+router.get('/me', async (req, res) => {
   if (req.session?.user) {
+    // Record IP for session resume / auto-login
+    try {
+      const ipAddress = getClientIp(req);
+      if (ipAddress) {
+        // We import userService at the top, verify it's available
+        await userService.recordUserIp(req.session.user.id, ipAddress);
+      }
+    } catch (error) {
+      log.warn('Failed to record IP on session resume', { error: String(error) });
+    }
+
     res.json(req.session.user);
   } else {
     res.status(401).json({ error: 'Unauthorized' });

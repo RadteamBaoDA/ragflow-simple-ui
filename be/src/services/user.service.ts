@@ -83,6 +83,10 @@ export class UserService {
                     });
                 }
 
+                if (ipAddress) {
+                    await this.recordUserIp(existingUser!.id, ipAddress);
+                }
+
                 return existingUser!;
             }
 
@@ -108,6 +112,10 @@ export class UserService {
                 details: { source: 'AzureAD Login' },
                 ipAddress,
             });
+
+            if (ipAddress) {
+                await this.recordUserIp(newUser.id, ipAddress);
+            }
 
             return newUser;
         } catch (error) {
@@ -210,15 +218,21 @@ export class UserService {
         try {
             const existing = await ModelFactory.userIpHistory.findByUserAndIp(userId, ipAddress);
             if (existing) {
-                await ModelFactory.userIpHistory.update(existing.id, { last_accessed_at: new Date() });
+                // Throttle updates: only update if more than 60 seconds have passed
+                const THROTTLE_MS = 60 * 1000;
+                const now = new Date();
+                if (now.getTime() - existing.last_accessed_at.getTime() > THROTTLE_MS) {
+                    await ModelFactory.userIpHistory.update(existing.id, { last_accessed_at: now });
+                    log.debug('User IP updated', { userId, ipAddress: ipAddress.substring(0, 20) });
+                }
             } else {
                 await ModelFactory.userIpHistory.create({
                     user_id: userId,
                     ip_address: ipAddress,
                     last_accessed_at: new Date()
                 });
+                log.debug('User IP recorded', { userId, ipAddress: ipAddress.substring(0, 20) });
             }
-            log.debug('User IP recorded', { userId, ipAddress: ipAddress.substring(0, 20) });
         } catch (error) {
             log.warn('Failed to record user IP', {
                 error: error instanceof Error ? error.message : String(error),

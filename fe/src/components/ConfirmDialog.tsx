@@ -1,6 +1,6 @@
 import React, { createContext, useContext, useState, ReactNode } from 'react';
-import { X } from 'lucide-react';
 import { useTranslation } from 'react-i18next';
+import { Dialog } from './Dialog';
 
 interface ConfirmOptions {
     title?: string;
@@ -60,15 +60,6 @@ export const ConfirmProvider: React.FC<ConfirmProviderProps> = ({ children }) =>
         setResolvePromise(null);
     };
 
-    const handleKeyDown = (e: React.KeyboardEvent) => {
-        if (e.key === 'Enter') {
-            e.preventDefault();
-            handleConfirm();
-        } else if (e.key === 'Escape') {
-            e.preventDefault();
-            handleCancel();
-        }
-    };
 
     const getVariantStyles = () => {
         const variant = options?.variant || 'warning';
@@ -89,46 +80,14 @@ export const ConfirmProvider: React.FC<ConfirmProviderProps> = ({ children }) =>
             {children}
 
             {isOpen && options && (
-                <div
-                    className="fixed inset-0 z-50 flex items-center justify-center bg-black bg-opacity-50"
-                    onClick={handleCancel}
-                    onKeyDown={handleKeyDown}
-                >
-                    <div
-                        className="bg-white dark:bg-gray-800 rounded-lg shadow-xl max-w-md w-full mx-4 p-6"
-                        onClick={(e) => e.stopPropagation()}
-                        role="dialog"
-                        aria-modal="true"
-                        aria-labelledby="confirm-title"
-                        aria-describedby="confirm-message"
-                    >
-                        {/* Header */}
-                        <div className="flex items-center justify-between mb-4">
-                            <h3
-                                id="confirm-title"
-                                className="text-lg font-semibold text-gray-900 dark:text-white"
-                            >
-                                {options.title || t('dialog.confirmTitle')}
-                            </h3>
-                            <button
-                                onClick={handleCancel}
-                                className="text-gray-400 hover:text-gray-600 dark:hover:text-gray-300 transition-colors"
-                                aria-label={t('dialog.close')}
-                            >
-                                <X className="w-5 h-5" />
-                            </button>
-                        </div>
-
-                        {/* Message */}
-                        <div
-                            id="confirm-message"
-                            className="mb-6 text-gray-700 dark:text-gray-300"
-                        >
-                            {options.message}
-                        </div>
-
-                        {/* Buttons */}
-                        <div className="flex justify-end gap-3">
+                <Dialog
+                    open={isOpen}
+                    onClose={handleCancel}
+                    title={options.title || t('dialog.confirmTitle')}
+                    maxWidth="sm"
+                    className="z-[100]"
+                    footer={
+                        <>
                             <button
                                 onClick={handleCancel}
                                 className="px-4 py-2 text-sm font-medium text-gray-700 dark:text-gray-300 bg-white dark:bg-gray-700 border border-gray-300 dark:border-gray-600 rounded-lg hover:bg-gray-50 dark:hover:bg-gray-600 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-gray-500 transition-colors"
@@ -142,9 +101,13 @@ export const ConfirmProvider: React.FC<ConfirmProviderProps> = ({ children }) =>
                             >
                                 {options.confirmText || t('dialog.confirm')}
                             </button>
-                        </div>
+                        </>
+                    }
+                >
+                    <div className="text-gray-700 dark:text-gray-300">
+                        {options.message}
                     </div>
-                </div>
+                </Dialog>
             )}
         </ConfirmContext>
     );

@@ -101,7 +101,8 @@
       "member": "Member",
       "selectUser": "Select User",
       "addMemberSuccess": "Members added successfully",
-      "addMemberError": "Failed to add member"
+      "addMemberError": "Failed to add member",
+      "removeMemberSuccess": "Member removed successfully"
     },
     "permissions": {
       "title": "Permission Management",

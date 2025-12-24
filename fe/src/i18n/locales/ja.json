@@ -100,7 +100,8 @@
       "member": "メンバー",
       "selectUser": "ユーザーを選択",
       "addMemberSuccess": "メンバーを正常に追加しました",
-      "addMemberError": "メンバーの追加に失敗しました"
+      "addMemberError": "メンバーの追加に失敗しました",
+      "removeMemberSuccess": "メンバーを正常に削除しました"
     },
     "permissions": {
       "title": "権限管理",
