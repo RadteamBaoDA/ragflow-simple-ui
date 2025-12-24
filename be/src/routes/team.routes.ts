@@ -6,6 +6,7 @@ import { Router, Request, Response } from 'express';
 import { teamService } from '../services/team.service.js';
 import { requirePermission, requireRecentAuth } from '../middleware/auth.middleware.js';
 import { log } from '../services/logger.service.js';
+import { getClientIp } from '../utils/ip.js';
 
 const router = Router();
 
@@ -23,7 +24,7 @@ router.get('/', requirePermission('manage_users'), async (req: Request, res: Res
 // Create team
 router.post('/', requirePermission('manage_users'), async (req: Request, res: Response) => {
     try {
-        const user = req.user ? { id: req.user.id, email: req.user.email } : undefined;
+        const user = req.user ? { id: req.user.id, email: req.user.email, ip: getClientIp(req) } : undefined;
         const team = await teamService.createTeam(req.body, user);
         res.status(201).json(team);
     } catch (error) {
@@ -40,7 +41,7 @@ router.put('/:id', requirePermission('manage_users'), async (req: Request, res: 
         return;
     }
     try {
-        const user = req.user ? { id: req.user.id, email: req.user.email } : undefined;
+        const user = req.user ? { id: req.user.id, email: req.user.email, ip: getClientIp(req) } : undefined;
         const team = await teamService.updateTeam(id, req.body, user);
         if (!team) {
             res.status(404).json({ error: 'Team not found' });
@@ -61,7 +62,7 @@ router.delete('/:id', requirePermission('manage_users'), async (req: Request, re
         return;
     }
     try {
-        const user = req.user ? { id: req.user.id, email: req.user.email } : undefined;
+        const user = req.user ? { id: req.user.id, email: req.user.email, ip: getClientIp(req) } : undefined;
         await teamService.deleteTeam(id, user);
         res.status(204).send();
     } catch (error) {
@@ -103,7 +104,7 @@ router.post('/:id/members', requirePermission('manage_users'), async (req: Reque
             return res.status(400).json({ error: 'User ID(s) are required' });
         }
 
-        const user = req.user ? { id: req.user.id, email: req.user.email } : undefined;
+        const user = req.user ? { id: req.user.id, email: req.user.email, ip: getClientIp(req) } : undefined;
         await teamService.addMembersWithAutoRole(teamId, idsToAdd, user);
         return res.status(201).json({ message: 'Member(s) added successfully' });
     } catch (error: any) {
@@ -128,7 +129,7 @@ router.delete('/:id/members/:userId', requirePermission('manage_users'), async (
         return;
     }
     try {
-        const user = req.user ? { id: req.user.id, email: req.user.email } : undefined;
+        const user = req.user ? { id: req.user.id, email: req.user.email, ip: getClientIp(req) } : undefined;
         await teamService.removeUserFromTeam(id, userId, user);
         res.status(204).send();
     } catch (error) {
@@ -152,7 +153,7 @@ router.post('/:id/permissions', requirePermission('manage_users'), async (req: R
     }
 
     try {
-        const user = req.user ? { id: req.user.id, email: req.user.email } : undefined;
+        const user = req.user ? { id: req.user.id, email: req.user.email, ip: getClientIp(req) } : undefined;
         await teamService.grantPermissionsToTeam(id, permissions, user);
         res.json({ message: 'Permissions granted successfully' });
     } catch (error) {

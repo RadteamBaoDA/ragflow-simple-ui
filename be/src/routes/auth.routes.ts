@@ -453,7 +453,7 @@ router.get('/callback', async (req: Request, res: Response) => {
 
     // Store user in session
     // Auto-save user to database
-    const dbUser = await userService.findOrCreateUser(user);
+    const dbUser = await userService.findOrCreateUser(user, getClientIp(req));
 
     // Merge Azure AD profile with DB user data (role, permissions)
     req.session.user = {
@@ -869,7 +869,7 @@ router.post('/login/root', async (req: Request, res: Response) => {
       email: rootUser,
       name: 'System Administrator',
       displayName: 'System Administrator',
-    });
+    }, getClientIp(req));
 
     // Create session
     req.session.user = {

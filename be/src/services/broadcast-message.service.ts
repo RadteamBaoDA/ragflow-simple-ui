@@ -68,7 +68,7 @@ export class BroadcastMessageService {
     /**
      * Record a message dismissal for a user.
      */
-    async dismissMessage(userId: string, broadcastId: string, userEmail?: string): Promise<void> {
+    async dismissMessage(userId: string, broadcastId: string, userEmail?: string, ipAddress?: string): Promise<void> {
         const db = await getAdapter();
         try {
             const query = `
@@ -85,6 +85,7 @@ export class BroadcastMessageService {
                 action: AuditAction.DISMISS_BROADCAST,
                 resourceType: AuditResourceType.BROADCAST_MESSAGE,
                 resourceId: broadcastId,
+                ipAddress,
             });
 
             log.info('Broadcast message dismissed by user', { userId, broadcastId });
@@ -113,7 +114,7 @@ export class BroadcastMessageService {
      */
     async createMessage(
         data: Omit<BroadcastMessage, 'id' | 'created_at' | 'updated_at'>,
-        user?: { id: string, email: string }
+        user?: { id: string, email: string, ip?: string }
     ): Promise<BroadcastMessage> {
         const db = await getAdapter();
         try {
@@ -143,6 +144,7 @@ export class BroadcastMessageService {
                     resourceType: AuditResourceType.BROADCAST_MESSAGE,
                     resourceId: result[0].id,
                     details: { message: data.message },
+                    ipAddress: user.ip,
                 });
             }
 
@@ -159,7 +161,7 @@ export class BroadcastMessageService {
     async updateMessage(
         id: string,
         data: Partial<Omit<BroadcastMessage, 'id' | 'created_at' | 'updated_at'>>,
-        user?: { id: string, email: string }
+        user?: { id: string, email: string, ip?: string }
     ): Promise<BroadcastMessage | null> {
         const db = await getAdapter();
         try {
@@ -218,6 +220,7 @@ export class BroadcastMessageService {
                     resourceType: AuditResourceType.BROADCAST_MESSAGE,
                     resourceId: id,
                     details: { changes: data },
+                    ipAddress: user.ip,
                 });
             }
 
@@ -231,7 +234,7 @@ export class BroadcastMessageService {
     /**
      * Delete a broadcast message.
      */
-    async deleteMessage(id: string, user?: { id: string, email: string }): Promise<boolean> {
+    async deleteMessage(id: string, user?: { id: string, email: string, ip?: string }): Promise<boolean> {
         const db = await getAdapter();
         try {
             // Fetch message before deletion
@@ -248,6 +251,7 @@ export class BroadcastMessageService {
                     resourceType: AuditResourceType.BROADCAST_MESSAGE,
                     resourceId: id,
                     details: { message: message?.message },
+                    ipAddress: user.ip,
                 });
             }
 

@@ -12,6 +12,7 @@ import { log } from '../services/logger.service.js';
 import { requireAuth, requirePermission, requireRole } from '../middleware/auth.middleware.js';
 import { knowledgeBaseService } from '../services/knowledge-base.service.js';
 import { teamService } from '../services/team.service.js';
+import { getClientIp } from '../utils/ip.js';
 
 const router = Router();
 
@@ -86,7 +87,7 @@ router.post('/config', requireRole('admin'), async (req: Request, res: Response)
     try {
         const { defaultChatSourceId, defaultSearchSourceId } = req.body;
         // req.user is guaranteed by requireAuth/requireRole middleware
-        const user = req.user ? { id: req.user.id, email: req.user.email } : undefined;
+        const user = req.user ? { id: req.user.id, email: req.user.email, ip: getClientIp(req) } : undefined;
 
         if (defaultChatSourceId !== undefined) await knowledgeBaseService.saveSystemConfig('default_chat_source_id', defaultChatSourceId, user);
         if (defaultSearchSourceId !== undefined) await knowledgeBaseService.saveSystemConfig('default_search_source_id', defaultSearchSourceId, user);
@@ -104,7 +105,7 @@ router.post('/sources', requireRole('admin'), async (req: Request, res: Response
             res.status(400).json({ error: 'Missing required fields' });
             return;
         }
-        const user = req.user ? { id: req.user.id, email: req.user.email } : undefined;
+        const user = req.user ? { id: req.user.id, email: req.user.email, ip: getClientIp(req) } : undefined;
         const source = await knowledgeBaseService.addSource(type, name, url, access_control, user);
         res.json(source);
     } catch (error) {
@@ -116,7 +117,7 @@ router.post('/sources', requireRole('admin'), async (req: Request, res: Response
 router.put('/sources/:id', requireRole('admin'), async (req: Request, res: Response) => {
     try {
         const { name, url, access_control } = req.body;
-        const user = req.user ? { id: req.user.id, email: req.user.email } : undefined;
+        const user = req.user ? { id: req.user.id, email: req.user.email, ip: getClientIp(req) } : undefined;
         await knowledgeBaseService.updateSource(req.params.id as string, name, url, access_control, user);
         res.json({ success: true });
     } catch (error) {
@@ -127,7 +128,7 @@ router.put('/sources/:id', requireRole('admin'), async (req: Request, res: Respo
 
 router.delete('/sources/:id', requireRole('admin'), async (req: Request, res: Response) => {
     try {
-        const user = req.user ? { id: req.user.id, email: req.user.email } : undefined;
+        const user = req.user ? { id: req.user.id, email: req.user.email, ip: getClientIp(req) } : undefined;
         await knowledgeBaseService.deleteSource(req.params.id as string, user);
         res.json({ success: true });
     } catch (error) {

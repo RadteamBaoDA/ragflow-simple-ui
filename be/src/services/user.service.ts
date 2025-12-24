@@ -142,10 +142,11 @@ export class UserService {
      * - mobile_phone
      * 
      * @param adUser - User profile from Azure AD
+     * @param ipAddress - Client IP address
      * @returns User record from database (with role and permissions)
      * @throws Error if database operation fails
      */
-    async findOrCreateUser(adUser: AzureAdUser): Promise<User> {
+    async findOrCreateUser(adUser: AzureAdUser, ipAddress?: string): Promise<User> {
         try {
             // Search by ID or Email (supports account linking scenarios)
             const existingUser = await queryOne<User>(
@@ -219,6 +220,7 @@ export class UserService {
                         resourceType: AuditResourceType.USER,
                         resourceId: existingUser.id,
                         details: { source: 'AzureAD Sync', updates: updates },
+                        ipAddress,
                     });
                 }
 
@@ -271,6 +273,7 @@ export class UserService {
                 resourceType: AuditResourceType.USER,
                 resourceId: newUser.id,
                 details: { source: 'AzureAD Login' },
+                ipAddress,
             });
 
             return newUser;
@@ -362,7 +365,7 @@ export class UserService {
      * @param userId - ID of user to update
      * @param permissions - Array of permission strings
      */
-    async updateUserPermissions(userId: string, permissions: string[], actor?: { id: string, email: string }): Promise<void> {
+    async updateUserPermissions(userId: string, permissions: string[], actor?: { id: string, email: string, ip?: string }): Promise<void> {
         await query(
             'UPDATE users SET permissions = $1, updated_at = NOW() WHERE id = $2',
             [JSON.stringify(permissions), userId]
@@ -376,6 +379,7 @@ export class UserService {
                 resourceType: AuditResourceType.USER,
                 resourceId: userId,
                 details: { action: 'update_permissions', permissions },
+                ipAddress: actor.ip,
             });
         }
     }

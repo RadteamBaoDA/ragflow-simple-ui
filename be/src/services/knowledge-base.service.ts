@@ -153,7 +153,7 @@ class KnowledgeBaseService {
     /**
      * Update a system configuration (default source IDs).
      */
-    async saveSystemConfig(key: 'default_chat_source_id' | 'default_search_source_id', value: string, user?: { id: string, email: string }): Promise<void> {
+    async saveSystemConfig(key: 'default_chat_source_id' | 'default_search_source_id', value: string, user?: { id: string, email: string, ip?: string }): Promise<void> {
         await db.query(
             `INSERT INTO system_configs (key, value) VALUES ($1, $2)
              ON CONFLICT (key) DO UPDATE SET value = $2, updated_at = NOW()`,
@@ -168,6 +168,7 @@ class KnowledgeBaseService {
                 resourceType: AuditResourceType.CONFIG,
                 resourceId: key,
                 details: { value },
+                ipAddress: user.ip,
             });
         }
 
@@ -182,7 +183,7 @@ class KnowledgeBaseService {
         name: string,
         url: string,
         access_control: AccessControl = { public: false, team_ids: [], user_ids: [] },
-        user?: { id: string, email: string }
+        user?: { id: string, email: string, ip?: string }
     ): Promise<KnowledgeBaseSource> {
         const id = uuidv4();
         await db.query(
@@ -198,6 +199,7 @@ class KnowledgeBaseService {
                 resourceType: AuditResourceType.KNOWLEDGE_BASE_SOURCE,
                 resourceId: id,
                 details: { type, name, url, access_control },
+                ipAddress: user.ip,
             });
         }
 
@@ -213,7 +215,7 @@ class KnowledgeBaseService {
         name: string,
         url: string,
         access_control?: AccessControl,
-        user?: { id: string, email: string }
+        user?: { id: string, email: string, ip?: string }
     ): Promise<void> {
         if (access_control) {
             await db.query(
@@ -235,6 +237,7 @@ class KnowledgeBaseService {
                 resourceType: AuditResourceType.KNOWLEDGE_BASE_SOURCE,
                 resourceId: id,
                 details: { name, url, access_control },
+                ipAddress: user.ip,
             });
         }
 
@@ -244,7 +247,7 @@ class KnowledgeBaseService {
     /**
      * Delete a source.
      */
-    async deleteSource(id: string, user?: { id: string, email: string }): Promise<void> {
+    async deleteSource(id: string, user?: { id: string, email: string, ip?: string }): Promise<void> {
         const source = await db.queryOne<{ name: string }>('SELECT name FROM knowledge_base_sources WHERE id = $1', [id]);
 
         await db.query('DELETE FROM knowledge_base_sources WHERE id = $1', [id]);
@@ -257,6 +260,7 @@ class KnowledgeBaseService {
                 resourceType: AuditResourceType.KNOWLEDGE_BASE_SOURCE,
                 resourceId: id,
                 details: { name: source?.name },
+                ipAddress: user.ip,
             });
         }
 

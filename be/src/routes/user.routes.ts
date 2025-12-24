@@ -263,7 +263,7 @@ router.put('/:id/permissions', requirePermission('manage_users'), async (req: Re
     }
 
     try {
-        const user = req.user ? { id: req.user.id, email: req.user.email } : undefined;
+        const user = req.user ? { id: req.user.id, email: req.user.email, ip: getClientIp(req) } : undefined;
         await userService.updateUserPermissions(id, permissions, user);
         res.json({ success: true });
     } catch (error) {
