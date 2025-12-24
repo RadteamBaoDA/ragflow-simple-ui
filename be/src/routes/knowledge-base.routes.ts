@@ -7,9 +7,10 @@ const router = Router();
 const controller = new KnowledgeBaseController();
 
 router.get('/config', controller.getConfig.bind(controller));
-router.get('/', requirePermission('manage_knowledge_base'), controller.getSources.bind(controller));
-router.post('/', requirePermission('manage_knowledge_base'), controller.createSource.bind(controller));
-router.put('/:id', requirePermission('manage_knowledge_base'), controller.updateSource.bind(controller));
-router.delete('/:id', requirePermission('manage_knowledge_base'), controller.deleteSource.bind(controller));
+router.post('/config', requirePermission('manage_knowledge_base'), controller.updateConfig.bind(controller));
+router.get('/sources', requirePermission('manage_knowledge_base'), controller.getSources.bind(controller));
+router.post('/sources', requirePermission('manage_knowledge_base'), controller.createSource.bind(controller));
+router.put('/sources/:id', requirePermission('manage_knowledge_base'), controller.updateSource.bind(controller));
+router.delete('/sources/:id', requirePermission('manage_knowledge_base'), controller.deleteSource.bind(controller));
 
 export default router;

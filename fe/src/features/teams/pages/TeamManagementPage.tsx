@@ -1,6 +1,7 @@
 import { useState, useEffect, useRef } from 'react';
 import { useTranslation } from 'react-i18next';
 import { Plus, Edit, Trash2, Users, Search } from 'lucide-react';
+import { globalMessage } from '@/app/App';
 import { teamService, Team, TeamMember } from '../api/teamService';
 import { userService } from '@/features/users';
 import { User } from '@/features/auth';
@@ -82,6 +83,7 @@ export default function TeamManagementPage() {
         e.preventDefault();
         try {
             await teamService.createTeam(formData);
+            globalMessage.success(t('common.createSuccess'));
             closeModals();
             loadTeams();
         } catch (error) {
@@ -94,6 +96,7 @@ export default function TeamManagementPage() {
         if (!selectedTeam) return;
         try {
             await teamService.updateTeam(selectedTeam.id, formData);
+            globalMessage.success(t('common.updateSuccess'));
             closeModals();
             loadTeams();
         } catch (error) {
@@ -106,6 +109,7 @@ export default function TeamManagementPage() {
         if (!confirmed) return;
         try {
             await teamService.deleteTeam(id);
+            globalMessage.success(t('common.deleteSuccess'));
             loadTeams();
         } catch (error) {
             console.error('Failed to delete team:', error);
@@ -117,11 +121,12 @@ export default function TeamManagementPage() {
         if (!selectedTeam || selectedUserIds.length === 0) return;
         try {
             await teamService.addMembers(selectedTeam.id, selectedUserIds);
+            globalMessage.success(t('iam.teams.addMemberSuccess') || 'Members added successfully');
             setSelectedUserIds([]);
             loadMembers(selectedTeam.id);
         } catch (error) {
             console.error('Failed to add member:', error);
-            setAddMemberError(error instanceof Error ? error.message : 'Failed to add member');
+            setAddMemberError(error instanceof Error ? error.message : t('iam.teams.addMemberError') || 'Failed to add member');
         }
     };
 

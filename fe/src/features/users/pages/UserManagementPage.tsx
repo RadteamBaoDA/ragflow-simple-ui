@@ -200,7 +200,7 @@ export default function UserManagementPage() {
             setUsers(prev => prev.map(u => u.id === variables.userId ? { ...u, role: variables.role as any } : u));
             setIsEditModalOpen(false);
         },
-        meta: { successMessage: t('userManagement.roleUpdateSuccess') || 'User role updated successfully' }
+        meta: { successMessage: t('userManagement.roleUpdateSuccess') }
     });
 
     const updatePermissionsMutation = useMutation({
@@ -211,7 +211,7 @@ export default function UserManagementPage() {
             setUsers(prev => prev.map(u => u.id === variables.userId ? { ...u, permissions: variables.permissions } : u));
             setIsPermissionModalOpen(false);
         },
-        meta: { successMessage: t('userManagement.permissionsUpdateSuccess') || 'User permissions updated successfully' }
+        meta: { successMessage: t('userManagement.permissionsUpdateSuccess') }
     });
 
     // ============================================================================
@@ -658,11 +658,11 @@ export default function UserManagementPage() {
                         </label>
                         <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
                             {[
-                                { id: 'view_chat', label: 'AI Chat Access' },
-                                { id: 'view_search', label: 'AI Search Access' },
-                                { id: 'manage_knowledge', label: 'Knowledge Base Access' },
-                                { id: 'manage_users', label: 'Manage Users' },
-                                { id: 'view_system_monitor', label: 'System Monitor' },
+                                { id: 'view_chat', label: t('userManagement.permissionLabels.view_chat') },
+                                { id: 'view_search', label: t('userManagement.permissionLabels.view_search') },
+                                { id: 'manage_knowledge', label: t('userManagement.permissionLabels.manage_knowledge') },
+                                { id: 'manage_users', label: t('userManagement.permissionLabels.manage_users') },
+                                { id: 'view_system_monitor', label: t('userManagement.permissionLabels.view_system_monitor') },
                             ].map((perm) => (
                                 <label key={perm.id} className="flex items-center p-3 border border-slate-200 dark:border-slate-700 rounded-lg cursor-pointer hover:bg-slate-50 dark:hover:bg-slate-800/50 transition-colors">
                                     <input

@@ -26,7 +26,7 @@ export default function KnowledgeBaseConfigPage() {
         onSuccess: () => {
             queryClient.invalidateQueries({ queryKey: ['knowledgeBaseConfig'] });
         },
-        meta: { successMessage: t('common.saveSuccess') || 'Configuration saved' }
+        meta: { successMessage: t('common.saveSuccess') }
     });
 
     const [defaultSourceId, setDefaultSourceId] = useState('');
@@ -110,7 +110,7 @@ export default function KnowledgeBaseConfigPage() {
             queryClient.invalidateQueries({ queryKey: ['knowledgeBaseConfig'] });
             setIsDialogOpen(false);
         },
-        meta: { successMessage: t('knowledgeBaseConfig.addSuccess') || 'Source added successfully' }
+        meta: { successMessage: t('knowledgeBaseConfig.addSuccess') }
     });
 
     const updateMutation = useMutation({
@@ -120,7 +120,7 @@ export default function KnowledgeBaseConfigPage() {
             queryClient.invalidateQueries({ queryKey: ['knowledgeBaseConfig'] });
             setIsDialogOpen(false);
         },
-        meta: { successMessage: t('knowledgeBaseConfig.updateSuccess') || 'Source updated successfully' }
+        meta: { successMessage: t('knowledgeBaseConfig.updateSuccess') }
     });
 
     const deleteMutation = useMutation({
@@ -129,7 +129,7 @@ export default function KnowledgeBaseConfigPage() {
         onSuccess: () => {
             queryClient.invalidateQueries({ queryKey: ['knowledgeBaseConfig'] });
         },
-        meta: { successMessage: t('knowledgeBaseConfig.deleteSuccess') || 'Source deleted successfully' }
+        meta: { successMessage: t('knowledgeBaseConfig.deleteSuccess') }
     });
 
     const handleSubmitSource = () => {

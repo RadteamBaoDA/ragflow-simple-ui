@@ -55,6 +55,9 @@ RAGFlow Simple UI is an opensource UI centrailze and manage AI Search and Chat a
 ## 4 Coding Standards & Guidelines
 1. General
 - terminal using is git bash(linux command). If change too much need run : npm run build 
+- TypeScript strict mode
+- Single quotes, no semicolons
+- Use functional patterns where possible
 
 2. FE 
 - when add new page must implement locales for new html string in en, vi, jp.
@@ -70,3 +73,4 @@ RAGFlow Simple UI is an opensource UI centrailze and manage AI Search and Chat a
 - Implement Factory Pattern to design all data schemas and interfaces.
 - Implement Singleton Pattern to design all global services and utils in be.
 - If change or create impact to database, must create migration file in be/db/migrations.
+- Always using knex orm to create new model file in be/src/models and not write raw sql query. If Knex ORM not support, you can use raw sql query.

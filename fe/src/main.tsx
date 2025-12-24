@@ -13,7 +13,8 @@ import React from 'react';
 import ReactDOM from 'react-dom/client';
 import { BrowserRouter } from 'react-router-dom';
 import { QueryClient, QueryClientProvider, MutationCache } from '@tanstack/react-query';
-import { message } from 'antd';
+import { globalMessage } from '@/app/App';
+import i18n from '@/i18n';
 import App from '@/app/App';
 import './index.css';
 
@@ -41,15 +42,15 @@ const queryClient = new QueryClient({
 
       // If meta provides a success message, show it
       if (mutation.options.meta?.successMessage) {
-        message.success(mutation.options.meta.successMessage as string);
+        globalMessage.success(mutation.options.meta.successMessage as string);
       } else if (isCrud) {
-        message.success('Action completed successfully');
+        globalMessage.success(i18n.t('common.saveSuccess'));
       }
     },
     onError: (error: any) => {
       // Show error notification globally
-      const errorMessage = error.message || 'An unexpected error occurred';
-      message.error(errorMessage);
+      const errorMessage = error.message || i18n.t('common.error');
+      globalMessage.error(errorMessage);
     },
   }),
 });

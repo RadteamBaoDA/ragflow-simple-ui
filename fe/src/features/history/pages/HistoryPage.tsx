@@ -172,7 +172,7 @@ function HistoryPage() {
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ['chatSessions'] });
     },
-    meta: { successMessage: t('history.deleteSuccess') || 'Session deleted' }
+    meta: { successMessage: t('history.deleteSuccess') }
   });
 
   const bulkDeleteMutation = useMutation({
@@ -182,7 +182,7 @@ function HistoryPage() {
       setSelectedSessions(new Set());
       queryClient.invalidateQueries({ queryKey: ['chatSessions'] });
     },
-    meta: { successMessage: t('history.bulkDeleteSuccess') || 'Sessions deleted' }
+    meta: { successMessage: t('history.bulkDeleteSuccess') }
   });
 
   const deleteAllMutation = useMutation({
@@ -193,7 +193,7 @@ function HistoryPage() {
       setDeleteAllConfirm(false);
       queryClient.invalidateQueries({ queryKey: ['chatSessions'] });
     },
-    meta: { successMessage: t('history.deleteAllSuccess') || 'All sessions deleted' }
+    meta: { successMessage: t('history.deleteAllSuccess') }
   });
 
   const handleSearch = (e: React.FormEvent) => {

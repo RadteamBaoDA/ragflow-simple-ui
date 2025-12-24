@@ -50,7 +50,11 @@
     "inactive": "Không hoạt động",
     "dismissible": "Có thể ẩn",
     "characters": "Ký tự",
-    "fillRequiredFields": "Vui lòng điền đầy đủ thông tin bắt buộc"
+    "fillRequiredFields": "Vui lòng điền đầy đủ thông tin bắt buộc",
+    "saveSuccess": "Lưu thành công",
+    "updateSuccess": "Cập nhật thành công",
+    "deleteSuccess": "Xóa thành công",
+    "createSuccess": "Tạo thành công"
   },
   "dialog": {
     "confirm": "Xác nhận",
@@ -94,7 +98,9 @@
       "role": "Vai trò",
       "leader": "Trưởng nhóm",
       "member": "Thành viên",
-      "selectUser": "Chọn thành viên"
+      "selectUser": "Chọn người dùng",
+      "addMemberSuccess": "Đã thêm thành viên thành công",
+      "addMemberError": "Không thể thêm thành viên"
     },
     "permissions": {
       "title": "Quản lý Phân quyền",
@@ -111,7 +117,11 @@
     "rootLoginTitle": "Đăng nhập Root"
   },
   "admin": {
-    "broadcastMessages": "Thông báo hệ thống"
+    "broadcastMessages": "Thông báo hệ thống",
+    "broadcast": {
+      "saveSuccess": "Đã lưu thông báo thành công",
+      "deleteSuccess": "Đã xóa thông báo thành công"
+    }
   },
   "settings": {
     "title": "Cài đặt",
@@ -145,7 +155,10 @@
     "confirmDeleteMessage": "Bạn có chắc chắn muốn xóa {{count}} phiên đã chọn không? Hành động này không thể hoàn tác.",
     "deleteAllTitle": "Xóa tất cả lịch sử",
     "deleteAllMessage": "Bạn có chắc chắn muốn xóa TẤT CẢ các phiên trò chuyện không? Điều này sẽ xóa vĩnh viễn toàn bộ lịch sử trò chuyện của bạn và không thể hoàn tác.",
-    "deleting": "Đang xóa..."
+    "deleting": "Đang xóa...",
+    "deleteSuccess": "Đã xóa phiên trò chuyện",
+    "bulkDeleteSuccess": "Đã xóa {{count}} phiên thành công",
+    "deleteAllSuccess": "Đã xóa toàn bộ lịch sử trò chuyện"
   },
   "iframe": {
     "loadingChat": "Đang tải Trò chuyện...",
@@ -348,7 +361,18 @@
     "lastAccess": "Lần truy cập cuối",
     "noIpHistory": "Không có lịch sử truy cập",
     "viewIpHistory": "Xem Lịch sử IP",
-    "ipHistoryTitle": "Lịch sử IP Truy cập"
+    "ipHistoryTitle": "Lịch sử IP Truy cập",
+    "roleUpdateSuccess": "Cập nhật vai trò người dùng thành công",
+    "permissionsUpdateSuccess": "Cập nhật quyền thành công",
+    "grantPermissions": "Cấp quyền",
+    "permissions": "Quyền hạn",
+    "permissionLabels": {
+      "view_chat": "Truy cập AI Chat",
+      "view_search": "Truy cập AI Search",
+      "manage_knowledge": "Truy cập Knowledge Base",
+      "manage_users": "Quản lý người dùng",
+      "view_system_monitor": "Giám sát hệ thống"
+    }
   },
   "systemTools": {
     "title": "Công cụ Giám sát Hệ thống",
@@ -570,6 +594,9 @@
     "pageInfo": "Trang {{current}} trên {{total}}",
     "permissionsTitle": "Phân quyền: {{sourceName}}",
     "publicAccess": "Truy cập toàn hệ thống",
-    "publicAccessDesc": "Cho phép tất cả người dùng đã xác thực truy cập nguồn này."
+    "publicAccessDesc": "Cho phép tất cả người dùng đã xác thực truy cập nguồn này.",
+    "addSuccess": "Thêm nguồn thành công",
+    "updateSuccess": "Cập nhật nguồn thành công",
+    "deleteSuccess": "Xóa nguồn thành công"
   }
 }

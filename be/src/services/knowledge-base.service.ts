@@ -82,7 +82,11 @@ export class KnowledgeBaseService {
 
             return source;
         } catch (error) {
-            log.error('Failed to create source', { error: String(error) });
+            log.error('Failed to create knowledge base source in database', {
+                error: error instanceof Error ? error.message : String(error),
+                stack: error instanceof Error ? error.stack : undefined,
+                data: { type: data.type, name: data.name }
+            });
             throw error;
         }
     }
@@ -114,7 +118,12 @@ export class KnowledgeBaseService {
 
             return source;
         } catch (error) {
-            log.error('Failed to update source', { id, error: String(error) });
+            log.error('Failed to update knowledge base source in database', {
+                id,
+                error: error instanceof Error ? error.message : String(error),
+                stack: error instanceof Error ? error.stack : undefined,
+                data: data
+            });
             throw error;
         }
     }
@@ -145,12 +154,24 @@ export class KnowledgeBaseService {
         const chatSources = await this.getSources();
         const searchSources = await this.getSources();
 
+        const defaultChatSourceId = await ModelFactory.systemConfig.findById('defaultChatSourceId');
+        const defaultSearchSourceId = await ModelFactory.systemConfig.findById('defaultSearchSourceId');
+
         return {
             chatSources: chatSources.filter(s => s.type === 'chat'),
             searchSources: searchSources.filter(s => s.type === 'search'),
-            defaultChatSourceId: 'default',
-            defaultSearchSourceId: 'default'
+            defaultChatSourceId: defaultChatSourceId?.value || '',
+            defaultSearchSourceId: defaultSearchSourceId?.value || ''
         };
+    }
+
+    async updateConfig(data: { defaultChatSourceId?: string; defaultSearchSourceId?: string }, user?: any): Promise<void> {
+        if (data.defaultChatSourceId !== undefined) {
+            await this.saveSystemConfig('defaultChatSourceId', data.defaultChatSourceId, user);
+        }
+        if (data.defaultSearchSourceId !== undefined) {
+            await this.saveSystemConfig('defaultSearchSourceId', data.defaultSearchSourceId, user);
+        }
     }
 }
 

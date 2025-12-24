@@ -69,3 +69,4 @@ RAGFlow Simple UI is an opensource UI centrailze and manage AI Search and Chat a
 - Implement Factory Pattern to design all data schemas and interfaces.
 - Implement Singleton Pattern to design all global services and utils in be.
 - If change or create impact to database, must create migration file in be/db/migrations.
+- Always using knex orm to create new model file in be/src/models and not write raw sql query. If Knex ORM not support, you can use raw sql query.

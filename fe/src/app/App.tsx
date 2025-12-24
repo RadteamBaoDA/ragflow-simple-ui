@@ -13,11 +13,11 @@
  */
 
 import { Suspense, lazy } from 'react';
-import { Routes, Route, Navigate } from 'react-router-dom';
-import { AuthProvider } from '@/features/auth';
+import { Routes, Route, Navigate, Outlet } from 'react-router-dom';
+import { App as AntdApp } from 'antd';
+import { AuthProvider, ProtectedRoute, AdminRoute, RoleRoute } from '@/features/auth';
 import { SettingsProvider } from '@/app/contexts/SettingsContext';
 import { KnowledgeBaseProvider } from '@/features/knowledge-base';
-import { ProtectedRoute, AdminRoute, RoleRoute } from '@/features/auth';
 import SettingsDialog from '@/components/SettingsDialog';
 import { ConfirmProvider } from '@/components/ConfirmDialog';
 import Layout from '@/layouts/MainLayout';
@@ -57,22 +57,52 @@ const PageLoader = () => (
 );
 
 // ============================================================================
+// Global Notification Bridge
+// ============================================================================
+
+import { message as antdMessage } from 'antd';
+let messageApi: any = null;
+
+export const globalMessage = {
+  success: (content: string) => {
+    if (messageApi) messageApi.success(content);
+    else antdMessage.success(content);
+  },
+  error: (content: string) => {
+    if (messageApi) messageApi.error(content);
+    else antdMessage.error(content);
+  },
+  info: (content: string) => {
+    if (messageApi) messageApi.info(content);
+    else antdMessage.info(content);
+  },
+  warning: (content: string) => {
+    if (messageApi) messageApi.warning(content);
+    else antdMessage.warning(content);
+  }
+};
+
+const GlobalNotifications = () => {
+  const { message } = AntdApp.useApp();
+  messageApi = message;
+  return null;
+};
+
+// ============================================================================
 // Main App Component
 // ============================================================================
 
-import { App as AntApp } from 'antd';
-
 function App() {
-
   const getDefaultPath = () => {
     if (config.features.enableAiChat) return '/ai-chat';
     if (config.features.enableAiSearch) return '/ai-search';
     if (config.features.enableHistory) return '/history';
-    return '/ai-chat'; // fallback
+    return '/ai-chat';
   };
 
   return (
-    <AntApp>
+    <AntdApp>
+      <GlobalNotifications />
       <AuthProvider>
         <SettingsProvider>
           <KnowledgeBaseProvider>
@@ -85,78 +115,80 @@ function App() {
                   <Route path="/logout" element={<LogoutPage />} />
 
                   {/* Protected routes */}
-                  <Route element={<ProtectedRoute><Layout /></ProtectedRoute>}>
-                    <Route path="/" element={<Navigate to={getDefaultPath()} replace />} />
+                  <Route element={<ProtectedRoute><Outlet /></ProtectedRoute>}>
+                    <Route element={<Layout />}>
+                      <Route index element={<Navigate to={getDefaultPath()} replace />} />
 
-                    {config.features.enableAiChat && (
-                      <Route path="/ai-chat" element={<AiChatPage />} />
-                    )}
+                      {config.features.enableAiChat && (
+                        <Route path="ai-chat" element={<AiChatPage />} />
+                      )}
 
-                    {config.features.enableAiSearch && (
-                      <Route path="/ai-search" element={<AiSearchPage />} />
-                    )}
+                      {config.features.enableAiSearch && (
+                        <Route path="ai-search" element={<AiSearchPage />} />
+                      )}
 
-                    {config.features.enableHistory && (
-                      <Route path="/history" element={<HistoryPage />} />
-                    )}
+                      {config.features.enableHistory && (
+                        <Route path="history" element={<HistoryPage />} />
+                      )}
 
-                    <Route path="/user-management" element={
-                      <AdminRoute>
-                        <UserManagementPage />
-                      </AdminRoute>
-                    } />
-                    <Route path="/system-tools" element={
-                      <AdminRoute>
-                        <SystemToolsPage />
-                      </AdminRoute>
-                    } />
-                    <Route path="/system-monitor" element={
-                      <AdminRoute>
-                        <SystemMonitorPage />
-                      </AdminRoute>
-                    } />
-                    <Route path="/documents" element={
-                      <RoleRoute allowedRoles={['admin', 'leader']}>
-                        <DocumentManagerPage />
-                      </RoleRoute>
-                    } />
-                    <Route path="/audit-log" element={
-                      <AdminRoute>
-                        <AuditLogPage />
-                      </AdminRoute>
-                    } />
-                    <Route path="/tokenizer" element={
-                      <AdminRoute>
-                        <TokenizerPage />
-                      </AdminRoute>
-                    } />
-                    <Route path="/storage-dashboard" element={
-                      <AdminRoute>
-                        <StoragePage />
-                      </AdminRoute>
-                    } />
-                    <Route path="/knowledge-base/config" element={
-                      <AdminRoute>
-                        <KnowledgeBaseConfigPage />
-                      </AdminRoute>
-                    } />
-                    <Route path="/iam/teams" element={
-                      <AdminRoute>
-                        <TeamManagementPage />
-                      </AdminRoute>
-                    } />
-                    <Route path="/broadcast-messages" element={
-                      <AdminRoute>
-                        <BroadcastMessagePage />
-                      </AdminRoute>
-                    } />
-
-                    {/* Error routes */}
-                    <Route path="/403" element={<ErrorPage code={403} />} />
-                    <Route path="/404" element={<ErrorPage code={404} />} />
-                    <Route path="/500" element={<ErrorPage code={500} />} />
-                    <Route path="*" element={<Navigate to="/404" replace />} />
+                      <Route path="user-management" element={
+                        <AdminRoute>
+                          <UserManagementPage />
+                        </AdminRoute>
+                      } />
+                      <Route path="system-tools" element={
+                        <AdminRoute>
+                          <SystemToolsPage />
+                        </AdminRoute>
+                      } />
+                      <Route path="system-monitor" element={
+                        <AdminRoute>
+                          <SystemMonitorPage />
+                        </AdminRoute>
+                      } />
+                      <Route path="documents" element={
+                        <RoleRoute allowedRoles={['admin', 'leader']}>
+                          <DocumentManagerPage />
+                        </RoleRoute>
+                      } />
+                      <Route path="audit-log" element={
+                        <AdminRoute>
+                          <AuditLogPage />
+                        </AdminRoute>
+                      } />
+                      <Route path="tokenizer" element={
+                        <AdminRoute>
+                          <TokenizerPage />
+                        </AdminRoute>
+                      } />
+                      <Route path="storage-dashboard" element={
+                        <AdminRoute>
+                          <StoragePage />
+                        </AdminRoute>
+                      } />
+                      <Route path="knowledge-base/config" element={
+                        <AdminRoute>
+                          <KnowledgeBaseConfigPage />
+                        </AdminRoute>
+                      } />
+                      <Route path="iam/teams" element={
+                        <AdminRoute>
+                          <TeamManagementPage />
+                        </AdminRoute>
+                      } />
+                      <Route path="broadcast-messages" element={
+                        <AdminRoute>
+                          <BroadcastMessagePage />
+                        </AdminRoute>
+                      } />
+                    </Route>
                   </Route>
+
+                  {/* Error routes */}
+                  <Route path="/403" element={<ErrorPage code={403} />} />
+                  <Route path="/404" element={<ErrorPage code={404} />} />
+                  <Route path="/500" element={<ErrorPage code={500} />} />
+                  <Route path="*" element={<Navigate to="/404" replace />} />
                 </Routes>
               </Suspense>
               <SettingsDialog />
@@ -164,7 +196,7 @@ function App() {
           </KnowledgeBaseProvider>
         </SettingsProvider>
       </AuthProvider>
-    </AntApp>
+    </AntdApp>
   );
 }
 

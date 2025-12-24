@@ -37,7 +37,7 @@ const BroadcastMessagePage: React.FC = () => {
             setIsDialogOpen(false);
             queryClient.invalidateQueries({ queryKey: ['broadcastMessages'] });
         },
-        meta: { successMessage: t('broadcast.saveSuccess') || 'Message saved successfully' }
+        meta: { successMessage: t('admin.broadcast.saveSuccess') }
     });
 
     const deleteMutation = useMutation({
@@ -46,7 +46,7 @@ const BroadcastMessagePage: React.FC = () => {
         onSuccess: () => {
             queryClient.invalidateQueries({ queryKey: ['broadcastMessages'] });
         },
-        meta: { successMessage: t('broadcast.deleteSuccess') || 'Message deleted successfully' }
+        meta: { successMessage: t('admin.broadcast.deleteSuccess') }
     });
 
     const handleSave = async () => {
