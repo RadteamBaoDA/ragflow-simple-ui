@@ -34,27 +34,45 @@ const mockLangfuseTrace = {
 
 const mockLangfuseClient = {
     trace: vi.fn().mockReturnValue(mockLangfuseTrace),
+    score: vi.fn(),
     flushAsync: vi.fn().mockResolvedValue(undefined),
 };
 
-vi.mock('../../src/services/langfuse.service.js', () => ({
-    getLangfuseClient: vi.fn().mockReturnValue(mockLangfuseClient),
+// IMPORTANT: Mock must match the resolved path of the import in the source file
+// The source file uses '@/models/external/langfuse.js' which resolves to 'src/models/external/langfuse.ts' (conceptually)
+// Vitest with alias support should map '@/models/external/langfuse.js' to absolute path.
+// However, vi.mock needs to match the module specifier used in the import OR the actual file path.
+// Since we added alias support, we can try mocking the aliased path directly.
+vi.mock('@/models/external/langfuse.js', () => ({
+    langfuseClient: mockLangfuseClient,
 }));
 
 // Mock database
 const mockQueryOne = vi.fn();
-vi.mock('../../src/db/index.js', () => ({
-    query: vi.fn(),
-    queryOne: mockQueryOne,
+// Mocking the factory
+const mockUser = {
+    id: 'user-123',
+    email: 'test@example.com'
+};
+
+vi.mock('@/models/factory.js', () => ({
+    ModelFactory: {
+        user: {
+            findByEmail: vi.fn().mockImplementation(async (email) => {
+                if (email === 'test@example.com') return mockUser;
+                return null;
+            })
+        }
+    }
 }));
 
 // Mock config
-vi.mock('../../src/config/index.js', () => ({
+vi.mock('@/config/index.js', () => ({
     config: {
         redis: {
             url: 'redis://localhost:6379/0',
         },
-        externalChat: {
+        externalTrace: {
             enabled: true,
             apiKey: 'test-api-key',
             cacheTtlSeconds: 300,
@@ -64,7 +82,7 @@ vi.mock('../../src/config/index.js', () => ({
 }));
 
 // Mock logger
-vi.mock('../../src/services/logger.service.js', () => ({
+vi.mock('@/services/logger.service.js', () => ({
     log: {
         info: vi.fn(),
         warn: vi.fn(),
@@ -78,7 +96,6 @@ describe('ExternalTraceService', () => {
         vi.clearAllMocks();
         mockRedisClient.get.mockResolvedValue(null);
         mockRedisClient.setNX.mockResolvedValue(true);
-        mockQueryOne.mockReset();
     });
 
     describe('Module exports', () => {
@@ -95,10 +112,10 @@ describe('ExternalTraceService', () => {
     });
 
     describe('ExternalTraceService class structure', () => {
-        it('should have collectTrace method', async () => {
+        it('should have processTrace method', async () => {
             const { ExternalTraceService } = await import('../../src/services/external-trace.service.js');
             const service = new ExternalTraceService();
-            expect(typeof service.collectTrace).toBe('function');
+            expect(typeof service.processTrace).toBe('function');
         });
 
         it('should have validateEmailWithCache method', async () => {
@@ -114,21 +131,68 @@ describe('ExternalTraceService', () => {
         });
     });
 
-    describe('collectTrace basic functionality', () => {
-        it('should return proper result structure', async () => {
-            const { ExternalTraceService } = await import('../../src/services/external-trace.service.js');
-            const service = new ExternalTraceService();
+    describe('processTrace functionality', () => {
+        it('should return traceId on success', async () => {
+            const { externalTraceService } = await import('../../src/services/external-trace.service.js');
 
-            mockQueryOne.mockResolvedValue(undefined);
-
-            const result = await service.collectTrace({
+            const result = await externalTraceService.processTrace({
                 email: 'test@example.com',
                 message: 'Test message',
                 ipAddress: '192.168.1.200'
             });
 
-            expect(result).toHaveProperty('success');
-            expect(typeof result.success).toBe('boolean');
+            expect(result.success).toBe(true);
+            expect(result.traceId).toBe('test-trace-id-12345');
+        });
+    });
+
+    describe('processFeedback functionality', () => {
+        it('should process feedback with traceId, value, and comment', async () => {
+            const { externalTraceService } = await import('../../src/services/external-trace.service.js');
+
+            const feedbackParams = {
+                traceId: 'trace-123',
+                value: 1,
+                comment: 'Great!'
+            };
+
+            const result = await externalTraceService.processFeedback(feedbackParams);
+
+            expect(result.success).toBe(true);
+            expect(mockLangfuseClient.score).toHaveBeenCalledWith({
+                traceId: 'trace-123',
+                name: 'user-feedback',
+                value: 1,
+                comment: 'Great!'
+            });
+            expect(mockLangfuseClient.flushAsync).toHaveBeenCalled();
+        });
+
+        it('should fallback to messageId if traceId is missing', async () => {
+            const { externalTraceService } = await import('../../src/services/external-trace.service.js');
+
+            const feedbackParams = {
+                messageId: 'msg-123',
+                value: 0,
+                comment: 'Bad'
+            };
+
+            const result = await externalTraceService.processFeedback(feedbackParams);
+
+            expect(result.success).toBe(true);
+            expect(mockLangfuseClient.score).toHaveBeenCalledWith({
+                traceId: 'msg-123',
+                name: 'user-feedback',
+                value: 0,
+                comment: 'Bad'
+            });
+        });
+
+        it('should throw error if no traceId/messageId provided', async () => {
+            const { externalTraceService } = await import('../../src/services/external-trace.service.js');
+
+            await expect(externalTraceService.processFeedback({ value: 1 }))
+                .rejects.toThrow('Trace ID required');
         });
     });
 
@@ -138,7 +202,6 @@ describe('ExternalTraceService', () => {
             const { ExternalTraceService } = await import('../../src/services/external-trace.service.js');
 
             const service = new ExternalTraceService();
-            mockQueryOne.mockResolvedValue(undefined);
 
             await service.validateEmailWithCache('redis-test@example.com', '10.0.0.200');
 

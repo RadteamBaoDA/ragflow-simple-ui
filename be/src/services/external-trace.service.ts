@@ -303,14 +303,16 @@ export class ExternalTraceService {
     async processFeedback(params: any): Promise<any> {
         // Placeholder for feedback processing - Langfuse SDK has score/feedback methods
         // Assuming params has traceId, score, etc.
-        const { traceId, score, comment } = params;
-        if (!traceId) throw new Error('Trace ID required');
+        const { traceId, messageId, value, score, comment } = params;
+        const id = traceId || messageId;
+
+        if (!id) throw new Error('Trace ID required');
 
         const langfuse = langfuseClient;
         langfuse.score({
-            traceId,
-            name: 'user_feedback',
-            value: score,
+            traceId: id,
+            name: 'user-feedback',
+            value: value ?? score,
             comment
         });
 
