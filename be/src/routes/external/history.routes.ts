@@ -3,11 +3,11 @@
  */
 
 import { Router, Request, Response, NextFunction } from 'express';
-import { queueService } from '@/services/queue.service.js';
-import { log } from '@/services/logger.service.js';
+import { ExternalHistoryController } from '@/controllers/external-history.controller.js';
 import { config } from '@/config/index.js';
 
 const router = Router();
+const controller = new ExternalHistoryController();
 
 // Middleware to check API key if configured
 const checkApiKey = (req: Request, res: Response, next: NextFunction) => {
@@ -25,58 +25,12 @@ const checkApiKey = (req: Request, res: Response, next: NextFunction) => {
  * POST /api/external/history/chat
  * Collect chat history for a session.
  */
-router.post('/chat', checkApiKey, async (req: Request, res: Response, next: NextFunction) => {
-    try {
-        const { session_id, user_id, messages } = req.body;
-
-        if (!session_id || !Array.isArray(messages)) {
-             res.status(400).json({ error: 'Invalid request: session_id and messages array are required' });
-             return
-        }
-
-        await queueService.addChatHistoryJob({
-            sessionId: session_id,
-            userId: user_id,
-            messages: messages.map((msg: any) => ({
-                prompt: msg.prompt,
-                response: msg.response,
-                citations: msg.citations
-            }))
-        });
-
-        res.status(202).json({ message: 'Chat history queued for processing' });
-    } catch (error) {
-        log.error('Error queuing chat history', { error });
-        next(error);
-    }
-});
+router.post('/chat', checkApiKey, controller.collectChatHistory.bind(controller));
 
 /**
  * POST /api/external/history/search
  * Collect search history.
  */
-router.post('/search', checkApiKey, async (req: Request, res: Response, next: NextFunction) => {
-    try {
-        const { session_id, user_id, query, summary, results } = req.body;
-
-        if (!session_id || !query) {
-             res.status(400).json({ error: 'Invalid request: session_id and query are required' });
-             return
-        }
-
-        await queueService.addSearchHistoryJob({
-            sessionId: session_id,
-            userId: user_id,
-            query,
-            summary,
-            results
-        });
-
-        res.status(202).json({ message: 'Search history queued for processing' });
-    } catch (error) {
-        log.error('Error queuing search history', { error });
-        next(error);
-    }
-});
+router.post('/search', checkApiKey, controller.collectSearchHistory.bind(controller));
 
 export default router;
