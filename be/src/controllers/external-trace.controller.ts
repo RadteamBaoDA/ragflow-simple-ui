@@ -23,4 +23,12 @@ export class ExternalTraceController {
       res.status(500).json({ error: 'Failed to submit feedback' });
     }
   }
+
+  async getHealth(_req: Request, res: Response): Promise<void> {
+    res.status(200).json({
+        status: 'ok',
+        service: 'external-trace',
+        timestamp: new Date().toISOString()
+    });
+  }
 }

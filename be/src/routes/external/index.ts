@@ -1,8 +1,10 @@
-import { Router, Request, Response } from 'express';
+import { Router } from 'express';
 import { checkEnabled } from '../../middleware/external.middleware.js';
 import traceRoutes from '@/routes/external/trace.routes.js';
+import { ExternalTraceController } from '@/controllers/external-trace.controller.js';
 
 const router = Router();
+const controller = new ExternalTraceController();
 
 router.use('/trace', traceRoutes);
 
@@ -11,12 +13,6 @@ router.use('/trace', traceRoutes);
  * 
  * Health check endpoint for external trace API.
  */
-router.get('/health', checkEnabled, (_req: Request, res: Response) => {
-    res.status(200).json({
-        status: 'ok',
-        service: 'external-trace',
-        timestamp: new Date().toISOString()
-    });
-});
+router.get('/health', checkEnabled, controller.getHealth.bind(controller));
 
 export default router;
