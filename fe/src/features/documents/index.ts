@@ -1,3 +1,4 @@
+// Barrel exports for document storage manager UI and shared APIs.
 export { default as DocumentManagerPage } from './pages/DocumentManagerPage';
 export { DocumentPermissionModal } from './components/DocumentPermissionModal';
 export { SourcePermissionsModal } from './components/SourcePermissionsModal';

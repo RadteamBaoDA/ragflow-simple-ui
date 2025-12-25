@@ -1,9 +1,12 @@
-
-import { Request, Response } from 'express';
-import { minioService } from '@/services/minio.service.js';
-import { ModelFactory } from '@/models/factory.js';
-import { log } from '@/services/logger.service.js';
-import { getClientIp } from '@/utils/ip.js';
+/**
+ * Managed MinIO bucket controller: exposes buckets visible to a user, plus create/delete operations for managers.
+ * Contains inline notes about permission fallback paths; consider refactoring with shared RBAC helper.
+ */
+import { Request, Response } from 'express'
+import { minioService } from '@/services/minio.service.js'
+import { ModelFactory } from '@/models/factory.js'
+import { log } from '@/services/logger.service.js'
+import { getClientIp } from '@/utils/ip.js'
 
 export class MinioBucketController {
     async getBuckets(req: Request, res: Response): Promise<void> {

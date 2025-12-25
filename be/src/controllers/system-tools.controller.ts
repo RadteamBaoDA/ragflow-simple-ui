@@ -1,7 +1,9 @@
-
-import { Request, Response } from 'express';
-import { systemToolsService } from '@/services/system-tools.service.js';
-import { log } from '@/services/logger.service.js';
+/**
+ * System tools controller: lists tools, reports health, and executes tools by id for operators.
+ */
+import { Request, Response } from 'express'
+import { systemToolsService } from '@/services/system-tools.service.js'
+import { log } from '@/services/logger.service.js'
 
 export class SystemToolsController {
   async getTools(req: Request, res: Response): Promise<void> {

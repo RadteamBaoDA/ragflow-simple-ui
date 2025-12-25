@@ -1,4 +1,5 @@
 
+// Manages knowledge-base source metadata, ACLs, and defaults.
 import { ModelFactory } from '@/models/factory.js';
 import { db } from '@/db/knex.js'; // Added import
 import { log } from '@/services/logger.service.js';
@@ -13,15 +14,18 @@ export interface AccessControl {
 }
 
 export class KnowledgeBaseService {
+    // Placeholder init hook for future bootstrap
     async initialize(): Promise<void> {
     }
 
+    // Fetch all sources sorted by name
     async getSources(): Promise<KnowledgeBaseSource[]> {
         return ModelFactory.knowledgeBaseSource.findAll({}, {
             orderBy: { name: 'asc' }
         });
     }
 
+    // Alias kept for compatibility
     async getAllSources(): Promise<KnowledgeBaseSource[]> {
         return this.getSources();
     }
@@ -31,6 +35,7 @@ export class KnowledgeBaseService {
      * Admins see all sources.
      * Regular users see public sources and those they have explicit access to.
      */
+    // Filter sources by ACLs; admins see all, guests see only public
     async getAvailableSources(user?: any): Promise<KnowledgeBaseSource[]> {
         // If no user, only return public sources
         if (!user) {
@@ -71,6 +76,7 @@ export class KnowledgeBaseService {
         }).sort((a, b) => a.name.localeCompare(b.name));
     }
 
+    // Basic paginated fetch (total placeholder until count added)
     async getSourcesPaginated(type: string, page: number, limit: number): Promise<any> {
         const offset = (page - 1) * limit;
         const sources = await ModelFactory.knowledgeBaseSource.findAll({ type }, {
@@ -85,6 +91,7 @@ export class KnowledgeBaseService {
         return { data: sources, total: 100, page, limit }; // Placeholder total
     }
 
+    // Upsert system config key and audit actor
     async saveSystemConfig(key: string, value: string, user?: any): Promise<void> {
         const existing = await ModelFactory.systemConfig.findById(key);
         if (existing) {
@@ -106,6 +113,7 @@ export class KnowledgeBaseService {
         }
     }
 
+    // Create KB source record and audit
     async createSource(data: any, user?: { id: string, email: string, ip?: string }): Promise<KnowledgeBaseSource> {
         try {
             const source = await ModelFactory.knowledgeBaseSource.create({
@@ -138,10 +146,12 @@ export class KnowledgeBaseService {
         }
     }
 
+    // Convenience wrapper matching controller signature
     async addSource(type: string, name: string, url: string, access_control: any, user?: any): Promise<KnowledgeBaseSource> {
         return this.createSource({ type, name, url, access_control }, user);
     }
 
+    // Patch mutable fields on a source and audit
     async updateSource(id: string, data: any, user?: { id: string, email: string, ip?: string }): Promise<KnowledgeBaseSource | undefined> {
         try {
             const updateData: any = {};
@@ -175,6 +185,7 @@ export class KnowledgeBaseService {
         }
     }
 
+    // Delete a source record with audit trail
     async deleteSource(id: string, user?: { id: string, email: string, ip?: string }): Promise<void> {
         try {
             const source = await ModelFactory.knowledgeBaseSource.findById(id);
@@ -197,6 +208,7 @@ export class KnowledgeBaseService {
         }
     }
 
+    // Compose frontend config payload with default source IDs
     async getConfig(user?: any): Promise<any> {
         const availableSources = await this.getAvailableSources(user);
 
@@ -211,6 +223,7 @@ export class KnowledgeBaseService {
         };
     }
 
+    // Persist default source IDs via system config table
     async updateConfig(data: { defaultChatSourceId?: string; defaultSearchSourceId?: string }, user?: any): Promise<void> {
         if (data.defaultChatSourceId !== undefined) {
             await this.saveSystemConfig('defaultChatSourceId', data.defaultChatSourceId, user);

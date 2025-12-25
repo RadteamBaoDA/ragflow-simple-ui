@@ -1,4 +1,5 @@
 
+// Wraps MinIO client operations plus admin API helpers for buckets/objects.
 import * as Minio from 'minio';
 import { Readable } from 'stream';
 import * as http from 'http';
@@ -30,6 +31,7 @@ class MinioService {
         publicEndPoint: process.env.MINIO_PUBLIC_ENDPOINT,
     };
 
+    // Minimal AWS SigV4 request builder for MinIO admin API calls
     private async adminRequest(method: string, path: string, query: any = {}, body: any = null): Promise<any> {
         return new Promise((resolve, reject) => {
             const urlPath = `/${path}`;
@@ -81,10 +83,12 @@ class MinioService {
         });
     }
 
+    // List all buckets visible to configured credentials
     async listBuckets(): Promise<Minio.BucketItemFromList[]> {
         return this.client.listBuckets();
     }
 
+    // Check if bucket exists (swallowing errors to boolean)
     async bucketExists(bucketName: string): Promise<boolean> {
         try {
             return await this.client.bucketExists(bucketName);
@@ -93,6 +97,7 @@ class MinioService {
         }
     }
 
+    // Create bucket both in MinIO and metadata table; audit actor
     async createBucket(bucketName: string, description: string, user?: { id: string, email: string, ip?: string }): Promise<any> {
         try {
             // 1. Check if configured in DB
@@ -132,6 +137,7 @@ class MinioService {
         }
     }
 
+    // Remove bucket and database record
     async deleteBucket(bucketName: string, user?: { id: string, email: string, ip?: string }): Promise<void> {
         try {
             await this.client.removeBucket(bucketName);
@@ -157,6 +163,7 @@ class MinioService {
         }
     }
 
+    // List objects or pseudo-folders under a prefix
     async listObjects(bucketName: string, prefix: string = '', recursive: boolean = false): Promise<FileObject[]> {
         const objects: FileObject[] = [];
         const stream = this.client.listObjectsV2(bucketName, prefix, recursive, '');
@@ -187,10 +194,12 @@ class MinioService {
         return objects;
     }
 
+    // Convenience wrapper to list non-recursive files
     async listFiles(bucketName: string, prefix: string = ''): Promise<FileObject[]> {
         return this.listObjects(bucketName, prefix, false);
     }
 
+    // Upload buffer/stream/filepath into MinIO
     async uploadFile(bucketName: string, file: any, userId?: string): Promise<any> {
         try {
             const objectName = file.originalname || 'unknown';
@@ -215,18 +224,22 @@ class MinioService {
         }
     }
 
+    // Fetch object as readable stream
     async getFileStream(bucketName: string, fileName: string): Promise<Readable> {
         return this.client.getObject(bucketName, fileName);
     }
 
+    // Delete single object
     async deleteObject(bucketName: string, objectName: string): Promise<void> {
         await this.client.removeObject(bucketName, objectName);
     }
 
+    // Alias for object deletion to match controller naming
     async deleteFile(bucketName: string, fileName: string, userId?: string): Promise<void> {
         await this.deleteObject(bucketName, fileName);
     }
 
+    // statObject and translate not-found to boolean
     async checkFileExists(bucketName: string, objectName: string): Promise<boolean> {
         try {
             await this.client.statObject(bucketName, objectName);
@@ -237,11 +250,13 @@ class MinioService {
         }
     }
 
+    // Create folder placeholder object
     async createFolder(bucketName: string, folderPath: string): Promise<void> {
         const objectName = folderPath.endsWith('/') ? folderPath : `${folderPath}/`;
         await this.client.putObject(bucketName, objectName, Buffer.from(''), 0);
     }
 
+    // Delete folder by removing all objects under prefix
     async deleteFolder(bucketName: string, folderPath: string): Promise<void> {
         const objects = await this.listObjects(bucketName, folderPath, true);
         const names = objects.map(o => o.name);
@@ -250,10 +265,12 @@ class MinioService {
         }
     }
 
+    // Bulk delete objects
     async deleteObjects(bucketName: string, objectNames: string[]): Promise<void> {
         await this.client.removeObjects(bucketName, objectNames);
     }
 
+    // Generate presigned download URL with optional content disposition
     async getDownloadUrl(bucketName: string, objectName: string, expiry: number = 3600, disposition?: string): Promise<string> {
         const reqParams: any = {};
         if (disposition) {
@@ -262,6 +279,7 @@ class MinioService {
         return this.client.presignedGetObject(bucketName, objectName, expiry, reqParams);
     }
 
+    // Compute storage stats across all buckets (best effort)
     async getGlobalStats(): Promise<any> {
         const buckets = await this.listBuckets();
         let totalObjects = 0;
@@ -329,6 +347,7 @@ class MinioService {
         };
     }
 
+    // Return MinIO buckets not yet tracked in database
     async getAvailableBuckets(): Promise<any[]> {
         // 1. Get all actual buckets from MinIO
         const minioBuckets = await this.listBuckets();
@@ -347,6 +366,7 @@ class MinioService {
             }));
     }
 
+    // Summarize object count and size for a single bucket
     async getBucketStats(bucketName: string): Promise<any> {
         let objectCount = 0;
         let totalSize = 0;
@@ -360,11 +380,13 @@ class MinioService {
         return { objectCount, totalSize };
     }
 
+    // List MinIO service accounts via admin API
     async listServiceAccounts(): Promise<any[]> {
         const result = await this.adminRequest('GET', 'minio/admin/v3/list-service-accounts');
         return result?.accounts || [];
     }
 
+    // Create service account with readwrite/readonly policy
     async createServiceAccount(policy: string, name: string, description: string): Promise<any> {
         const payload = {
             policy: policy === 'readonly' ? 'readonly' : 'readwrite',
@@ -374,14 +396,17 @@ class MinioService {
         return this.adminRequest('POST', 'minio/admin/v3/add-service-account', {}, payload);
     }
 
+    // Delete service account by access key
     async deleteServiceAccount(accessKey: string): Promise<void> {
         await this.adminRequest('POST', 'minio/admin/v3/delete-service-account', {}, { accessKey });
     }
 
+    // Expose underlying MinIO client (avoid where possible)
     getClient() {
         return this.client;
     }
 
+    // Fetch stat metadata for object
     async getObjectStat(bucketName: string, objectName: string): Promise<Minio.BucketItemStat> {
         return this.client.statObject(bucketName, objectName);
     }

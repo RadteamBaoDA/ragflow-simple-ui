@@ -1,13 +1,17 @@
 
-import { BaseModel } from '@/models/base.model.js';
-import { db } from '@/db/knex.js';
-import { UserTeam } from '@/models/types.js';
+/**
+ * User-team join model: resolves team ids per user for permission evaluation.
+ */
+import { BaseModel } from '@/models/base.model.js'
+import { db } from '@/db/knex.js'
+import { UserTeam } from '@/models/types.js'
 
 export class UserTeamModel extends BaseModel<UserTeam> {
-  protected tableName = 'user_teams';
-  protected knex = db;
+  protected tableName = 'user_teams'
+  protected knex = db
+
   async findTeamsByUserId(userId: string): Promise<string[]> {
-    const rows = await this.knex(this.tableName).select('team_id').where({ user_id: userId });
-    return rows.map(r => r.team_id);
+    const rows = await this.knex(this.tableName).select('team_id').where({ user_id: userId })
+    return rows.map(r => r.team_id)
   }
 }

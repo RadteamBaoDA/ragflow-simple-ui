@@ -1,4 +1,5 @@
 
+// Loads system tool metadata from JSON and exposes health checks.
 import fs from 'fs/promises';
 import { constants } from 'fs';
 import path from 'path';
@@ -30,11 +31,13 @@ class SystemToolsService {
     constructor() {
     }
 
+    // Resolve config file and load tools into memory
     async initialize(): Promise<void> {
         this.configPath = await this.resolveConfigPath();
         await this.loadConfig();
     }
 
+    // Pick config path from env > docker mount > repo config
     private async resolveConfigPath(): Promise<string> {
         const envPath = config.systemToolsConfigPath;
         if (envPath) {
@@ -54,6 +57,7 @@ class SystemToolsService {
         return fallbackPath;
     }
 
+    // Read and parse system-tools config JSON
     private async loadConfig(): Promise<void> {
         try {
             try {
@@ -88,27 +92,32 @@ class SystemToolsService {
         return this.getEnabledTools();
     }
 
+    // Return enabled tools ordered for UI consumption
     getEnabledTools(): SystemTool[] {
         return this.tools
             .filter(tool => tool.enabled)
             .sort((a, b) => a.order - b.order);
     }
 
+    // Return all tools regardless of enabled flag
     getAllTools(): SystemTool[] {
         return [...this.tools].sort((a, b) => a.order - b.order);
     }
 
+    // Reload configuration from disk
     async reload(): Promise<void> {
         log.debug('Reloading system tools configuration');
         await this.loadConfig();
     }
 
+    // Placeholder executor for system tools
     async runTool(id: string, params: any): Promise<any> {
         const tool = this.tools.find(t => t.id === id);
         if (!tool) throw new Error('Tool not found');
         return { message: `Tool ${tool.name} executed`, params };
     }
 
+    // Aggregate service health (DB, Redis, MinIO, Langfuse) plus host metrics
     async getSystemHealth(): Promise<any> {
         const os = await import('os');
 

@@ -1,3 +1,4 @@
+// Tailwind design tokens: enable dark mode via class and custom brand palette.
 /** @type {import('tailwindcss').Config} */
 export default {
   content: [

@@ -3,6 +3,7 @@ import { useTranslation } from 'react-i18next';
 import { encodingForModel, getEncoding, Tiktoken } from 'js-tiktoken';
 import { Eraser, Copy, Check } from 'lucide-react';
 
+// Visual tokenizer playground for OpenAI/Ollama models using js-tiktoken.
 const TokenizerPage = () => {
     const { t } = useTranslation();
     const [text, setText] = useState('');

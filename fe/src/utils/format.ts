@@ -1,3 +1,4 @@
+// Shared byte-size formatter for download/storage displays.
 /**
  * Formats a file size in bytes to a human-readable string with units.
  * Uses base 1024 (IEC standard: KiB, MiB, GiB, etc.).

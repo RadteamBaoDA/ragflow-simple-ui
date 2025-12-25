@@ -33,13 +33,10 @@ export interface AzureAdProfile {
   picture?: string | undefined;
 }
 
+// Handles Azure AD OAuth2 helpers plus legacy root login utilities.
 export class AuthService {
 
-  // Move standalone functions into class methods or keep as utility exports?
-  // Request asked to refactor services. Usually services are classes/singletons in this codebase.
-  // The previous file exported functions.
-  // I will wrap them in a class AuthService and export singleton instance.
-
+  // Build Azure authorization URL including offline_access so refresh tokens are issued
   getAuthorizationUrl(state: string): string {
     const params = new URLSearchParams({
       client_id: config.azureAd.clientId,
@@ -55,6 +52,7 @@ export class AuthService {
       }/oauth2/v2.0/authorize?${params.toString()}`;
   }
 
+  // Exchange one-time auth code for access/refresh tokens
   async exchangeCodeForTokens(code: string): Promise<TokenResponse> {
     const params = new URLSearchParams({
       client_id: config.azureAd.clientId,
@@ -89,6 +87,7 @@ export class AuthService {
     return response.json() as Promise<TokenResponse>;
   }
 
+  // Refresh access token when a refresh token is available
   async refreshAccessToken(refreshToken: string): Promise<TokenResponse> {
     const params = new URLSearchParams({
       client_id: config.azureAd.clientId,
@@ -129,6 +128,7 @@ export class AuthService {
     return tokens;
   }
 
+  // Apply small buffer before expiry to avoid race between client/server clocks
   isTokenExpired(expiresAt: number | undefined, bufferSeconds: number = 300): boolean {
     if (!expiresAt) return true;
     const now = Date.now();
@@ -136,13 +136,14 @@ export class AuthService {
     return now >= expiryWithBuffer;
   }
 
+  // Generate deterministic avatar for users without profile photos
   generateFallbackAvatar(displayName: string): string {
     const encodedName = encodeURIComponent(displayName || "User");
     return `https://ui-avatars.com/api/?name=${encodedName}&background=3b82f6&color=fff&size=128`;
   }
 
+  // Pull user profile and optional photo from Microsoft Graph
   async getUserProfile(accessToken: string): Promise<AzureAdUser> {
-    // Fetch user profile from Microsoft Graph
     const response = await fetch(
       "https://graph.microsoft.com/v1.0/me?$select=id,displayName,mail,userPrincipalName,department,jobTitle,mobilePhone",
       {
@@ -220,14 +221,15 @@ export class AuthService {
     };
   }
 
+  // CSRF mitigation token for OAuth flow
   generateState(): string {
     return crypto.randomUUID();
   }
 
 
   // Login placeholder for simple auth (not Azure AD) if used by AuthController
+  // Legacy root-user login path kept for air-gapped installs
   async login(username: string, password: string, ipAddress?: string): Promise<any> {
-    // Root user login
     if (config.enableRootLogin && username === config.rootUser && password === config.rootPassword) {
       const user = {
         id: 'root-user',

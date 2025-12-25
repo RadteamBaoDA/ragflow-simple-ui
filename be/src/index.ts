@@ -1,4 +1,8 @@
 
+/**
+ * Application entrypoint: configures middleware, routes, background jobs, and graceful shutdown.
+ * Keep all environment access through `config` to preserve centralized validation.
+ */
 import express from 'express';
 import session from 'express-session';
 import { RedisStore } from 'connect-redis'; // Fixed named import
@@ -39,11 +43,13 @@ import broadcastMessageRoutes from '@/routes/broadcast-message.routes.js';
 
 const app = express();
 
+// Initialize Redis before any middleware that relies on it (sessions, rate limiting storage)
 await initRedis();
 const redisClient = getRedisClient();
 
 app.set('trust proxy', 1);
 
+// Harden basic security headers; CSP is relaxed only where absolutely required for the iframe use case
 app.use(helmet({
   contentSecurityPolicy: {
     directives: {
@@ -58,6 +64,7 @@ app.use(helmet({
   crossOriginResourcePolicy: { policy: "cross-origin" },
 }));
 
+// CORS is restricted to the configured frontend to keep cookies/sessions scoped
 app.use(cors({
   origin: config.frontendUrl,
   credentials: true,
@@ -69,6 +76,7 @@ app.use(express.json({ limit: '10mb' }));
 app.use(express.urlencoded({ extended: true, limit: '10mb' }));
 app.use(cookieParser());
 
+// Session cookies are the primary auth mechanism (Azure AD-backed); Redis store is used when configured
 const sessionConfig: session.SessionOptions = {
   store: config.sessionStore.type === 'redis' && redisClient
     ? new RedisStore({ client: redisClient, prefix: 'sess:' })
@@ -88,6 +96,7 @@ const sessionConfig: session.SessionOptions = {
 
 app.use(session(sessionConfig));
 
+// Broad API rate limiter to keep abusive clients contained without blocking normal usage
 const generalLimiter = rateLimit({
   windowMs: 15 * 60 * 1000,
   max: 1000,
@@ -96,6 +105,7 @@ const generalLimiter = rateLimit({
   message: { error: 'Too many requests, please try again later.' },
 });
 
+// Stricter rate limit for login flows to reduce credential stuffing/abuse
 const authLimiter = rateLimit({
   windowMs: 15 * 60 * 1000,
   max: 20,
@@ -106,6 +116,7 @@ const authLimiter = rateLimit({
 
 app.use('/api', generalLimiter);
 
+// Guardrail to avoid unexpected content types that could bypass parsers or middleware assumptions
 const validateContentType = (req: express.Request, res: express.Response, next: express.NextFunction) => {
   if (['POST', 'PUT', 'PATCH'].includes(req.method)) {
     const contentType = req.headers['content-type'];
@@ -125,6 +136,7 @@ const validateContentType = (req: express.Request, res: express.Response, next: 
   next();
 };
 
+// Lightweight readiness probe consumed by orchestrators; avoids heavy DB queries
 app.get('/health', async (_req, res) => {
   const timestamp = new Date().toISOString();
 
@@ -174,6 +186,7 @@ app.use((err: Error, _req: express.Request, res: express.Response, _next: expres
   res.status(500).json({ error: 'Internal server error' });
 });
 
+// Bootstraps HTTP/HTTPS server and initializes background services that require the listener
 const startServer = async (): Promise<http.Server | https.Server> => {
   let server: http.Server | https.Server;
   const protocol = config.https.enabled ? 'https' : 'http';
@@ -207,6 +220,7 @@ const startServer = async (): Promise<http.Server | https.Server> => {
       sessionTTL: `${config.session.ttlSeconds / 86400} days`,
     });
 
+    // Schedule recurring maintenance (temp file cleanup, etc.)
     cronService.startCleanupJob();
 
     await knowledgeBaseService.initialize();
@@ -215,6 +229,7 @@ const startServer = async (): Promise<http.Server | https.Server> => {
     if (await checkConnection()) {
       log.info('Database connected successfully');
 
+      // Keep schema aligned on boot to avoid drift across environments
       try {
         const adapter = await getAdapter();
         await runMigrations(adapter);
@@ -223,6 +238,7 @@ const startServer = async (): Promise<http.Server | https.Server> => {
         process.exit(1);
       }
 
+      // Ensure a bootstrap admin exists even on fresh databases
       await userService.initializeRootUser();
     } else {
       log.warn('Database connection failed');
@@ -232,6 +248,7 @@ const startServer = async (): Promise<http.Server | https.Server> => {
   return server;
 };
 
+// Force crash on unexpected sync exceptions to avoid undefined state
 process.on('uncaughtException', (err: Error) => {
   log.error('Uncaught Exception - shutting down', {
     error: err.message,
@@ -240,6 +257,7 @@ process.on('uncaughtException', (err: Error) => {
   process.exit(1);
 });
 
+// Log unhandled promise rejections; keep process alive to allow graceful shutdown hooks
 process.on('unhandledRejection', (reason: unknown, promise: Promise<unknown>) => {
   log.error('Unhandled Promise Rejection', {
     reason: reason instanceof Error ? reason.message : String(reason),

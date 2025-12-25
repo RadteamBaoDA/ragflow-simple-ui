@@ -1,4 +1,5 @@
 
+// Resolves and mutates document/bucket permission records for users and teams.
 import { ModelFactory } from '@/models/factory.js';
 import { log } from '@/services/logger.service.js';
 import { auditService, AuditAction, AuditResourceType } from '@/services/audit.service.js';
@@ -7,11 +8,13 @@ import { DocumentPermission, PermissionLevel } from '@/models/types.js';
 export { PermissionLevel };
 
 export class DocumentPermissionService {
+    // Lookup permission for a single entity/bucket pair
     async getPermission(entityType: string, entityId: string, bucketId: string): Promise<PermissionLevel> {
         const result = await ModelFactory.documentPermission.findByEntityAndBucket(entityType, entityId, bucketId);
         return (result?.permission_level as unknown as PermissionLevel) ?? PermissionLevel.NONE;
     }
 
+    // Upsert a permission row and optionally audit the actor
     async setPermission(
         entityType: string,
         entityId: string,
@@ -49,6 +52,7 @@ export class DocumentPermissionService {
         }
     }
 
+    // Combine direct user and leader team permissions (admins bypass to FULL)
     async resolveUserPermission(userId: string, bucketId: string): Promise<PermissionLevel> {
         // Superuser bypass: Admins always have FULL access
         const user = await ModelFactory.user.findById(userId);
@@ -80,10 +84,12 @@ export class DocumentPermissionService {
         return maxPerm;
     }
 
+    // List permissions scoped to a bucket
     async getPermissions(bucketId: string): Promise<DocumentPermission[]> {
         return ModelFactory.documentPermission.findAll({ bucket_id: bucketId });
     }
 
+    // Batch apply permissions payload to a bucket
     async setPermissions(bucketId: string, permissions: any[], actor?: { id: string, email: string, ip?: string }): Promise<void> {
         if (!Array.isArray(permissions)) return;
 
@@ -93,6 +99,7 @@ export class DocumentPermissionService {
     }
 
     // Alias for controller compat if needed
+    // Compatibility helper for controllers to fetch all or bucket-scoped permissions
     async getAllPermissions(bucketId?: string): Promise<DocumentPermission[]> {
         if (bucketId) return this.getPermissions(bucketId);
         return ModelFactory.documentPermission.findAll();

@@ -1,8 +1,11 @@
-
-import { Request, Response } from 'express';
-import { knowledgeBaseService } from '@/services/knowledge-base.service.js';
-import { log } from '@/services/logger.service.js';
-import { getClientIp } from '@/utils/ip.js';
+/**
+ * Knowledge base controller: CRUD for RAGFlow source registry and iframe configuration exposure.
+ * Passes user context to service layer for audit/authorization decisions.
+ */
+import { Request, Response } from 'express'
+import { knowledgeBaseService } from '@/services/knowledge-base.service.js'
+import { log } from '@/services/logger.service.js'
+import { getClientIp } from '@/utils/ip.js'
 
 export class KnowledgeBaseController {
     async getSources(req: Request, res: Response): Promise<void> {

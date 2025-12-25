@@ -1,7 +1,9 @@
-
-import { Request, Response } from 'express';
-import { previewService } from '@/services/preview.service.js';
-import { log } from '@/services/logger.service.js';
+/**
+ * Preview controller: generates lightweight previews for stored documents before download.
+ */
+import { Request, Response } from 'express'
+import { previewService } from '@/services/preview.service.js'
+import { log } from '@/services/logger.service.js'
 
 export class PreviewController {
   async getPreview(req: Request, res: Response): Promise<void> {

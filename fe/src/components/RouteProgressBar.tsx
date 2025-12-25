@@ -1,3 +1,4 @@
+// Shows top loading bar on route transitions using NProgress.
 import { useEffect, useState } from 'react';
 import { useLocation } from 'react-router-dom';
 import NProgress from 'nprogress';

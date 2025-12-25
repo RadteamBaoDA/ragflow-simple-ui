@@ -1,7 +1,9 @@
-
-import { Request, Response } from 'express';
-import { externalTraceService } from '@/services/external-trace.service.js';
-import { log } from '@/services/logger.service.js';
+/**
+ * External trace controller: accepts Langfuse-compatible traces and feedback from external clients.
+ */
+import { Request, Response } from 'express'
+import { externalTraceService } from '@/services/external-trace.service.js'
+import { log } from '@/services/logger.service.js'
 
 export class ExternalTraceController {
   async submitTrace(req: Request, res: Response): Promise<void> {

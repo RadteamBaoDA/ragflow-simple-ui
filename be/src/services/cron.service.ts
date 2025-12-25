@@ -1,3 +1,4 @@
+// Schedules and runs recurring maintenance tasks like temp cache cleanup.
 import cron from 'node-cron';
 import fs from 'fs/promises';
 import { constants } from 'fs';
@@ -6,6 +7,7 @@ import { config } from '@/config/index.js';
 import { log } from '@/services/logger.service.js';
 
 export class CronService {
+    // Register cron job for temp file cleanup based on config schedule
     public startCleanupJob() {
         log.info('Starting temp file cleanup cron job', {
             schedule: config.tempFileCleanupSchedule,
@@ -19,6 +21,7 @@ export class CronService {
         });
     }
 
+    // Remove expired cached files; logs counts for observability
     private async runCleanup() {
         log.debug('Running scheduled temp file cleanup');
         const tempPath = config.tempCachePath;

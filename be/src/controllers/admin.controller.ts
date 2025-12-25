@@ -1,8 +1,10 @@
-
-import { Request, Response } from 'express';
-// Assuming admin service or direct usage of other services
-import { userService } from '@/services/user.service.js';
-import { log } from '@/services/logger.service.js';
+/**
+ * Admin controller: surfaces lightweight stats for the admin dashboard.
+ * Extend with additional metrics as needed; keeps DB/service calls minimal.
+ */
+import { Request, Response } from 'express'
+import { userService } from '@/services/user.service.js'
+import { log } from '@/services/logger.service.js'
 
 export class AdminController {
   async getDashboardStats(req: Request, res: Response): Promise<void> {

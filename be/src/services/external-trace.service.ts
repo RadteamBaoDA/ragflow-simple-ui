@@ -1,4 +1,5 @@
 
+// Processes external trace submissions with Redis-backed email validation cache and Langfuse logging.
 import { langfuseClient } from '@/models/external/langfuse.js';
 import { ModelFactory } from '@/models/factory.js';
 import { config } from '@/config/index.js';
@@ -28,6 +29,7 @@ export class ExternalTraceService {
     private readonly DEFAULT_TAGS = ['knowledge-base', 'external-trace'];
 
     private async getRedisClient(): Promise<ReturnType<typeof createClient> | null> {
+        // Lazily connect to Redis; continue without cache on failure
         if (this.redisClient && this.redisClient.isReady) {
             return this.redisClient;
         }
@@ -53,14 +55,17 @@ export class ExternalTraceService {
     }
 
     private getCacheKey(ipAddress: string, email: string): string {
+        // Include IP + email to throttle per-actor validation
         return `${this.CACHE_PREFIX}${ipAddress}:${email.toLowerCase()}`;
     }
 
     private getLockKey(ipAddress: string, email: string): string {
+        // Prevent stampede on first-time validation
         return `${this.LOCK_PREFIX}${ipAddress}:${email.toLowerCase()}`;
     }
 
     private async getEmailValidationFromCache(cacheKey: string): Promise<boolean | null> {
+        // Return cached truthy/falsey validation result when available
         const redis = await this.getRedisClient();
         if (!redis) return null;
 
@@ -76,6 +81,7 @@ export class ExternalTraceService {
     }
 
     private async setEmailValidationInCache(cacheKey: string, isValid: boolean): Promise<void> {
+        // Store validation result with TTL to avoid repeated DB lookups
         const redis = await this.getRedisClient();
         if (!redis) return;
 
@@ -90,6 +96,7 @@ export class ExternalTraceService {
     }
 
     private async acquireLock(lockKey: string): Promise<boolean> {
+        // Try acquiring short-lived lock for cache population
         const redis = await this.getRedisClient();
         if (!redis) return true;
 
@@ -106,6 +113,7 @@ export class ExternalTraceService {
     }
 
     private async releaseLock(lockKey: string): Promise<void> {
+        // Release lock once validation cached
         const redis = await this.getRedisClient();
         if (!redis) return;
 
@@ -116,6 +124,7 @@ export class ExternalTraceService {
     }
 
     private async waitForLock(lockKey: string, maxAttempts = 5): Promise<boolean> {
+        // Backoff loop waiting for another worker to fill cache
         const redis = await this.getRedisClient();
         if (!redis) return true;
 
@@ -131,6 +140,7 @@ export class ExternalTraceService {
         return false;
     }
 
+    // Validate email against user table with Redis cache/lock to reduce DB churn
     async validateEmailWithCache(email: string, ipAddress: string): Promise<boolean> {
         const cacheKey = this.getCacheKey(ipAddress, email);
         const lockKey = this.getLockKey(ipAddress, email);
@@ -165,6 +175,7 @@ export class ExternalTraceService {
     }
 
     private buildTags(metadata?: any): string[] {
+        // Merge default tags with metadata-provided tags/source/task
         const tags = [...this.DEFAULT_TAGS];
 
         if (metadata?.tags && Array.isArray(metadata.tags)) {
@@ -183,6 +194,7 @@ export class ExternalTraceService {
     }
 
     // Renamed from collectTrace to processTrace to match controller usage
+    // Validate email then emit Langfuse trace/generation events for chat traffic
     async processTrace(params: ExternalTraceParams): Promise<CollectTraceResult> {
         const { email, message, ipAddress, role = 'user', response, metadata } = params;
 
@@ -300,6 +312,7 @@ export class ExternalTraceService {
         }
     }
 
+    // Record user feedback score against an existing Langfuse trace
     async processFeedback(params: any): Promise<any> {
         // Placeholder for feedback processing - Langfuse SDK has score/feedback methods
         // Assuming params has traceId, score, etc.
@@ -320,6 +333,7 @@ export class ExternalTraceService {
         return { success: true };
     }
 
+    // Graceful cleanup of Redis connection
     async shutdown(): Promise<void> {
         if (this.redisClient && this.redisClient.isOpen) {
             await this.redisClient.quit();

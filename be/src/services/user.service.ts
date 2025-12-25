@@ -1,4 +1,5 @@
 
+// Manages user lifecycle, role/permission updates, and IP history tracking.
 import { ModelFactory } from '@/models/factory.js';
 import { config } from '@/config/index.js';
 import { log } from '@/services/logger.service.js';
@@ -7,6 +8,7 @@ import { auditService, AuditAction, AuditResourceType } from '@/services/audit.s
 import { User, UserIpHistory } from '@/models/types.js';
 
 export class UserService {
+    // Seed a root admin account when database is empty
     async initializeRootUser(): Promise<void> {
         try {
             const users = await ModelFactory.user.findAll();
@@ -35,6 +37,7 @@ export class UserService {
         }
     }
 
+    // Sync Azure AD user into local store, updating profile fields and audit logging changes
     async findOrCreateUser(adUser: AzureAdUser, ipAddress?: string): Promise<User> {
         try {
             // Check by ID first
@@ -127,6 +130,7 @@ export class UserService {
         }
     }
 
+    // List users, optionally filtered by role and sorted by recency
     async getAllUsers(roles?: string[]): Promise<User[]> {
         const filter: any = {};
         const users = await ModelFactory.user.findAll(filter);
@@ -138,6 +142,7 @@ export class UserService {
         return users.sort((a, b) => b.created_at.getTime() - a.created_at.getTime());
     }
 
+    // Create a new user and optionally audit the actor
     async createUser(data: any, user?: { id: string, email: string, ip?: string }): Promise<User> {
         const newUser = await ModelFactory.user.create(data);
         if (user) {
@@ -154,6 +159,7 @@ export class UserService {
         return newUser;
     }
 
+    // Update user profile fields and log admin changes
     async updateUser(id: string, data: any, user?: { id: string, email: string, ip?: string }): Promise<User | undefined> {
         const updatedUser = await ModelFactory.user.update(id, data);
         if (user && updatedUser) {
@@ -170,6 +176,7 @@ export class UserService {
         return updatedUser;
     }
 
+    // Delete a user and record audit trail
     async deleteUser(id: string, user?: { id: string, email: string, ip?: string }): Promise<void> {
         await ModelFactory.user.delete(id);
         if (user) {
@@ -185,14 +192,17 @@ export class UserService {
         }
     }
 
+    // Fetch a single user by ID
     async getUserById(userId: string): Promise<User | undefined> {
         return ModelFactory.user.findById(userId);
     }
 
+    // Update global role (admin/leader/user)
     async updateUserRole(userId: string, role: 'admin' | 'leader' | 'user'): Promise<User | undefined> {
         return ModelFactory.user.update(userId, { role });
     }
 
+    // Persist permission array and audit the actor performing the change
     async updateUserPermissions(userId: string, permissions: string[], actor?: { id: string, email: string, ip?: string }): Promise<void> {
         await ModelFactory.user.update(userId, { permissions: JSON.stringify(permissions) });
 
@@ -209,6 +219,7 @@ export class UserService {
         }
     }
 
+    // Track per-user IPs with throttling to avoid noisy updates
     async recordUserIp(userId: string, ipAddress: string): Promise<void> {
         if (!ipAddress || ipAddress === 'unknown') {
             log.debug('Skipping IP recording: no valid IP', { userId });
@@ -241,6 +252,7 @@ export class UserService {
         }
     }
 
+    // Return most recent IPs for a single user
     async getUserIpHistory(userId: string): Promise<UserIpHistory[]> {
         const history = await ModelFactory.userIpHistory.findAll({
             user_id: userId
@@ -248,6 +260,7 @@ export class UserService {
         return history.sort((a, b) => b.last_accessed_at.getTime() - a.last_accessed_at.getTime());
     }
 
+    // Aggregates IP histories for all users keyed by user ID
     async getAllUsersIpHistory(): Promise<Map<string, UserIpHistory[]>> {
         const allHistory = await ModelFactory.userIpHistory.findAll();
 

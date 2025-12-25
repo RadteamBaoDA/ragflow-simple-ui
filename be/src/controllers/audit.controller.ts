@@ -1,7 +1,10 @@
-
-import { Request, Response } from 'express';
-import { auditService } from '@/services/audit.service.js';
-import { log } from '@/services/logger.service.js';
+/**
+ * Audit controller: exposes paginated audit logs and metadata (actions/resource types).
+ * All routes are protected at router level to admin-only; this layer focuses on validation and shaping filters.
+ */
+import { Request, Response } from 'express'
+import { auditService } from '@/services/audit.service.js'
+import { log } from '@/services/logger.service.js'
 
 export class AuditController {
   async getLogs(req: Request, res: Response): Promise<void> {

@@ -1,3 +1,4 @@
+// Global confirm modal provider returning promise-based user choice.
 import React, { createContext, useContext, useState, ReactNode } from 'react';
 import { useTranslation } from 'react-i18next';
 import { Dialog } from './Dialog';
@@ -16,6 +17,7 @@ interface ConfirmContextType {
 
 const ConfirmContext = createContext<ConfirmContextType | null>(null);
 
+// Hook to open confirm dialog and await boolean result
 export const useConfirm = () => {
     const context = useContext(ConfirmContext);
     if (!context) {

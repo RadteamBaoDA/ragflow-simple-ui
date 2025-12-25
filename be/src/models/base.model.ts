@@ -1,4 +1,7 @@
 
+/**
+ * Thin CRUD wrapper around Knex; concrete models supply table name and shared knex instance.
+ */
 import { Knex } from 'knex';
 
 export interface FindAllOptions {
