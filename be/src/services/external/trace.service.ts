@@ -176,7 +176,13 @@ export class ExternalTraceService {
 
     private buildTags(metadata?: any): string[] {
         // Merge default tags with metadata-provided tags/source/task
+        // Also include current server NODE_ENV for environment identification
         const tags = [...this.DEFAULT_TAGS];
+
+        // Add current server environment as tag (e.g., 'development', 'production')
+        if (config.nodeEnv) {
+            tags.push(config.nodeEnv);
+        }
 
         if (metadata?.tags && Array.isArray(metadata.tags)) {
             tags.push(...metadata.tags);
@@ -295,7 +301,7 @@ export class ExternalTraceService {
             }
 
             await langfuse.flushAsync();
-
+            log.debug('Trace processed successfully', { langtraceinfo: JSON.stringify(trace) });
             return {
                 success: true,
                 traceId: trace.id
