@@ -2,7 +2,7 @@
  * External trace controller: accepts Langfuse-compatible traces and feedback from external clients.
  */
 import { Request, Response } from 'express'
-import { externalTraceService } from '@/services/external-trace.service.js'
+import { externalTraceService } from '@/services/external/trace.service.js'
 import { log } from '@/services/logger.service.js'
 
 export class ExternalTraceController {
@@ -28,9 +28,9 @@ export class ExternalTraceController {
 
   async getHealth(_req: Request, res: Response): Promise<void> {
     res.status(200).json({
-        status: 'ok',
-        service: 'external-trace',
-        timestamp: new Date().toISOString()
+      status: 'ok',
+      service: 'external-trace',
+      timestamp: new Date().toISOString()
     });
   }
 }

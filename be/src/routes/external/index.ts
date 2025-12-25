@@ -1,7 +1,7 @@
 import { Router } from 'express'
 import { checkEnabled } from '../../middleware/external.middleware.js'
 import traceRoutes from '@/routes/external/trace.routes.js'
-import { ExternalTraceController } from '@/controllers/external-trace.controller.js'
+import { ExternalTraceController } from '@/controllers/external/trace.controller.js'
 
 const router = Router()
 const controller = new ExternalTraceController()

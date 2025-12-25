@@ -1,11 +1,10 @@
 
 // Manages knowledge-base source metadata, ACLs, and defaults.
 import { ModelFactory } from '@/models/factory.js';
-import { db } from '@/db/knex.js'; // Added import
 import { log } from '@/services/logger.service.js';
 import { auditService, AuditAction, AuditResourceType } from '@/services/audit.service.js';
 import { KnowledgeBaseSource } from '@/models/types.js';
-import { teamService } from '@/services/team.service.js'; // Added import
+import { teamService } from '@/services/team.service.js';
 
 export interface AccessControl {
     public: boolean;

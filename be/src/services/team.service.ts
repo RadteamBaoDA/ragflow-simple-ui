@@ -2,34 +2,20 @@
  * @fileoverview Team management service.
  * 
  * Handles CRUD operations for teams and user-team membership management.
+ * Uses ModelFactory for all database operations following the Factory Pattern.
  * 
  * @module services/team
  */
 
 import { v4 as uuidv4 } from 'uuid';
-import { query, queryOne } from '@/db/index.js';
+import { ModelFactory } from '@/models/factory.js';
 import { log } from '@/services/logger.service.js';
 import { auditService, AuditAction, AuditResourceType } from '@/services/audit.service.js';
+import { Team } from '@/models/types.js';
 
 // ============================================================================
 // TYPE DEFINITIONS
 // ============================================================================
-
-export interface Team {
-    id: string;
-    name: string;
-    project_name?: string | null;
-    description?: string | null;
-    created_at: string;
-    updated_at: string;
-}
-
-export interface UserTeam {
-    user_id: string;
-    team_id: string;
-    role: 'member' | 'leader';
-    joined_at: string;
-}
 
 export interface CreateTeamDTO {
     name: string;
@@ -50,18 +36,22 @@ export interface UpdateTeamDTO {
 export class TeamService {
     /**
      * Create a new team.
+     * Uses ModelFactory.team.create() for database insertion.
      */
     async createTeam(data: CreateTeamDTO, user?: { id: string, email: string, ip?: string }): Promise<Team> {
         const id = uuidv4();
-        const team = await queryOne<Team>(
-            `INSERT INTO teams (id, name, project_name, description)
-             VALUES ($1, $2, $3, $4)
-             RETURNING *`,
-            [id, data.name, data.project_name || null, data.description || null]
-        );
+
+        // Create team using model factory
+        const team = await ModelFactory.team.create({
+            id,
+            name: data.name,
+            project_name: data.project_name || null,
+            description: data.description || null
+        });
 
         if (!team) throw new Error('Failed to create team');
 
+        // Log audit event for team creation
         if (user) {
             await auditService.log({
                 userId: user.id,
@@ -78,50 +68,39 @@ export class TeamService {
     }
 
     /**
-     * Get all teams.
+     * Get all teams ordered by creation date.
+     * Uses ModelFactory.team.findAll() with ordering.
      */
     async getAllTeams(): Promise<Team[]> {
-        return query<Team>('SELECT * FROM teams ORDER BY created_at DESC');
+        return ModelFactory.team.findAll({}, { orderBy: { created_at: 'desc' } });
     }
 
     /**
      * Get a team by ID.
+     * Uses ModelFactory.team.findById() for single record lookup.
      */
     async getTeam(id: string): Promise<Team | undefined> {
-        return queryOne<Team>('SELECT * FROM teams WHERE id = $1', [id]);
+        return ModelFactory.team.findById(id);
     }
 
     /**
      * Update a team.
+     * Uses ModelFactory.team.update() for partial updates.
      */
     async updateTeam(id: string, data: UpdateTeamDTO, user?: { id: string, email: string, ip?: string }): Promise<Team | undefined> {
-        const updates: string[] = [];
-        const values: any[] = [];
-        let paramIndex = 1;
+        // Build update data object with only defined fields
+        const updateData: Partial<Team> = {};
+        if (data.name !== undefined) updateData.name = data.name;
+        if (data.project_name !== undefined) updateData.project_name = data.project_name;
+        if (data.description !== undefined) updateData.description = data.description;
 
-        if (data.name !== undefined) {
-            updates.push(`name = $${paramIndex++}`);
-            values.push(data.name);
-        }
-        if (data.project_name !== undefined) {
-            updates.push(`project_name = $${paramIndex++}`);
-            values.push(data.project_name);
-        }
-        if (data.description !== undefined) {
-            updates.push(`description = $${paramIndex++}`);
-            values.push(data.description);
-        }
+        // Return existing team if no changes
+        if (Object.keys(updateData).length === 0) return this.getTeam(id);
 
-        if (updates.length === 0) return this.getTeam(id);
+        // Update team using model factory
+        const updatedTeam = await ModelFactory.team.update(id, updateData);
 
-        updates.push(`updated_at = NOW()`);
-        values.push(id);
-
-        const updatedTeam = await queryOne<Team>(
-            `UPDATE teams SET ${updates.join(', ')} WHERE id = $${paramIndex} RETURNING *`,
-            values
-        );
-
+        // Log audit event for team update
         if (user && updatedTeam) {
             await auditService.log({
                 userId: user.id,
@@ -139,13 +118,16 @@ export class TeamService {
 
     /**
      * Delete a team.
+     * Uses ModelFactory.team.delete() for removal.
      */
     async deleteTeam(id: string, user?: { id: string, email: string, ip?: string }): Promise<void> {
         // Fetch team details before deletion for audit logging
         const team = await this.getTeam(id);
 
-        await query('DELETE FROM teams WHERE id = $1', [id]);
+        // Delete team using model factory
+        await ModelFactory.team.delete(id);
 
+        // Log audit event for team deletion
         if (user) {
             await auditService.log({
                 userId: user.id,
@@ -160,7 +142,8 @@ export class TeamService {
     }
 
     /**
-     * Add a user to a team.
+     * Add a user to a team (or update role if already member).
+     * Uses ModelFactory.userTeam.upsert() for INSERT ON CONFLICT.
      */
     async addUserToTeam(
         teamId: string,
@@ -168,13 +151,10 @@ export class TeamService {
         role: 'member' | 'leader' = 'member',
         actor?: { id: string, email: string, ip?: string }
     ): Promise<void> {
-        await query(
-            `INSERT INTO user_teams (user_id, team_id, role)
-             VALUES ($1, $2, $3)
-             ON CONFLICT (user_id, team_id) DO UPDATE SET role = $3`,
-            [userId, teamId, role]
-        );
+        // Upsert user-team membership using model factory
+        await ModelFactory.userTeam.upsert(userId, teamId, role);
 
+        // Log audit event for member addition
         if (actor) {
             await auditService.log({
                 userId: actor.id,
@@ -190,13 +170,13 @@ export class TeamService {
 
     /**
      * Remove a user from a team.
+     * Uses ModelFactory.userTeam.deleteByUserAndTeam().
      */
     async removeUserFromTeam(teamId: string, userId: string, actor?: { id: string, email: string, ip?: string }): Promise<void> {
-        await query(
-            'DELETE FROM user_teams WHERE team_id = $1 AND user_id = $2',
-            [teamId, userId]
-        );
+        // Delete user-team membership using model factory
+        await ModelFactory.userTeam.deleteByUserAndTeam(userId, teamId);
 
+        // Log audit event for member removal
         if (actor) {
             await auditService.log({
                 userId: actor.id,
@@ -211,63 +191,49 @@ export class TeamService {
     }
 
     /**
-     * Get users in a team.
+     * Get users in a team with their membership roles.
+     * Uses ModelFactory.userTeam.findMembersByTeamId() for JOIN query.
      */
     async getTeamMembers(teamId: string): Promise<any[]> {
-        return query(
-            `SELECT u.id, u.email, u.display_name, ut.role, ut.joined_at
-             FROM users u
-             JOIN user_teams ut ON u.id = ut.user_id
-             WHERE ut.team_id = $1
-             ORDER BY ut.role DESC, u.display_name ASC`,
-            [teamId]
-        );
+        return ModelFactory.userTeam.findMembersByTeamId(teamId);
     }
 
     /**
      * Get teams for a specific user.
+     * Uses ModelFactory.userTeam.findTeamsWithDetailsByUserId() for JOIN query.
      */
     async getUserTeams(userId: string): Promise<Team[]> {
-        return query<Team>(
-            `SELECT t.* 
-             FROM teams t
-             JOIN user_teams ut ON t.id = ut.team_id
-             WHERE ut.user_id = $1
-             ORDER BY t.name ASC`,
-            [userId]
-        );
+        return ModelFactory.userTeam.findTeamsWithDetailsByUserId(userId);
     }
 
 
     /**
      * Add multiple members to a team with automatic role assignment.
      * 
-     * Logic:
+     * Role mapping logic:
      * - Global 'admin' -> Throw error (Cannot be added to teams)
      * - Global 'leader' -> Team 'leader'
      * - Global 'user' -> Team 'member'
+     * 
+     * Uses ModelFactory.userTeam.findUsersByIds() for batch user lookup.
      */
     async addMembersWithAutoRole(teamId: string, userIds: string[], actor?: { id: string, email: string, ip?: string }): Promise<void> {
         if (!userIds || userIds.length === 0) return;
 
-        // 1. Get users' global roles
-        // We use ANY($1) for array matching in Postgres
-        const users = await query<{ id: string, role: string }>(
-            'SELECT id, role FROM users WHERE id = ANY($1)',
-            [userIds]
-        );
+        // Get users' global roles using model factory
+        const users = await ModelFactory.userTeam.findUsersByIds(userIds);
 
         if (users.length === 0) {
             throw new Error('No valid users found');
         }
 
-        // 2. Check for admin role
+        // Check for admin role - admins cannot be added to teams
         const admins = users.filter(u => u.role === 'admin');
         if (admins.length > 0) {
             throw new Error('Administrators cannot be added to teams');
         }
 
-        // 3. Add users to team in parallel
+        // Add users to team in parallel with role mapping
         await Promise.all(users.map(user => {
             const teamRole = user.role === 'leader' ? 'leader' : 'member';
             return this.addUserToTeam(teamId, user.id, teamRole, actor);
@@ -277,32 +243,27 @@ export class TeamService {
     /**
      * Grant permissions to all members of a team.
      * Merges new permissions with existing ones for each user.
+     * 
+     * Uses ModelFactory.user.findById() for individual user lookup.
      */
     async grantPermissionsToTeam(teamId: string, permissionsToGrant: string[], actor?: { id: string, email: string, ip?: string }): Promise<void> {
-        // 1. Get all team members
+        // Get all team members
         const members = await this.getTeamMembers(teamId);
 
         if (members.length === 0) return;
 
-        // 2. Get full user records to access current permissions
-        // We need to fetch users one by one or via IN clause to get their current 'permissions' column
-        // getTeamMembers only returns basic info joined from user_teams
-        const { userService } = await import('./user.service.js'); // Lazy import to avoid circular dependency
+        // Lazy import to avoid circular dependency
+        const { userService } = await import('./user.service.js');
 
-        // Process in parallel
+        // Process each member in parallel
         await Promise.all(members.map(async (member) => {
+            // Fetch current user data using model factory
+            const user = await ModelFactory.user.findById(member.id);
+
             // Skip admins - they already have full access
-            // (Standard members have role 'user' or 'leader')
-
-            // Fetch current user data
-            const user = await queryOne<{ id: string, role: string, permissions: string | string[] }>(
-                'SELECT id, role, permissions FROM users WHERE id = $1',
-                [member.id]
-            );
-
             if (!user || user.role === 'admin') return;
 
-            // Parse existing permissions
+            // Parse existing permissions (handle both string and array formats)
             let currentPermissions: string[] = [];
             if (typeof user.permissions === 'string') {
                 currentPermissions = JSON.parse(user.permissions);
@@ -310,11 +271,11 @@ export class TeamService {
                 currentPermissions = user.permissions;
             }
 
-            // Merge new permissions (Set union)
+            // Merge new permissions using Set union
             const newPermissionsSet = new Set([...currentPermissions, ...permissionsToGrant]);
             const newPermissions = Array.from(newPermissionsSet);
 
-            // Update if changed
+            // Update if permissions changed
             if (newPermissions.length !== currentPermissions.length) {
                 await userService.updateUserPermissions(user.id, newPermissions, actor);
             }
