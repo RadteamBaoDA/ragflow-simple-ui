@@ -359,6 +359,25 @@ export const config = {
     /** Lock timeout for preventing race conditions in milliseconds */
     lockTimeoutMs: parseInt(process.env['EXTERNAL_TRACE_LOCK_TIMEOUT'] ?? '5000', 10),
   },
+
+  // --------------------------------------------------------------------------
+  // WebSocket Configuration
+  // --------------------------------------------------------------------------
+
+  /**
+   * WebSocket (Socket.IO) configuration.
+   * Enables real-time notifications for Python clients and web browsers.
+   */
+  websocket: {
+    /** Enable/disable WebSocket server */
+    enabled: process.env['WEBSOCKET_ENABLED'] !== 'false',
+    /** CORS origin for WebSocket connections */
+    corsOrigin: process.env['WEBSOCKET_CORS_ORIGIN'] ?? process.env['FRONTEND_URL'] ?? 'http://localhost:5173',
+    /** Ping timeout in milliseconds */
+    pingTimeout: parseInt(process.env['WEBSOCKET_PING_TIMEOUT'] ?? '60000', 10),
+    /** Ping interval in milliseconds */
+    pingInterval: parseInt(process.env['WEBSOCKET_PING_INTERVAL'] ?? '25000', 10),
+  },
 } as const;
 
 /**
