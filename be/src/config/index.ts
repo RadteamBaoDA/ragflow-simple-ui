@@ -309,6 +309,36 @@ export const config = {
   sharedStorageDomain: process.env['SHARED_STORAGE_DOMAIN'] ?? '.localhost',
 
   // --------------------------------------------------------------------------
+  // CORS Configuration
+  // --------------------------------------------------------------------------
+
+  /**
+   * CORS configuration for external API access.
+   * Allows multiple origins for cross-origin requests.
+   */
+  cors: {
+    /**
+     * Allowed origins for CORS requests.
+     * Set via CORS_ORIGINS environment variable as comma-separated list.
+     * Special value '*' allows all origins (use with caution in production).
+     * Falls back to FRONTEND_URL if not set.
+     * Example: "http://localhost:5173,https://app.example.com,https://api.example.com"
+     */
+    origins: (() => {
+      const corsOrigins = process.env['CORS_ORIGINS'];
+      if (!corsOrigins) {
+        return [process.env['FRONTEND_URL'] ?? 'http://localhost:5173'];
+      }
+      if (corsOrigins === '*') {
+        return '*' as const;
+      }
+      return corsOrigins.split(',').map(origin => origin.trim()).filter(Boolean);
+    })(),
+    /** Allow credentials (cookies, authorization headers) in CORS requests */
+    credentials: process.env['CORS_CREDENTIALS'] !== 'false',
+  },
+
+  // --------------------------------------------------------------------------
   // Cache Configuration
   // --------------------------------------------------------------------------
 

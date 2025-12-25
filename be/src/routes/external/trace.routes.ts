@@ -1,5 +1,5 @@
 import { Router } from 'express'
-import { ExternalTraceController } from '@/controllers/external-trace.controller.js'
+import { ExternalTraceController } from '@/controllers/external/trace.controller.js'
 
 const router = Router()
 const controller = new ExternalTraceController()

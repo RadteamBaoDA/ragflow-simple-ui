@@ -23,7 +23,7 @@ import { knowledgeBaseService } from '@/services/knowledge-base.service.js';
 import { systemToolsService } from '@/services/system-tools.service.js';
 import { userService } from '@/services/user.service.js';
 import { shutdownLangfuse } from '@/services/langfuse.service.js';
-import { externalTraceService } from '@/services/external-trace.service.js';
+import { externalTraceService } from '@/services/external/trace.service.js';
 import { socketService } from '@/services/socket.service.js';
 
 import authRoutes from '@/routes/auth.routes.js';
@@ -66,10 +66,10 @@ app.use(helmet({
 
 // CORS is restricted to the configured frontend to keep cookies/sessions scoped
 app.use(cors({
-  origin: config.frontendUrl,
-  credentials: true,
+  origin: config.cors.origins,
+  credentials: config.cors.credentials,
   methods: ['GET', 'POST', 'PUT', 'DELETE', 'OPTIONS'],
-  allowedHeaders: ['Content-Type', 'Authorization', 'X-Requested-With'],
+  allowedHeaders: ['Content-Type', 'Authorization', 'X-Requested-With', 'X-API-Key'],
 }));
 
 app.use(express.json({ limit: '10mb' }));

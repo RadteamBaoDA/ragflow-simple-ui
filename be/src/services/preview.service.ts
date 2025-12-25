@@ -14,6 +14,9 @@ if (!fs.existsSync(tempDir)) {
     fs.mkdirSync(tempDir, { recursive: true });
 }
 
+/** 
+ * Preview service 
+ */
 export class PreviewService {
     // Download object if not cached or expired; return local path
     async generatePreview(bucketName: string, fileName: string): Promise<string> {

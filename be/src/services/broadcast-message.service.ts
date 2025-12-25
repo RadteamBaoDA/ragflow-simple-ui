@@ -1,64 +1,32 @@
 /**
  * @fileoverview Service for managing broadcast messages.
+ * 
+ * Uses ModelFactory for all database operations following the Factory Pattern.
  */
 
-import { getAdapter } from '@/db/index.js';
+import { ModelFactory } from '@/models/factory.js';
 import { log } from '@/services/logger.service.js';
 import { auditService, AuditAction, AuditResourceType } from '@/services/audit.service.js';
-
-export interface BroadcastMessage {
-    id: string;
-    message: string;
-    starts_at: string;
-    ends_at: string;
-    color: string;
-    font_color: string;
-    is_active: boolean;
-    is_dismissible: boolean;
-    created_at?: string;
-    updated_at?: string;
-}
+import { BroadcastMessage } from '@/models/types.js';
 
 export class BroadcastMessageService {
     /**
      * Get all currently active broadcast messages.
      * If userId is provided, filter out messages that the user has already dismissed.
+     * 
+     * Uses ModelFactory.broadcastMessage.findActive() or findActiveExcludingDismissed().
      */
     async getActiveMessages(userId?: string): Promise<BroadcastMessage[]> {
-        const db = await getAdapter();
         try {
             const now = new Date().toISOString();
 
-            let query: string;
-            let params: any[];
-
             if (userId) {
                 // Return active messages NOT dismissed by this user within last 24h
-                query = `
-                    SELECT b.* 
-                    FROM broadcast_messages b
-                    LEFT JOIN user_dismissed_broadcasts d ON b.id = d.broadcast_id AND d.user_id = $2
-                    WHERE b.is_active = TRUE 
-                    AND b.starts_at <= $1 
-                    AND b.ends_at >= $1
-                    AND (d.broadcast_id IS NULL OR d.dismissed_at < NOW() - INTERVAL '24 hours')
-                    ORDER BY b.created_at DESC
-                `;
-                params = [now, userId];
+                return ModelFactory.broadcastMessage.findActiveExcludingDismissed(userId, now);
             } else {
                 // Return all active messages (for guests/login page)
-                query = `
-                    SELECT * FROM broadcast_messages 
-                    WHERE is_active = TRUE 
-                    AND starts_at <= $1 
-                    AND ends_at >= $1
-                    ORDER BY created_at DESC
-                `;
-                params = [now];
+                return ModelFactory.broadcastMessage.findActive(now);
             }
-
-            const result = await db.query<BroadcastMessage>(query, params);
-            return result;
         } catch (error) {
             log.error('Failed to fetch active broadcast messages', { userId, error: String(error) });
             throw error;
@@ -67,16 +35,13 @@ export class BroadcastMessageService {
 
     /**
      * Record a message dismissal for a user.
+     * 
+     * Uses ModelFactory.userDismissedBroadcast.upsertDismissal() for INSERT ON CONFLICT.
      */
     async dismissMessage(userId: string, broadcastId: string, userEmail?: string, ipAddress?: string): Promise<void> {
-        const db = await getAdapter();
         try {
-            const query = `
-                INSERT INTO user_dismissed_broadcasts (user_id, broadcast_id)
-                VALUES ($1, $2)
-                ON CONFLICT (user_id, broadcast_id) DO NOTHING
-            `;
-            await db.query(query, [userId, broadcastId]);
+            // Upsert dismissal record using model factory
+            await ModelFactory.userDismissedBroadcast.upsertDismissal(userId, broadcastId);
 
             // Log audit event for message dismissal
             await auditService.log({
@@ -97,12 +62,12 @@ export class BroadcastMessageService {
 
     /**
      * Get all broadcast messages (admin only).
+     * 
+     * Uses ModelFactory.broadcastMessage.findAll() with ordering.
      */
     async getAllMessages(): Promise<BroadcastMessage[]> {
-        const db = await getAdapter();
         try {
-            const result = await db.query<BroadcastMessage>('SELECT * FROM broadcast_messages ORDER BY created_at DESC');
-            return result;
+            return ModelFactory.broadcastMessage.findAll({}, { orderBy: { created_at: 'desc' } });
         } catch (error) {
             log.error('Failed to fetch all broadcast messages', { error: String(error) });
             throw error;
@@ -111,44 +76,43 @@ export class BroadcastMessageService {
 
     /**
      * Create a new broadcast message.
+     * 
+     * Uses ModelFactory.broadcastMessage.create() for database insertion.
      */
     async createMessage(
         data: Omit<BroadcastMessage, 'id' | 'created_at' | 'updated_at'>,
         user?: { id: string, email: string, ip?: string }
     ): Promise<BroadcastMessage> {
-        const db = await getAdapter();
         try {
-            const query = `
-                INSERT INTO broadcast_messages (message, starts_at, ends_at, color, font_color, is_active, is_dismissible)
-                VALUES ($1, $2, $3, $4, $5, $6, $7)
-                RETURNING *
-            `;
-            const result = await db.query<BroadcastMessage>(query, [
-                data.message,
-                data.starts_at,
-                data.ends_at,
-                data.color || '#E75E40',
-                data.font_color || '#FFFFFF',
-                data.is_active === undefined ? true : data.is_active,
-                data.is_dismissible === undefined ? false : data.is_dismissible
-            ]);
-            if (!result[0]) {
+            // Create message using model factory
+            const message = await ModelFactory.broadcastMessage.create({
+                message: data.message,
+                starts_at: data.starts_at,
+                ends_at: data.ends_at,
+                color: data.color || '#E75E40',
+                font_color: data.font_color || '#FFFFFF',
+                is_active: data.is_active === undefined ? true : data.is_active,
+                is_dismissible: data.is_dismissible === undefined ? false : data.is_dismissible
+            });
+
+            if (!message) {
                 throw new Error('Failed to create broadcast message: No result returned');
             }
 
+            // Log audit event for message creation
             if (user) {
                 await auditService.log({
                     userId: user.id,
                     userEmail: user.email,
                     action: AuditAction.CREATE_BROADCAST,
                     resourceType: AuditResourceType.BROADCAST_MESSAGE,
-                    resourceId: result[0].id,
+                    resourceId: message.id,
                     details: { message: data.message },
                     ipAddress: user.ip,
                 });
             }
 
-            return result[0];
+            return message;
         } catch (error) {
             log.error('Failed to create broadcast message', { error: String(error) });
             throw error;
@@ -157,62 +121,33 @@ export class BroadcastMessageService {
 
     /**
      * Update an existing broadcast message.
+     * 
+     * Uses ModelFactory.broadcastMessage.update() for partial updates.
      */
     async updateMessage(
         id: string,
         data: Partial<Omit<BroadcastMessage, 'id' | 'created_at' | 'updated_at'>>,
         user?: { id: string, email: string, ip?: string }
     ): Promise<BroadcastMessage | null> {
-        const db = await getAdapter();
         try {
-            const fields: string[] = [];
-            const values: any[] = [];
-            let placeholderIndex = 1;
+            // Build update data object with only defined fields
+            const updateData: Partial<BroadcastMessage> = {};
+            if (data.message !== undefined) updateData.message = data.message;
+            if (data.starts_at !== undefined) updateData.starts_at = data.starts_at;
+            if (data.ends_at !== undefined) updateData.ends_at = data.ends_at;
+            if (data.color !== undefined) updateData.color = data.color;
+            if (data.font_color !== undefined) updateData.font_color = data.font_color;
+            if (data.is_active !== undefined) updateData.is_active = data.is_active;
+            if (data.is_dismissible !== undefined) updateData.is_dismissible = data.is_dismissible;
 
-            if (data.message !== undefined) {
-                fields.push(`message = $${placeholderIndex++}`);
-                values.push(data.message);
-            }
-            if (data.starts_at !== undefined) {
-                fields.push(`starts_at = $${placeholderIndex++}`);
-                values.push(data.starts_at);
-            }
-            if (data.ends_at !== undefined) {
-                fields.push(`ends_at = $${placeholderIndex++}`);
-                values.push(data.ends_at);
-            }
-            if (data.color !== undefined) {
-                fields.push(`color = $${placeholderIndex++}`);
-                values.push(data.color);
-            }
-            if (data.font_color !== undefined) {
-                fields.push(`font_color = $${placeholderIndex++}`);
-                values.push(data.font_color);
-            }
-            if (data.is_active !== undefined) {
-                fields.push(`is_active = $${placeholderIndex++}`);
-                values.push(data.is_active);
-            }
-            if (data.is_dismissible !== undefined) {
-                fields.push(`is_dismissible = $${placeholderIndex++}`);
-                values.push(data.is_dismissible);
-            }
+            // Return null if no fields to update
+            if (Object.keys(updateData).length === 0) return null;
 
-            if (fields.length === 0) return null;
+            // Update message using model factory
+            const message = await ModelFactory.broadcastMessage.update(id, updateData);
 
-            fields.push(`updated_at = NOW()`);
-            values.push(id);
-
-            const query = `
-                UPDATE broadcast_messages 
-                SET ${fields.join(', ')}
-                WHERE id = $${placeholderIndex}
-                RETURNING *
-            `;
-
-            const result = await db.query<BroadcastMessage>(query, values);
-
-            if (user && result[0]) {
+            // Log audit event for message update
+            if (user && message) {
                 await auditService.log({
                     userId: user.id,
                     userEmail: user.email,
@@ -224,7 +159,7 @@ export class BroadcastMessageService {
                 });
             }
 
-            return result[0] || null;
+            return message || null;
         } catch (error) {
             log.error('Failed to update broadcast message', { id, error: String(error) });
             throw error;
@@ -233,16 +168,18 @@ export class BroadcastMessageService {
 
     /**
      * Delete a broadcast message.
+     * 
+     * Uses ModelFactory.broadcastMessage.findById() and delete().
      */
     async deleteMessage(id: string, user?: { id: string, email: string, ip?: string }): Promise<boolean> {
-        const db = await getAdapter();
         try {
-            // Fetch message before deletion
-            const messages = await db.query<BroadcastMessage>('SELECT * FROM broadcast_messages WHERE id = $1', [id]);
-            const message = messages[0];
+            // Fetch message before deletion for audit logging
+            const message = await ModelFactory.broadcastMessage.findById(id);
 
-            const result = await db.query('DELETE FROM broadcast_messages WHERE id = $1', [id]);
+            // Delete message using model factory
+            await ModelFactory.broadcastMessage.delete(id);
 
+            // Log audit event for message deletion
             if (user) {
                 await auditService.log({
                     userId: user.id,
@@ -255,7 +192,7 @@ export class BroadcastMessageService {
                 });
             }
 
-            return result.length > 0; // In this adapter, query might return affected rows if implemented that way, but let's check one more time.
+            return true;
         } catch (error) {
             log.error('Failed to delete broadcast message', { id, error: String(error) });
             throw error;
