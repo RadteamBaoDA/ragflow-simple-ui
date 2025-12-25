@@ -371,6 +371,8 @@ export const config = {
   websocket: {
     /** Enable/disable WebSocket server */
     enabled: process.env['WEBSOCKET_ENABLED'] !== 'false',
+    /** API key for external client authentication (optional, if empty no API key validation) */
+    apiKey: process.env['WEBSOCKET_API_KEY'] ?? '',
     /** CORS origin for WebSocket connections */
     corsOrigin: process.env['WEBSOCKET_CORS_ORIGIN'] ?? process.env['FRONTEND_URL'] ?? 'http://localhost:5173',
     /** Ping timeout in milliseconds */

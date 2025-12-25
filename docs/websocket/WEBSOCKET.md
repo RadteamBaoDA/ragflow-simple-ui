@@ -16,6 +16,7 @@ The WebSocket server enables real-time bi-directional communication between:
 | Variable | Default | Description |
 |----------|---------|-------------|
 | `WEBSOCKET_ENABLED` | `true` | Enable/disable WebSocket server |
+| `WEBSOCKET_API_KEY` | _(empty)_ | API key for external client authentication |
 | `WEBSOCKET_CORS_ORIGIN` | `FRONTEND_URL` | CORS origin for connections |
 | `WEBSOCKET_PING_TIMEOUT` | `60000` | Ping timeout in ms |
 | `WEBSOCKET_PING_INTERVAL` | `25000` | Ping interval in ms |
@@ -31,10 +32,11 @@ wss://your-domain.com  (production with HTTPS)
 
 ### Authentication
 
-Pass authentication data in the `auth` object when connecting:
+Two authentication methods are supported:
+
+#### 1. Browser Clients (Email/Session)
 
 ```javascript
-// Browser
 const socket = io('http://localhost:3001', {
   auth: {
     email: 'user@example.com',
@@ -44,13 +46,26 @@ const socket = io('http://localhost:3001', {
 });
 ```
 
+#### 2. External Clients (API Key)
+
+For Python and other external clients, use the `WEBSOCKET_API_KEY`:
+
 ```python
-# Python
+# Set environment variable
+# export WEBSOCKET_API_KEY=your-secret-api-key
+
 sio.connect(
     'http://localhost:3001',
-    auth={'email': 'user@example.com'}
+    auth={
+        'apiKey': 'your-secret-api-key',
+        'email': 'python-client@example.com'  # Optional user identification
+    }
 )
 ```
+
+> **Note:** If `WEBSOCKET_API_KEY` is configured on the server, external clients MUST provide a valid API key or the connection will be rejected.
+
+> **CORS:** When `WEBSOCKET_API_KEY` is set, CORS is automatically configured to allow connections from any origin (`*`), enabling external Python clients to connect.
 
 ## Events
 
@@ -68,6 +83,7 @@ sio.connect(
 |-------|---------|-------------|
 | `notification` | `NotificationPayload` | Real-time notification |
 | `pong` | `{ timestamp: string }` | Response to ping |
+| `auth:error` | `{ message: string }` | Authentication failure (invalid API key) |
 | `server:shutdown` | `{ message: string }` | Server shutdown warning |
 
 ### NotificationPayload

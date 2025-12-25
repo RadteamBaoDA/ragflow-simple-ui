@@ -13,7 +13,8 @@ Usage:
 
 Environment Variables:
     SOCKET_URL: WebSocket server URL (default: http://localhost:3001)
-    USER_EMAIL: User email for authentication (optional)
+    WEBSOCKET_API_KEY: API key for authentication (required for external clients)
+    USER_EMAIL: User email for identification (optional)
 """
 
 import os
@@ -22,6 +23,7 @@ from datetime import datetime
 
 # Configuration
 SOCKET_URL = os.getenv('SOCKET_URL', 'http://localhost:3001')
+API_KEY = os.getenv('WEBSOCKET_API_KEY', '')
 USER_EMAIL = os.getenv('USER_EMAIL', 'python-client@example.com')
 
 # Create Socket.IO client
@@ -53,6 +55,13 @@ def disconnect():
 def connect_error(data):
     """Called when connection fails."""
     print(f'[{datetime.now().isoformat()}] Connection failed: {data}')
+
+
+@sio.on('auth:error')
+def on_auth_error(data):
+    """Called when authentication fails (invalid API key)."""
+    print(f'[{datetime.now().isoformat()}] Authentication failed: {data.get("message", "Unknown error")}')
+    print('Please check your WEBSOCKET_API_KEY environment variable.')
 
 
 @sio.on('notification')
@@ -102,16 +111,27 @@ def main():
     print(f'RAGFlow Socket.IO Python Client')
     print(f'=' * 40)
     print(f'Server URL: {SOCKET_URL}')
+    print(f'API Key: {"*" * len(API_KEY) if API_KEY else "(not set)"}')
     print(f'User Email: {USER_EMAIL}')
     print(f'=' * 40)
     print()
     
+    if not API_KEY:
+        print('WARNING: No API key set. Connection may be rejected if server requires authentication.')
+        print('Set WEBSOCKET_API_KEY environment variable to authenticate.')
+        print()
+    
     try:
+        # Build auth payload
+        auth_payload = {'email': USER_EMAIL}
+        if API_KEY:
+            auth_payload['apiKey'] = API_KEY
+        
         # Connect to server with authentication
         print(f'[{datetime.now().isoformat()}] Connecting to {SOCKET_URL}...')
         sio.connect(
             SOCKET_URL,
-            auth={'email': USER_EMAIL},
+            auth=auth_payload,
             transports=['websocket', 'polling'],
         )
         

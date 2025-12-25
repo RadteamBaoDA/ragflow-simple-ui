@@ -35,7 +35,12 @@ export interface SocketAuthData {
     userId?: string
     email?: string
     token?: string
+    /** API key for external client authentication */
+    apiKey?: string
 }
+
+/** Client type based on authentication method */
+export type SocketClientType = 'browser' | 'external'
 
 /** Connected user socket mapping */
 interface UserSocketMap {
@@ -65,11 +70,18 @@ export class SocketService {
             return this.io
         }
 
+        // Determine CORS origin:
+        // - If API key is configured, allow all origins for external clients
+        // - Otherwise, restrict to configured cors origin or frontend URL
+        const corsOrigin = config.websocket?.apiKey
+            ? '*'
+            : (config.websocket?.corsOrigin ?? config.frontendUrl)
+
         this.io = new SocketIOServer(server, {
             cors: {
-                origin: config.websocket?.corsOrigin ?? config.frontendUrl,
+                origin: corsOrigin,
                 methods: ['GET', 'POST'],
-                credentials: true,
+                credentials: corsOrigin !== '*',  // Credentials only work with specific origins
             },
             pingTimeout: config.websocket?.pingTimeout ?? 60000,
             pingInterval: config.websocket?.pingInterval ?? 25000,
@@ -134,13 +146,44 @@ export class SocketService {
 
     /**
      * Handle socket authentication.
+     * Supports two authentication methods:
+     * 1. API Key authentication for external clients (Python)
+     * 2. Email/userId authentication for browser clients
      * 
      * @param socket - Socket instance
      */
     private handleAuthentication(socket: Socket): void {
         const auth = socket.handshake.auth as SocketAuthData
+        const apiKey = auth?.apiKey
         const userId = auth?.userId || auth?.email
 
+        // Check API key authentication for external clients
+        if (apiKey) {
+            const configApiKey = config.websocket?.apiKey
+
+            // If API key is configured, validate it
+            if (configApiKey && configApiKey.length > 0) {
+                if (apiKey !== configApiKey) {
+                    log.warn('Socket connection rejected: invalid API key', {
+                        socketId: socket.id,
+                    })
+                    socket.emit('auth:error', { message: 'Invalid API key' })
+                    socket.disconnect(true)
+                    return
+                }
+            }
+
+            // Valid API key - track as external client
+            socket.data.clientType = 'external' as SocketClientType
+            socket.join('external-clients')
+
+            log.info('Socket authenticated via API key', {
+                socketId: socket.id,
+                clientType: 'external',
+            })
+        }
+
+        // Handle user identification (for both browser and external clients)
         if (userId) {
             // Track user's socket connection
             if (!this.userSockets[userId]) {
@@ -151,9 +194,15 @@ export class SocketService {
             // Join user-specific room for targeted notifications
             socket.join(`user:${userId}`)
 
-            log.debug('Socket authenticated', {
+            // Set client type if not already set (browser client)
+            if (!socket.data.clientType) {
+                socket.data.clientType = 'browser' as SocketClientType
+            }
+
+            log.debug('Socket user identified', {
                 socketId: socket.id,
                 userId,
+                clientType: socket.data.clientType,
             })
         }
     }
