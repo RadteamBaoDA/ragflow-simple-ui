@@ -1,7 +1,9 @@
-
-import { Request, Response } from 'express';
-import { minioService } from '@/services/minio.service.js';
-import { log } from '@/services/logger.service.js';
+/**
+ * Raw MinIO admin controller: direct access to buckets, stats, and service accounts (bypasses managed metadata).
+ */
+import { Request, Response } from 'express'
+import { minioService } from '@/services/minio.service.js'
+import { log } from '@/services/logger.service.js'
 
 export class MinioRawController {
     async getMetrics(req: Request, res: Response): Promise<void> {

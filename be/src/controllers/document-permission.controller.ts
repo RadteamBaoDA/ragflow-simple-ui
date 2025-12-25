@@ -1,9 +1,12 @@
-
-import { Request, Response } from 'express';
-import { documentPermissionService, PermissionLevel } from '@/services/document-permission.service.js';
-import { userService } from '@/services/user.service.js';
-import { log } from '@/services/logger.service.js';
-import { getClientIp } from '@/utils/ip.js';
+/**
+ * Document permission controller: assigns per-bucket access to users/teams and resolves effective permissions.
+ * Enforces leader-only grants for safety and returns consistent JSON error shapes.
+ */
+import { Request, Response } from 'express'
+import { documentPermissionService, PermissionLevel } from '@/services/document-permission.service.js'
+import { userService } from '@/services/user.service.js'
+import { log } from '@/services/logger.service.js'
+import { getClientIp } from '@/utils/ip.js'
 
 export class DocumentPermissionController {
   async getAllPermissions(req: Request, res: Response): Promise<any> {

@@ -1,8 +1,10 @@
-
-import { Request, Response } from 'express';
-import { broadcastMessageService } from '@/services/broadcast-message.service.js';
-import { log } from '@/services/logger.service.js';
-import { getClientIp } from '@/utils/ip.js';
+/**
+ * Broadcast message controller: serves active system notices and manages admin CRUD with audit context.
+ */
+import { Request, Response } from 'express'
+import { broadcastMessageService } from '@/services/broadcast-message.service.js'
+import { log } from '@/services/logger.service.js'
+import { getClientIp } from '@/utils/ip.js'
 
 export class BroadcastMessageController {
     async getActive(req: Request, res: Response): Promise<void> {

@@ -1,10 +1,14 @@
-import { Request, Response } from 'express';
-import { minioService } from '@/services/minio.service.js';
-import { log } from '@/services/logger.service.js';
-import { ModelFactory } from '@/models/factory.js';
-import { documentPermissionService, PermissionLevel } from '@/services/document-permission.service.js';
-import { auditService, AuditAction, AuditResourceType } from '@/services/audit.service.js';
-import { getClientIp } from '@/utils/ip.js';
+/**
+ * Managed MinIO storage controller: enforces bucket-level permissions for list/upload/delete/download operations.
+ * Uses documentPermissionService to guard every action; audit events are emitted for mutating operations.
+ */
+import { Request, Response } from 'express'
+import { minioService } from '@/services/minio.service.js'
+import { log } from '@/services/logger.service.js'
+import { ModelFactory } from '@/models/factory.js'
+import { documentPermissionService, PermissionLevel } from '@/services/document-permission.service.js'
+import { auditService, AuditAction, AuditResourceType } from '@/services/audit.service.js'
+import { getClientIp } from '@/utils/ip.js'
 
 export class MinioStorageController {
 

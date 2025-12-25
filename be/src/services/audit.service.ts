@@ -1,4 +1,5 @@
 
+// Centralized audit logging for user actions and resource changes.
 import { ModelFactory } from '@/models/factory.js';
 import { log } from '@/services/logger.service.js';
 import { AuditLog } from '@/models/types.js';
@@ -84,6 +85,7 @@ export interface AuditLogResponse {
 }
 
 class AuditService {
+    // Persist a single audit entry; best-effort to avoid throwing on logging failures
     async log(params: AuditLogParams): Promise<number | null> {
         try {
             const {
@@ -124,6 +126,7 @@ class AuditService {
         }
     }
 
+    // Retrieve paginated logs with lightweight filtering (approximate total)
     async getLogs(filters: any = {}, limit: number = 50, offset: number = 0): Promise<AuditLogResponse> {
         const whereClause: any = {};
         if (filters.userId) whereClause.user_id = filters.userId;
@@ -161,6 +164,7 @@ class AuditService {
         };
     }
 
+    // Return audit history for a specific resource
     async getResourceHistory(resourceType: string, resourceId: string): Promise<AuditLog[]> {
         const logs = await ModelFactory.auditLog.findAll({
             resource_type: resourceType,
@@ -173,6 +177,7 @@ class AuditService {
         }));
     }
 
+    // Produce CSV snapshot for bulk export/download
     async exportLogsToCsv(filters: any): Promise<string> {
         const response = await this.getLogs(filters, 1000000, 0);
         const logs = response.data;
@@ -197,14 +202,17 @@ class AuditService {
         return [header, ...rows].join('\n');
     }
 
+    // Expose allowed action type values
     async getActionTypes(): Promise<string[]> {
         return Object.values(AuditAction);
     }
 
+    // Expose allowed resource type values
     async getResourceTypes(): Promise<string[]> {
         return Object.values(AuditResourceType);
     }
 
+    // Placeholder for retention policy hook
     async deleteOldLogs(olderThanDays: number): Promise<number> {
         return 0;
     }

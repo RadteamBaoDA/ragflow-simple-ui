@@ -1,10 +1,14 @@
-import { Request, Response } from 'express';
-import { authService } from '@/services/auth.service.js';
-import { userService } from '@/services/user.service.js';
-import { log } from '@/services/logger.service.js';
-import { getClientIp } from '@/utils/ip.js';
-import { config } from '@/config/index.js';
-import { updateAuthTimestamp, getCurrentUser } from '@/middleware/auth.middleware.js';
+/**
+ * Authentication controller: handles Azure AD OAuth, root login, token refresh, and session lifecycle.
+ * Keeps responses minimal to avoid leaking auth details; relies on session cookies for state.
+ */
+import { Request, Response } from 'express'
+import { authService } from '@/services/auth.service.js'
+import { userService } from '@/services/user.service.js'
+import { log } from '@/services/logger.service.js'
+import { getClientIp } from '@/utils/ip.js'
+import { config } from '@/config/index.js'
+import { updateAuthTimestamp, getCurrentUser } from '@/middleware/auth.middleware.js'
 
 export class AuthController {
     async getAuthConfig(req: Request, res: Response): Promise<void> {
@@ -20,71 +24,73 @@ export class AuthController {
 
     async getMe(req: Request, res: Response): Promise<void> {
         if (req.session?.user) {
-            // Record IP for session resume / auto-login
+            // Opportunistic IP recording so audit/IP alerts see resumed sessions
             try {
-                const ipAddress = getClientIp(req);
+                const ipAddress = getClientIp(req)
                 if (ipAddress) {
-                    await userService.recordUserIp(req.session.user.id, ipAddress);
+                    await userService.recordUserIp(req.session.user.id, ipAddress)
                 }
             } catch (error) {
-                log.warn('Failed to record IP on session resume', { error: String(error) });
+                log.warn('Failed to record IP on session resume', { error: String(error) })
             }
 
-            res.json(req.session.user);
+            res.json(req.session.user)
         } else {
-            res.status(401).json({ error: 'Unauthorized' });
+            res.status(401).json({ error: 'Unauthorized' })
         }
     }
 
     async loginAzureAd(req: Request, res: Response): Promise<void> {
-        const state = authService.generateState();
-        req.session.oauthState = state;
-        res.redirect(authService.getAuthorizationUrl(state));
+        // CSRF-style state guard per OAuth best practices
+        const state = authService.generateState()
+        req.session.oauthState = state
+        res.redirect(authService.getAuthorizationUrl(state))
     }
 
     async handleCallback(req: Request, res: Response): Promise<void> {
         const { code, state, error } = req.query;
 
         if (error) {
-            log.error('Azure AD login error', { error });
-            res.redirect(`${config.frontendUrl}/login?error=auth_failed`);
-            return;
+            log.error('Azure AD login error', { error })
+            res.redirect(`${config.frontendUrl}/login?error=auth_failed`)
+            return
         }
 
         if (!code || typeof code !== 'string') {
-            res.redirect(`${config.frontendUrl}/login?error=no_code`);
-            return;
+            res.redirect(`${config.frontendUrl}/login?error=no_code`)
+            return
         }
 
         if (state !== req.session.oauthState) {
-            log.warn('State mismatch in OAuth callback');
-            res.redirect(`${config.frontendUrl}/login?error=invalid_state`);
-            return;
+            log.warn('State mismatch in OAuth callback')
+            res.redirect(`${config.frontendUrl}/login?error=invalid_state`)
+            return
         }
 
         try {
-            const tokens = await authService.exchangeCodeForTokens(code);
-            const adUser = await authService.getUserProfile(tokens.access_token);
-            const ipAddress = getClientIp(req);
+            // Exchange auth code → tokens, then upsert local user record
+            const tokens = await authService.exchangeCodeForTokens(code)
+            const adUser = await authService.getUserProfile(tokens.access_token)
+            const ipAddress = getClientIp(req)
 
-            const user = await userService.findOrCreateUser(adUser, ipAddress);
+            const user = await userService.findOrCreateUser(adUser, ipAddress)
 
             req.session.user = {
                 ...user,
                 displayName: user.display_name as string,
                 permissions: typeof user.permissions === 'string' ? JSON.parse(user.permissions) : user.permissions
-            };
+            }
 
             // Explicitly set optional properties if they exist, cast to any to bypass strict type checks
             if (adUser.avatar) {
-                (req.session.user as any).avatar = adUser.avatar;
+                (req.session.user as any).avatar = adUser.avatar
             }
 
-            req.session.accessToken = tokens.access_token as any;
-            req.session.refreshToken = tokens.refresh_token as any;
-            req.session.tokenExpiresAt = (Date.now() + (tokens.expires_in * 1000)) as any;
+            req.session.accessToken = tokens.access_token as any
+            req.session.refreshToken = tokens.refresh_token as any
+            req.session.tokenExpiresAt = (Date.now() + (tokens.expires_in * 1000)) as any
 
-            updateAuthTimestamp(req, false);
+            updateAuthTimestamp(req, false)
 
             req.session.save((err) => {
                 if (err) {
@@ -92,16 +98,16 @@ export class AuthController {
                         error: err.message,
                         userId: user.id,
                         email: user.email
-                    });
-                    res.redirect(`${config.frontendUrl}/login?error=session_error`);
-                    return;
+                    })
+                    res.redirect(`${config.frontendUrl}/login?error=session_error`)
+                    return
                 }
-                log.info('Successful Azure AD login', { userId: user.id, email: user.email });
-                res.redirect(config.frontendUrl);
-            });
+                log.info('Successful Azure AD login', { userId: user.id, email: user.email })
+                res.redirect(config.frontendUrl)
+            })
         } catch (err: any) {
-            log.error('Authentication failed', { error: err.message });
-            res.redirect(`${config.frontendUrl}/login?error=auth_failed`);
+            log.error('Authentication failed', { error: err.message })
+            res.redirect(`${config.frontendUrl}/login?error=auth_failed`)
         }
     }
 
@@ -112,79 +118,79 @@ export class AuthController {
                 res.status(500).json({ error: 'Logout failed' });
                 return;
             }
-            res.json({ message: 'Logged out successfully' });
-        });
+            res.json({ message: 'Logged out successfully' })
+        })
     }
 
     async reauth(req: Request, res: Response): Promise<void> {
-        const user = getCurrentUser(req);
+        const user = getCurrentUser(req)
         if (!user) {
-            res.status(401).json({ error: 'Not authenticated' });
-            return;
+            res.status(401).json({ error: 'Not authenticated' })
+            return
         }
 
         if (user.id === 'root-user') {
-            const { password } = req.body;
-            const rootPass = config.rootPassword;
-            const crypto = await import('crypto');
+            const { password } = req.body
+            const rootPass = config.rootPassword
+            const crypto = await import('crypto')
 
             const passwordMatch = crypto.timingSafeEqual(
                 Buffer.from(password.padEnd(256, '\0')),
                 Buffer.from(rootPass.padEnd(256, '\0'))
-            );
+            )
 
             if (!passwordMatch) {
-                log.warn('Failed root re-authentication attempt', { userId: user.id });
-                res.status(401).json({ error: 'Invalid password' });
-                return;
+                log.warn('Failed root re-authentication attempt', { userId: user.id })
+                res.status(401).json({ error: 'Invalid password' })
+                return
             }
         }
 
-        updateAuthTimestamp(req, true);
-        res.json({ success: true });
+        updateAuthTimestamp(req, true)
+        res.json({ success: true })
     }
 
     async refreshToken(req: Request, res: Response): Promise<void> {
-        const user = getCurrentUser(req);
+        const user = getCurrentUser(req)
         if (!user) {
-            res.status(401).json({ error: 'Not authenticated' });
-            return;
+            res.status(401).json({ error: 'Not authenticated' })
+            return
         }
 
         if (user.id === 'root-user') {
-            res.json({ success: true, message: 'Root user does not use tokens' });
-            return;
+            res.json({ success: true, message: 'Root user does not use tokens' })
+            return
         }
 
-        const refreshToken = req.session.refreshToken;
+        const refreshToken = req.session.refreshToken
         if (!refreshToken) {
-            res.status(401).json({ error: 'NO_REFRESH_TOKEN' });
-            return;
+            res.status(401).json({ error: 'NO_REFRESH_TOKEN' })
+            return
         }
 
         try {
-            const newTokens = await authService.refreshAccessToken(refreshToken);
-            req.session.accessToken = newTokens.access_token as any;
-            req.session.tokenExpiresAt = (Date.now() + (newTokens.expires_in * 1000)) as any;
-            if (newTokens.refresh_token) req.session.refreshToken = newTokens.refresh_token as any;
+            const newTokens = await authService.refreshAccessToken(refreshToken)
+            req.session.accessToken = newTokens.access_token as any
+            req.session.tokenExpiresAt = (Date.now() + (newTokens.expires_in * 1000)) as any
+            if (newTokens.refresh_token) req.session.refreshToken = newTokens.refresh_token as any
 
             req.session.save(() => {
-                res.json({ success: true, expiresIn: newTokens.expires_in });
-            });
+                res.json({ success: true, expiresIn: newTokens.expires_in })
+            })
         } catch (e) {
-            res.status(401).json({ error: 'TOKEN_REFRESH_FAILED' });
+            res.status(401).json({ error: 'TOKEN_REFRESH_FAILED' })
         }
     }
 
     async getTokenStatus(req: Request, res: Response): Promise<void> {
-        const user = getCurrentUser(req);
-        res.json({ hasToken: !!req.session.accessToken });
+        const user = getCurrentUser(req)
+        res.json({ hasToken: !!req.session.accessToken })
     }
 
     async loginRoot(req: Request, res: Response): Promise<void> {
         try {
-            const { username, password } = req.body;
-            const result = await authService.login(username, password, getClientIp(req));
+            const { username, password } = req.body
+            const result = await authService.login(username, password, getClientIp(req))
             req.session.user = {
                 ...result.user,
                 permissions: result.user.permissions || ['*'],
@@ -192,13 +198,13 @@ export class AuthController {
                 displayName: result.user.displayName, // Map for compatibility
                 created_at: new Date(),
                 updated_at: new Date()
-            };
-            updateAuthTimestamp(req, false);
+            }
+            updateAuthTimestamp(req, false)
             req.session.save(() => {
-                res.json(result);
-            });
+                res.json(result)
+            })
         } catch (e) {
-            res.status(401).json({ error: 'Invalid credentials' });
+            res.status(401).json({ error: 'Invalid credentials' })
         }
     }
 

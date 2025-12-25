@@ -1,4 +1,7 @@
 
+/**
+ * Shared model types (DB rows). Keep aligned with migrations and services.
+ */
 export interface User {
     id: string;
     email: string;

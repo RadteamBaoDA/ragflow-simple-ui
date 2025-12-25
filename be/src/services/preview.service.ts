@@ -1,4 +1,5 @@
 
+// Caches downloaded MinIO files locally to serve preview responses.
 import fs from 'fs';
 import fsPromises from 'fs/promises';
 import { constants } from 'fs';
@@ -14,6 +15,7 @@ if (!fs.existsSync(tempDir)) {
 }
 
 export class PreviewService {
+    // Download object if not cached or expired; return local path
     async generatePreview(bucketName: string, fileName: string): Promise<string> {
         let targetBucketName = bucketName;
 

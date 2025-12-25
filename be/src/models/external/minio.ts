@@ -1,4 +1,5 @@
 
+// Singleton MinIO client configured from environment for reuse across services.
 import * as Minio from 'minio';
 import { config } from '@/config/index.js';
 
@@ -7,6 +8,7 @@ class MinioSingleton {
 
   private constructor() { }
 
+  // Lazily create/reuse MinIO client using env/override values
   public static getInstance(): Minio.Client {
     if (!MinioSingleton.instance) {
       MinioSingleton.instance = new Minio.Client({

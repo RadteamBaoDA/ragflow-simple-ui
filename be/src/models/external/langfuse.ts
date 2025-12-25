@@ -1,4 +1,5 @@
 
+// Singleton wrapper around Langfuse SDK for downstream services.
 import { Langfuse } from 'langfuse';
 import { config } from '@/config/index.js';
 
@@ -7,6 +8,7 @@ class LangfuseSingleton {
 
   private constructor() { }
 
+  // Create or return shared Langfuse client configured from central config
   public static getInstance(): Langfuse {
     if (!LangfuseSingleton.instance) {
       LangfuseSingleton.instance = new Langfuse({

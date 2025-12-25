@@ -12,20 +12,20 @@
  * @module routes/audit
  */
 
-import { Router } from 'express';
-import { AuditController } from '@/controllers/audit.controller.js';
-import { requireAuth, requireRole } from '@/middleware/auth.middleware.js';
+import { Router } from 'express'
+import { AuditController } from '@/controllers/audit.controller.js'
+import { requireAuth, requireRole } from '@/middleware/auth.middleware.js'
 
-const router = Router();
-const controller = new AuditController();
+const router = Router()
+const controller = new AuditController()
 
 // ============================================================================
 // Middleware
 // ============================================================================
 
 /** Apply authentication and admin role requirement to all audit routes */
-router.use(requireAuth);
-router.use(requireRole('admin'));
+router.use(requireAuth)
+router.use(requireRole('admin'))
 
 // ============================================================================
 // Route Handlers
@@ -48,7 +48,7 @@ router.use(requireRole('admin'));
  * @requires admin role
  * @returns {AuditLogResponse} Paginated audit logs with metadata
  */
-router.get('/', controller.getLogs.bind(controller));
+router.get('/', controller.getLogs.bind(controller))
 
 /**
  * GET /api/audit/actions
@@ -58,7 +58,7 @@ router.get('/', controller.getLogs.bind(controller));
  * @requires admin role
  * @returns {string[]} List of action types
  */
-router.get('/actions', controller.getActions.bind(controller));
+router.get('/actions', controller.getActions.bind(controller))
 
 /**
  * GET /api/audit/resource-types
@@ -68,6 +68,6 @@ router.get('/actions', controller.getActions.bind(controller));
  * @requires admin role
  * @returns {string[]} List of resource types
  */
-router.get('/resource-types', controller.getResourceTypes.bind(controller));
+router.get('/resource-types', controller.getResourceTypes.bind(controller))
 
-export default router;
+export default router

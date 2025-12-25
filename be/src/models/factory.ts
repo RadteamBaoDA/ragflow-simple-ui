@@ -1,4 +1,7 @@
 
+/**
+ * Lazy-loaded singletons for all data models to keep connection sharing consistent.
+ */
 import { UserModel } from '@/models/user.model.js';
 import { TeamModel } from '@/models/team.model.js';
 import { UserTeamModel } from '@/models/user-team.model.js';

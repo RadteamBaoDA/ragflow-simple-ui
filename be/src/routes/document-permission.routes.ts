@@ -1,19 +1,19 @@
-import { Router } from 'express';
-import { requireAuth, requireRole } from '@/middleware/auth.middleware.js';
-import { DocumentPermissionController } from '@/controllers/document-permission.controller.js';
+import { Router } from 'express'
+import { requireAuth, requireRole } from '@/middleware/auth.middleware.js'
+import { DocumentPermissionController } from '@/controllers/document-permission.controller.js'
 
-const router = Router();
-const controller = new DocumentPermissionController();
+const router = Router()
+const controller = new DocumentPermissionController()
 
 // Require authentication for all routes
-router.use(requireAuth);
+router.use(requireAuth)
 
 /**
  * GET /api/document-permissions
  * Get all configured permissions
  * @requires admin role
  */
-router.get('/', requireRole('admin'), controller.getAllPermissions.bind(controller));
+router.get('/', requireRole('admin'), controller.getAllPermissions.bind(controller))
 
 /**
  * POST /api/document-permissions
@@ -21,12 +21,12 @@ router.get('/', requireRole('admin'), controller.getAllPermissions.bind(controll
  * Security: Only admins can grant document permissions, and only to leaders (admins have full access by default)
  * @requires admin role
  */
-router.post('/', requireRole('admin'), controller.setPermission.bind(controller));
+router.post('/', requireRole('admin'), controller.setPermission.bind(controller))
 
 /**
  * GET /api/document-permissions/resolve
  * Get effective permission for current user
  */
-router.get('/resolve', controller.resolveUserPermission.bind(controller));
+router.get('/resolve', controller.resolveUserPermission.bind(controller))
 
-export default router;
+export default router

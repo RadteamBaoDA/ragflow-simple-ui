@@ -1,4 +1,5 @@
 
+// Quick connectivity check against MinIO endpoint using env credentials.
 import dotenv from 'dotenv';
 import * as Minio from 'minio';
 import path from 'path';
@@ -11,6 +12,7 @@ const __dirname = path.dirname(__filename);
 // Load environment variables from .env file
 dotenv.config({ path: path.resolve(__dirname, '../../.env') });
 
+// Smoke test covering list/create/upload/download/delete flow
 async function testMinio() {
     console.log('--- MinIO Connection Test ---');
 

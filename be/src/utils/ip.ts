@@ -1,3 +1,4 @@
+// Extracts client IP from common proxy headers with sane fallbacks.
 import { Request } from 'express';
 
 /**
