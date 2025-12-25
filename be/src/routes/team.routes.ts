@@ -1,7 +1,6 @@
 import { Router } from 'express';
 import { TeamController } from '@/controllers/team.controller.js';
-import { requireAuth, requireRole, requirePermission } from '@/middleware/auth.middleware.js';
-import { log } from '@/services/logger.service.js';
+import { requirePermission } from '@/middleware/auth.middleware.js';
 
 const router = Router();
 const controller = new TeamController();
