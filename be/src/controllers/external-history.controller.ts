@@ -12,7 +12,7 @@ export class ExternalHistoryController {
      */
     async collectChatHistory(req: Request, res: Response): Promise<void> {
         try {
-            const { session_id, user_prompt, llm_response, citations } = req.body;
+            const { session_id, user_email, user_prompt, llm_response, citations } = req.body;
 
             if (!session_id || !user_prompt || !llm_response) {
                 res.status(400).json({ error: 'Missing required fields' });
@@ -21,6 +21,7 @@ export class ExternalHistoryController {
 
             await queueService.addChatHistoryJob({
                 session_id,
+                user_email,
                 user_prompt,
                 llm_response,
                 citations: citations || [],
@@ -38,7 +39,7 @@ export class ExternalHistoryController {
      */
     async collectSearchHistory(req: Request, res: Response): Promise<void> {
         try {
-            const { search_input, ai_summary, file_results } = req.body;
+            const { search_input, user_email, ai_summary, file_results } = req.body;
 
             if (!search_input) {
                 res.status(400).json({ error: 'Missing required fields' });
@@ -47,6 +48,7 @@ export class ExternalHistoryController {
 
             await queueService.addSearchHistoryJob({
                 search_input,
+                user_email,
                 ai_summary: ai_summary || '',
                 file_results: file_results || [],
             });

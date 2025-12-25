@@ -7,6 +7,7 @@ import { db } from '@/db/knex.js'
 export interface ExternalChatHistory {
     id: string
     session_id: string
+    user_email?: string
     user_prompt: string
     llm_response: string
     citations: any[]

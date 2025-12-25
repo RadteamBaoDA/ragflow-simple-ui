@@ -1,6 +1,6 @@
 
 import { describe, it, expect, vi, beforeEach } from 'vitest'
-import { AdminHistoryController } from './admin-history.controller.js'
+import { AdminHistoryController } from '../../src/controllers/admin-history.controller.js'
 import { ModelFactory } from '@/models/factory.js'
 import { Request, Response } from 'express'
 
@@ -115,10 +115,10 @@ describe('AdminHistoryController', () => {
             // since we return the same mock object.
             // However, leftJoin and other specific methods need to be mocked.
             mockQueryBuilder.leftJoin = vi.fn().mockReturnThis()
-            // We need client.raw for the raw query part
-            ;(mockQueryBuilder as any).client = {
-                raw: vi.fn().mockReturnThis()
-            }
+                // We need client.raw for the raw query part
+                ; (mockQueryBuilder as any).client = {
+                    raw: vi.fn().mockReturnThis()
+                }
         })
 
         it('should fetch system chat history with default pagination', async () => {

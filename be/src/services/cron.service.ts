@@ -6,8 +6,17 @@ import path from 'path';
 import { config } from '@/config/index.js';
 import { log } from '@/services/logger.service.js';
 
+/**
+ * CronService
+ * Singleton service that schedules and runs recurring maintenance tasks.
+ * Currently handles temp cache file cleanup based on configurable TTL and schedule.
+ */
 export class CronService {
-    // Register cron job for temp file cleanup based on config schedule
+    /**
+     * Start the temp file cleanup cron job.
+     * Registers a scheduled task that periodically removes expired files from temp cache.
+     * Schedule and TTL are configured via config.tempFileCleanupSchedule and config.tempFileTTL.
+     */
     public startCleanupJob() {
         log.info('Starting temp file cleanup cron job', {
             schedule: config.tempFileCleanupSchedule,
@@ -21,7 +30,12 @@ export class CronService {
         });
     }
 
-    // Remove expired cached files; logs counts for observability
+    /**
+     * Execute the temp file cleanup process.
+     * Scans the temp directory and deletes files older than the configured TTL.
+     * Logs deleted count, error count, and total scanned for observability.
+     * Handles missing directory gracefully by skipping cleanup.
+     */
     private async runCleanup() {
         log.debug('Running scheduled temp file cleanup');
         const tempPath = config.tempCachePath;

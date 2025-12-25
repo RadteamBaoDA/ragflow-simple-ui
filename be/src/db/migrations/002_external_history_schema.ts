@@ -23,6 +23,7 @@ export const migration: Migration = {
             CREATE TABLE IF NOT EXISTS external_chat_history (
                 id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
                 session_id TEXT NOT NULL,
+                email TEXT,
                 user_prompt TEXT NOT NULL,
                 llm_response TEXT NOT NULL,
                 citations JSONB DEFAULT '[]'::jsonb,
@@ -30,18 +31,23 @@ export const migration: Migration = {
             )
         `);
         await db.query('CREATE INDEX IF NOT EXISTS idx_external_chat_history_session_id ON external_chat_history(session_id)');
+        await db.query('CREATE INDEX IF NOT EXISTS idx_external_chat_history_email ON external_chat_history(email)');
         await db.query('CREATE INDEX IF NOT EXISTS idx_external_chat_history_created_at ON external_chat_history(created_at DESC)');
 
         // 2. External Search History
         await db.query(`
             CREATE TABLE IF NOT EXISTS external_search_history (
                 id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
+                session_id TEXT,
+                email TEXT,
                 search_input TEXT NOT NULL,
                 ai_summary TEXT,
                 file_results JSONB DEFAULT '[]'::jsonb,
                 created_at TIMESTAMP WITH TIME ZONE DEFAULT NOW()
             )
         `);
+        await db.query('CREATE INDEX IF NOT EXISTS idx_external_search_history_session_id ON external_search_history(session_id)');
+        await db.query('CREATE INDEX IF NOT EXISTS idx_external_search_history_email ON external_search_history(email)');
         await db.query('CREATE INDEX IF NOT EXISTS idx_external_search_history_created_at ON external_search_history(created_at DESC)');
 
         log.info('External history schema created successfully');

@@ -6,6 +6,7 @@ import { db } from '@/db/knex.js'
 
 export interface ExternalSearchHistory {
     id: string
+    user_email?: string
     search_input: string
     ai_summary: string
     file_results: any[]

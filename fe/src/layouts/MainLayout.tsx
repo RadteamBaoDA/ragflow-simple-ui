@@ -138,12 +138,11 @@ function Layout() {
     switch (location.pathname) {
       case '/ai-chat':
         return t('pages.aiChat.title');
-      case '/ai-search':
-        return t('pages.aiSearch.title');
       case '/history':
         return t('pages.history.title');
+      case '/histories':
+        return t('histories.title');
       case '/system-tools':
-        return t('pages.systemTools.title');
       case '/system-monitor':
         return t('pages.systemMonitor.title');
       case '/documents':
@@ -333,9 +332,9 @@ function Layout() {
                     <Megaphone size={18} />
                     <span>{t('nav.broadcastMessages')}</span>
                   </NavLink>
-                  <NavLink to="/external-history" className={({ isActive }: { isActive: boolean }) => `sidebar-link ${isActive ? 'active' : ''}`} title="Histories">
+                  <NavLink to="/histories" className={({ isActive }: { isActive: boolean }) => `sidebar-link ${isActive ? 'active' : ''}`} title={t('nav.histories')}>
                     <History size={18} />
-                    <span>Histories</span>
+                    <span>{t('nav.histories')}</span>
                   </NavLink>
 
                 </div>
@@ -396,7 +395,7 @@ function Layout() {
             />
           )}
         </header>
-        <div className={`flex-1 overflow-hidden ${['/ai-chat', '/ai-search', '/documents', '/system-tools', '/storage-dashboard', '/ragflow-config', '/iam/teams'].includes(location.pathname) ? '' : 'p-8 overflow-auto'}`}>
+        <div className={`flex-1 overflow-hidden ${['/ai-chat', '/ai-search', '/documents', '/system-tools', '/storage-dashboard', '/ragflow-config', '/iam/teams', '/histories'].includes(location.pathname) ? '' : 'p-8 overflow-auto'}`}>
           <Outlet />
         </div>
       </main>

@@ -1,95 +1,209 @@
-# External History Integration Guide
+# Agent Specification: External History Client Implementation
 
-This guide explains how to integrate your external ReactJS application (e.g., RAGFlow) with the Knowledge Base External History API. This API allows you to store and retrieve chat and search history securely.
+**Goal:** Implement a client to send chat and search history logs to the Knowledge Base External History API for persistent storage and admin auditing.
 
-## Prerequisites
+---
 
-1.  **API Key**: You must have a valid API Key configured in the backend (`EXTERNAL_TRACE_API_KEY` in `.env`).
-2.  **Base URL**: The base URL of the Knowledge Base API (e.g., `https://api.knowledge-base.com`).
+## API Overview
 
-## 1. Environment Configuration
+| Method | Endpoint | Description |
+|--------|----------|-------------|
+| GET | `/api/external/health` | Health check endpoint |
+| POST | `/api/external/history/chat` | Submit chat history (prompt/response/citations) |
+| POST | `/api/external/history/search` | Submit search history (input/summary/files) |
 
-Add the following environment variables to your ReactJS application:
+---
 
-```env
-REACT_APP_KB_API_URL=https://api.knowledge-base.com
-REACT_APP_KB_API_KEY=your-secure-api-key
+## Configuration Requirements
+
+### Server-Side Environment Variables
+
+```bash
+# Optional: API key for authentication (shared with trace API)
+EXTERNAL_TRACE_API_KEY=your-secure-api-key
+
+# CORS: Allow your agent's origin
+CORS_ORIGINS=http://localhost:3001,http://your-agent-host:8000
 ```
 
-## 2. API Client Implementation
+---
 
-Create an API client helper to handle requests.
+## 0. Health Check (`GET /api/external/health`)
 
-```typescript
-// api.ts
-const API_BASE_URL = process.env.REACT_APP_KB_API_URL;
-const API_KEY = process.env.REACT_APP_KB_API_KEY;
+**When to call:**
+- Before starting history submissions to verify API availability and authentication configuration.
 
-export async function sendHistory(endpoint: string, data: any) {
-  try {
-    const response = await fetch(`${API_BASE_URL}/api/external/history/${endpoint}`, {
-      method: 'POST',
-      headers: {
-        'Content-Type': 'application/json',
-        'x-api-key': API_KEY,
-      },
-      body: JSON.stringify(data),
-    });
-
-    if (!response.ok) {
-      console.error('Failed to send history:', await response.text());
-    }
-  } catch (error) {
-    console.error('Error sending history:', error);
-  }
+**Response:**
+```json
+{
+  "status": "ok",
+  "service": "external-trace",
+  "timestamp": "2025-12-25T10:00:00.000Z"
 }
 ```
 
-## 3. Usage Examples
+---
 
-### 3.1 Collect Chat History
+## 1. Chat History Collection (`POST /api/external/history/chat`)
 
-Call this function after a chat completion event.
+**When to call:**
+- After an LLM completion is finished and you have the final response and citations.
 
-```typescript
-import { sendHistory } from './api';
+### Request Headers
 
-// Example data
-const chatData = {
-  session_id: "unique-session-id-123",
-  user_prompt: "What is the capital of France?",
-  llm_response: "The capital of France is Paris.",
-  citations: ["Source A", "Source B"] // Optional
-};
-
-// Send to backend
-sendHistory('chat', chatData);
+```http
+Content-Type: application/json
+X-API-Key: your-api-key  # Optional, if EXTERNAL_TRACE_API_KEY is configured
 ```
 
-### 3.2 Collect Search History
+### Input Payload
 
-Call this function after a search operation is completed.
-
-```typescript
-import { sendHistory } from './api';
-
-// Example data
-const searchData = {
-  search_input: "revenue report 2023",
-  ai_summary: "The revenue for 2023 was $10M...",
-  file_results: ["report_2023.pdf", "q4_summary.docx"]
-};
-
-// Send to backend
-sendHistory('search', searchData);
+```json
+{
+  "session_id": "unique-session-id", // REQUIRED: ID for conversation threading
+  "user_email": "user@example.com",  // OPTIONAL: Associate history with a specific user
+  "user_prompt": "What is RAG?",     // REQUIRED: The user's question
+  "llm_response": "RAG stands for...",// REQUIRED: The assistant's answer
+  "citations": ["doc1.pdf", "web_link"]// OPTIONAL: Array of source references
+}
 ```
 
-## 4. Troubleshooting
+### Success Response (202 Accepted)
 
-*   **401 Unauthorized**: Check if `x-api-key` header matches the backend configuration.
-*   **400 Bad Request**: Ensure all required fields are present in the payload.
-*   **500 Internal Server Error**: Check backend logs for processing errors.
+*Note: History is processed asynchronously via a background queue.*
 
-## 5. View History
+```json
+{
+  "message": "Chat history collection started"
+}
+```
 
-You can view the collected history in the Knowledge Base UI under the "External History" section.
+---
+
+## 2. Search History Collection (`POST /api/external/history/search`)
+
+**When to call:**
+- After a search operation is performed, typically combined with an AI summary.
+
+### Request Headers
+
+```http
+Content-Type: application/json
+X-API-Key: your-api-key  # Optional
+```
+
+### Input Payload
+
+```json
+{
+  "search_input": "2024 projections", // REQUIRED: The search query
+  "user_email": "user@example.com",   // OPTIONAL: Associate history with a specific user
+  "ai_summary": "The summary is...",  // OPTIONAL: AI-generated summary of results
+  "file_results": ["table.xlsx", "p.pdf"] // OPTIONAL: List of files found
+}
+```
+
+### Success Response (202 Accepted)
+
+```json
+{
+  "message": "Search history collection started"
+}
+```
+
+---
+
+## Implementation Logic (Flow Diagram)
+
+```
+┌─────────────────────────────────────────────────────────────────┐
+│                    AGENT HISTORY FLOW                            │
+├─────────────────────────────────────────────────────────────────┤
+│                                                                  │
+│  1. User interacts with Agent                                    │
+│     │                                                           │
+│     ▼                                                           │
+│  2. Agent completes Task (Chat/Search)                           │
+│     │                                                           │
+│     ▼                                                           │
+│  ┌─────────────────────────────────────────────────────────┐    │
+│  │ POST /api/external/history/[type]                       │    │
+│  │ {                                                        │    │
+│  │   "user_email": "user@example.com",                     │    │
+│  │   "session_id": "session_123",                          │    │
+│  │   "user_prompt": "...",                                 │    │
+│  │   "llm_response": "...",                                │    │
+│  │   "citations": [...]                                    │    │
+│  │ }                                                        │    │
+│  └─────────────────────────────────────────────────────────┘    │
+│     │                                                           │
+│     ▼                                                           │
+│  3. KB API validates API Key -> Enqueues Job                    │
+│     │                                                           │
+│     ▼                                                           │
+│  4. Response: 202 "Collection started"                           │
+│                                                                  │
+└─────────────────────────────────────────────────────────────────┘
+```
+
+---
+
+## Python Client Example
+
+```python
+import requests
+from typing import Optional, List, Dict, Any
+
+class KBHistoryClient:
+    def __init__(self, base_url: str, api_key: Optional[str] = None):
+        self.base_url = base_url.rstrip('/')
+        self.headers = {'Content-Type': 'application/json'}
+        if api_key:
+            self.headers['X-API-Key'] = api_key
+
+    def send_chat_history(self, session_id: str, prompt: str, response: str, 
+                          email: Optional[str] = None, citations: List[str] = None):
+        payload = {
+            "session_id": session_id,
+            "user_prompt": prompt,
+            "llm_response": response,
+            "user_email": email,
+            "citations": citations or []
+        }
+        return requests.post(f"{self.base_url}/api/external/history/chat", 
+                             json=payload, headers=self.headers).json()
+
+    def send_search_history(self, search_input: str, email: Optional[str] = None,
+                            summary: str = "", files: List[str] = None):
+        payload = {
+            "search_input": search_input,
+            "user_email": email,
+            "ai_summary": summary,
+            "file_results": files or []
+        }
+        return requests.post(f"{self.base_url}/api/external/history/search", 
+                             json=payload, headers=self.headers).json()
+
+# Usage
+client = KBHistoryClient("http://localhost:3001", "your-api-key")
+client.send_chat_history("session-1", "Hello", "Hi there!", "user@example.com")
+```
+
+---
+
+## Error Handling
+
+| HTTP Status | Error Message | Solution |
+|-------------|---------------|----------|
+| 202 | `message: "Collection started"` | Success |
+| 400 | `error: "Missing required fields"` | Check payload requirements |
+| 401 | `error: "Unauthorized"` | Check `X-API-Key` |
+| 500 | `error: "Internal server error"` | Check server/Redis logs |
+
+---
+
+## Best Practices
+
+1. **Fire and Forget**: Since the API returns 202 immediately, you don't need to block your user interface waiting for a confirmation of persistence.
+2. **Consistent Session IDs**: Use the same `session_id` for all messages in a single conversation to ensure they are grouped correctly in the admin view.
+3. **Log Emails**: Always include the `user_email` if available to enable advanced filtering and auditing by user in the Knowledge Base dashboard.

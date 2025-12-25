@@ -80,6 +80,7 @@
     "signOut": "Sign Out",
     "knowledgeBase": "Knowledge Base",
     "broadcastMessages": "Broadcast",
+    "histories": "Histories",
     "expandMenu": "Expand menu",
     "administrators": "Administrators",
     "collapseMenu": "Collapse menu"
@@ -601,6 +602,28 @@
     "addSuccess": "Source added successfully",
     "updateSuccess": "Source updated successfully",
     "deleteSuccess": "Source deleted successfully"
+  },
+  "histories": {
+    "title": "Histories",
+    "chatTab": "Chat History",
+    "searchTab": "Search History",
+    "searchPlaceholder": "Search history...",
+    "searchButton": "Search",
+    "loading": "Loading...",
+    "noSelected": "Select an item from the history to view details",
+    "prompt": "User Prompt",
+    "response": "Assistant Response",
+    "citations": "Citations",
+    "searchInput": "Search Input",
+    "aiSummary": "AI Summary",
+    "fileResults": "File Results",
+    "filterTitle": "Filter History",
+    "emailLabel": "User Email",
+    "startDateLabel": "Start Date",
+    "endDateLabel": "End Date",
+    "applyFilter": "Apply Filters",
+    "resetFilter": "Reset",
+    "filterButton": "Filter"
   },
   "errors": {
     "REAUTH_REQUIRED": "Re-authentication required"

@@ -12,29 +12,46 @@ export interface AccessControl {
     user_ids: string[];
 }
 
+/**
+ * KnowledgeBaseService
+ * Manages knowledge-base source metadata, access control lists (ACLs), and system defaults.
+ * Provides CRUD operations for knowledge base sources with audit logging.
+ */
 export class KnowledgeBaseService {
-    // Placeholder init hook for future bootstrap
+    /**
+     * Initialize the knowledge base service.
+     * Placeholder hook for future bootstrap operations like loading defaults or migrations.
+     */
     async initialize(): Promise<void> {
     }
 
-    // Fetch all sources sorted by name
+    /**
+     * Fetch all knowledge base sources sorted alphabetically by name.
+     * @returns Array of all KnowledgeBaseSource records
+     */
     async getSources(): Promise<KnowledgeBaseSource[]> {
         return ModelFactory.knowledgeBaseSource.findAll({}, {
             orderBy: { name: 'asc' }
         });
     }
 
-    // Alias kept for compatibility
+    /**
+     * Alias for getSources() - kept for backward compatibility.
+     * @returns Array of all KnowledgeBaseSource records
+     */
     async getAllSources(): Promise<KnowledgeBaseSource[]> {
         return this.getSources();
     }
 
     /**
-     * Get sources available to a specific user based on ACL.
-     * Admins see all sources.
-     * Regular users see public sources and those they have explicit access to.
+     * Get sources available to a specific user based on access control rules.
+     * Access determination logic:
+     * - No user (guest): Only public sources are returned
+     * - Admin users: See all sources
+     * - Regular users: See public sources + sources with explicit user/team access
+     * @param user - Optional user object with id, role, and team membership
+     * @returns Array of KnowledgeBaseSource records the user can access
      */
-    // Filter sources by ACLs; admins see all, guests see only public
     async getAvailableSources(user?: any): Promise<KnowledgeBaseSource[]> {
         // If no user, only return public sources
         if (!user) {
@@ -75,7 +92,14 @@ export class KnowledgeBaseService {
         }).sort((a, b) => a.name.localeCompare(b.name));
     }
 
-    // Basic paginated fetch (total placeholder until count added)
+    /**
+     * Fetch paginated list of sources by type.
+     * Note: Total count is currently a placeholder (100) until proper count query is implemented.
+     * @param type - Source type filter ('chat' or 'search')
+     * @param page - Page number (1-indexed)
+     * @param limit - Number of items per page
+     * @returns Object with data array, total count, page, and limit
+     */
     async getSourcesPaginated(type: string, page: number, limit: number): Promise<any> {
         const offset = (page - 1) * limit;
         const sources = await ModelFactory.knowledgeBaseSource.findAll({ type }, {
@@ -90,7 +114,14 @@ export class KnowledgeBaseService {
         return { data: sources, total: 100, page, limit }; // Placeholder total
     }
 
-    // Upsert system config key and audit actor
+    /**
+     * Save or update a system configuration key-value pair.
+     * Creates new record if key doesn't exist, updates value if it does.
+     * Logs audit entry if user context is provided.
+     * @param key - Configuration key identifier
+     * @param value - Configuration value to store
+     * @param user - Optional user for audit logging
+     */
     async saveSystemConfig(key: string, value: string, user?: any): Promise<void> {
         const existing = await ModelFactory.systemConfig.findById(key);
         if (existing) {
@@ -112,7 +143,14 @@ export class KnowledgeBaseService {
         }
     }
 
-    // Create KB source record and audit
+    /**
+     * Create a new knowledge base source record.
+     * Stores source metadata in database and logs audit entry.
+     * @param data - Source data including type, name, url, and access_control
+     * @param user - Optional user for audit logging with id, email, and ip
+     * @returns The created KnowledgeBaseSource record
+     * @throws Error if database operation fails
+     */
     async createSource(data: any, user?: { id: string, email: string, ip?: string }): Promise<KnowledgeBaseSource> {
         try {
             const source = await ModelFactory.knowledgeBaseSource.create({
@@ -145,12 +183,29 @@ export class KnowledgeBaseService {
         }
     }
 
-    // Convenience wrapper matching controller signature
+    /**
+     * Convenience wrapper to add a source matching controller signature.
+     * Delegates to createSource with structured data object.
+     * @param type - Source type ('chat' or 'search')
+     * @param name - Display name for the source
+     * @param url - URL endpoint for the source
+     * @param access_control - ACL object with public, team_ids, user_ids
+     * @param user - Optional user for audit logging
+     * @returns The created KnowledgeBaseSource record
+     */
     async addSource(type: string, name: string, url: string, access_control: any, user?: any): Promise<KnowledgeBaseSource> {
         return this.createSource({ type, name, url, access_control }, user);
     }
 
-    // Patch mutable fields on a source and audit
+    /**
+     * Update an existing knowledge base source.
+     * Patches mutable fields (name, url, access_control) and logs audit entry.
+     * @param id - Source ID to update
+     * @param data - Partial update data with optional name, url, access_control
+     * @param user - Optional user for audit logging
+     * @returns Updated KnowledgeBaseSource or undefined if not found
+     * @throws Error if database operation fails
+     */
     async updateSource(id: string, data: any, user?: { id: string, email: string, ip?: string }): Promise<KnowledgeBaseSource | undefined> {
         try {
             const updateData: any = {};
@@ -184,7 +239,13 @@ export class KnowledgeBaseService {
         }
     }
 
-    // Delete a source record with audit trail
+    /**
+     * Delete a knowledge base source record.
+     * Removes source from database and logs audit entry with source name.
+     * @param id - Source ID to delete
+     * @param user - Optional user for audit logging
+     * @throws Error if database operation fails
+     */
     async deleteSource(id: string, user?: { id: string, email: string, ip?: string }): Promise<void> {
         try {
             const source = await ModelFactory.knowledgeBaseSource.findById(id);
@@ -207,7 +268,12 @@ export class KnowledgeBaseService {
         }
     }
 
-    // Compose frontend config payload with default source IDs
+    /**
+     * Get frontend configuration payload with available sources and defaults.
+     * Returns chat/search sources filtered by user ACL plus default source IDs.
+     * @param user - Optional user for ACL filtering
+     * @returns Config object with chatSources, searchSources, and default IDs
+     */
     async getConfig(user?: any): Promise<any> {
         const availableSources = await this.getAvailableSources(user);
 
@@ -222,7 +288,12 @@ export class KnowledgeBaseService {
         };
     }
 
-    // Persist default source IDs via system config table
+    /**
+     * Update default source configuration.
+     * Persists default chat and/or search source IDs via system config table.
+     * @param data - Object with optional defaultChatSourceId and defaultSearchSourceId
+     * @param user - Optional user for audit logging
+     */
     async updateConfig(data: { defaultChatSourceId?: string; defaultSearchSourceId?: string }, user?: any): Promise<void> {
         if (data.defaultChatSourceId !== undefined) {
             await this.saveSystemConfig('defaultChatSourceId', data.defaultChatSourceId, user);

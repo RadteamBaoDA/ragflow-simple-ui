@@ -1,6 +1,6 @@
 
 import { describe, it, expect, vi, beforeEach } from 'vitest'
-import { ChatHistoryController } from './chat-history.controller.js'
+import { ChatHistoryController } from '../../src/controllers/chat-history.controller.js'
 import { ModelFactory } from '@/models/factory.js'
 import { Request, Response } from 'express'
 
@@ -47,7 +47,6 @@ describe('ChatHistoryController', () => {
         mockQueryBuilder = {
             from: vi.fn(),
             select: vi.fn(),
-            raw: vi.fn(),
             where: vi.fn(),
             andWhere: vi.fn(),
             orWhereExists: vi.fn(),
@@ -77,23 +76,13 @@ describe('ChatHistoryController', () => {
 
         mockKnex = vi.fn().mockReturnValue(mockQueryBuilder)
 
-        // Setup default mocks
-        ModelFactory.chatSession.getKnex = vi.fn().mockReturnValue(mockKnex) // Should return the function (knex client) not the builder directly
-
-        // However, the controller calls .getKnex().from(...) directly usually IF getKnex returns the builder.
-        // But getKnex() in base model returns `this.knex(tableName)`, which IS a query builder.
-        // Wait, `this.knex` IS the knex client function. `this.knex(table)` returns a QueryBuilder.
-        // So `getKnex()` returns a QueryBuilder.
-
-        // But wait, the controller code I fixed earlier:
-        // `const knex = ModelFactory.chatSession.getKnex();`
-        // `(ModelFactory.chatSession.getKnex().client as any).raw(...)`
-
-        // If getKnex() returns `mockQueryBuilder`, then `mockQueryBuilder.client` must exist.
-        (mockQueryBuilder as any).client = {
+            // Setup mockQueryBuilder.client with raw function for raw SQL queries
+            // getKnex() returns a QueryBuilder, which has a client property
+            (mockQueryBuilder as any).client = {
             raw: vi.fn().mockReturnThis()
-        }
+        };
 
+        // Setup default mock: getKnex returns the mockQueryBuilder
         ModelFactory.chatSession.getKnex = vi.fn().mockReturnValue(mockQueryBuilder)
 
         vi.clearAllMocks()

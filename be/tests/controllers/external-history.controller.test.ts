@@ -1,6 +1,6 @@
 
 import { describe, it, expect, vi, beforeEach } from 'vitest'
-import { ExternalHistoryController } from './external-history.controller.js'
+import { ExternalHistoryController } from '../../src/controllers/external-history.controller.js'
 import { QueueService } from '@/services/queue.service.js'
 import { Request, Response } from 'express'
 
@@ -100,7 +100,7 @@ describe('ExternalHistoryController', () => {
 
         it('should return 400 if missing required fields', async () => {
             req.body = {
-               // missing search_input
+                // missing search_input
             }
 
             await controller.collectSearchHistory(req as Request, res as Response)
