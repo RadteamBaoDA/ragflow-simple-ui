@@ -7,6 +7,12 @@ import { auditService, AuditAction, AuditResourceType } from '@/services/audit.s
 import { User, UserIpHistory } from '@/models/types.js';
 
 export class UserService {
+    /**
+     * Initializes the root user if no users exist in the database.
+     * Uses configuration values for root user credentials.
+     *
+     * @returns A promise that resolves when initialization is complete.
+     */
     async initializeRootUser(): Promise<void> {
         try {
             const users = await ModelFactory.user.findAll();
@@ -35,6 +41,15 @@ export class UserService {
         }
     }
 
+    /**
+     * Finds an existing user or creates a new one based on Azure AD profile.
+     * Updates existing user details if they have changed.
+     *
+     * @param adUser - The Azure AD user profile.
+     * @param ipAddress - The IP address of the user (optional).
+     * @returns A promise that resolves to the found or created user.
+     * @throws Error if the operation fails.
+     */
     async findOrCreateUser(adUser: AzureAdUser, ipAddress?: string): Promise<User> {
         try {
             // Check by ID first
@@ -127,6 +142,12 @@ export class UserService {
         }
     }
 
+    /**
+     * Retrieves all users, optionally filtered by role.
+     *
+     * @param roles - An optional array of roles to filter by.
+     * @returns A promise that resolves to a list of users.
+     */
     async getAllUsers(roles?: string[]): Promise<User[]> {
         const filter: any = {};
         const users = await ModelFactory.user.findAll(filter);
@@ -138,6 +159,13 @@ export class UserService {
         return users.sort((a, b) => b.created_at.getTime() - a.created_at.getTime());
     }
 
+    /**
+     * Creates a new user and logs the action.
+     *
+     * @param data - The user data to create.
+     * @param user - The user performing the creation (optional, for audit).
+     * @returns A promise that resolves to the created user.
+     */
     async createUser(data: any, user?: { id: string, email: string, ip?: string }): Promise<User> {
         const newUser = await ModelFactory.user.create(data);
         if (user) {
@@ -154,6 +182,14 @@ export class UserService {
         return newUser;
     }
 
+    /**
+     * Updates an existing user and logs the action.
+     *
+     * @param id - The ID of the user to update.
+     * @param data - The data to update.
+     * @param user - The user performing the update (optional, for audit).
+     * @returns A promise that resolves to the updated user, or undefined if not found.
+     */
     async updateUser(id: string, data: any, user?: { id: string, email: string, ip?: string }): Promise<User | undefined> {
         const updatedUser = await ModelFactory.user.update(id, data);
         if (user && updatedUser) {
@@ -170,6 +206,13 @@ export class UserService {
         return updatedUser;
     }
 
+    /**
+     * Deletes a user and logs the action.
+     *
+     * @param id - The ID of the user to delete.
+     * @param user - The user performing the deletion (optional, for audit).
+     * @returns A promise that resolves when the deletion is complete.
+     */
     async deleteUser(id: string, user?: { id: string, email: string, ip?: string }): Promise<void> {
         await ModelFactory.user.delete(id);
         if (user) {
@@ -185,14 +228,35 @@ export class UserService {
         }
     }
 
+    /**
+     * Retrieves a user by their ID.
+     *
+     * @param userId - The ID of the user.
+     * @returns A promise that resolves to the user, or undefined if not found.
+     */
     async getUserById(userId: string): Promise<User | undefined> {
         return ModelFactory.user.findById(userId);
     }
 
+    /**
+     * Updates a user's role.
+     *
+     * @param userId - The ID of the user.
+     * @param role - The new role ('admin', 'leader', or 'user').
+     * @returns A promise that resolves to the updated user.
+     */
     async updateUserRole(userId: string, role: 'admin' | 'leader' | 'user'): Promise<User | undefined> {
         return ModelFactory.user.update(userId, { role });
     }
 
+    /**
+     * Updates a user's permissions and logs the action.
+     *
+     * @param userId - The ID of the user to update.
+     * @param permissions - The new list of permissions.
+     * @param actor - The user performing the update (optional, for audit).
+     * @returns A promise that resolves when the update is complete.
+     */
     async updateUserPermissions(userId: string, permissions: string[], actor?: { id: string, email: string, ip?: string }): Promise<void> {
         await ModelFactory.user.update(userId, { permissions: JSON.stringify(permissions) });
 
@@ -209,6 +273,14 @@ export class UserService {
         }
     }
 
+    /**
+     * Records or updates the user's IP address history.
+     * Throttles updates to once every 60 seconds.
+     *
+     * @param userId - The ID of the user.
+     * @param ipAddress - The IP address to record.
+     * @returns A promise that resolves when the record is updated.
+     */
     async recordUserIp(userId: string, ipAddress: string): Promise<void> {
         if (!ipAddress || ipAddress === 'unknown') {
             log.debug('Skipping IP recording: no valid IP', { userId });
@@ -241,6 +313,12 @@ export class UserService {
         }
     }
 
+    /**
+     * Retrieves the IP address history for a specific user.
+     *
+     * @param userId - The ID of the user.
+     * @returns A promise that resolves to a list of IP history records, sorted by recent access.
+     */
     async getUserIpHistory(userId: string): Promise<UserIpHistory[]> {
         const history = await ModelFactory.userIpHistory.findAll({
             user_id: userId
@@ -248,6 +326,11 @@ export class UserService {
         return history.sort((a, b) => b.last_accessed_at.getTime() - a.last_accessed_at.getTime());
     }
 
+    /**
+     * Retrieves IP address history for all users, grouped by user ID.
+     *
+     * @returns A promise that resolves to a Map where keys are user IDs and values are lists of IP history records.
+     */
     async getAllUsersIpHistory(): Promise<Map<string, UserIpHistory[]>> {
         const allHistory = await ModelFactory.userIpHistory.findAll();
 

@@ -5,6 +5,13 @@ import { log } from '@/services/logger.service.js';
 import { getClientIp } from '@/utils/ip.js';
 
 export class AuthController {
+    /**
+     * Handles user login via username and password.
+     *
+     * @param req - The Express request object, containing credentials in the body.
+     * @param res - The Express response object.
+     * @returns A promise that resolves when the response is sent.
+     */
     async login(req: Request, res: Response): Promise<void> {
         try {
             const { username, password } = req.body;
@@ -27,6 +34,13 @@ export class AuthController {
         }
     }
 
+    /**
+     * Handles user logout by destroying the session.
+     *
+     * @param req - The Express request object.
+     * @param res - The Express response object.
+     * @returns A promise that resolves when the response is sent.
+     */
     async logout(req: Request, res: Response): Promise<void> {
         try {
             if (req.session) {
@@ -43,6 +57,13 @@ export class AuthController {
         }
     }
 
+    /**
+     * Handles the OAuth callback (placeholder).
+     *
+     * @param req - The Express request object.
+     * @param res - The Express response object.
+     * @returns A promise that resolves when the response is sent.
+     */
     async callback(req: Request, res: Response): Promise<void> {
         // Implementation for OAuth callback if needed
         res.status(501).json({ message: 'Not implemented yet' });

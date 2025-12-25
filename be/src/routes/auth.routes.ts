@@ -9,6 +9,11 @@ import { requireAuth, getCurrentUser, updateAuthTimestamp } from '@/middleware/a
 
 const router = Router();
 
+/**
+ * GET /api/auth/config
+ * Returns the public authentication configuration.
+ * Used by the frontend to determine available login methods.
+ */
 router.get('/config', (req, res) => {
   res.json({
     enableRootLogin: config.enableRootLogin,
@@ -20,6 +25,11 @@ router.get('/config', (req, res) => {
   });
 });
 
+/**
+ * GET /api/auth/me
+ * Retrieves the currently authenticated user's session data.
+ * Also updates the user's IP address history.
+ */
 router.get('/me', async (req, res) => {
   if (req.session?.user) {
     // Record IP for session resume / auto-login
@@ -39,12 +49,22 @@ router.get('/me', async (req, res) => {
   }
 });
 
+/**
+ * GET /api/auth/login
+ * Initiates the OAuth login flow by redirecting to Azure AD.
+ * Generates a state parameter to prevent CSRF.
+ */
 router.get('/login', (req, res) => {
   const state = authService.generateState();
   req.session.oauthState = state;
   res.redirect(authService.getAuthorizationUrl(state));
 });
 
+/**
+ * GET /api/auth/callback
+ * Handles the OAuth callback from Azure AD.
+ * Exchanges the code for tokens, fetches user profile, and creates the session.
+ */
 router.get('/callback', async (req, res) => {
   const { code, state, error } = req.query;
 
@@ -59,6 +79,7 @@ router.get('/callback', async (req, res) => {
     return;
   }
 
+  // Verify state parameter to prevent CSRF
   if (state !== req.session.oauthState) {
     log.warn('State mismatch in OAuth callback');
     res.redirect(`${config.frontendUrl}/login?error=invalid_state`);
@@ -66,12 +87,15 @@ router.get('/callback', async (req, res) => {
   }
 
   try {
+    // Exchange code for tokens and get user profile
     const tokens = await authService.exchangeCodeForTokens(code);
     const adUser = await authService.getUserProfile(tokens.access_token);
     const ipAddress = getClientIp(req);
 
+    // Sync user with local database
     const user = await userService.findOrCreateUser(adUser, ipAddress);
 
+    // Populate session user object
     req.session.user = {
       ...user,
       displayName: user.display_name as string,
@@ -83,6 +107,7 @@ router.get('/callback', async (req, res) => {
       (req.session.user as any).avatar = adUser.avatar;
     }
 
+    // Store tokens in session for future use
     req.session.accessToken = tokens.access_token as any;
     req.session.refreshToken = tokens.refresh_token as any;
     req.session.tokenExpiresAt = (Date.now() + (tokens.expires_in * 1000)) as any;
@@ -108,6 +133,10 @@ router.get('/callback', async (req, res) => {
   }
 });
 
+/**
+ * POST /api/auth/logout
+ * Destroys the current session.
+ */
 router.post('/logout', requireAuth, (req, res) => {
   req.session.destroy((err) => {
     if (err) {
@@ -119,6 +148,11 @@ router.post('/logout', requireAuth, (req, res) => {
   });
 });
 
+/**
+ * POST /api/auth/reauth
+ * Re-authenticates a user for sensitive actions.
+ * Updates the last re-authentication timestamp.
+ */
 router.post('/reauth', requireAuth, async (req, res) => {
   const user = getCurrentUser(req);
   if (!user) {
@@ -126,6 +160,7 @@ router.post('/reauth', requireAuth, async (req, res) => {
     return;
   }
 
+  // Special handling for root user re-auth via password check
   if (user.id === 'root-user') {
     const { password } = req.body;
     const rootPass = config.rootPassword;
@@ -147,6 +182,10 @@ router.post('/reauth', requireAuth, async (req, res) => {
   res.json({ success: true });
 });
 
+/**
+ * POST /api/auth/refresh-token
+ * Refreshes the Azure AD access token stored in the session.
+ */
 router.post('/refresh-token', requireAuth, async (req, res) => {
   const user = getCurrentUser(req);
   if (!user) {
@@ -179,11 +218,19 @@ router.post('/refresh-token', requireAuth, async (req, res) => {
   }
 });
 
+/**
+ * GET /api/auth/token-status
+ * Checks if the current session has a valid access token.
+ */
 router.get('/token-status', requireAuth, (req, res) => {
   const user = getCurrentUser(req);
   res.json({ hasToken: !!req.session.accessToken });
 });
 
+/**
+ * POST /api/auth/login/root
+ * Authenticates the root user via username/password.
+ */
 router.post('/login/root', async (req, res) => {
   try {
     const { username, password } = req.body;

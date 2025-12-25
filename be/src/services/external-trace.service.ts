@@ -27,6 +27,12 @@ export class ExternalTraceService {
     private chatTraces: Map<string, any> = new Map();
     private readonly DEFAULT_TAGS = ['knowledge-base', 'external-trace'];
 
+    /**
+     * Initializes and returns the Redis client for caching.
+     * Reuse the client if already connected.
+     *
+     * @returns A promise that resolves to the Redis client or null if connection fails.
+     */
     private async getRedisClient(): Promise<ReturnType<typeof createClient> | null> {
         if (this.redisClient && this.redisClient.isReady) {
             return this.redisClient;
@@ -131,6 +137,14 @@ export class ExternalTraceService {
         return false;
     }
 
+    /**
+     * Validates an email against the user database with caching and locking mechanisms.
+     * Prevents cache stampede using distributed locks.
+     *
+     * @param email - The email to validate.
+     * @param ipAddress - The request IP address (used for cache key namespace).
+     * @returns A promise that resolves to true if the email is valid (user exists), false otherwise.
+     */
     async validateEmailWithCache(email: string, ipAddress: string): Promise<boolean> {
         const cacheKey = this.getCacheKey(ipAddress, email);
         const lockKey = this.getLockKey(ipAddress, email);
@@ -182,7 +196,13 @@ export class ExternalTraceService {
         return [...new Set(tags)];
     }
 
-    // Renamed from collectTrace to processTrace to match controller usage
+    /**
+     * Processes a trace event (chat message or generation) and sends it to Langfuse.
+     * Validates the user email before processing.
+     *
+     * @param params - The trace parameters including email, message, and metadata.
+     * @returns A promise that resolves to the result containing the trace ID or error.
+     */
     async processTrace(params: ExternalTraceParams): Promise<CollectTraceResult> {
         const { email, message, ipAddress, role = 'user', response, metadata } = params;
 
@@ -300,6 +320,13 @@ export class ExternalTraceService {
         }
     }
 
+    /**
+     * Processes user feedback for a trace and submits it to Langfuse.
+     *
+     * @param params - Feedback parameters (traceId, score, comment).
+     * @returns A promise that resolves to the result.
+     * @throws Error if traceId is missing.
+     */
     async processFeedback(params: any): Promise<any> {
         // Placeholder for feedback processing - Langfuse SDK has score/feedback methods
         // Assuming params has traceId, score, etc.
@@ -318,6 +345,9 @@ export class ExternalTraceService {
         return { success: true };
     }
 
+    /**
+     * Shuts down the Redis client.
+     */
     async shutdown(): Promise<void> {
         if (this.redisClient && this.redisClient.isOpen) {
             await this.redisClient.quit();

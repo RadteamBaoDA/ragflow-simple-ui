@@ -84,6 +84,12 @@ export interface AuditLogResponse {
 }
 
 class AuditService {
+    /**
+     * Logs an audit event to the database.
+     *
+     * @param params - The audit log parameters (user, action, resource, etc.).
+     * @returns A promise that resolves to the ID of the created log entry, or null if failed.
+     */
     async log(params: AuditLogParams): Promise<number | null> {
         try {
             const {
@@ -124,6 +130,14 @@ class AuditService {
         }
     }
 
+    /**
+     * Retrieves audit logs based on filters and pagination.
+     *
+     * @param filters - An object containing filter criteria (userId, action, resourceType).
+     * @param limit - The maximum number of logs to retrieve (default: 50).
+     * @param offset - The number of logs to skip (default: 0).
+     * @returns A promise that resolves to an object containing the logs and pagination metadata.
+     */
     async getLogs(filters: any = {}, limit: number = 50, offset: number = 0): Promise<AuditLogResponse> {
         const whereClause: any = {};
         if (filters.userId) whereClause.user_id = filters.userId;
@@ -161,6 +175,13 @@ class AuditService {
         };
     }
 
+    /**
+     * Retrieves the audit history for a specific resource.
+     *
+     * @param resourceType - The type of the resource.
+     * @param resourceId - The ID of the resource.
+     * @returns A promise that resolves to a list of audit logs for the resource.
+     */
     async getResourceHistory(resourceType: string, resourceId: string): Promise<AuditLog[]> {
         const logs = await ModelFactory.auditLog.findAll({
             resource_type: resourceType,
@@ -173,6 +194,12 @@ class AuditService {
         }));
     }
 
+    /**
+     * Exports audit logs to a CSV string.
+     *
+     * @param filters - The filters to apply when selecting logs for export.
+     * @returns A promise that resolves to the CSV content as a string.
+     */
     async exportLogsToCsv(filters: any): Promise<string> {
         const response = await this.getLogs(filters, 1000000, 0);
         const logs = response.data;
@@ -197,14 +224,31 @@ class AuditService {
         return [header, ...rows].join('\n');
     }
 
+    /**
+     * Retrieves all available audit action types.
+     *
+     * @returns A promise that resolves to a list of audit action strings.
+     */
     async getActionTypes(): Promise<string[]> {
         return Object.values(AuditAction);
     }
 
+    /**
+     * Retrieves all available audit resource types.
+     *
+     * @returns A promise that resolves to a list of audit resource type strings.
+     */
     async getResourceTypes(): Promise<string[]> {
         return Object.values(AuditResourceType);
     }
 
+    /**
+     * Deletes audit logs older than a specified number of days.
+     * (Placeholder implementation)
+     *
+     * @param olderThanDays - The threshold in days for deletion.
+     * @returns A promise that resolves to the number of deleted logs.
+     */
     async deleteOldLogs(olderThanDays: number): Promise<number> {
         return 0;
     }

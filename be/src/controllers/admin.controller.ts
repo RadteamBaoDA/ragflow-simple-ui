@@ -5,6 +5,13 @@ import { userService } from '@/services/user.service.js';
 import { log } from '@/services/logger.service.js';
 
 export class AdminController {
+  /**
+   * Retrieves dashboard statistics for the admin panel.
+   *
+   * @param req - The Express request object.
+   * @param res - The Express response object.
+   * @returns A promise that resolves when the response is sent.
+   */
   async getDashboardStats(req: Request, res: Response): Promise<void> {
     try {
       // Placeholder for dashboard stats

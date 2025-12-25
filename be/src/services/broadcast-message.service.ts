@@ -21,8 +21,12 @@ export interface BroadcastMessage {
 
 export class BroadcastMessageService {
     /**
-     * Get all currently active broadcast messages.
-     * If userId is provided, filter out messages that the user has already dismissed.
+     * Retrieves all currently active broadcast messages.
+     * If a user ID is provided, filters out messages previously dismissed by that user.
+     *
+     * @param userId - The ID of the user (optional).
+     * @returns A promise that resolves to a list of active broadcast messages.
+     * @throws Error if the query fails.
      */
     async getActiveMessages(userId?: string): Promise<BroadcastMessage[]> {
         const db = await getAdapter();
@@ -66,7 +70,15 @@ export class BroadcastMessageService {
     }
 
     /**
-     * Record a message dismissal for a user.
+     * Records a broadcast message dismissal for a specific user.
+     * Logs the action.
+     *
+     * @param userId - The ID of the user.
+     * @param broadcastId - The ID of the broadcast message.
+     * @param userEmail - The email of the user (optional, for audit).
+     * @param ipAddress - The IP address of the user (optional, for audit).
+     * @returns A promise that resolves when the dismissal is recorded.
+     * @throws Error if the operation fails.
      */
     async dismissMessage(userId: string, broadcastId: string, userEmail?: string, ipAddress?: string): Promise<void> {
         const db = await getAdapter();
@@ -96,7 +108,11 @@ export class BroadcastMessageService {
     }
 
     /**
-     * Get all broadcast messages (admin only).
+     * Retrieves all broadcast messages (both active and inactive).
+     * Intended for administrative use.
+     *
+     * @returns A promise that resolves to a list of all broadcast messages.
+     * @throws Error if the query fails.
      */
     async getAllMessages(): Promise<BroadcastMessage[]> {
         const db = await getAdapter();
@@ -110,7 +126,12 @@ export class BroadcastMessageService {
     }
 
     /**
-     * Create a new broadcast message.
+     * Creates a new broadcast message and logs the action.
+     *
+     * @param data - The data for the new broadcast message (excluding auto-generated fields).
+     * @param user - The user creating the message (optional, for audit).
+     * @returns A promise that resolves to the created broadcast message.
+     * @throws Error if creation fails.
      */
     async createMessage(
         data: Omit<BroadcastMessage, 'id' | 'created_at' | 'updated_at'>,
@@ -156,7 +177,13 @@ export class BroadcastMessageService {
     }
 
     /**
-     * Update an existing broadcast message.
+     * Updates an existing broadcast message and logs the action.
+     *
+     * @param id - The ID of the message to update.
+     * @param data - The data to update.
+     * @param user - The user performing the update (optional, for audit).
+     * @returns A promise that resolves to the updated message, or null if no fields updated.
+     * @throws Error if update fails.
      */
     async updateMessage(
         id: string,
@@ -232,7 +259,12 @@ export class BroadcastMessageService {
     }
 
     /**
-     * Delete a broadcast message.
+     * Deletes a broadcast message and logs the action.
+     *
+     * @param id - The ID of the message to delete.
+     * @param user - The user performing the deletion (optional, for audit).
+     * @returns A promise that resolves to true if successful.
+     * @throws Error if deletion fails.
      */
     async deleteMessage(id: string, user?: { id: string, email: string, ip?: string }): Promise<boolean> {
         const db = await getAdapter();

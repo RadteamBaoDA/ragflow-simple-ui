@@ -14,6 +14,15 @@ if (!fs.existsSync(tempDir)) {
 }
 
 export class PreviewService {
+    /**
+     * Generates a local preview file for a given object in MinIO.
+     * Caches the file locally to avoid repeated downloads.
+     *
+     * @param bucketName - The name of the bucket (or bucket ID).
+     * @param fileName - The name of the file.
+     * @returns A promise that resolves to the local file path of the preview.
+     * @throws Error if download fails.
+     */
     async generatePreview(bucketName: string, fileName: string): Promise<string> {
         let targetBucketName = bucketName;
 

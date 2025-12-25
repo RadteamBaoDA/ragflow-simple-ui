@@ -7,11 +7,30 @@ import { DocumentPermission, PermissionLevel } from '@/models/types.js';
 export { PermissionLevel };
 
 export class DocumentPermissionService {
+    /**
+     * Retrieves the permission level for a specific entity on a bucket.
+     *
+     * @param entityType - The type of entity (e.g., 'user', 'team').
+     * @param entityId - The ID of the entity.
+     * @param bucketId - The ID of the bucket.
+     * @returns A promise that resolves to the permission level (default: NONE).
+     */
     async getPermission(entityType: string, entityId: string, bucketId: string): Promise<PermissionLevel> {
         const result = await ModelFactory.documentPermission.findByEntityAndBucket(entityType, entityId, bucketId);
         return (result?.permission_level as unknown as PermissionLevel) ?? PermissionLevel.NONE;
     }
 
+    /**
+     * Sets the permission level for a specific entity on a bucket and logs the action.
+     *
+     * @param entityType - The type of entity.
+     * @param entityId - The ID of the entity.
+     * @param bucketId - The ID of the bucket.
+     * @param level - The permission level to set.
+     * @param actor - The user performing the action (optional, for audit).
+     * @returns A promise that resolves when the permission is set.
+     * @throws Error if the operation fails.
+     */
     async setPermission(
         entityType: string,
         entityId: string,
@@ -49,6 +68,14 @@ export class DocumentPermissionService {
         }
     }
 
+    /**
+     * Resolves the effective permission level for a user on a bucket.
+     * Considers individual user permissions, team memberships (if user is leader), and admin status.
+     *
+     * @param userId - The ID of the user.
+     * @param bucketId - The ID of the bucket.
+     * @returns A promise that resolves to the highest applicable permission level.
+     */
     async resolveUserPermission(userId: string, bucketId: string): Promise<PermissionLevel> {
         // Superuser bypass: Admins always have FULL access
         const user = await ModelFactory.user.findById(userId);
@@ -80,10 +107,24 @@ export class DocumentPermissionService {
         return maxPerm;
     }
 
+    /**
+     * Retrieves all permissions associated with a specific bucket.
+     *
+     * @param bucketId - The ID of the bucket.
+     * @returns A promise that resolves to a list of permissions.
+     */
     async getPermissions(bucketId: string): Promise<DocumentPermission[]> {
         return ModelFactory.documentPermission.findAll({ bucket_id: bucketId });
     }
 
+    /**
+     * Sets multiple permissions for a bucket in a batch operation.
+     *
+     * @param bucketId - The ID of the bucket.
+     * @param permissions - An array of permission objects to set.
+     * @param actor - The user performing the action (optional, for audit).
+     * @returns A promise that resolves when all permissions are processed.
+     */
     async setPermissions(bucketId: string, permissions: any[], actor?: { id: string, email: string, ip?: string }): Promise<void> {
         if (!Array.isArray(permissions)) return;
 
@@ -92,7 +133,13 @@ export class DocumentPermissionService {
         ));
     }
 
-    // Alias for controller compat if needed
+    /**
+     * Retrieves all permissions, optionally filtered by bucket.
+     * Alias for getPermissions if bucketId is provided.
+     *
+     * @param bucketId - The ID of the bucket (optional).
+     * @returns A promise that resolves to a list of permissions.
+     */
     async getAllPermissions(bucketId?: string): Promise<DocumentPermission[]> {
         if (bucketId) return this.getPermissions(bucketId);
         return ModelFactory.documentPermission.findAll();

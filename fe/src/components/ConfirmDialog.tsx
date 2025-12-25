@@ -16,6 +16,12 @@ interface ConfirmContextType {
 
 const ConfirmContext = createContext<ConfirmContextType | null>(null);
 
+/**
+ * Hook to access the confirmation dialog context.
+ *
+ * @returns A confirm function that returns a Promise resolving to boolean (true=confirmed, false=cancelled).
+ * @throws Error if used outside of ConfirmProvider.
+ */
 export const useConfirm = () => {
     const context = useContext(ConfirmContext);
     if (!context) {
@@ -28,6 +34,12 @@ interface ConfirmProviderProps {
     children: ReactNode;
 }
 
+/**
+ * Provider for the global confirmation dialog.
+ * Allows components to request confirmation via useConfirm hook.
+ *
+ * @param children - Child components
+ */
 export const ConfirmProvider: React.FC<ConfirmProviderProps> = ({ children }) => {
     const { t } = useTranslation();
     const [isOpen, setIsOpen] = useState(false);

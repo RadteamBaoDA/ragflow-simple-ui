@@ -6,6 +6,12 @@ import { hasPermission, Role, Permission, ADMIN_ROLES } from '@/config/rbac.js';
 
 export const REAUTH_REQUIRED_ERROR = 'REAUTH_REQUIRED';
 
+/**
+ * Updates the authentication timestamp in the session.
+ *
+ * @param req - The Express request object.
+ * @param isReauth - Whether this is a re-authentication event.
+ */
 export function updateAuthTimestamp(req: Request, isReauth: boolean = false): void {
   if (req.session) {
     req.session.lastAuthAt = Date.now();
@@ -15,6 +21,14 @@ export function updateAuthTimestamp(req: Request, isReauth: boolean = false): vo
   }
 }
 
+/**
+ * Middleware to require authentication.
+ * Checks if a user is present in the session.
+ *
+ * @param req - The Express request object.
+ * @param res - The Express response object.
+ * @param next - The next middleware function.
+ */
 export function requireAuth(req: Request, res: Response, next: NextFunction): void {
   if (req.session?.user) {
     req.user = req.session.user;
@@ -24,6 +38,12 @@ export function requireAuth(req: Request, res: Response, next: NextFunction): vo
   }
 }
 
+/**
+ * Middleware to require recent authentication (e.g., for sensitive actions).
+ *
+ * @param maxAgeMinutes - The maximum age of the authentication session in minutes (default: 15).
+ * @returns An Express middleware function.
+ */
 export function requireRecentAuth(maxAgeMinutes: number = 15) {
   return (req: Request, res: Response, next: NextFunction) => {
     if (!req.session?.user) {
@@ -53,6 +73,14 @@ export function requireRecentAuth(maxAgeMinutes: number = 15) {
   };
 }
 
+/**
+ * Middleware to check for an active session and populate `req.user`.
+ * Does not block if unauthenticated.
+ *
+ * @param req - The Express request object.
+ * @param _res - The Express response object.
+ * @param next - The next middleware function.
+ */
 export function checkSession(req: Request, _res: Response, next: NextFunction): void {
   if (req.session?.user) {
     req.user = req.session.user;
@@ -60,6 +88,12 @@ export function checkSession(req: Request, _res: Response, next: NextFunction): 
   next();
 }
 
+/**
+ * Retrieves the current user from the request or session.
+ *
+ * @param req - The Express request object.
+ * @returns The current user or undefined.
+ */
 export function getCurrentUser(req: Request): User | undefined {
   if (req.session?.user) {
     return req.session.user;
@@ -67,6 +101,12 @@ export function getCurrentUser(req: Request): User | undefined {
   return req.user;
 }
 
+/**
+ * Middleware to require a specific permission.
+ *
+ * @param permission - The required permission string.
+ * @returns An Express middleware function.
+ */
 export function requirePermission(permission: Permission) {
   return (req: Request, res: Response, next: NextFunction) => {
     const user = req.session?.user;
@@ -110,6 +150,12 @@ export function requirePermission(permission: Permission) {
   };
 }
 
+/**
+ * Middleware to require one of the specified roles.
+ *
+ * @param roles - A list of allowed roles.
+ * @returns An Express middleware function.
+ */
 export function requireRole(...roles: Role[]) {
   return (req: Request, res: Response, next: NextFunction) => {
     const user = req.session?.user;
@@ -137,6 +183,13 @@ export function requireRole(...roles: Role[]) {
   };
 }
 
+/**
+ * Middleware to require resource ownership based on a user ID parameter.
+ *
+ * @param userIdParam - The name of the route parameter containing the owner's user ID.
+ * @param options - Options (e.g., allow admins to bypass ownership check).
+ * @returns An Express middleware function.
+ */
 export function requireOwnership(
   userIdParam: string,
   options: { allowAdminBypass?: boolean } = { allowAdminBypass: true }
@@ -174,6 +227,13 @@ export function requireOwnership(
   };
 }
 
+/**
+ * Middleware to require resource ownership based on a custom ID resolver.
+ *
+ * @param getOwnerId - A function to extract the owner's ID from the request.
+ * @param options - Options (e.g., allow admins to bypass ownership check).
+ * @returns An Express middleware function.
+ */
 export function requireOwnershipCustom(
   getOwnerId: (req: Request) => string | undefined,
   options: { allowAdminBypass?: boolean } = { allowAdminBypass: true }
@@ -211,6 +271,14 @@ export function requireOwnershipCustom(
   };
 }
 
+/**
+ * Helper to handle authorization errors and log them.
+ *
+ * @param res - The Express response object.
+ * @param statusCode - The HTTP status code (401 or 403).
+ * @param logMessage - The message to log.
+ * @param logDetails - The details to log.
+ */
 export function authorizationError(
   res: Response,
   statusCode: 401 | 403,

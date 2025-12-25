@@ -30,11 +30,20 @@ class SystemToolsService {
     constructor() {
     }
 
+    /**
+     * Initializes the service by resolving and loading the configuration.
+     */
     async initialize(): Promise<void> {
         this.configPath = await this.resolveConfigPath();
         await this.loadConfig();
     }
 
+    /**
+     * Resolves the path to the system tools configuration file.
+     * Checks env var, docker path, and local fallback.
+     *
+     * @returns The resolved file path.
+     */
     private async resolveConfigPath(): Promise<string> {
         const envPath = config.systemToolsConfigPath;
         if (envPath) {
@@ -83,32 +92,62 @@ class SystemToolsService {
         }
     }
 
-    // Alias for controller or internal use
+    /**
+     * Retrieves enabled tools (alias for getEnabledTools).
+     *
+     * @returns A list of enabled system tools.
+     */
     getTools(): SystemTool[] {
         return this.getEnabledTools();
     }
 
+    /**
+     * Retrieves all enabled system tools, sorted by order.
+     *
+     * @returns A list of enabled system tools.
+     */
     getEnabledTools(): SystemTool[] {
         return this.tools
             .filter(tool => tool.enabled)
             .sort((a, b) => a.order - b.order);
     }
 
+    /**
+     * Retrieves all system tools (enabled and disabled), sorted by order.
+     *
+     * @returns A list of all system tools.
+     */
     getAllTools(): SystemTool[] {
         return [...this.tools].sort((a, b) => a.order - b.order);
     }
 
+    /**
+     * Reloads the system tools configuration from disk.
+     */
     async reload(): Promise<void> {
         log.debug('Reloading system tools configuration');
         await this.loadConfig();
     }
 
+    /**
+     * Executes a system tool (placeholder implementation).
+     *
+     * @param id - The ID of the tool to run.
+     * @param params - Parameters for the tool execution.
+     * @returns A promise that resolves to the execution result.
+     * @throws Error if the tool is not found.
+     */
     async runTool(id: string, params: any): Promise<any> {
         const tool = this.tools.find(t => t.id === id);
         if (!tool) throw new Error('Tool not found');
         return { message: `Tool ${tool.name} executed`, params };
     }
 
+    /**
+     * Retrieves system health status including services (DB, Redis, MinIO) and OS metrics.
+     *
+     * @returns A promise that resolves to the system health object.
+     */
     async getSystemHealth(): Promise<any> {
         const os = await import('os');
 

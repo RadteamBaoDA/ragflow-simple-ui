@@ -13,23 +13,39 @@ export interface AccessControl {
 }
 
 export class KnowledgeBaseService {
+    /**
+     * Initializes the knowledge base service (placeholder).
+     */
     async initialize(): Promise<void> {
     }
 
+    /**
+     * Retrieves all knowledge base sources.
+     *
+     * @returns A promise that resolves to a list of knowledge base sources, sorted by name.
+     */
     async getSources(): Promise<KnowledgeBaseSource[]> {
         return ModelFactory.knowledgeBaseSource.findAll({}, {
             orderBy: { name: 'asc' }
         });
     }
 
+    /**
+     * Alias for getSources.
+     *
+     * @returns A promise that resolves to a list of knowledge base sources.
+     */
     async getAllSources(): Promise<KnowledgeBaseSource[]> {
         return this.getSources();
     }
 
     /**
-     * Get sources available to a specific user based on ACL.
+     * Retrieves sources available to a specific user based on access control.
      * Admins see all sources.
      * Regular users see public sources and those they have explicit access to.
+     *
+     * @param user - The user requesting the sources (optional).
+     * @returns A promise that resolves to a list of available knowledge base sources.
      */
     async getAvailableSources(user?: any): Promise<KnowledgeBaseSource[]> {
         // If no user, only return public sources
@@ -71,6 +87,14 @@ export class KnowledgeBaseService {
         }).sort((a, b) => a.name.localeCompare(b.name));
     }
 
+    /**
+     * Retrieves knowledge base sources with pagination.
+     *
+     * @param type - The type of source to filter by.
+     * @param page - The page number.
+     * @param limit - The number of items per page.
+     * @returns A promise that resolves to an object containing data and pagination info.
+     */
     async getSourcesPaginated(type: string, page: number, limit: number): Promise<any> {
         const offset = (page - 1) * limit;
         const sources = await ModelFactory.knowledgeBaseSource.findAll({ type }, {
@@ -85,6 +109,14 @@ export class KnowledgeBaseService {
         return { data: sources, total: 100, page, limit }; // Placeholder total
     }
 
+    /**
+     * Saves a system configuration value and logs the action.
+     *
+     * @param key - The configuration key.
+     * @param value - The configuration value.
+     * @param user - The user performing the action (optional, for audit).
+     * @returns A promise that resolves when the configuration is saved.
+     */
     async saveSystemConfig(key: string, value: string, user?: any): Promise<void> {
         const existing = await ModelFactory.systemConfig.findById(key);
         if (existing) {
@@ -106,6 +138,14 @@ export class KnowledgeBaseService {
         }
     }
 
+    /**
+     * Creates a new knowledge base source and logs the action.
+     *
+     * @param data - The data for the new source.
+     * @param user - The user creating the source (optional, for audit).
+     * @returns A promise that resolves to the created source.
+     * @throws Error if creation fails.
+     */
     async createSource(data: any, user?: { id: string, email: string, ip?: string }): Promise<KnowledgeBaseSource> {
         try {
             const source = await ModelFactory.knowledgeBaseSource.create({
@@ -138,10 +178,29 @@ export class KnowledgeBaseService {
         }
     }
 
+    /**
+     * Adds a new knowledge base source (alias for createSource).
+     *
+     * @param type - The type of source.
+     * @param name - The name of the source.
+     * @param url - The URL of the source.
+     * @param access_control - The access control settings.
+     * @param user - The user adding the source (optional).
+     * @returns A promise that resolves to the created source.
+     */
     async addSource(type: string, name: string, url: string, access_control: any, user?: any): Promise<KnowledgeBaseSource> {
         return this.createSource({ type, name, url, access_control }, user);
     }
 
+    /**
+     * Updates an existing knowledge base source and logs the action.
+     *
+     * @param id - The ID of the source to update.
+     * @param data - The data to update.
+     * @param user - The user performing the update (optional, for audit).
+     * @returns A promise that resolves to the updated source, or undefined if not found.
+     * @throws Error if update fails.
+     */
     async updateSource(id: string, data: any, user?: { id: string, email: string, ip?: string }): Promise<KnowledgeBaseSource | undefined> {
         try {
             const updateData: any = {};
@@ -175,6 +234,14 @@ export class KnowledgeBaseService {
         }
     }
 
+    /**
+     * Deletes a knowledge base source and logs the action.
+     *
+     * @param id - The ID of the source to delete.
+     * @param user - The user performing the deletion (optional, for audit).
+     * @returns A promise that resolves when the source is deleted.
+     * @throws Error if deletion fails.
+     */
     async deleteSource(id: string, user?: { id: string, email: string, ip?: string }): Promise<void> {
         try {
             const source = await ModelFactory.knowledgeBaseSource.findById(id);
@@ -197,6 +264,12 @@ export class KnowledgeBaseService {
         }
     }
 
+    /**
+     * Retrieves the current system configuration, including available sources.
+     *
+     * @param user - The user requesting the configuration (optional).
+     * @returns A promise that resolves to the configuration object.
+     */
     async getConfig(user?: any): Promise<any> {
         const availableSources = await this.getAvailableSources(user);
 
@@ -211,6 +284,13 @@ export class KnowledgeBaseService {
         };
     }
 
+    /**
+     * Updates system configuration values.
+     *
+     * @param data - An object containing configuration keys and values to update.
+     * @param user - The user performing the update (optional).
+     * @returns A promise that resolves when the update is complete.
+     */
     async updateConfig(data: { defaultChatSourceId?: string; defaultSearchSourceId?: string }, user?: any): Promise<void> {
         if (data.defaultChatSourceId !== undefined) {
             await this.saveSystemConfig('defaultChatSourceId', data.defaultChatSourceId, user);

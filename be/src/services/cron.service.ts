@@ -6,6 +6,10 @@ import { config } from '@/config/index.js';
 import { log } from '@/services/logger.service.js';
 
 export class CronService {
+    /**
+     * Starts the scheduled job to clean up temporary files.
+     * Uses the schedule and TTL defined in the configuration.
+     */
     public startCleanupJob() {
         log.info('Starting temp file cleanup cron job', {
             schedule: config.tempFileCleanupSchedule,
@@ -19,6 +23,10 @@ export class CronService {
         });
     }
 
+    /**
+     * Executes the cleanup of expired temporary files.
+     * Iterates through the temp directory and deletes files older than TTL.
+     */
     private async runCleanup() {
         log.debug('Running scheduled temp file cleanup');
         const tempPath = config.tempCachePath;

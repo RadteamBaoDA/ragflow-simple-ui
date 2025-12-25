@@ -4,6 +4,13 @@ import { auditService } from '@/services/audit.service.js';
 import { log } from '@/services/logger.service.js';
 
 export class AuditController {
+  /**
+   * Retrieves paginated audit logs based on query filters.
+   *
+   * @param req - The Express request object containing query parameters (page, limit, filters).
+   * @param res - The Express response object.
+   * @returns A promise that resolves when the response is sent.
+   */
   async getLogs(req: Request, res: Response): Promise<void> {
     try {
       const page = parseInt(req.query.page as string) || 1;
@@ -25,6 +32,13 @@ export class AuditController {
     }
   }
 
+  /**
+   * Retrieves the audit history for a specific resource.
+   *
+   * @param req - The Express request object containing resource type and ID in params.
+   * @param res - The Express response object.
+   * @returns A promise that resolves when the response is sent.
+   */
   async getResourceHistory(req: Request, res: Response): Promise<void> {
     const { type, id } = req.params;
     if (!type || !id) {
@@ -41,6 +55,13 @@ export class AuditController {
     }
   }
 
+  /**
+   * Exports audit logs as a CSV file.
+   *
+   * @param req - The Express request object containing filters in query parameters.
+   * @param res - The Express response object.
+   * @returns A promise that resolves when the CSV file is sent.
+   */
   async exportLogs(req: Request, res: Response): Promise<void> {
     try {
       const filters: any = {};

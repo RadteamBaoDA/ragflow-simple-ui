@@ -35,11 +35,12 @@ export interface AzureAdProfile {
 
 export class AuthService {
 
-  // Move standalone functions into class methods or keep as utility exports?
-  // Request asked to refactor services. Usually services are classes/singletons in this codebase.
-  // The previous file exported functions.
-  // I will wrap them in a class AuthService and export singleton instance.
-
+  /**
+   * Generates the Azure AD authorization URL.
+   *
+   * @param state - A random string to prevent CSRF attacks.
+   * @returns The constructed authorization URL.
+   */
   getAuthorizationUrl(state: string): string {
     const params = new URLSearchParams({
       client_id: config.azureAd.clientId,
@@ -55,6 +56,13 @@ export class AuthService {
       }/oauth2/v2.0/authorize?${params.toString()}`;
   }
 
+  /**
+   * Exchanges an authorization code for access and refresh tokens.
+   *
+   * @param code - The authorization code received from Azure AD.
+   * @returns A promise that resolves to the token response containing access and refresh tokens.
+   * @throws Error if the token exchange fails.
+   */
   async exchangeCodeForTokens(code: string): Promise<TokenResponse> {
     const params = new URLSearchParams({
       client_id: config.azureAd.clientId,
@@ -89,6 +97,13 @@ export class AuthService {
     return response.json() as Promise<TokenResponse>;
   }
 
+  /**
+   * Refreshes an expired access token using a refresh token.
+   *
+   * @param refreshToken - The refresh token to use for obtaining a new access token.
+   * @returns A promise that resolves to the new token response.
+   * @throws Error if the token refresh fails.
+   */
   async refreshAccessToken(refreshToken: string): Promise<TokenResponse> {
     const params = new URLSearchParams({
       client_id: config.azureAd.clientId,
@@ -129,6 +144,13 @@ export class AuthService {
     return tokens;
   }
 
+  /**
+   * Checks if a token is expired or about to expire.
+   *
+   * @param expiresAt - The timestamp (in milliseconds) when the token expires.
+   * @param bufferSeconds - The buffer time in seconds to treat the token as expired before the actual expiry (default: 300).
+   * @returns True if the token is expired or within the buffer period, false otherwise.
+   */
   isTokenExpired(expiresAt: number | undefined, bufferSeconds: number = 300): boolean {
     if (!expiresAt) return true;
     const now = Date.now();
@@ -136,11 +158,24 @@ export class AuthService {
     return now >= expiryWithBuffer;
   }
 
+  /**
+   * Generates a fallback avatar URL using UI Avatars.
+   *
+   * @param displayName - The name to display in the avatar.
+   * @returns The URL of the generated avatar.
+   */
   generateFallbackAvatar(displayName: string): string {
     const encodedName = encodeURIComponent(displayName || "User");
     return `https://ui-avatars.com/api/?name=${encodedName}&background=3b82f6&color=fff&size=128`;
   }
 
+  /**
+   * Fetches the user's profile from Microsoft Graph.
+   *
+   * @param accessToken - The access token to authorize the request.
+   * @returns A promise that resolves to the user's Azure AD profile.
+   * @throws Error if the profile fetch fails.
+   */
   async getUserProfile(accessToken: string): Promise<AzureAdUser> {
     // Fetch user profile from Microsoft Graph
     const response = await fetch(
@@ -220,12 +255,26 @@ export class AuthService {
     };
   }
 
+  /**
+   * Generates a random state string for OAuth security.
+   *
+   * @returns A random UUID string.
+   */
   generateState(): string {
     return crypto.randomUUID();
   }
 
 
-  // Login placeholder for simple auth (not Azure AD) if used by AuthController
+  /**
+   * Authenticates a user using a username and password.
+   * Currently supports root user login and logs IP history.
+   *
+   * @param username - The username provided.
+   * @param password - The password provided.
+   * @param ipAddress - The IP address of the client (optional).
+   * @returns A promise that resolves to an object containing the user details.
+   * @throws Error if authentication fails.
+   */
   async login(username: string, password: string, ipAddress?: string): Promise<any> {
     // Root user login
     if (config.enableRootLogin && username === config.rootUser && password === config.rootPassword) {
@@ -241,23 +290,8 @@ export class AuthService {
         // We wrap this in try-catch to avoid blocking login if DB fails (e.g., FK constraint for root-user)
         try {
           // Check if user exists in DB to avoid FK error
-          // The root user might not be in the 'users' table.
-          // For now, we only try logging if it's a real user or we ensure ID validity.
-          // Since 'root-user' is virtual, we can't save to user_ip_history if it implies a FK to users.
-          // However, we can try to find a real user with this email?
-          // Or just log it if we can. 
-
-          // Actually, let's just try to log to Audit Log instead/as well?
-          // The prompt specifically asked to "save user IP". 
-          // user_ip_history seems the right place.
-          // If the user doesn't exist in DB, we can't save to user_ip_history (usually).
-          // But maybe we should just log the info.
-
-          // Let's attempt to find or create the history record.
-          // Note: If 'root-user' is not in 'users' table, insert will likely fail.
-          // For now, I'll add the logic, but wrap in try-catch.
-
-          // Ensure root user exists in users table to satisfy FK constraint
+          // The root user might not be in the 'users' table if not initialized.
+          // We ensure root user exists in users table to satisfy FK constraint for IP history.
           try {
             const rootUser = await ModelFactory.user.findById(user.id);
             if (!rootUser) {
@@ -273,6 +307,7 @@ export class AuthService {
             log.warn('Failed to ensure root user existence', { error: String(userErr) });
           }
 
+          // Record or update the IP history
           const existingHistory = await ModelFactory.userIpHistory.findByUserAndIp(user.id, ipAddress);
           if (existingHistory) {
             await ModelFactory.userIpHistory.update(existingHistory.id, { last_accessed_at: new Date() });

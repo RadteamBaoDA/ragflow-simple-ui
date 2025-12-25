@@ -49,7 +49,12 @@ export interface UpdateTeamDTO {
 
 export class TeamService {
     /**
-     * Create a new team.
+     * Creates a new team and logs the action.
+     *
+     * @param data - The data for the new team.
+     * @param user - The user creating the team (optional, for audit).
+     * @returns A promise that resolves to the created team.
+     * @throws Error if creation fails.
      */
     async createTeam(data: CreateTeamDTO, user?: { id: string, email: string, ip?: string }): Promise<Team> {
         const id = uuidv4();
@@ -78,21 +83,31 @@ export class TeamService {
     }
 
     /**
-     * Get all teams.
+     * Retrieves all teams, ordered by creation date descending.
+     *
+     * @returns A promise that resolves to a list of teams.
      */
     async getAllTeams(): Promise<Team[]> {
         return query<Team>('SELECT * FROM teams ORDER BY created_at DESC');
     }
 
     /**
-     * Get a team by ID.
+     * Retrieves a team by its ID.
+     *
+     * @param id - The ID of the team.
+     * @returns A promise that resolves to the team, or undefined if not found.
      */
     async getTeam(id: string): Promise<Team | undefined> {
         return queryOne<Team>('SELECT * FROM teams WHERE id = $1', [id]);
     }
 
     /**
-     * Update a team.
+     * Updates an existing team and logs the action.
+     *
+     * @param id - The ID of the team to update.
+     * @param data - The data to update.
+     * @param user - The user performing the update (optional, for audit).
+     * @returns A promise that resolves to the updated team.
      */
     async updateTeam(id: string, data: UpdateTeamDTO, user?: { id: string, email: string, ip?: string }): Promise<Team | undefined> {
         const updates: string[] = [];
@@ -138,7 +153,11 @@ export class TeamService {
     }
 
     /**
-     * Delete a team.
+     * Deletes a team and logs the action.
+     *
+     * @param id - The ID of the team to delete.
+     * @param user - The user performing the deletion (optional, for audit).
+     * @returns A promise that resolves when the deletion is complete.
      */
     async deleteTeam(id: string, user?: { id: string, email: string, ip?: string }): Promise<void> {
         // Fetch team details before deletion for audit logging
@@ -160,7 +179,14 @@ export class TeamService {
     }
 
     /**
-     * Add a user to a team.
+     * Adds a user to a team or updates their role if already a member.
+     * Logs the action.
+     *
+     * @param teamId - The ID of the team.
+     * @param userId - The ID of the user to add.
+     * @param role - The role to assign ('member' or 'leader').
+     * @param actor - The user performing the action (optional, for audit).
+     * @returns A promise that resolves when the user is added/updated.
      */
     async addUserToTeam(
         teamId: string,
@@ -189,7 +215,12 @@ export class TeamService {
     }
 
     /**
-     * Remove a user from a team.
+     * Removes a user from a team and logs the action.
+     *
+     * @param teamId - The ID of the team.
+     * @param userId - The ID of the user to remove.
+     * @param actor - The user performing the removal (optional, for audit).
+     * @returns A promise that resolves when the user is removed.
      */
     async removeUserFromTeam(teamId: string, userId: string, actor?: { id: string, email: string, ip?: string }): Promise<void> {
         await query(
@@ -211,7 +242,10 @@ export class TeamService {
     }
 
     /**
-     * Get users in a team.
+     * Retrieves all members of a specific team.
+     *
+     * @param teamId - The ID of the team.
+     * @returns A promise that resolves to a list of team members with their details.
      */
     async getTeamMembers(teamId: string): Promise<any[]> {
         return query(
@@ -225,7 +259,10 @@ export class TeamService {
     }
 
     /**
-     * Get teams for a specific user.
+     * Retrieves all teams that a specific user belongs to.
+     *
+     * @param userId - The ID of the user.
+     * @returns A promise that resolves to a list of teams.
      */
     async getUserTeams(userId: string): Promise<Team[]> {
         return query<Team>(
