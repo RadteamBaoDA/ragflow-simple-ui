@@ -1,7 +1,9 @@
 import { config } from '@/config';
 import { User } from '@/features/auth';
 
+// Thin fetch wrapper for user listing and permission updates.
 export const userService = {
+    // Fetch users filtered by roles (session cookie + optional bearer token).
     async getUsers(roles?: string[]): Promise<User[]> {
         const queryParams = roles ? `?roles=${roles.join(',')}` : '';
         const response = await fetch(`${config.apiBaseUrl}/api/users${queryParams}`, {
@@ -18,11 +20,13 @@ export const userService = {
         }));
     },
 
+    // Alias to keep API symmetry when a full list is needed.
     async getAllUsers(roles?: string[]): Promise<User[]> {
         // Alias for getUsers if needed, or same implementation
         return this.getUsers(roles);
     },
 
+    // Update permissions for a specific user.
     async updateUserPermissions(userId: string, permissions: string[]): Promise<void> {
         const response = await fetch(`${config.apiBaseUrl}/api/users/${userId}/permissions`, {
             method: 'PUT',

@@ -1,3 +1,4 @@
+// Raw object storage admin dashboard (MinIO buckets and stats).
 import { useState, useEffect } from 'react';
 import { useTranslation } from 'react-i18next';
 import {

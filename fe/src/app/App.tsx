@@ -63,6 +63,7 @@ const PageLoader = () => (
 import { message as antdMessage } from 'antd';
 let messageApi: any = null;
 
+// Bridge Ant Design message API so non-component code (mutations) can surface notifications
 export const globalMessage = {
   success: (content: string) => {
     if (messageApi) messageApi.success(content);

@@ -161,6 +161,7 @@ interface CustomRenderOptions extends Omit<RenderOptions, 'wrapper'> {
   ragflowValue?: Partial<typeof mockRagflowContextValue>;
 }
 
+// Compose router + settings/auth/ragflow providers to mirror app shell in tests.
 /**
  * Custom render with all providers.
  * Use this for integration tests that need full context.

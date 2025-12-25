@@ -1,3 +1,4 @@
+// TS config for Vite/node-side tooling (composite for editor hints).
 {
   "compilerOptions": {
     "composite": true,

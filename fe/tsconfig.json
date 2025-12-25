@@ -1,3 +1,4 @@
+// Base TS config for frontend app build/runtime (strict + bundler resolution).
 {
   "compilerOptions": {
     "target": "ES2020",

@@ -1,3 +1,4 @@
+// Barrel exports for user management pages, selectors, and user API/hooks.
 export { default as UserManagementPage } from './pages/UserManagementPage';
 export { default as PermissionManagementPage } from './pages/PermissionManagementPage';
 export { default as UserMultiSelect } from './components/UserMultiSelect';
