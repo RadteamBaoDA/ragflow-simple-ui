@@ -46,6 +46,7 @@ import {
   User as UserIcon,
   UserCog,
   Megaphone,
+  History,
 } from 'lucide-react';
 
 import logo from '../assets/logo.png';
@@ -214,6 +215,12 @@ function Layout() {
               {!isCollapsed && <span>{t('nav.aiSearch')}</span>}
             </NavLink>
           )}
+          {config.features.enableHistory && (
+            <NavLink to="/history" className={({ isActive }: { isActive: boolean }) => `sidebar-link ${isActive ? 'active' : ''} ${isCollapsed ? 'justify-center px-2' : ''}`} title={t('nav.history')}>
+              <History size={20} />
+              {!isCollapsed && <span>{t('nav.history')}</span>}
+            </NavLink>
+          )}
           {(user?.role === 'admin' || user?.role === 'leader') && (
             <div className="flex flex-col gap-1">
               <button
@@ -325,6 +332,10 @@ function Layout() {
                   <NavLink to="/broadcast-messages" className={({ isActive }: { isActive: boolean }) => `sidebar-link ${isActive ? 'active' : ''}`} title={t('nav.broadcastMessages')}>
                     <Megaphone size={18} />
                     <span>{t('nav.broadcastMessages')}</span>
+                  </NavLink>
+                  <NavLink to="/external-history" className={({ isActive }: { isActive: boolean }) => `sidebar-link ${isActive ? 'active' : ''}`} title="Histories">
+                    <History size={18} />
+                    <span>Histories</span>
                   </NavLink>
 
                 </div>

@@ -45,6 +45,7 @@ const TokenizerPage = lazy(() => import('@/features/ai').then(m => ({ default: m
 const StoragePage = lazy(() => import('@/features/storage').then(m => ({ default: m.StoragePage })));
 const KnowledgeBaseConfigPage = lazy(() => import('@/features/knowledge-base').then(m => ({ default: m.KnowledgeBaseConfigPage })));
 const BroadcastMessagePage = lazy(() => import('@/features/broadcast').then(m => ({ default: m.BroadcastMessagePage })));
+const ExternalHistoryPage = lazy(() => import('@/features/external-history').then(m => ({ default: m.ExternalHistoryPage })));
 
 // ============================================================================
 // Loading Component
@@ -180,6 +181,11 @@ function App() {
                       <Route path="broadcast-messages" element={
                         <AdminRoute>
                           <BroadcastMessagePage />
+                        </AdminRoute>
+                      } />
+                      <Route path="external-history" element={
+                        <AdminRoute>
+                          <ExternalHistoryPage />
                         </AdminRoute>
                       } />
                     </Route>

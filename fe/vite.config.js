@@ -9,6 +9,7 @@ var __assign = (this && this.__assign) || function () {
     };
     return __assign.apply(this, arguments);
 };
+// Vite config: loads env from FE/BE, wires HTTPS dev, wasm/top-level-await, chunking.
 import { defineConfig } from 'vite';
 import react from '@vitejs/plugin-react';
 import path from 'path';

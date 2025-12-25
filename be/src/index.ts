@@ -40,6 +40,8 @@ import auditRoutes from '@/routes/audit.routes.js';
 import externalRoutes from '@/routes/external/index.js';
 import previewRoutes from '@/routes/preview.routes.js';
 import broadcastMessageRoutes from '@/routes/broadcast-message.routes.js';
+import adminHistoryRoutes from '@/routes/admin-history.routes.js';
+import chatHistoryRoutes from '@/routes/chat-history.routes.js';
 
 const app = express();
 
@@ -176,6 +178,8 @@ app.use('/api/audit', auditRoutes);
 app.use('/api/external', externalRoutes);
 app.use('/api/preview', previewRoutes);
 app.use('/api/broadcast-messages', broadcastMessageRoutes);
+app.use('/api/admin/history', adminHistoryRoutes);
+app.use('/api/chat', chatHistoryRoutes);
 
 app.use('/api/*', (_req: express.Request, res: express.Response) => {
   res.status(404).json({ error: 'Not Found', message: 'The requested API endpoint does not exist' });

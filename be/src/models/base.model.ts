@@ -79,4 +79,9 @@ export abstract class BaseModel<T> implements IBaseModel<T> {
     }
     await query.delete();
   }
+
+  // Expose underlying knex instance for custom queries
+  getKnex(): Knex.QueryBuilder {
+    return this.knex(this.tableName);
+  }
 }
