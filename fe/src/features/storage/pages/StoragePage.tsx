@@ -425,7 +425,7 @@ const StoragePage = () => {
                                                         dataSource={globalMetrics.topBuckets}
                                                         columns={[
                                                             { title: t('storage.bucket.name'), dataIndex: 'name', key: 'name' },
-                                                            { title: t('storage.bucket.size'), dataIndex: 'size', key: 'size', render: (val) => formatFileSize(val) },
+                                                            { title: t('storage.bucket.size'), dataIndex: 'size', key: 'size', render: (val: number) => formatFileSize(val) },
                                                             { title: t('storage.bucket.objects'), dataIndex: 'objectCount', key: 'objectCount' }
                                                         ]}
                                                         pagination={false}
@@ -446,13 +446,13 @@ const StoragePage = () => {
                                                         columns={[
                                                             { title: t('documents.name'), dataIndex: 'name', key: 'name', ellipsis: true },
                                                             { title: t('documents.bucketName'), dataIndex: 'bucketName', key: 'bucketName' },
-                                                            { title: t('documents.size'), dataIndex: 'size', key: 'size', render: (val) => formatFileSize(val) },
-                                                            { title: t('documents.modified'), dataIndex: 'lastModified', key: 'lastModified', render: (val) => new Date(val).toLocaleDateString() }
+                                                            { title: t('documents.size'), dataIndex: 'size', key: 'size', render: (val: number) => formatFileSize(val) },
+                                                            { title: t('documents.modified'), dataIndex: 'lastModified', key: 'lastModified', render: (val: Date | string) => new Date(val).toLocaleDateString() }
                                                         ]}
                                                         pagination={false}
                                                         size="small"
                                                         scroll={{ y: 'calc(100vh - 540px)' }}
-                                                        rowKey={(record) => record.bucketName + record.name}
+                                                        rowKey={(record: { bucketName: string; name: string }) => record.bucketName + record.name}
                                                     />
                                                 </div>
                                             )

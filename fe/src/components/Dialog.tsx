@@ -9,7 +9,7 @@
  */
 
 import { Fragment, ReactNode } from 'react';
-import { Dialog as HeadlessDialog, Transition } from '@headlessui/react';
+import { Dialog as HeadlessDialog, DialogPanel, DialogTitle, Transition, TransitionChild } from '@headlessui/react';
 import { X } from 'lucide-react';
 
 // ============================================================================
@@ -83,11 +83,11 @@ export function Dialog({
     };
 
     return (
-        <Transition appear show={open} as={Fragment as any}>
-            <HeadlessDialog as="div" className="relative z-50" onClose={onClose}>
+        <Transition appear show={open} as={Fragment}>
+            <HeadlessDialog className="relative z-50" onClose={onClose}>
                 {/* Backdrop */}
-                <Transition.Child
-                    as={Fragment as any}
+                <TransitionChild
+                    as={Fragment}
                     enter="ease-out duration-300"
                     enterFrom="opacity-0"
                     enterTo="opacity-100"
@@ -96,13 +96,13 @@ export function Dialog({
                     leaveTo="opacity-0"
                 >
                     <div className="fixed inset-0 bg-black/50 dark:bg-black/70" />
-                </Transition.Child>
+                </TransitionChild>
 
                 {/* Dialog Container */}
                 <div className="fixed inset-0 overflow-y-auto">
                     <div className="flex min-h-full items-center justify-center p-4">
-                        <Transition.Child
-                            as={Fragment as any}
+                        <TransitionChild
+                            as={Fragment}
                             enter="ease-out duration-300"
                             enterFrom="opacity-0 scale-95"
                             enterTo="opacity-100 scale-100"
@@ -110,14 +110,14 @@ export function Dialog({
                             leaveFrom="opacity-100 scale-100"
                             leaveTo="opacity-0 scale-95"
                         >
-                            <HeadlessDialog.Panel
+                            <DialogPanel
                                 className={`${maxWidthClasses[maxWidth]} ${className} transform overflow-hidden rounded-lg bg-white dark:bg-slate-800 p-6 shadow-xl transition-all flex flex-col`}
                             >
                                 {/* Header */}
                                 <div className="flex items-center justify-between mb-6 shrink-0">
-                                    <HeadlessDialog.Title className="text-xl font-semibold text-slate-800 dark:text-slate-100">
+                                    <DialogTitle className="text-xl font-semibold text-slate-800 dark:text-slate-100">
                                         {title}
-                                    </HeadlessDialog.Title>
+                                    </DialogTitle>
                                     <button
                                         onClick={onClose}
                                         className="p-2 hover:bg-slate-100 dark:hover:bg-slate-700 rounded-lg transition-colors text-slate-500 dark:text-slate-400"
@@ -128,7 +128,7 @@ export function Dialog({
 
                                 {/* Body */}
                                 <div className="text-slate-600 dark:text-slate-400 flex-1 min-h-0">
-                                    {children as any}
+                                    {children}
                                 </div>
 
                                 {/* Footer */}
@@ -137,8 +137,8 @@ export function Dialog({
                                         {footer}
                                     </div>
                                 )}
-                            </HeadlessDialog.Panel>
-                        </Transition.Child>
+                            </DialogPanel>
+                        </TransitionChild>
                     </div>
                 </div>
             </HeadlessDialog>

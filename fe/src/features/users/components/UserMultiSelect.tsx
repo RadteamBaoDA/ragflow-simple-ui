@@ -1,4 +1,4 @@
-import { useState, useMemo } from 'react';
+import { useState, useMemo, Fragment } from 'react';
 import { Combobox, Transition } from '@headlessui/react';
 import { Check, ChevronsUpDown, X } from 'lucide-react';
 import { User } from '@/features/auth';
@@ -74,7 +74,7 @@ export default function UserMultiSelect({ users, selectedUserIds, onChange, plac
                         </Combobox.Button>
                     </div>
                     <Transition
-                        as="div"
+                        as={Fragment}
                         leave="transition ease-in duration-100"
                         leaveFrom="opacity-100"
                         leaveTo="opacity-0"
@@ -89,13 +89,13 @@ export default function UserMultiSelect({ users, selectedUserIds, onChange, plac
                                 filteredUsers.map((user) => (
                                     <Combobox.Option
                                         key={user.id}
-                                        className={({ active }) =>
+                                        className={({ active }: { active: boolean }) =>
                                             `relative cursor-default select-none py-2 pl-10 pr-4 ${active ? 'bg-blue-600 text-white' : 'text-slate-900 dark:text-white'
                                             }`
                                         }
                                         value={user.id}
                                     >
-                                        {({ selected, active }) => (
+                                        {({ selected, active }: { selected: boolean, active: boolean }) => (
                                             <>
                                                 <span className={`block truncate ${selected ? 'font-medium' : 'font-normal'}`}>
                                                     {user.displayName} <span className={`text-xs ${active ? 'text-blue-100' : 'text-slate-400'}`}>({user.email})</span>

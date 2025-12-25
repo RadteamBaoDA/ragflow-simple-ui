@@ -67,7 +67,7 @@ export function Select({ value, onChange, options, icon, disabled = false, class
 
     return (
         <Listbox value={value} onChange={onChange} disabled={disabled}>
-            {({ open }) => (
+            {({ open }: { open: boolean }) => (
                 <div className={`relative inline-block min-w-[200px] ${className}`}>
                     <Listbox.Button className={`relative flex items-center gap-2 w-full px-4 py-2.5 bg-gradient-to-r from-primary/10 to-primary/5 dark:from-slate-800 dark:to-slate-800 dark:bg-slate-800 rounded-lg border border-primary/20 dark:border-slate-600 shadow-sm hover:shadow-md transition-shadow text-left ${disabled ? 'opacity-50 cursor-not-allowed' : ''}`}>
                         {!!icon && <span className="text-primary dark:text-blue-400 flex-shrink-0">{icon}</span>}
@@ -92,14 +92,14 @@ export function Select({ value, onChange, options, icon, disabled = false, class
                                 <Listbox.Option
                                     key={option.id}
                                     value={option.id}
-                                    className={({ active, selected }) =>
+                                    className={({ active, selected }: { active: boolean, selected: boolean }) =>
                                         `relative cursor-pointer select-none py-2.5 pl-10 pr-4 ${active
                                             ? 'bg-gradient-to-r from-primary/10 to-primary/5 dark:bg-slate-600 text-primary dark:text-white'
                                             : 'text-slate-700 dark:text-slate-200'
                                         } ${selected ? 'font-medium' : 'font-normal'}`
                                     }
                                 >
-                                    {({ selected }) => (
+                                    {({ selected }: { selected: boolean }) => (
                                         <>
                                             <span className="block truncate">{option.name}</span>
                                             {selected && (

@@ -203,13 +203,13 @@ function Layout() {
 
         <nav className="flex flex-col gap-2 flex-1 mt-4 overflow-y-auto scrollbar-hide px-2">
           {config.features.enableAiChat && (
-            <NavLink to="/ai-chat" className={({ isActive }) => `sidebar-link ${isActive ? 'active' : ''} ${isCollapsed ? 'justify-center px-2' : ''}`} title={t('nav.aiChat')}>
+            <NavLink to="/ai-chat" className={({ isActive }: { isActive: boolean }) => `sidebar-link ${isActive ? 'active' : ''} ${isCollapsed ? 'justify-center px-2' : ''}`} title={t('nav.aiChat')}>
               <MessageSquare size={20} />
               {!isCollapsed && <span>{t('nav.aiChat')}</span>}
             </NavLink>
           )}
           {config.features.enableAiSearch && (
-            <NavLink to="/ai-search" className={({ isActive }) => `sidebar-link ${isActive ? 'active' : ''} ${isCollapsed ? 'justify-center px-2' : ''}`} title={t('nav.aiSearch')}>
+            <NavLink to="/ai-search" className={({ isActive }: { isActive: boolean }) => `sidebar-link ${isActive ? 'active' : ''} ${isCollapsed ? 'justify-center px-2' : ''}`} title={t('nav.aiSearch')}>
               <Search size={20} />
               {!isCollapsed && <span>{t('nav.aiSearch')}</span>}
             </NavLink>
@@ -232,18 +232,18 @@ function Layout() {
 
               {(!isCollapsed && shouldExpandKnowledgeBase) && (
                 <div className="pl-4 flex flex-col gap-1">
-                  <NavLink to="/documents" className={({ isActive }) => `sidebar-link ${isActive ? 'active' : ''}`} title={t('nav.storage')}>
+                  <NavLink to="/documents" className={({ isActive }: { isActive: boolean }) => `sidebar-link ${isActive ? 'active' : ''}`} title={t('nav.storage')}>
                     <HardDrive size={18} />
                     <span>{t('nav.storage')}</span>
                   </NavLink>
                   {user?.role === 'admin' && (
-                    <NavLink to="/knowledge-base/config" className={({ isActive }) => `sidebar-link ${isActive ? 'active' : ''}`} title={t('knowledgeBaseConfig.title')}>
+                    <NavLink to="/knowledge-base/config" className={({ isActive }: { isActive: boolean }) => `sidebar-link ${isActive ? 'active' : ''}`} title={t('knowledgeBaseConfig.title')}>
                       <Settings2 size={18} />
                       <span>{t('knowledgeBaseConfig.title')}</span>
                     </NavLink>
                   )}
                   {user?.role === 'admin' && (
-                    <NavLink to="/storage-dashboard" className={({ isActive }) => `sidebar-link ${isActive ? 'active' : ''}`} title={t('storage.title')}>
+                    <NavLink to="/storage-dashboard" className={({ isActive }: { isActive: boolean }) => `sidebar-link ${isActive ? 'active' : ''}`} title={t('storage.title')}>
                       <Database size={18} />
                       <span>{t('storage.title')}</span>
                     </NavLink>
@@ -276,11 +276,11 @@ function Layout() {
 
               {(!isCollapsed && shouldExpandIam) && (
                 <div className="pl-4 flex flex-col gap-1">
-                  <NavLink to="/user-management" className={({ isActive }) => `sidebar-link ${isActive ? 'active' : ''}`} title={t('nav.userManagement')}>
+                  <NavLink to="/user-management" className={({ isActive }: { isActive: boolean }) => `sidebar-link ${isActive ? 'active' : ''}`} title={t('nav.userManagement')}>
                     <UserIcon size={18} />
                     <span>{t('nav.userManagement')}</span>
                   </NavLink>
-                  <NavLink to="/iam/teams" className={({ isActive }) => `sidebar-link ${isActive ? 'active' : ''}`} title={t('nav.teamManagement')}>
+                  <NavLink to="/iam/teams" className={({ isActive }: { isActive: boolean }) => `sidebar-link ${isActive ? 'active' : ''}`} title={t('nav.teamManagement')}>
                     <Users size={18} />
                     <span>{t('nav.teamManagement')}</span>
                   </NavLink>
@@ -306,23 +306,23 @@ function Layout() {
 
               {(!isCollapsed && shouldExpandAdministrators) && (
                 <div className="pl-4 flex flex-col gap-1">
-                  <NavLink to="/audit-log" className={({ isActive }) => `sidebar-link ${isActive ? 'active' : ''}`} title={t('nav.auditLog')}>
+                  <NavLink to="/audit-log" className={({ isActive }: { isActive: boolean }) => `sidebar-link ${isActive ? 'active' : ''}`} title={t('nav.auditLog')}>
                     <ClipboardList size={18} />
                     <span>{t('nav.auditLog')}</span>
                   </NavLink>
-                  <NavLink to="/system-tools" className={({ isActive }) => `sidebar-link ${isActive ? 'active' : ''}`} title={t('nav.systemTools')}>
+                  <NavLink to="/system-tools" className={({ isActive }: { isActive: boolean }) => `sidebar-link ${isActive ? 'active' : ''}`} title={t('nav.systemTools')}>
                     <Server size={18} />
                     <span>{t('nav.systemTools')}</span>
                   </NavLink>
-                  <NavLink to="/system-monitor" className={({ isActive }) => `sidebar-link ${isActive ? 'active' : ''}`} title={t('nav.systemMonitor')}>
+                  <NavLink to="/system-monitor" className={({ isActive }: { isActive: boolean }) => `sidebar-link ${isActive ? 'active' : ''}`} title={t('nav.systemMonitor')}>
                     <Activity size={18} />
                     <span>{t('nav.systemMonitor')}</span>
                   </NavLink>
-                  <NavLink to="/tokenizer" className={({ isActive }) => `sidebar-link ${isActive ? 'active' : ''}`} title={t('nav.tokenizer')}>
+                  <NavLink to="/tokenizer" className={({ isActive }: { isActive: boolean }) => `sidebar-link ${isActive ? 'active' : ''}`} title={t('nav.tokenizer')}>
                     <FileCode size={18} />
                     <span>{t('nav.tokenizer')}</span>
                   </NavLink>
-                  <NavLink to="/broadcast-messages" className={({ isActive }) => `sidebar-link ${isActive ? 'active' : ''}`} title={t('nav.broadcastMessages')}>
+                  <NavLink to="/broadcast-messages" className={({ isActive }: { isActive: boolean }) => `sidebar-link ${isActive ? 'active' : ''}`} title={t('nav.broadcastMessages')}>
                     <Megaphone size={18} />
                     <span>{t('nav.broadcastMessages')}</span>
                   </NavLink>
