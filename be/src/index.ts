@@ -20,6 +20,7 @@ import { systemToolsService } from '@/services/system-tools.service.js';
 import { userService } from '@/services/user.service.js';
 import { shutdownLangfuse } from '@/services/langfuse.service.js';
 import { externalTraceService } from '@/services/external-trace.service.js';
+import { socketService } from '@/services/socket.service.js';
 
 import authRoutes from '@/routes/auth.routes.js';
 import knowledgeBaseRoutes from '@/routes/knowledge-base.routes.js';
@@ -190,6 +191,11 @@ const startServer = async (): Promise<http.Server | https.Server> => {
     server = http.createServer(app);
   }
 
+  // Initialize Socket.IO with the server
+  if (config.websocket.enabled) {
+    socketService.initialize(server);
+  }
+
   server.listen(config.port, async () => {
     server.setTimeout(30 * 60 * 1000);
 
@@ -197,6 +203,7 @@ const startServer = async (): Promise<http.Server | https.Server> => {
       url: `${protocol}://${config.devDomain}:${config.port}`,
       environment: config.nodeEnv,
       https: config.https.enabled,
+      websocket: config.websocket.enabled,
       sessionTTL: `${config.session.ttlSeconds / 86400} days`,
     });
 
@@ -252,6 +259,7 @@ if (!isTest) {
       await closePool();
       await shutdownLangfuse();
       await externalTraceService.shutdown();
+      await socketService.shutdown();
       process.exit(0);
     };
 
