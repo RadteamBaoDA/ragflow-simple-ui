@@ -1,20 +1,29 @@
 /**
  * External trace controller: accepts Langfuse-compatible traces and feedback from external clients.
+ * 
+ * Force adds server-side IP address using getClientIp() utility for accurate tracking.
  */
 import { Request, Response } from 'express'
 import { externalTraceService } from '@/services/external/trace.service.js'
 import { log } from '@/services/logger.service.js'
+import { getClientIp } from '@/utils/ip.js'
 
 export class ExternalTraceController {
   /**
-   * Submit a trace
-   * @param req 
-   * @param res 
+   * Submit a trace.
+   * Force adds ipAddress from server-side detection using getClientIp().
    */
   async submitTrace(req: Request, res: Response): Promise<void> {
     try {
-      const result = await externalTraceService.processTrace(req.body);
-      log.debug('Trace submitted successfully', { result });
+      // Force add server-side IP address for accurate tracking
+      const ipAddress = getClientIp(req)
+      const traceData = {
+        ...req.body,
+        ipAddress // Override or add ipAddress from server-side detection
+      }
+
+      const result = await externalTraceService.processTrace(traceData);
+      log.debug('Trace submitted successfully', { result, ipAddress });
       res.json(result);
     } catch (error) {
       log.error('Failed to submit trace', { error: String(error) });
@@ -23,14 +32,20 @@ export class ExternalTraceController {
   }
 
   /**
-   * Submit feedback for a trace
-   * @param req 
-   * @param res 
+   * Submit feedback for a trace.
+   * Force adds ipAddress from server-side detection using getClientIp().
    */
   async submitFeedback(req: Request, res: Response): Promise<void> {
     try {
-      const result = await externalTraceService.processFeedback(req.body);
-      log.debug('Feedback submitted successfully', { result });
+      // Force add server-side IP address for accurate tracking
+      const ipAddress = getClientIp(req)
+      const feedbackData = {
+        ...req.body,
+        ipAddress // Override or add ipAddress from server-side detection
+      }
+
+      const result = await externalTraceService.processFeedback(feedbackData);
+      log.debug('Feedback submitted successfully', { result, ipAddress });
       res.json(result);
     } catch (error) {
       log.error('Failed to submit feedback', { error: String(error) });
@@ -40,8 +55,6 @@ export class ExternalTraceController {
 
   /**
    * Get health of the external trace service
-   * @param _req 
-   * @param res 
    */
   async getHealth(_req: Request, res: Response): Promise<void> {
     res.status(200).json({
