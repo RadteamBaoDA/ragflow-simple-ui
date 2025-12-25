@@ -22,7 +22,7 @@ export class BroadcastMessageController {
             res.json(messages);
         } catch (error) {
             log.error('Failed to fetch all broadcast messages', { error: String(error) });
-            res.status(500).json({ error: 'Failed to fetch all broadcast messages' });
+            res.status(500).json({ error: 'Failed to fetch broadcast messages' });
         }
     }
 
@@ -40,7 +40,7 @@ export class BroadcastMessageController {
     async update(req: Request, res: Response): Promise<void> {
         const { id } = req.params;
         if (!id) {
-            res.status(400).json({ error: 'Message ID is required' });
+            res.status(400).json({ error: 'ID is required' });
             return;
         }
         try {
@@ -52,7 +52,7 @@ export class BroadcastMessageController {
             }
             res.json(message);
         } catch (error) {
-            log.error('Failed to update broadcast message', { error: String(error) });
+            log.error('Failed to update broadcast message', { id: req.params.id, error: String(error) });
             res.status(500).json({ error: 'Failed to update broadcast message' });
         }
     }
@@ -60,38 +60,42 @@ export class BroadcastMessageController {
     async delete(req: Request, res: Response): Promise<void> {
         const { id } = req.params;
         if (!id) {
-            res.status(400).json({ error: 'Message ID is required' });
+            res.status(400).json({ error: 'ID is required' });
             return;
         }
         try {
             const user = req.user ? { id: req.user.id, email: req.user.email, ip: getClientIp(req) } : undefined;
-            await broadcastMessageService.deleteMessage(id, user);
-            res.status(204).send();
+            const deleted = await broadcastMessageService.deleteMessage(id, user);
+            if (!deleted) {
+                res.status(404).json({ error: 'Broadcast message not found' });
+                return;
+            }
+            res.json({ success: true });
         } catch (error) {
-            log.error('Failed to delete broadcast message', { error: String(error) });
+            log.error('Failed to delete broadcast message', { id: req.params.id, error: String(error) });
             res.status(500).json({ error: 'Failed to delete broadcast message' });
         }
     }
 
-    async dismiss(req: Request, res: Response): Promise<void> {
-        const { id } = req.params;
-        const userId = req.user?.id;
-
-        if (!id) {
-            res.status(400).json({ error: 'Message ID is required' });
-            return;
-        }
-        if (!userId) {
-            res.status(401).json({ error: 'User must be authenticated' });
-            return;
-        }
-
+    async dismiss(req: Request, res: Response): Promise<any> {
         try {
-            await broadcastMessageService.dismissMessage(id, userId);
-            res.status(204).send();
+            const userId = req.user?.id;
+            const { id: broadcastId } = req.params;
+
+            if (!userId) {
+                // If not logged in, we silently succeed (frontend will fallback to localStorage)
+                return res.json({ success: true, localOnly: true });
+            }
+
+            if (!broadcastId) {
+                return res.status(400).json({ error: 'ID is required' });
+            }
+
+            await broadcastMessageService.dismissMessage(userId, broadcastId, req.user?.email, getClientIp(req));
+            return res.json({ success: true });
         } catch (error) {
-            log.error('Failed to dismiss broadcast message', { error: String(error) });
-            res.status(500).json({ error: 'Failed to dismiss broadcast message' });
+            log.error('Failed to dismiss broadcast message', { id: req.params.id, error: String(error) });
+            return res.status(500).json({ error: 'Failed to dismiss broadcast message' });
         }
     }
 }
