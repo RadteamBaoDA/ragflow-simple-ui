@@ -6,22 +6,68 @@ import { log } from '@/services/logger.service.js';
 export class AuditController {
   async getLogs(req: Request, res: Response): Promise<void> {
     try {
-      const page = parseInt(req.query.page as string) || 1;
-      const limit = parseInt(req.query.limit as string) || 20;
-      const offset = (page - 1) * limit;
+        // Safely extract and validate query parameters
+        const page = this.getStringParam(req.query.page) || '1';
+        const limit = this.getStringParam(req.query.limit) || '50';
+        const userId = this.getStringParam(req.query.userId);
+        const action = this.getStringParam(req.query.action);
+        const resourceType = this.getStringParam(req.query.resourceType);
+        const startDate = this.getStringParam(req.query.startDate);
+        const endDate = this.getStringParam(req.query.endDate);
+        const search = this.getStringParam(req.query.search);
 
-      const filters: any = {};
-      if (req.query.userId) filters.userId = req.query.userId as string;
-      if (req.query.action) filters.action = req.query.action as string;
-      if (req.query.resourceType) filters.resourceType = req.query.resourceType as string;
-      if (req.query.startDate) filters.startDate = new Date(req.query.startDate as string);
-      if (req.query.endDate) filters.endDate = new Date(req.query.endDate as string);
+        // Parse and validate pagination params
+        const pageNum = Math.max(1, parseInt(page, 10) || 1);
+        const limitNum = Math.min(100, Math.max(1, parseInt(limit, 10) || 50));
 
-      const result = await auditService.getLogs(filters, limit, offset);
-      res.json(result);
+        const result = await auditService.getLogs({
+            page: pageNum,
+            limit: limitNum,
+            ...(userId && { userId }),
+            ...(action && { action }),
+            ...(resourceType && { resourceType }),
+            ...(startDate && { startDate }),
+            ...(endDate && { endDate }),
+            ...(search && { search }),
+        });
+
+        log.debug('Audit logs fetched', {
+            page: pageNum,
+            limit: limitNum,
+            total: result.pagination.total,
+            requestedBy: req.session?.user?.email,
+        });
+
+        res.json(result);
     } catch (error) {
-      log.error('Failed to fetch audit logs', { error: String(error) });
-      res.status(500).json({ error: 'Failed to fetch audit logs' });
+        log.error('Failed to fetch audit logs', {
+            error: error instanceof Error ? error.message : String(error),
+        });
+        res.status(500).json({ error: 'Failed to fetch audit logs' });
+    }
+  }
+
+  async getActions(req: Request, res: Response): Promise<void> {
+    try {
+        const actions = await auditService.getActionTypes();
+        res.json(actions);
+    } catch (error) {
+        log.error('Failed to fetch action types', {
+            error: error instanceof Error ? error.message : String(error),
+        });
+        res.status(500).json({ error: 'Failed to fetch action types' });
+    }
+  }
+
+  async getResourceTypes(req: Request, res: Response): Promise<void> {
+    try {
+        const resourceTypes = await auditService.getResourceTypes();
+        res.json(resourceTypes);
+    } catch (error) {
+        log.error('Failed to fetch resource types', {
+            error: error instanceof Error ? error.message : String(error),
+        });
+        res.status(500).json({ error: 'Failed to fetch resource types' });
     }
   }
 
@@ -59,5 +105,15 @@ export class AuditController {
       log.error('Failed to export audit logs', { error: String(error) });
       res.status(500).json({ error: 'Failed to export audit logs' });
     }
+  }
+
+  private getStringParam(value: unknown): string | undefined {
+    if (typeof value === 'string') {
+        return value;
+    }
+    if (Array.isArray(value) && value.length > 0 && typeof value[0] === 'string') {
+        return value[0]; // Take first value if array
+    }
+    return undefined;
   }
 }

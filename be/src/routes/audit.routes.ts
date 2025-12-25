@@ -12,12 +12,12 @@
  * @module routes/audit
  */
 
-import { Router, Request, Response } from 'express';
-import { auditService } from '@/services/audit.service.js';
-import { log } from '@/services/logger.service.js';
+import { Router } from 'express';
+import { AuditController } from '@/controllers/audit.controller.js';
 import { requireAuth, requireRole } from '@/middleware/auth.middleware.js';
 
 const router = Router();
+const controller = new AuditController();
 
 // ============================================================================
 // Middleware
@@ -26,22 +26,6 @@ const router = Router();
 /** Apply authentication and admin role requirement to all audit routes */
 router.use(requireAuth);
 router.use(requireRole('admin'));
-
-/**
- * Helper to safely extract string from query parameter.
- * Per OWASP Node.js Security: Query params can be strings or arrays.
- * @param value - The query parameter value
- * @returns The string value or undefined
- */
-function getStringParam(value: unknown): string | undefined {
-    if (typeof value === 'string') {
-        return value;
-    }
-    if (Array.isArray(value) && value.length > 0 && typeof value[0] === 'string') {
-        return value[0]; // Take first value if array
-    }
-    return undefined;
-}
 
 // ============================================================================
 // Route Handlers
@@ -64,48 +48,7 @@ function getStringParam(value: unknown): string | undefined {
  * @requires admin role
  * @returns {AuditLogResponse} Paginated audit logs with metadata
  */
-router.get('/', async (req: Request, res: Response) => {
-    try {
-        // Safely extract and validate query parameters
-        const page = getStringParam(req.query.page) || '1';
-        const limit = getStringParam(req.query.limit) || '50';
-        const userId = getStringParam(req.query.userId);
-        const action = getStringParam(req.query.action);
-        const resourceType = getStringParam(req.query.resourceType);
-        const startDate = getStringParam(req.query.startDate);
-        const endDate = getStringParam(req.query.endDate);
-        const search = getStringParam(req.query.search);
-
-        // Parse and validate pagination params
-        const pageNum = Math.max(1, parseInt(page, 10) || 1);
-        const limitNum = Math.min(100, Math.max(1, parseInt(limit, 10) || 50));
-
-        const result = await auditService.getLogs({
-            page: pageNum,
-            limit: limitNum,
-            ...(userId && { userId }),
-            ...(action && { action }),
-            ...(resourceType && { resourceType }),
-            ...(startDate && { startDate }),
-            ...(endDate && { endDate }),
-            ...(search && { search }),
-        });
-
-        log.debug('Audit logs fetched', {
-            page: pageNum,
-            limit: limitNum,
-            total: result.pagination.total,
-            requestedBy: req.session.user?.email,
-        });
-
-        res.json(result);
-    } catch (error) {
-        log.error('Failed to fetch audit logs', {
-            error: error instanceof Error ? error.message : String(error),
-        });
-        res.status(500).json({ error: 'Failed to fetch audit logs' });
-    }
-});
+router.get('/', controller.getLogs.bind(controller));
 
 /**
  * GET /api/audit/actions
@@ -115,17 +58,7 @@ router.get('/', async (req: Request, res: Response) => {
  * @requires admin role
  * @returns {string[]} List of action types
  */
-router.get('/actions', async (_req: Request, res: Response) => {
-    try {
-        const actions = await auditService.getActionTypes();
-        res.json(actions);
-    } catch (error) {
-        log.error('Failed to fetch action types', {
-            error: error instanceof Error ? error.message : String(error),
-        });
-        res.status(500).json({ error: 'Failed to fetch action types' });
-    }
-});
+router.get('/actions', controller.getActions.bind(controller));
 
 /**
  * GET /api/audit/resource-types
@@ -135,16 +68,6 @@ router.get('/actions', async (_req: Request, res: Response) => {
  * @requires admin role
  * @returns {string[]} List of resource types
  */
-router.get('/resource-types', async (_req: Request, res: Response) => {
-    try {
-        const resourceTypes = await auditService.getResourceTypes();
-        res.json(resourceTypes);
-    } catch (error) {
-        log.error('Failed to fetch resource types', {
-            error: error instanceof Error ? error.message : String(error),
-        });
-        res.status(500).json({ error: 'Failed to fetch resource types' });
-    }
-});
+router.get('/resource-types', controller.getResourceTypes.bind(controller));
 
 export default router;
