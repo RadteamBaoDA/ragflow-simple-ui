@@ -485,9 +485,11 @@ function HistoriesPage() {
                                                                         <Sparkles size={14} />
                                                                         <span className="text-xs font-bold uppercase tracking-wider">AI Summary</span>
                                                                     </div>
-                                                                    <p className="text-slate-700 dark:text-slate-300 leading-relaxed">
-                                                                        {(item as ExternalSearchHistory).ai_summary}
-                                                                    </p>
+                                                                    <div className="text-slate-700 dark:text-slate-300 leading-relaxed">
+                                                                        <MarkdownRenderer>
+                                                                            {(item as ExternalSearchHistory).ai_summary}
+                                                                        </MarkdownRenderer>
+                                                                    </div>
                                                                 </div>
                                                             )}
 

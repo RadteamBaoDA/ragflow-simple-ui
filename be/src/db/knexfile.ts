@@ -1,7 +1,7 @@
 // Knex configuration used by CLI and knex-based tooling.
 import { fileURLToPath } from 'url';
 import { dirname, join } from 'path';
-import { config } from '@/config/index.js';
+import { config } from '../config/index.js';
 
 const __filename = fileURLToPath(import.meta.url);
 const __dirname = dirname(__filename);
@@ -18,6 +18,10 @@ const dbConfig = {
   },
   migrations: {
     directory: join(__dirname, 'migrations'),
+    extension: 'ts',
+  },
+  seeds: {
+    directory: join(__dirname, 'seeds'),
     extension: 'ts',
   },
 };

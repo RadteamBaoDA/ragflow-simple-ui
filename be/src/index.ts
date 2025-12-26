@@ -17,7 +17,9 @@ import { config } from '@/config/index.js';
 import { log } from '@/services/logger.service.js';
 import { initRedis, getRedisClient, getRedisStatus, shutdownRedis } from '@/services/redis.service.js';
 import { db, getAdapter, checkConnection, closePool } from '@/db/index.js';
-import { runMigrations } from '@/db/migrations/runner.js';
+// import { runMigrations } from '@/db/migrations/runner.js'; // Deprecated/Removed
+import knex from 'knex';
+import dbConfig from '@/db/knexfile.js';
 import { cronService } from '@/services/cron.service.js';
 import { knowledgeBaseService } from '@/services/knowledge-base.service.js';
 import { systemToolsService } from '@/services/system-tools.service.js';
@@ -235,8 +237,11 @@ const startServer = async (): Promise<http.Server | https.Server> => {
 
       // Keep schema aligned on boot to avoid drift across environments
       try {
-        const adapter = await getAdapter();
-        await runMigrations(adapter);
+        log.info('Running Knex migrations...');
+        const k = knex(dbConfig);
+        await k.migrate.latest();
+        await k.destroy();
+        log.info('Knex migrations completed successfully');
       } catch (error) {
         log.error('Failed to run migrations', { error });
         process.exit(1);

@@ -16,7 +16,9 @@
     "test:coverage": "vitest run --coverage",
     "test:ui": "vitest --ui",
     "db:migrate": "tsx src/scripts/migrate.ts",
-    "db:seed-audit": "tsx src/scripts/seed-audit-logs.ts"
+    "db:migrate:make": "tsx src/scripts/make_migration.ts",
+    "db:migrate:rollback": "tsx src/scripts/rollback_migration.ts",
+    "db:seed": "tsx src/scripts/run_seeds.ts"
   },
   "keywords": [
     "ragflow",
