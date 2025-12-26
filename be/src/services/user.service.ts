@@ -273,12 +273,72 @@ export class UserService {
 
     /**
      * Update a user's global role.
+     * Includes security checks to prevent self-modification and unauthorized admin promotion.
+     * Logs audit event.
      * @param userId - User ID to update
      * @param role - New role: 'admin', 'leader', or 'user'
+     * @param actor - The user performing the action
      * @returns Updated User or undefined if not found
+     * @throws Error if validation or security checks fail
      */
-    async updateUserRole(userId: string, role: 'admin' | 'leader' | 'user'): Promise<User | undefined> {
-        return ModelFactory.user.update(userId, { role });
+    async updateUserRole(userId: string, role: string, actor: { id: string, role: string, email: string, ip?: string }): Promise<User | undefined> {
+        // Validate UUID format for id (unless it's a special system user)
+        const uuidRegex = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i
+        if (!uuidRegex.test(userId) && userId !== 'root-user' && userId !== 'dev-user-001') {
+            throw new Error('Invalid user ID format');
+        }
+
+        // Validate role value
+        const validRoles = ['admin', 'leader', 'user'] as const;
+        if (!validRoles.includes(role as any)) {
+            throw new Error('Invalid role');
+        }
+
+        // SECURITY: Prevent self-modification of role
+        if (actor.id === userId) {
+            log.warn('Self role modification attempt blocked', {
+                userId: actor.id,
+                attemptedRole: role,
+            });
+            throw new Error('Cannot modify your own role');
+        }
+
+        // SECURITY: Prevent privilege escalation by managers
+        // Only admins can promote someone to admin
+        if (role === 'admin' && actor.role !== 'admin') {
+            log.warn('Unauthorized admin promotion attempt', {
+                userId: actor.id,
+                userRole: actor.role,
+                targetUserId: userId,
+            });
+            throw new Error('Only administrators can grant admin role');
+        }
+
+        const updatedUser = await ModelFactory.user.update(userId, { role });
+
+        if (updatedUser) {
+            // Log audit event for role change
+            await auditService.log({
+                userId: actor.id,
+                userEmail: actor.email || 'unknown',
+                action: AuditAction.UPDATE_ROLE,
+                resourceType: AuditResourceType.USER,
+                resourceId: userId,
+                details: {
+                    targetEmail: updatedUser.email,
+                    newRole: role,
+                },
+                ipAddress: actor.ip,
+            });
+
+            log.debug('User role updated', {
+                adminId: actor.id,
+                targetUserId: userId,
+                newRole: role
+            });
+        }
+
+        return updatedUser;
     }
 
     /**
