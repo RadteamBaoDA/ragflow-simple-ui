@@ -1,22 +1,14 @@
-/**
- * @fileoverview AI Search page component.
- * 
- * Simple wrapper that renders the RAGFlow iframe in search mode.
- * The actual functionality is handled by the RagflowIframe component.
- * 
- * @module pages/AiSearchPage
- */
-
 import RagflowIframe from '@/features/ai/components/RagflowIframe';
 
 /**
- * AI Search page - displays the RAGFlow search interface.
- * 
- * Renders the RagflowIframe component configured for search mode.
- * Source selection is handled in the Layout header when multiple
- * search sources are configured.
+ * @description AI Search Page Component.
+ * This component acts as a container for the RagflowIframe, initializing it in "search" mode.
+ * It allows users to access the AI search capabilities provided by the backend.
+ *
+ * @returns {JSX.Element} The rendered AI Search page containing the Ragflow iframe.
  */
 function AiSearchPage() {
+  // Render the RagflowIframe component, passing "search" as the path to load the search interface.
   return <RagflowIframe path="search" />;
 }
 

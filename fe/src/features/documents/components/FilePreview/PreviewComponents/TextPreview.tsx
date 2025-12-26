@@ -1,11 +1,27 @@
+/**
+ * @fileoverview Component for previewing text-based files (code, logs, plain text).
+ */
+
 import React, { useEffect, useState } from 'react';
 import { AlertCircle } from 'lucide-react';
 
+/**
+ * @description Props for TextPreview component.
+ */
 interface TextPreviewProps {
+    /** URL of the text file */
     url: string;
+    /** File extension (for potential syntax highlighting future-proofing) */
     extension: string;
 }
 
+/**
+ * @description Fetches and displays the content of a text-based file.
+ * Handles loading states and errors during fetch.
+ *
+ * @param {TextPreviewProps} props - Component props.
+ * @returns {JSX.Element} Text preview component.
+ */
 export const TextPreview: React.FC<TextPreviewProps> = ({ url }) => {
     const [content, setContent] = useState<string>('');
     const [loading, setLoading] = useState(true);

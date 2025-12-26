@@ -11,6 +11,12 @@ import { Plus, Edit2, Trash2, CheckCircle, XCircle } from 'lucide-react';
 import { Dialog } from '@/components/Dialog';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 
+/**
+ * @description Admin dashboard page for creating, editing, and deleting broadcast messages.
+ * Uses React Query for data fetching and mutations.
+ *
+ * @returns {JSX.Element} The Broadcast Message management page.
+ */
 const BroadcastMessagePage: React.FC = () => {
     const { t } = useTranslation();
     const queryClient = useQueryClient();
@@ -23,7 +29,7 @@ const BroadcastMessagePage: React.FC = () => {
         queryFn: broadcastMessageService.getAllMessages
     });
 
-    // Mutations
+    // Save Mutation (Create or Update)
     const saveMutation = useMutation({
         mutationKey: ['save', 'broadcastMessage'],
         mutationFn: (msg: Partial<BroadcastMessage>) => {
@@ -40,6 +46,7 @@ const BroadcastMessagePage: React.FC = () => {
         meta: { successMessage: t('admin.broadcast.saveSuccess') }
     });
 
+    // Delete Mutation
     const deleteMutation = useMutation({
         mutationKey: ['delete', 'broadcastMessage'],
         mutationFn: broadcastMessageService.deleteMessage,
@@ -49,6 +56,9 @@ const BroadcastMessagePage: React.FC = () => {
         meta: { successMessage: t('admin.broadcast.deleteSuccess') }
     });
 
+    /**
+     * @description Validation and submission handler for saving a message.
+     */
     const handleSave = async () => {
         if (!editingMessage?.message || !editingMessage?.starts_at || !editingMessage?.ends_at) {
             alert(t('common.fillRequiredFields'));
@@ -57,11 +67,19 @@ const BroadcastMessagePage: React.FC = () => {
         saveMutation.mutate(editingMessage);
     };
 
+    /**
+     * @description Handler for deleting a message after confirmation.
+     * @param {string} id - ID of message to delete.
+     */
     const handleDelete = async (id: string) => {
         if (!confirm(t('common.confirmDelete'))) return;
         deleteMutation.mutate(id);
     };
 
+    /**
+     * @description Renders the "Add" button into the header portal.
+     * @returns {React.ReactPortal | null} Portal content.
+     */
     const renderHeaderActions = () => {
         const headerActions = document.getElementById('header-actions');
         if (!headerActions) return null;

@@ -1,16 +1,9 @@
 /**
  * @fileoverview Admin-only route wrapper component.
- * 
+ *
  * Restricts access to routes that require admin role.
  * Redirects non-admin users to 403 Forbidden page.
- * 
- * Usage:
- * ```tsx
- * <AdminRoute>
- *   <AdminOnlyPage />
- * </AdminRoute>
- * ```
- * 
+ *
  * @module components/AdminRoute
  */
 
@@ -21,6 +14,9 @@ import { useAuth } from '@/features/auth';
 // Types
 // ============================================================================
 
+/** 
+ * @description Props for AdminRoute component
+ */
 interface AdminRouteProps {
     /** Child components to render for admin users */
     children: React.ReactNode;
@@ -31,28 +27,27 @@ interface AdminRouteProps {
 // ============================================================================
 
 /**
- * Route wrapper that restricts access to admin users only.
- * 
- * Behavior:
- * - Returns null while auth is loading (parent handles loading state)
- * - Redirects to /403 if user is not authenticated or not an admin
- * - Renders children if user is an admin
- * 
- * @param children - Components to render for admin users
+ * @description Route wrapper that restricts access to admin users only.
+ * Checks the user's role and redirects if they are not an admin.
+ *
+ * @param {AdminRouteProps} props - Component properties.
+ * @returns {JSX.Element | null} The child components if allowed, or a redirect.
  */
 const AdminRoute = ({ children }: AdminRouteProps) => {
     const { user, isLoading } = useAuth();
 
-    // Let ProtectedRoute handle the loading state
+    // Do nothing while authentication state is being determined
     if (isLoading) {
         return null;
     }
 
-    // Redirect non-admin users to forbidden page
+    // Check if the user is authenticated and has the 'admin' role
     if (!user || user.role !== 'admin') {
+        // Redirect to the 403 Forbidden page if access is denied
         return <Navigate to="/403" replace />;
     }
 
+    // Render the protected children if the user is an admin
     return <>{children}</>;
 };
 

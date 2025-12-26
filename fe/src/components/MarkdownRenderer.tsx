@@ -1,3 +1,17 @@
+/**
+ * @fileoverview Markdown content renderer with syntax highlighting.
+ * 
+ * Uses react-markdown with remark-gfm for Github-flavored markdown,
+ * rehype-highlight for code block syntax highlighting, and rehype-raw
+ * to support custom HTML tags (like <mark> for highlighting).
+ * 
+ * Custom components are implemented for:
+ * - Links (open in new tab)
+ * - Tables (styled with horizontal overflow)
+ * - Headings (with consistent sizing and spacing)
+ * 
+ * @module components/MarkdownRenderer
+ */
 import React from 'react';
 import ReactMarkdown from 'react-markdown';
 import remarkGfm from 'remark-gfm';
@@ -5,12 +19,31 @@ import rehypeHighlight from 'rehype-highlight';
 import rehypeRaw from 'rehype-raw';
 import 'highlight.js/styles/github-dark.css'; // Import a highlight.js theme
 
+/**
+ * Props for the MarkdownRenderer component.
+ */
 interface MarkdownRendererProps {
+    /** The raw markdown string to render */
     children: string;
-    className?: string; // Allow passing extra classes
+    /** Additional CSS classes for the container */
+    className?: string;
+    /** Text to automatically wrap in <mark> tags for highlighting */
     highlightText?: string;
 }
 
+/**
+ * Markdown Renderer Component.
+ * 
+ * Features:
+ * - GFM (Tables, Checklists, etc.)
+ * - Syntax highlighting for code blocks
+ * - Support for HTML tags in markdown
+ * - Custom text highlighting via regex
+ * - Responsive table layouts
+ * 
+ * @param {MarkdownRendererProps} props - Component properties
+ * @returns {JSX.Element} The rendered Markdown content
+ */
 export const MarkdownRenderer: React.FC<MarkdownRendererProps> = ({ children, className, highlightText }) => {
     let content = children || '';
     if (highlightText && highlightText.trim()) {

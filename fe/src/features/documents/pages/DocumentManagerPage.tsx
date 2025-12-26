@@ -71,6 +71,9 @@ type SortDirection = 'asc' | 'desc';
 
 /**
  * Format date with date before time for all locales
+ * @param {Date} date - Date to format
+ * @param {string} locale - Locale string (e.g., 'en-US')
+ * @returns {string} Formatted date time string
  */
 const formatDateTime = (date: Date, locale: string): string => {
     const dateStr = date.toLocaleDateString(locale, {
@@ -227,7 +230,12 @@ const DocumentManagerPage = () => {
     }, [user?.id, selectedBucket, t]); // Re-fetch when user or bucket changes
 
 
-    // Handle bucket selection with localStorage persistence
+    /**
+     * Handle bucket selection with localStorage persistence.
+     * Resets navigation history when switching buckets.
+     * 
+     * @param {string} bucketId - The selected bucket ID.
+     */
     const handleBucketSelect = (bucketId: string) => {
         setSelectedBucket(bucketId);
         setBucketSyncError(null);  // Clear sync error when switching buckets
@@ -241,7 +249,11 @@ const DocumentManagerPage = () => {
         setHistoryIndex(0);
     };
 
-    // Navigation functions
+    /**
+     * Navigate to a specific folder update history stack.
+     * 
+     * @param {string} prefix - The folder prefix to navigate to.
+     */
     const navigateTo = (prefix: string) => {
         // Add to history stack (remove forward history)
         const newHistory = historyStack.slice(0, historyIndex + 1);
@@ -251,6 +263,9 @@ const DocumentManagerPage = () => {
         setCurrentPrefix(prefix);
     };
 
+    /**
+     * Go back in navigation history.
+     */
     const goBack = () => {
         if (historyIndex > 0) {
             const newIndex = historyIndex - 1;
@@ -259,6 +274,9 @@ const DocumentManagerPage = () => {
         }
     };
 
+    /**
+     * Go forward in navigation history.
+     */
     const goForward = () => {
         if (historyIndex < historyStack.length - 1) {
             const newIndex = historyIndex + 1;
@@ -334,7 +352,9 @@ const DocumentManagerPage = () => {
         return { totalHeight, startIndex, endIndex, offsetY, visibleItems };
     }, [filteredObjects, scrollTop, containerHeight]);
 
-    // Handle scroll event
+    /**
+     * Handle scroll event to update virtual scroll state.
+     */
     const handleScroll = useCallback((e: React.UIEvent<HTMLDivElement>) => {
         setScrollTop(e.currentTarget.scrollTop);
     }, []);
@@ -384,6 +404,10 @@ const DocumentManagerPage = () => {
     /**
      * Recursively read all files from a FileSystemDirectoryEntry.
      * Returns an array of File objects with webkitRelativePath set.
+     * 
+     * @param {FileSystemDirectoryEntry} dirEntry - The directory entry to read.
+     * @param {string} basePath - The relative path accumulator.
+     * @returns {Promise<File[]>} List of files with relative paths.
      */
     const readDirectoryRecursively = async (
         dirEntry: FileSystemDirectoryEntry,
@@ -443,6 +467,8 @@ const DocumentManagerPage = () => {
      * Handle drag and drop of files and folders.
      * Preserves folder structure when uploading.
      * Supports multiple folders dropped at once.
+     * 
+     * @param {React.DragEvent<HTMLDivElement>} e - Drag event.
      */
     const handleDrop = async (e: React.DragEvent<HTMLDivElement>) => {
         e.preventDefault();
@@ -536,6 +562,10 @@ const DocumentManagerPage = () => {
         }
     };
 
+    /**
+     * Handle updating the drag counter when entering drop zone.
+     * @param {React.DragEvent<HTMLDivElement>} e - Drag event.
+     */
     const handleDragEnter = (e: React.DragEvent<HTMLDivElement>) => {
         e.preventDefault();
         e.stopPropagation();
@@ -545,6 +575,10 @@ const DocumentManagerPage = () => {
         }
     };
 
+    /**
+     * Handle updating the drag counter when leaving drop zone.
+     * @param {React.DragEvent<HTMLDivElement>} e - Drag event.
+     */
     const handleDragLeave = (e: React.DragEvent<HTMLDivElement>) => {
         e.preventDefault();
         e.stopPropagation();
@@ -554,6 +588,10 @@ const DocumentManagerPage = () => {
         }
     };
 
+    /**
+     * Prevent default behavior when dragging over.
+     * @param {React.DragEvent<HTMLDivElement>} e - Drag event.
+     */
     const handleDragOver = (e: React.DragEvent<HTMLDivElement>) => {
         e.preventDefault();
         e.stopPropagation();
@@ -585,6 +623,10 @@ const DocumentManagerPage = () => {
         }
     }, [selectedBucket, currentPrefix]);
 
+    /**
+     * Load the list of configured buckets from the database.
+     * Tries to restore the last selected bucket from localStorage.
+     */
     const loadBuckets = async () => {
         try {
             const data = await getBuckets();
@@ -614,6 +656,9 @@ const DocumentManagerPage = () => {
         }
     };
 
+    /**
+     * Load available MinIO buckets that haven't been configured yet.
+     */
     const loadAvailableBuckets = async () => {
         try {
             const data = await getAvailableBuckets();
@@ -623,6 +668,10 @@ const DocumentManagerPage = () => {
         }
     };
 
+    /**
+     * Fetch files and folders for the current bucket and prefix.
+     * Handles sync errors if the bucket doesn't exist in MinIO.
+     */
     const loadObjects = async () => {
         if (!selectedBucket) return;
 
@@ -649,6 +698,12 @@ const DocumentManagerPage = () => {
         }
     };
 
+    /**
+     * Remove a bucket configuration from the database.
+     * Does not delete the actual MinIO bucket.
+     * 
+     * @param {string} bucketId - ID of the bucket to remove.
+     */
     const handleDeleteBucket = async (bucketId: string) => {
         const confirmed = await confirm({
             message: t('documents.deleteBucketConfirm'),
@@ -668,6 +723,12 @@ const DocumentManagerPage = () => {
         }
     };
 
+    /**
+     * Process the upload of files to MinIO.
+     * 
+     * @param {File[]} files - Files to upload.
+     * @param {boolean} preserveFolderStructure - Whether to use webkitRelativePath.
+     */
     const processUpload = async (files: File[], preserveFolderStructure: boolean = false) => {
         if (!selectedBucket || files.length === 0) return;
 
@@ -708,6 +769,13 @@ const DocumentManagerPage = () => {
         }
     };
 
+    /**
+     * Handle file selection from input or drop.
+     * Checks for file existence conflicts before uploading.
+     * 
+     * @param {FileList} fileList - List of files to upload.
+     * @param {boolean} preserveFolderStructure - Whether to maintain folder structure.
+     */
     const handleUpload = async (fileList: FileList, preserveFolderStructure: boolean = false) => {
         if (!selectedBucket || fileList.length === 0) return;
 
@@ -762,6 +830,11 @@ const DocumentManagerPage = () => {
         }
     };
 
+    /**
+     * Resolve file name conflicts during upload.
+     * 
+     * @param {'replace' | 'skip' | 'keepBoth'} action - Resolution strategy.
+     */
     const handleConflictResolution = async (action: 'replace' | 'skip' | 'keepBoth') => {
         if (!pendingUploadFiles) return;
 
@@ -826,6 +899,11 @@ const DocumentManagerPage = () => {
         }
     };
 
+    /**
+     * Delete a single file or folder.
+     * 
+     * @param {FileObject} obj - The object to delete.
+     */
     const handleDelete = async (obj: FileObject) => {
         const confirmed = await confirm({
             message: t('documents.deleteConfirm', { type: obj.isFolder ? t('documents.folder') : t('documents.file'), name: obj.name }),
@@ -852,6 +930,9 @@ const DocumentManagerPage = () => {
         }
     };
 
+    /**
+     * Delete multiple selected items.
+     */
     const handleBatchDelete = async () => {
         if (selectedItems.size === 0) return;
         const confirmed = await confirm({
@@ -889,6 +970,11 @@ const DocumentManagerPage = () => {
         }
     };
 
+    /**
+     * Download a file.
+     * 
+     * @param {FileObject} obj - The file to download.
+     */
     const handleDownload = async (obj: FileObject) => {
         try {
             const fullPath = currentPrefix + obj.name;
@@ -899,7 +985,11 @@ const DocumentManagerPage = () => {
         }
     };
 
-    // Helper to get file icon based on extension
+    /**
+     * Helper to get file icon based on extension.
+     * @param {string} filename - Name of the file.
+     * @returns {JSX.Element} Icon component.
+     */
     const getFileIcon = (filename: string) => {
         const ext = filename.split('.').pop()?.toLowerCase() || '';
         switch (ext) {
@@ -937,7 +1027,11 @@ const DocumentManagerPage = () => {
         }
     };
 
-    // Helper to check if preview is supported
+    /**
+     * Helper to check if preview is supported.
+     * @param {string} filename - Name of the file.
+     * @returns {boolean} True if supported.
+     */
     const isPreviewSupported = (filename: string) => {
         const ext = filename.split('.').pop()?.toLowerCase() || '';
         const supported = [
@@ -949,6 +1043,11 @@ const DocumentManagerPage = () => {
         return supported.includes(ext);
     };
 
+    /**
+     * Open preview modal for a file.
+     * 
+     * @param {FileObject} obj - File to preview.
+     */
     const handlePreview = async (obj: FileObject) => {
         // Check permission before allowing preview
         if (effectivePermission < PermissionLevel.VIEW) {
@@ -976,12 +1075,22 @@ const DocumentManagerPage = () => {
 
 
 
+    /**
+     * Navigate into a folder.
+     * 
+     * @param {FileObject} obj - Folder object.
+     */
     const navigateToFolder = (obj: FileObject) => {
         if (obj.isFolder) {
             navigateTo(obj.prefix || currentPrefix + obj.name + '/');
         }
     };
 
+    /**
+     * Toggle selection of a file/folder.
+     * 
+     * @param {string} name - Name of the item.
+     */
     const toggleSelection = (name: string) => {
         const newSelection = new Set(selectedItems);
         if (newSelection.has(name)) {
@@ -992,6 +1101,10 @@ const DocumentManagerPage = () => {
         setSelectedItems(newSelection);
     };
 
+    /**
+     * Validate the bucket creation form.
+     * @returns {boolean} True if valid.
+     */
     const validateForm = () => {
         const errors: Record<string, string> = {};
         if (!formData.bucket_name) {
@@ -1004,6 +1117,9 @@ const DocumentManagerPage = () => {
         return Object.keys(errors).length === 0;
     };
 
+    /**
+     * Create a new bucket configuration.
+     */
     const handleCreateBucket = async () => {
         if (!validateForm()) return;
         setCreating(true);
@@ -1023,6 +1139,9 @@ const DocumentManagerPage = () => {
         }
     };
 
+    /**
+     * Open the create bucket modal after resetting form.
+     */
     const handleOpenCreateModal = () => {
         setFormData({ bucket_name: '', display_name: '', description: '' });
         setFormErrors({});
@@ -1031,6 +1150,9 @@ const DocumentManagerPage = () => {
         setShowCreateModal(true);
     };
 
+    /**
+     * Create a new folder in the current directory.
+     */
     const handleCreateFolder = async () => {
         if (!newFolderName.trim()) {
             setFolderError(t('documents.folderNameRequired'));

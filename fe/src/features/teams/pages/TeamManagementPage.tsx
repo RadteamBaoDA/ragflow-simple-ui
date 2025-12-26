@@ -1,4 +1,11 @@
-// Team CRUD + membership management UI for admins/leads.
+/**
+ * @fileoverview Team management page.
+ * 
+ * Provides functionalities for:
+ * - Listing all teams.
+ * - Creating, updating, and deleting teams.
+ * - Managing team members (adding/removing users).
+ */
 import { useState, useEffect, useRef } from 'react';
 import { useTranslation } from 'react-i18next';
 import { Plus, Edit, Trash2, Users, Search } from 'lucide-react';
@@ -37,6 +44,10 @@ export default function TeamManagementPage() {
         // loadUsers(); // Optimization: Load users only when needed (opening members modal)
     }, []);
 
+    /**
+     * Fetch all users from the backend.
+     * Used for populating the add member dropdown.
+     */
     const loadUsers = async () => {
         try {
             const data = await userService.getUsers();
@@ -46,6 +57,9 @@ export default function TeamManagementPage() {
         }
     };
 
+    /**
+     * Fetch all teams.
+     */
     const loadTeams = async () => {
         try {
             setLoading(true);
@@ -58,6 +72,10 @@ export default function TeamManagementPage() {
         }
     };
 
+    /**
+     * Fetch members for a specific team.
+     * @param teamId - ID of the team
+     */
     const loadMembers = async (teamId: string) => {
         try {
             const data = await teamService.getTeamMembers(teamId);
@@ -67,6 +85,9 @@ export default function TeamManagementPage() {
         }
     };
 
+    /**
+     * Close all modals and reset form state.
+     */
     const closeModals = () => {
         setIsCreateModalOpen(false);
         setIsEditModalOpen(false);
@@ -80,6 +101,9 @@ export default function TeamManagementPage() {
         setAddMemberError(null);
     };
 
+    /**
+     * Handle team creation.
+     */
     const handleCreate = async (e: React.FormEvent) => {
         e.preventDefault();
         try {
@@ -92,6 +116,9 @@ export default function TeamManagementPage() {
         }
     };
 
+    /**
+     * Handle team update.
+     */
     const handleUpdate = async (e: React.FormEvent) => {
         e.preventDefault();
         if (!selectedTeam) return;
@@ -105,6 +132,10 @@ export default function TeamManagementPage() {
         }
     };
 
+    /**
+     * Handle team deletion.
+     * @param id - Team ID
+     */
     const handleDelete = async (id: string) => {
         const confirmed = await confirm({ message: t('common.confirmDelete'), variant: 'danger' });
         if (!confirmed) return;
@@ -117,6 +148,9 @@ export default function TeamManagementPage() {
         }
     };
 
+    /**
+     * Add selected users as members to the current team.
+     */
     const handleAddMember = async () => {
         setAddMemberError(null);
         if (!selectedTeam || selectedUserIds.length === 0) return;

@@ -38,6 +38,22 @@ interface DialogProps {
 // Component
 // ============================================================================
 
+// Map width preset to Tailwind class
+const maxWidthClasses = {
+    sm: 'w-full max-w-sm',
+    md: 'w-full max-w-md',
+    lg: 'w-full max-w-lg',
+    xl: 'w-full max-w-xl',
+    '2xl': 'w-full max-w-2xl',
+    '3xl': 'w-full max-w-3xl',
+    '4xl': 'w-full max-w-4xl',
+    '5xl': 'w-full max-w-5xl',
+    '6xl': 'w-full max-w-6xl',
+    '7xl': 'w-full max-w-7xl',
+    full: 'w-full max-w-full',
+    none: 'max-w-none', // No w-full here allowing custom width
+};
+
 /**
  * Reusable modal dialog with consistent styling.
  * 
@@ -49,13 +65,8 @@ interface DialogProps {
  * - Optional footer for action buttons
  * - Dark mode support
  * 
- * @param open - Whether dialog is visible
- * @param onClose - Close callback
- * @param title - Header title
- * @param children - Body content
- * @param footer - Optional footer content
- * @param maxWidth - Width preset (default: 'md')
- * @param className - Custom class name
+ * @param {DialogProps} props - Component properties
+ * @returns {JSX.Element} The rendered Dialog
  */
 export function Dialog({
     open,
@@ -66,21 +77,6 @@ export function Dialog({
     maxWidth = 'md',
     className = ''
 }: DialogProps) {
-    // Map width preset to Tailwind class
-    const maxWidthClasses = {
-        sm: 'w-full max-w-sm',
-        md: 'w-full max-w-md',
-        lg: 'w-full max-w-lg',
-        xl: 'w-full max-w-xl',
-        '2xl': 'w-full max-w-2xl',
-        '3xl': 'w-full max-w-3xl',
-        '4xl': 'w-full max-w-4xl',
-        '5xl': 'w-full max-w-5xl',
-        '6xl': 'w-full max-w-6xl',
-        '7xl': 'w-full max-w-7xl',
-        full: 'w-full max-w-full',
-        none: 'max-w-none', // No w-full here allowing custom width
-    };
 
     return (
         <Transition appear show={open} as={Fragment}>

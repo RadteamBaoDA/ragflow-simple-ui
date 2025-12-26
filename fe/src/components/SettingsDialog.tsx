@@ -31,14 +31,14 @@ function SettingsDialog() {
   const { t } = useTranslation();
   const { theme, setTheme, language, setLanguage, isSettingsOpen, closeSettings } = useSettings();
 
-  // Build language options from supported languages config
+  // Build language options from supported languages config (native names and flags)
   const languageOptions = SUPPORTED_LANGUAGES.map(lang => ({
     value: lang.code,
     label: lang.nativeName,
     icon: lang.flag,
   }));
 
-  // Theme options with icons
+  // Theme options with localized labels and visual icons
   const themeOptions: { value: Theme; label: string; icon: string }[] = [
     { value: 'light', label: t('settings.themeLight'), icon: '☀️' },
     { value: 'dark', label: t('settings.themeDark'), icon: '🌙' },

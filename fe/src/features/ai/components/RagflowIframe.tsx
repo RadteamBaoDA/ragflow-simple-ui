@@ -1,6 +1,6 @@
 /**
  * @fileoverview RAGFlow iframe container component with i18n support.
- * 
+ *
  * Embeds RAGFlow AI Chat or AI Search interfaces in an iframe.
  * Handles:
  * - URL status checking before loading
@@ -9,7 +9,7 @@
  * - Locale appending to iframe URLs
  * - Iframe reload functionality
  * - All error messages internationalized via i18next
- * 
+ *
  * @module components/RagflowIframe
  */
 
@@ -24,13 +24,17 @@ import { AlertCircle, RefreshCw, RotateCcw, WifiOff, Lock, FileQuestion, ServerC
 // Types
 // ============================================================================
 
-/** Props for RagflowIframe component */
+/** 
+ * @description Props for RagflowIframe component 
+ */
 interface RagflowIframeProps {
   /** The type of RAGFlow interface to embed */
   path: "chat" | "search";
 }
 
-/** Error state for iframe loading failures */
+/** 
+ * @description Error state for iframe loading failures 
+ */
 interface IframeError {
   /** Type of error for styling and messaging */
   type: 'network' | 'forbidden' | 'notfound' | 'server' | 'unknown';
@@ -45,12 +49,13 @@ interface IframeError {
 // ============================================================================
 
 /**
- * RAGFlow iframe container with error handling and loading states.
- * 
+ * @description RAGFlow iframe container with error handling and loading states.
  * Embeds the RAGFlow Chat or Search interface based on the path prop.
  * Includes URL validation, custom error pages, and retry functionality.
- * 
- * @param path - 'chat' or 'search' to determine which interface to load
+ *
+ * @param {RagflowIframeProps} props - Component properties.
+ * @param {string} props.path - 'chat' or 'search' to determine which interface to load.
+ * @returns {JSX.Element} The rendered iframe container.
  */
 function RagflowIframe({ path }: RagflowIframeProps) {
   const { t, i18n } = useTranslation();
@@ -74,22 +79,17 @@ function RagflowIframe({ path }: RagflowIframeProps) {
   // Get the selected source ID based on path (chat or search)
   const selectedSourceId = path === 'chat' ? knowledgeBase.selectedChatSourceId : knowledgeBase.selectedSearchSourceId;
 
-
-
-  /**
-   * Effect: Update iframe source URL when source or locale changes.
-   * Appends current locale to URL for internationalization.
-   */
   // ============================================================================
   // Callbacks
   // ============================================================================
 
   /**
-   * Check URL availability before loading iframe.
+   * @description Check URL availability before loading iframe.
    * Uses no-cors mode since we can't read status due to CORS.
    * Detects network errors and timeouts.
-   * 
-   * @param url - The URL to check
+   *
+   * @param {string} url - The URL to check.
+   * @returns {Promise<void>}
    */
   const checkUrlStatus = useCallback(async (url: string) => {
     if (!url) return;
@@ -147,9 +147,11 @@ function RagflowIframe({ path }: RagflowIframeProps) {
   }, []);
 
   // ============================================================================
+  // Effects
+  // ============================================================================
 
   /**
-   * Effect: Update iframe source URL when source or locale changes.
+   * @description Effect: Update iframe source URL when source or locale changes.
    * Appends current locale to URL for internationalization.
    */
   useEffect(() => {
@@ -208,7 +210,7 @@ function RagflowIframe({ path }: RagflowIframeProps) {
   }, [knowledgeBase.config, selectedSourceId, i18n.language, path, user?.email, resolvedTheme, isUserLoading, t, sessionKey]);
 
   /**
-   * Effect: Check URL status when iframe source changes.
+   * @description Effect: Check URL status when iframe source changes.
    * Only check if we haven't already checked (urlChecked) and we have a src.
    * Note: The warmup checks the base URL, so we might skip this if we consider warmup sufficient,
    * but keeping it for the final URL is safer.
@@ -220,7 +222,16 @@ function RagflowIframe({ path }: RagflowIframeProps) {
   }, [iframeSrc, urlChecked, checkUrlStatus]);
 
   /**
-   * Handler: Called when iframe successfully loads.
+   * @description Effect: Reset loading state when iframe source changes.
+   */
+  useEffect(() => {
+    if (iframeSrc) {
+      setIframeLoading(true);
+    }
+  }, [iframeSrc]);
+
+  /**
+   * @description Handler: Called when iframe successfully loads.
    * Logs the load event and clears loading/error states.
    */
   const handleIframeLoad = useCallback(() => {
@@ -234,7 +245,7 @@ function RagflowIframe({ path }: RagflowIframeProps) {
   }, []);
 
   /**
-   * Handler: Called when iframe fails to load.
+   * @description Handler: Called when iframe fails to load.
    * Sets a generic error if no specific error is already set.
    */
   const handleIframeError = useCallback(() => {
@@ -252,16 +263,7 @@ function RagflowIframe({ path }: RagflowIframeProps) {
   }, []);
 
   /**
-   * Effect: Reset loading state when iframe source changes.
-   */
-  useEffect(() => {
-    if (iframeSrc) {
-      setIframeLoading(true);
-    }
-  }, [iframeSrc]);
-
-  /**
-   * Handler: Reload the iframe by resetting its source.
+   * @description Handler: Reload the iframe by resetting its source.
    * Uses a small delay to ensure clean reload.
    */
   const handleReload = useCallback(() => {
@@ -272,6 +274,7 @@ function RagflowIframe({ path }: RagflowIframeProps) {
     setUrlChecked(false);
     if (iframeRef.current) {
       iframeRef.current.src = '';
+      // Small timeout to allow the browser to process the empty src
       setTimeout(() => {
         if (iframeRef.current) {
           iframeRef.current.src = iframeSrc;
@@ -281,14 +284,14 @@ function RagflowIframe({ path }: RagflowIframeProps) {
   }, [iframeSrc]);
 
   /**
-   * Handler: Toggle full screen mode.
+   * @description Handler: Toggle full screen mode.
    */
   const toggleFullScreen = useCallback(() => {
     setIsFullScreen(prev => !prev);
   }, []);
 
   /**
-   * Handler: Reset the session by updating the timestamp key.
+   * @description Handler: Reset the session by updating the timestamp key.
    */
   const handleResetSession = useCallback(() => {
     setSessionKey(Date.now());
@@ -301,11 +304,11 @@ function RagflowIframe({ path }: RagflowIframeProps) {
   // ============================================================================
 
   /**
-   * Render a custom error page based on error type.
+   * @description Render a custom error page based on error type.
    * Each error type has its own icon, colors, and messaging.
-   * 
-   * @param error - The error to display
-   * @returns JSX for the error page
+   *
+   * @param {IframeError} error - The error to display.
+   * @returns {JSX.Element} JSX for the error page.
    */
   const renderErrorPage = (error: IframeError) => {
     // Configuration for different error types
@@ -379,6 +382,7 @@ function RagflowIframe({ path }: RagflowIframeProps) {
     );
   };
 
+  // Loading state for initial knowledge base config
   if (knowledgeBase.isLoading) {
     return (
       <div className="w-full h-full flex items-center justify-center bg-slate-50 dark:bg-slate-800">
@@ -390,6 +394,7 @@ function RagflowIframe({ path }: RagflowIframeProps) {
     );
   }
 
+  // Knowledge base initialization error
   if (knowledgeBase.error) {
     return (
       <div className="w-full h-full flex items-center justify-center bg-red-50 dark:bg-red-900/20">
@@ -417,7 +422,7 @@ function RagflowIframe({ path }: RagflowIframeProps) {
     );
   }
 
-  // Show custom error page if iframe failed to load
+  // Show custom error page if iframe failed to load or URL check failed
   if (iframeError) {
     return renderErrorPage(iframeError);
   }
@@ -444,7 +449,7 @@ function RagflowIframe({ path }: RagflowIframeProps) {
   return (
     <div className={`flex flex-col relative transition-all duration-200 ${isFullScreen ? '!fixed !inset-0 !z-[9999] !w-screen !h-screen !m-0 !rounded-none bg-white dark:bg-slate-900' : 'h-full w-full'}`}>
       <div className="flex-1 overflow-hidden bg-white dark:bg-slate-800 relative">
-        {/* Loading overlay */}
+        {/* Loading overlay when iframe is refreshing or loading content */}
         {iframeLoading && (
           <div className="absolute inset-0 flex items-center justify-center bg-slate-50 dark:bg-slate-800 z-10">
             <div className="text-center">
@@ -483,7 +488,7 @@ function RagflowIframe({ path }: RagflowIframeProps) {
           </span>
         </button>
 
-        {/* Reset Session Bubble Button */}
+        {/* Reset Session Bubble Button - resets unique session key to force reload */}
         <button
           onClick={handleResetSession}
           className="absolute bottom-20 right-6 p-3 bg-white dark:bg-slate-700 text-slate-700 dark:text-slate-200 rounded-full shadow-lg hover:bg-slate-100 dark:hover:bg-slate-600 transition-all duration-200 z-[100] border border-slate-200 dark:border-slate-600 group cursor-pointer"

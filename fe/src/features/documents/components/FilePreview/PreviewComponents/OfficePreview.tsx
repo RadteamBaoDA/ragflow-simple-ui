@@ -1,13 +1,28 @@
+/**
+ * @fileoverview Component for previewing Office documents (Word, Excel, PowerPoint) in the browser.
+ * Uses client-side libraries:
+ * - mammoth.js for DOCX
+ * - xlsx for Excel
+ * - jszip + custom xml parsing for PPTX
+ */
+
 import React, { useEffect, useState } from 'react';
 import { AlertTriangle, AlertCircle, ChevronLeft, ChevronRight } from 'lucide-react';
 import * as mammoth from 'mammoth';
 import * as XLSX from 'xlsx';
 import JSZip from 'jszip';
 
+/**
+ * @description Props for OfficePreview component.
+ */
 interface OfficePreviewProps {
+    /** URL of the document file */
     url: string;
 }
 
+/**
+ * @description Formatting properties extracted from PPTX slides.
+ */
 interface FormattedText {
     text: string;
     bold?: boolean;
@@ -16,6 +31,9 @@ interface FormattedText {
     size?: number;
 }
 
+/**
+ * @description Data structure representing a parsed slide.
+ */
 interface SlideData {
     index: number;
     imageUrls?: string[] | undefined;
@@ -24,9 +42,16 @@ interface SlideData {
     backgroundColor?: string | undefined;
 }
 
-// Simple in-memory cache for file content
+// Simple in-memory cache for file content to avoid re-fetching on re-renders
 const fileCache = new Map<string, ArrayBuffer>();
 
+/**
+ * @description Renders previews for Office documents (DOCX, XLSX, PPTX).
+ * Retrieves the file as an ArrayBuffer and uses specific parsers for each type.
+ *
+ * @param {OfficePreviewProps} props - Component props.
+ * @returns {JSX.Element} Office file preview component.
+ */
 export const OfficePreview: React.FC<OfficePreviewProps> = ({ url }) => {
     const [content, setContent] = useState<React.ReactNode | null>(null);
     const [loading, setLoading] = useState(true);
@@ -83,6 +108,9 @@ export const OfficePreview: React.FC<OfficePreviewProps> = ({ url }) => {
         fetchAndRender();
     }, [url]);
 
+    /**
+     * @description Renders DOCX content using mammoth.js.
+     */
     const renderDocx = async (arrayBuffer: ArrayBuffer) => {
         try {
             const result = await mammoth.convertToHtml({ arrayBuffer });
@@ -99,6 +127,9 @@ export const OfficePreview: React.FC<OfficePreviewProps> = ({ url }) => {
         }
     };
 
+    /**
+     * @description Renders Excel content using xlsx library.
+     */
     const renderExcel = (arrayBuffer: ArrayBuffer) => {
         const workbook = XLSX.read(arrayBuffer, { type: 'array' });
         if (workbook.SheetNames.length === 0) {
@@ -128,6 +159,9 @@ export const OfficePreview: React.FC<OfficePreviewProps> = ({ url }) => {
         );
     };
 
+    /**
+     * @description Renders PowerPoint content by extracting slides and images from the ZIP structure.
+     */
     const renderPptx = async (arrayBuffer: ArrayBuffer) => {
         try {
             const zip = await JSZip.loadAsync(arrayBuffer);
@@ -281,7 +315,7 @@ export const OfficePreview: React.FC<OfficePreviewProps> = ({ url }) => {
     );
 };
 
-// PowerPoint Viewer Component
+// PowerPoint Viewer Component (Private Sub-component)
 const PptxViewer: React.FC<{ slides: SlideData[] }> = ({ slides }) => {
     const [currentSlide, setCurrentSlide] = useState(0);
 
@@ -415,4 +449,3 @@ const PptxViewer: React.FC<{ slides: SlideData[] }> = ({ slides }) => {
         </div>
     );
 };
-

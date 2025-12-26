@@ -1,14 +1,30 @@
+/**
+ * @fileoverview Permission reference page.
+ * Displays a static matrix of permissions per role (Admin, Leader, Member).
+ */
 import { useTranslation } from 'react-i18next';
 import { Check, X, Shield, Users, User, AlertCircle } from 'lucide-react';
 
+/**
+ * Defines a permission row in the matrix.
+ */
 interface PermissionMatrixItem {
+    /** Permission name */
     permission: string;
+    /** Detailed description */
     description: string;
+    /** Whether Admin has this permission */
     admin: boolean;
+    /** Whether Leader has this permission */
     leader: boolean;
+    /** Whether Member has this permission */
     user: boolean;
 }
 
+/**
+ * Permission Management Page.
+ * Currently a read-only view explaining the role-based access control (RBAC) model.
+ */
 export default function PermissionManagementPage() {
     const { t } = useTranslation();
 

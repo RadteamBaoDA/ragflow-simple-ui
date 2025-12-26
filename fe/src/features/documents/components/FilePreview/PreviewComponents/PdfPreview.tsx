@@ -1,10 +1,26 @@
+/**
+ * @fileoverview Component for previewing PDF files using the browser's native PDF viewer.
+ */
+
 import React, { useState } from 'react';
 
+/**
+ * @description Props for PdfPreview component.
+ */
 interface PdfPreviewProps {
+    /** URL of the PDF to display */
     url: string;
+    /** Title attribute for the iframe */
     title: string;
 }
 
+/**
+ * @description Renders a PDF preview using an iframe.
+ * Shows a loading spinner until the iframe content is loaded.
+ *
+ * @param {PdfPreviewProps} props - Component props.
+ * @returns {JSX.Element} PDF preview component.
+ */
 export const PdfPreview: React.FC<PdfPreviewProps> = ({ url, title }) => {
     const [loading, setLoading] = useState(true);
 

@@ -1,3 +1,8 @@
+/**
+ * @fileoverview Modal component for previewing files in the Document Manager.
+ * Routes to specific previewers based on file extension.
+ */
+
 import React, { useEffect, useState } from 'react';
 import { X, Download, ExternalLink, AlertCircle } from 'lucide-react';
 import { useTranslation } from 'react-i18next';
@@ -7,13 +12,34 @@ import { PdfPreview } from './PreviewComponents/PdfPreview';
 import { TextPreview } from './PreviewComponents/TextPreview';
 import { OfficePreview } from './PreviewComponents/OfficePreview';
 
+/**
+ * @description Props for the FilePreviewModal.
+ */
 interface FilePreviewModalProps {
+    /** File object with metadata (name, size, etc.) */
     file: FileObject;
+    /** Presigned URL for accessing the file content */
     url: string;
+    /** Callback to close the modal */
     onClose: () => void;
+    /** Callback to trigger file download (browser download) */
     onDownload: () => void;
 }
 
+/**
+ * @description A modal dialog that renders a preview of a file stored in MinIO.
+ * It detects the file extension and chooses the appropriate sub-component:
+ * - Images (jpg, png, etc.) -> ImagePreview
+ * - PDFs -> PdfPreview
+ * - Text/Code (txt, json, js, etc.) -> TextPreview
+ * - Office Docs (docx, xlsx, pptx) -> OfficePreview (via Microsoft Online Viewer)
+ * - Others -> Fallback with download button.
+ *
+ * It also provides a toolbar for downloading, opening in a new tab, and closing.
+ *
+ * @param {FilePreviewModalProps} props - Component properties.
+ * @returns {JSX.Element} The file preview modal.
+ */
 export const FilePreviewModal: React.FC<FilePreviewModalProps> = ({ file, url, onClose, onDownload }) => {
     const { t } = useTranslation();
     const [extension, setExtension] = useState<string>('');

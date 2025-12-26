@@ -1,12 +1,12 @@
 /**
  * @fileoverview Audit log page for administrators.
- * 
+ *
  * Admin-only page for viewing all system audit logs:
  * - Paginated datatable with all audit entries
  * - Filtering by action type, resource type, date range
  * - Search across user email and details
  * - Full i18n support for all text
- * 
+ *
  * @module pages/AuditLogPage
  */
 
@@ -34,39 +34,67 @@ const API_BASE_URL = import.meta.env.VITE_API_BASE_URL || '';
 // Type Definitions
 // ============================================================================
 
-/** Audit log entry from API */
+/**
+ * @description Audit log entry structure received from the API.
+ */
 interface AuditLogEntry {
+    /** Unique identifier for the log entry */
     id: number;
+    /** User ID who performed the action (nullable for system actions) */
     user_id: string | null;
+    /** Email of the user who performed the action */
     user_email: string;
+    /** The type of action performed (e.g., 'login', 'create_user') */
     action: string;
+    /** The type of resource affected (e.g., 'user', 'file') */
     resource_type: string;
+    /** ID of the affected resource */
     resource_id: string | null;
+    /** Additional details about the action (JSON object) */
     details: Record<string, any>;
+    /** IP address from where the action originated */
     ip_address: string | null;
+    /** Timestamp of the action */
     created_at: string;
 }
 
-/** Pagination metadata */
+/**
+ * @description Pagination metadata returned by the API.
+ */
 interface Pagination {
+    /** Current page number */
     page: number;
+    /** Number of items per page */
     limit: number;
+    /** Total number of items available */
     total: number;
+    /** Total number of pages */
     totalPages: number;
 }
 
-/** API response shape */
+/**
+ * @description The shape of the API response for audit logs.
+ */
 interface AuditLogResponse {
+    /** List of audit log entries */
     data: AuditLogEntry[];
+    /** Pagination information */
     pagination: Pagination;
 }
 
-/** Filter state */
+/**
+ * @description State for filtering the audit logs.
+ */
 interface Filters {
+    /** Search term for filtering by text */
     search: string;
+    /** Filter by specific action type */
     action: string;
+    /** Filter by specific resource type */
     resourceType: string;
+    /** Start date for time range filtering */
     startDate: string;
+    /** End date for time range filtering */
     endDate: string;
 }
 
@@ -75,7 +103,11 @@ interface Filters {
 // ============================================================================
 
 /**
- * Format action type for display with color coding.
+ * @description Format action type for display with specific color coding and labels.
+ *
+ * @param {string} action - The action identifier (e.g., 'login', 'create_user').
+ * @param {any} t - The translation function.
+ * @returns {{ label: string; className: string }} Object containing the translated label and CSS classes.
  */
 function getActionBadge(action: string, t: any): { label: string; className: string } {
     const actionMap: Record<string, { label: string; className: string }> = {
@@ -118,13 +150,19 @@ function getActionBadge(action: string, t: any): { label: string; className: str
     };
 
     return actionMap[action] || {
+        // Fallback formatting for unknown actions
         label: t(`auditLog.actions.${action}`, { defaultValue: action.replace(/_/g, ' ').replace(/\b\w/g, l => l.toUpperCase()) }),
         className: 'bg-slate-100 text-slate-800 dark:bg-slate-700 dark:text-slate-300'
     };
 }
 
 /**
- * Format resource type for display.
+ * @description Format resource type for display.
+ * Maps raw resource type strings to translated labels.
+ *
+ * @param {string} type - The resource type string (e.g., 'user', 'file').
+ * @param {any} t - The translation function.
+ * @returns {string} The localized resource type label.
  */
 function formatResourceType(type: string, t: any): string {
     const typeMap: Record<string, string> = {
@@ -144,14 +182,21 @@ function formatResourceType(type: string, t: any): string {
 }
 
 /**
- * Format date for display.
+ * @description Format date string into a localized string.
+ *
+ * @param {string} dateString - The ISO date string.
+ * @returns {string} Localized date/time string.
  */
 function formatDateTime(dateString: string): string {
     return new Date(dateString).toLocaleString();
 }
 
 /**
- * Format details object for display.
+ * @description Format arbitrary details object into a readable string.
+ * Filters out null/undefined values and formats keys.
+ *
+ * @param {Record<string, any>} details - Dictionary of detail values.
+ * @returns {string} Formatted string representation of details.
  */
 function formatDetails(details: Record<string, any>): string {
     if (!details || Object.keys(details).length === 0) return '-';
@@ -159,6 +204,7 @@ function formatDetails(details: Record<string, any>): string {
     const entries = Object.entries(details)
         .filter(([_, value]) => value !== null && value !== undefined)
         .map(([key, value]) => {
+            // Convert camelCase or snake_case to human readable format
             const formattedKey = key.replace(/([A-Z])/g, ' $1').replace(/^./, str => str.toUpperCase());
             const formattedValue = typeof value === 'object' ? JSON.stringify(value) : String(value);
             return `${formattedKey}: ${formattedValue}`;
@@ -172,19 +218,20 @@ function formatDetails(details: Record<string, any>): string {
 // ============================================================================
 
 /**
- * Audit log page for administrators.
- * 
- * Features:
+ * @description Audit Log Page Component for administrators.
+ * Features include:
  * - Paginated list of all audit logs
  * - Filter by action, resource type, date range
  * - Search in user email and details
  * - Admin-only access (verified client-side)
+ *
+ * @returns {JSX.Element} The rendered Audit Log page.
  */
 export default function AuditLogPage() {
     const { t } = useTranslation();
     const { user: currentUser } = useAuth();
 
-    // Data state
+    // Data state for logs and pagination
     const [logs, setLogs] = useState<AuditLogEntry[]>([]);
     const [pagination, setPagination] = useState<Pagination>({
         page: 1,
@@ -205,7 +252,7 @@ export default function AuditLogPage() {
     });
     const [showFilters, setShowFilters] = useState(false);
 
-    // Available filter options
+    // Available filter options fetched from backend
     const [actionTypes, setActionTypes] = useState<string[]>([]);
     const [resourceTypes, setResourceTypes] = useState<string[]>([]);
 
@@ -214,13 +261,17 @@ export default function AuditLogPage() {
     // ============================================================================
 
     /**
-     * Fetch audit logs with current filters and pagination.
+     * @description Fetch audit logs with current filters and pagination settings.
+     * Constructs the query parameters and updates log state.
+     *
+     * @param {number} [page=1] - The page number to fetch.
      */
     const fetchLogs = useCallback(async (page: number = 1) => {
         setIsLoading(true);
         setError(null);
 
         try {
+            // Construct query parameters including filters
             const params = new URLSearchParams({
                 page: String(page),
                 limit: String(pagination.limit),
@@ -232,6 +283,7 @@ export default function AuditLogPage() {
             if (filters.startDate) params.append('startDate', filters.startDate);
             if (filters.endDate) params.append('endDate', filters.endDate);
 
+            // Fetch data from the audit API
             const response = await fetch(`${API_BASE_URL}/api/audit?${params}`, {
                 credentials: 'include',
             });
@@ -251,7 +303,8 @@ export default function AuditLogPage() {
     }, [filters, pagination.limit, t]);
 
     /**
-     * Fetch available filter options.
+     * @description Fetch available filter options (actions and resource types) from the backend.
+     * Populates the dropdowns in the filter panel.
      */
     const fetchFilterOptions = useCallback(async () => {
         try {
@@ -277,13 +330,19 @@ export default function AuditLogPage() {
     // Effects
     // ============================================================================
 
+    /**
+     * @description Initial data fetch on mount.
+     */
     useEffect(() => {
         fetchLogs(1);
         fetchFilterOptions();
     }, []);
 
+    /**
+     * @description Effect to debounce search/filter changes.
+     * Prevents excessive API calls when typing or changing filters rapidly.
+     */
     useEffect(() => {
-        // Debounce search
         const timer = setTimeout(() => {
             fetchLogs(1);
         }, 300);
@@ -294,16 +353,30 @@ export default function AuditLogPage() {
     // Handlers
     // ============================================================================
 
+    /**
+     * @description Handler for pagination page changes.
+     *
+     * @param {number} newPage - The new page number requested.
+     */
     const handlePageChange = (newPage: number) => {
         if (newPage >= 1 && newPage <= pagination.totalPages) {
             fetchLogs(newPage);
         }
     };
 
+    /**
+     * @description Handler for updating individual filter fields.
+     *
+     * @param {keyof Filters} key - The filter field to update.
+     * @param {string} value - The new value for the filter.
+     */
     const handleFilterChange = (key: keyof Filters, value: string) => {
         setFilters(prev => ({ ...prev, [key]: value }));
     };
 
+    /**
+     * @description Clears all active filters and resets to default state.
+     */
     const clearFilters = () => {
         setFilters({
             search: '',
@@ -314,13 +387,14 @@ export default function AuditLogPage() {
         });
     };
 
+    /** Check if any filters are currently active */
     const hasActiveFilters = Object.values(filters).some(v => v !== '');
 
     // ============================================================================
     // Render
     // ============================================================================
 
-    // Only allow admins
+    // Only allow admins to view this page
     if (currentUser?.role !== 'admin') {
         return (
             <div className="text-center text-slate-600 dark:text-slate-400 p-8">
@@ -347,12 +421,12 @@ export default function AuditLogPage() {
                         />
                     </div>
 
-                    {/* Filter Toggle */}
+                    {/* Filter Toggle Button */}
                     <button
                         onClick={() => setShowFilters(!showFilters)}
                         className={`flex items-center gap-2 px-4 py-2 rounded-lg border transition-colors ${showFilters || hasActiveFilters
-                                ? 'bg-primary-50 border-primary-300 text-primary-700 dark:bg-primary-900/30 dark:border-primary-700 dark:text-primary-300'
-                                : 'border-slate-200 dark:border-slate-700 text-slate-600 dark:text-slate-400 hover:bg-slate-50 dark:hover:bg-slate-800'
+                            ? 'bg-primary-50 border-primary-300 text-primary-700 dark:bg-primary-900/30 dark:border-primary-700 dark:text-primary-300'
+                            : 'border-slate-200 dark:border-slate-700 text-slate-600 dark:text-slate-400 hover:bg-slate-50 dark:hover:bg-slate-800'
                             }`}
                     >
                         <Filter className="w-4 h-4" />
@@ -362,7 +436,7 @@ export default function AuditLogPage() {
                         )}
                     </button>
 
-                    {/* Refresh */}
+                    {/* Refresh Button */}
                     <button
                         onClick={() => fetchLogs(pagination.page)}
                         disabled={isLoading}
@@ -568,7 +642,7 @@ export default function AuditLogPage() {
                 )}
             </div>
 
-            {/* Pagination */}
+            {/* Pagination Controls */}
             {pagination.totalPages > 1 && (
                 <div className="mt-4 flex items-center justify-between">
                     <div className="text-sm text-slate-500 dark:text-slate-400">
@@ -583,10 +657,11 @@ export default function AuditLogPage() {
                             <ChevronLeft className="w-4 h-4" />
                         </button>
 
-                        {/* Page Numbers */}
+                        {/* Page Numbers Logic */}
                         <div className="flex items-center gap-1">
                             {Array.from({ length: Math.min(5, pagination.totalPages) }, (_, i) => {
                                 let pageNum: number;
+                                // Smart pagination display
                                 if (pagination.totalPages <= 5) {
                                     pageNum = i + 1;
                                 } else if (pagination.page <= 3) {
@@ -603,8 +678,8 @@ export default function AuditLogPage() {
                                         onClick={() => handlePageChange(pageNum)}
                                         disabled={isLoading}
                                         className={`w-8 h-8 rounded-lg text-sm font-medium transition-colors ${pageNum === pagination.page
-                                                ? 'bg-primary-600 text-white'
-                                                : 'text-slate-600 dark:text-slate-400 hover:bg-slate-100 dark:hover:bg-slate-800'
+                                            ? 'bg-primary-600 text-white'
+                                            : 'text-slate-600 dark:text-slate-400 hover:bg-slate-100 dark:hover:bg-slate-800'
                                             }`}
                                     >
                                         {pageNum}

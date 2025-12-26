@@ -9,20 +9,37 @@ import { X } from 'lucide-react';
 import { useTranslation } from 'react-i18next';
 import { useAuth } from '@/features/auth';
 
+/**
+ * @description Props for the BroadcastBanner component.
+ */
 interface BroadcastBannerProps {
+    /** Additional CSS classes for the container */
     className?: string;
+    /** Whether to render as an inline block (with margin/rounding) or full width */
     inline?: boolean;
 }
 
+/**
+ * @description Renders active broadcast messages as banner alerts.
+ * Handles fetching, displaying, and dismissing messages.
+ * Uses localStorage for immediate client-side persistence of dismissed state.
+ *
+ * @param {BroadcastBannerProps} props - Component properties.
+ * @returns {JSX.Element | null} The banner component or null if no messages.
+ */
 const BroadcastBanner: React.FC<BroadcastBannerProps> = ({ className = '', inline = false }) => {
     const { t } = useTranslation();
     const { user } = useAuth();
     const [messages, setMessages] = useState<BroadcastMessage[]>([]);
     const [dismissedMessages, setDismissedMessages] = useState<Record<string, number>>({});
 
+    /**
+     * @description Effect to fetch active broadcast messages and load dismissed state.
+     */
     useEffect(() => {
         const fetchMessages = async () => {
             try {
+                // Fetch active messages from the API
                 const activeMessages = await broadcastMessageService.getActiveMessages();
                 setMessages(activeMessages);
             } catch (err) {
@@ -44,6 +61,12 @@ const BroadcastBanner: React.FC<BroadcastBannerProps> = ({ className = '', inlin
         }
     }, [user?.id]); // Re-fetch when user session changes
 
+    /**
+     * @description Dismiss a specific message.
+     * Updates local state, localStorage, and attempts to sync with backend if logged in.
+     *
+     * @param {string} id - The ID of the message to dismiss.
+     */
     const handleDismiss = async (id: string) => {
         // 1. Immediate UI update via local state
         const now = Date.now();
@@ -61,6 +84,7 @@ const BroadcastBanner: React.FC<BroadcastBannerProps> = ({ className = '', inlin
         }
     };
 
+    // Filter out messages that have been dismissed locally
     const visibleMessages = messages.filter(m => !dismissedMessages[m.id]);
 
     if (visibleMessages.length === 0) return null;

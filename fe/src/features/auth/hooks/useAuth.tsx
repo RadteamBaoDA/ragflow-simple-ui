@@ -1,12 +1,12 @@
 /**
  * @fileoverview Authentication hook and provider.
- * 
+ *
  * Provides authentication state management for the application:
  * - Session checking via /api/auth/me endpoint
  * - User state with role-based permissions
  * - Automatic redirect to login for unauthenticated users
  * - Logout functionality
- * 
+ *
  * @module hooks/useAuth
  */
 
@@ -21,7 +21,7 @@ const API_BASE_URL = import.meta.env.VITE_API_BASE_URL || '';
 // ============================================================================
 
 /**
- * Authenticated user information.
+ * @description Authenticated user information interface.
  * Contains profile data from Azure AD and role from database.
  */
 export interface User {
@@ -48,7 +48,8 @@ export interface User {
 }
 
 /**
- * Authentication context value type.
+ * @description Authentication context value interface.
+ * Defines the shape of the data provided by AuthProvider.
  */
 interface AuthContextType {
   /** Current authenticated user or null */
@@ -69,23 +70,30 @@ interface AuthContextType {
 // Context
 // ============================================================================
 
+/**
+ * @description React Context for Authentication.
+ */
 const AuthContext = createContext<AuthContextType | undefined>(undefined);
 
 // ============================================================================
 // Provider
 // ============================================================================
 
+/**
+ * @description Props for the AuthProvider component.
+ */
 interface AuthProviderProps {
+  /** Child components to wrap with the auth context */
   children: ReactNode;
 }
 
 /**
- * Authentication provider component.
- * 
+ * @description Authentication provider component.
  * Wraps the application to provide authentication context.
  * Automatically checks session on mount and redirects if needed.
- * 
- * @param children - Child components to wrap
+ *
+ * @param {AuthProviderProps} props - Component properties.
+ * @returns {JSX.Element} The provider wrapping children.
  */
 export function AuthProvider({ children }: AuthProviderProps) {
   const [user, setUser] = useState<User | null>(null);
@@ -95,21 +103,23 @@ export function AuthProvider({ children }: AuthProviderProps) {
   const location = useLocation();
 
   /**
-   * Check if user has a valid session.
+   * @description Check if user has a valid session.
    * Calls /api/auth/me endpoint to verify session and get user data.
-   * 
-   * @returns true if session is valid, false otherwise
+   *
+   * @returns {Promise<boolean>} true if session is valid, false otherwise.
    */
   const checkSession = useCallback(async (): Promise<boolean> => {
     try {
       setError(null);
       console.log('[Auth] Checking session...');
 
+      // Call the backend API to retrieve the current user's session
       const response = await fetch(`${API_BASE_URL}/api/auth/me`, {
-        credentials: 'include', // Include session cookie
+        credentials: 'include', // Include session cookie in the request
       });
 
       if (response.ok) {
+        // If response is successful, parse user data and update state
         const userData = await response.json();
         setUser(userData);
         console.log('[Auth] Session valid:', userData.email);
@@ -117,6 +127,7 @@ export function AuthProvider({ children }: AuthProviderProps) {
       }
 
       if (response.status === 401) {
+        // 401 Unauthorized means no active session
         console.log('[Auth] Session not found or expired (401)');
         setUser(null);
         return false;
@@ -124,62 +135,68 @@ export function AuthProvider({ children }: AuthProviderProps) {
 
       throw new Error(`Unexpected response: ${response.status}`);
     } catch (err) {
+      // Handle network errors or other exceptions during session check
       console.error('[Auth] Error checking session:', err);
       setError(err instanceof Error ? err.message : 'Failed to check session');
       setUser(null);
       return false;
     } finally {
+      // Ensure loading state is turned off regardless of outcome
       setIsLoading(false);
     }
   }, []);
 
   /**
-   * Logout the current user.
+   * @description Logout the current user.
    * Clears local state and redirects to backend logout endpoint.
    */
   const logout = useCallback(() => {
     console.log('[Auth] Logging out...');
     setUser(null);
     setIsLoading(false);
-    // Use POST for logout to match backend route
+
+    // Call the logout endpoint using POST method
     fetch(`${API_BASE_URL}/api/auth/logout`, { method: 'POST', credentials: 'include' })
       .then(() => {
+        // Redirect to login page after successful logout
         navigate('/login');
       })
       .catch((err) => {
+        // Even if the API call fails, redirect to login to ensure client-side logout
         console.error('[Auth] Logout failed:', err);
         navigate('/login');
       });
   }, [navigate]);
 
   /**
-   * Effect: Check session on mount for protected routes.
-   * Skips check for public paths (login, logout).
+   * @description Effect: Check session on mount or navigation.
+   * Logic handles public paths, already authenticated state, and redirects.
    */
   useEffect(() => {
     const publicPaths = ['/login', '/logout'];
     const isPublicPath = publicPaths.some(path => location.pathname.startsWith(path));
 
-    // Skip auth check for public paths
+    // Skip auth check for defined public paths
     if (isPublicPath) {
       console.log('[Auth] Public path, skipping auth check:', location.pathname);
       setIsLoading(false);
       return;
     }
 
-    // Skip auth check if already authenticated (prevents redundant API calls on navigation)
+    // Skip auth check if user State is already populated (prevents redundant API calls)
     if (user) {
       setIsLoading(false);
       return;
     }
 
-    // Check session for protected paths
+    // Attempt to validate session for protected paths
     console.log('[Auth] Protected path, checking session:', location.pathname);
     checkSession().then(isValid => {
       if (!isValid) {
-        // Store intended destination for post-login redirect
+        // If session is invalid, capture current path for post-login redirect
         const redirectUrl = location.pathname + location.search;
         console.log('[Auth] Not authenticated, redirecting to login. Intended destination:', redirectUrl);
+        // Redirect to login page with the return URL
         navigate(`/login?redirect=${encodeURIComponent(redirectUrl)}`, { replace: true });
       }
     });
@@ -202,12 +219,12 @@ export function AuthProvider({ children }: AuthProviderProps) {
 // ============================================================================
 
 /**
- * Hook to access authentication context.
+ * @description Hook to access authentication context.
  * Must be used within an AuthProvider.
- * 
- * @returns Authentication context with user state and methods
- * @throws Error if used outside AuthProvider
- * 
+ *
+ * @returns {AuthContextType} Authentication context with user state and methods.
+ * @throws {Error} If used outside of an AuthProvider.
+ *
  * @example
  * ```tsx
  * const { user, isAuthenticated, logout } = useAuth();

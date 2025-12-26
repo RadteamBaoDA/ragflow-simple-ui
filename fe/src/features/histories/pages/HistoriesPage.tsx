@@ -1,3 +1,8 @@
+/**
+ * @fileoverview Histories page component.
+ * Displays system-wide or filtered chat and search history for administrators.
+ * Supports infinite scrolling, filtering by email/date, and viewing detailed session logs.
+ */
 import { useState, useEffect, useRef, useMemo } from 'react';
 import { useInfiniteQuery, useQuery } from '@tanstack/react-query';
 import { useTranslation } from 'react-i18next';
@@ -10,22 +15,41 @@ import { MarkdownRenderer } from '@/components/MarkdownRenderer';
 // Types
 // ============================================================================
 
+/**
+ * Summary of a chat session, used for the list view.
+ */
 interface ChatSessionSummary {
+    /** Unique session identifier */
     session_id: string;
+    /** User email if authenticated, otherwise undefined/null */
     user_email?: string;
+    /** First prompt of the session, used as title */
     user_prompt: string; // Preview (first prompt)
+    /** Timestamp of the latest activity in the session */
     created_at: string; // Max/Latest timestamp
+    /** Total number of messages in the session */
     message_count: string | number;
 }
 
+/**
+ * Summary of a search session, used for the list view.
+ */
 interface SearchSessionSummary {
+    /** Unique session identifier */
     session_id: string;
+    /** User email if authenticated */
     user_email?: string;
+    /** The search query */
     search_input: string; // Preview
+    /** Timestamp of the search */
     created_at: string;
+    /** Number of related activities/messages */
     message_count: string | number;
 }
 
+/**
+ * Detailed chat history record.
+ */
 interface ExternalChatHistory {
     id: string;
     session_id: string;
@@ -36,6 +60,9 @@ interface ExternalChatHistory {
     created_at: string;
 }
 
+/**
+ * Detailed search history record.
+ */
 interface ExternalSearchHistory {
     id: string;
     session_id: string;
@@ -46,6 +73,9 @@ interface ExternalSearchHistory {
     created_at: string;
 }
 
+/**
+ * Filter state for history queries.
+ */
 interface FilterState {
     email: string;
     startDate: string;
@@ -56,6 +86,14 @@ interface FilterState {
 // API Functions
 // ============================================================================
 
+/**
+ * Fetch chat history summaries with pagination and filtering.
+ * 
+ * @param {string} search - Search query for prompts/content.
+ * @param {FilterState} filters - Filters for email and date range.
+ * @param {number} page - Page number to fetch.
+ * @returns {Promise<ChatSessionSummary[]>} List of chat sessions.
+ */
 async function fetchExternalChatHistory(search: string, filters: FilterState, page: number): Promise<ChatSessionSummary[]> {
     const params = new URLSearchParams({
         q: search,
@@ -68,6 +106,14 @@ async function fetchExternalChatHistory(search: string, filters: FilterState, pa
     return apiFetch<ChatSessionSummary[]>(`/api/admin/history/chat?${params.toString()}`);
 }
 
+/**
+ * Fetch search history summaries with pagination and filtering.
+ * 
+ * @param {string} search - Search query.
+ * @param {FilterState} filters - Filters.
+ * @param {number} page - Page number.
+ * @returns {Promise<SearchSessionSummary[]>} List of search sessions.
+ */
 async function fetchExternalSearchHistory(search: string, filters: FilterState, page: number): Promise<SearchSessionSummary[]> {
     const params = new URLSearchParams({
         q: search,
@@ -80,10 +126,22 @@ async function fetchExternalSearchHistory(search: string, filters: FilterState, 
     return apiFetch<SearchSessionSummary[]>(`/api/admin/history/search?${params.toString()}`);
 }
 
+/**
+ * Fetch detailed messages for a specific chat session.
+ * 
+ * @param {string} sessionId - ID of the session.
+ * @returns {Promise<ExternalChatHistory[]>} List of messages in the session.
+ */
 async function fetchChatSessionDetails(sessionId: string): Promise<ExternalChatHistory[]> {
     return apiFetch<ExternalChatHistory[]>(`/api/admin/history/chat/${sessionId}`);
 }
 
+/**
+ * Fetch details for a specific search session.
+ * 
+ * @param {string} sessionId - ID of the session.
+ * @returns {Promise<ExternalSearchHistory[]>} Details of the search session.
+ */
 async function fetchSearchSessionDetails(sessionId: string): Promise<ExternalSearchHistory[]> {
     return apiFetch<ExternalSearchHistory[]>(`/api/admin/history/search/${sessionId}`);
 }
@@ -92,6 +150,16 @@ async function fetchSearchSessionDetails(sessionId: string): Promise<ExternalSea
 // Component
 // ============================================================================
 
+/**
+ * HistoriesPage Component.
+ * 
+ * Manages the display and filtering of system-wide histories.
+ * Features:
+ * - Two tabs: Chat History and Search History
+ * - Infinite scrolling for session lists
+ * - Sidebar filtering by Date and Email
+ * - Detailed view of selected session
+ */
 function HistoriesPage() {
     const { t } = useTranslation();
     const [isSidebarOpen, setIsSidebarOpen] = useState(true);
@@ -186,23 +254,36 @@ function HistoriesPage() {
         return () => observer.disconnect();
     }, [hasNextPage, isFetchingNextPage, fetchNextPage]);
 
+    /**
+     * Handle search form submission.
+     * Triggers a new query by updating executedSearchQuery.
+     */
     const handleSearch = (e: React.FormEvent) => {
         e.preventDefault();
         setExecutedSearchQuery(searchQuery);
         setSelectedSession(null); // Reset selection to trigger auto-select of first item
     };
 
+    /**
+     * Apply the selected filters from the dialog.
+     */
     const handleApplyFilters = () => {
         setFilters(tempFilters);
         setIsFilterDialogOpen(false);
     };
 
+    /**
+     * Reset filters to default empty state.
+     */
     const handleResetFilters = () => {
         const reseted = { email: '', startDate: '', endDate: '' };
         setTempFilters(reseted);
         setFilters(reseted);
     };
 
+    /**
+     * Refresh current data.
+     */
     const handleRefresh = () => {
         if (activeTab === 'chat') refetchChat();
         else refetchSearch();
@@ -606,7 +687,13 @@ function HistoriesPage() {
     );
 }
 
-// Helper component for highlighting text
+/**
+ * Helper component for highlighting matching text in search results.
+ * 
+ * @param {object} props
+ * @param {string} props.text - The text to display.
+ * @param {string} props.query - The search query to highlight.
+ */
 const HighlightMatch = ({ text, query }: { text: string; query: string }) => {
     if (!query || !text) return <>{text}</>;
 
