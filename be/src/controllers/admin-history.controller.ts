@@ -45,18 +45,27 @@ export class AdminHistoryController {
                 .offset(offset);
 
             if (search) {
-                // We need to filter sessions where at least one message matches.
-                // Since this is a GROUP BY query, we can use HAVING or strict WHERE.
-                // Using WHERE on the source rows is efficient before grouping.
-                // Filter rows that match, then group them? 
-                // IF we filter rows, we might miss the "first prompt" if the first prompt doesn't match the search but another message does?
-                // Actually, if we filter rows, the array_agg will only contain matching rows. That might be acceptable for search results.
-                // OR we want to show the session if ANY match, but still show the FIRST prompt as title?
-                // For simplicity and performance, let's filter the source rows.
-                query = query.where(builder => {
-                    builder.where('user_prompt', 'ilike', `%${search}%`)
-                        .orWhere('llm_response', 'ilike', `%${search}%`);
-                });
+                // Hybrid Search Strategy:
+                // 1. Websearch (Google-like): Handles quotes, minus, AND logic.
+                // 2. Simple Prefix: Handles partial words (e.g. "reran" -> "reranker").
+                // 3. Loose OR: Handles "bag of words" matching if strict AND fails (e.g. "key search reranker" -> finds "reranker").
+
+                // Sanitize for raw to_tsquery
+                const cleanSearch = search.replace(/[^\w\s]/g, '').trim();
+                const terms = cleanSearch.split(/\s+/).filter(t => t.length > 0);
+
+                if (terms.length > 0) {
+                    const prefixQuery = terms.join(' & ') + ':*';
+                    const orQuery = terms.join(' | ');
+
+                    query = query.where(builder => {
+                        builder.whereRaw("search_vector @@ websearch_to_tsquery('english', ?)", [search])
+                            .orWhereRaw("search_vector @@ to_tsquery('english', ?)", [prefixQuery])
+                            .orWhereRaw("search_vector @@ to_tsquery('english', ?)", [orQuery]);
+                    });
+                } else {
+                    query = query.whereRaw("search_vector @@ websearch_to_tsquery('english', ?)", [search]);
+                }
             }
 
             if (email) {
@@ -132,10 +141,21 @@ export class AdminHistoryController {
                 .offset(offset);
 
             if (search) {
-                query = query.where(builder => {
-                    builder.where('search_input', 'ilike', `%${search}%`)
-                        .orWhere('ai_summary', 'ilike', `%${search}%`);
-                });
+                const cleanSearch = search.replace(/[^\w\s]/g, '').trim();
+                const terms = cleanSearch.split(/\s+/).filter(t => t.length > 0);
+
+                if (terms.length > 0) {
+                    const prefixQuery = terms.join(' & ') + ':*';
+                    const orQuery = terms.join(' | ');
+
+                    query = query.where(builder => {
+                        builder.whereRaw("search_vector @@ websearch_to_tsquery('english', ?)", [search])
+                            .orWhereRaw("search_vector @@ to_tsquery('english', ?)", [prefixQuery])
+                            .orWhereRaw("search_vector @@ to_tsquery('english', ?)", [orQuery]);
+                    });
+                } else {
+                    query = query.whereRaw("search_vector @@ websearch_to_tsquery('english', ?)", [search]);
+                }
             }
 
             if (email) {

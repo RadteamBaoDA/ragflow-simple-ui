@@ -98,6 +98,7 @@ function HistoriesPage() {
     const [activeTab, setActiveTab] = useState<'chat' | 'search'>('chat');
     const [selectedSession, setSelectedSession] = useState<ChatSessionSummary | SearchSessionSummary | null>(null);
     const [searchQuery, setSearchQuery] = useState('');
+    const [executedSearchQuery, setExecutedSearchQuery] = useState('');
     const [filters, setFilters] = useState<FilterState>({ email: '', startDate: '', endDate: '' });
     const [tempFilters, setTempFilters] = useState<FilterState>({ email: '', startDate: '', endDate: '' });
     const [isFilterDialogOpen, setIsFilterDialogOpen] = useState(false);
@@ -112,8 +113,8 @@ function HistoriesPage() {
         refetch: refetchChat,
         isRefetching: isRefetchingChat
     } = useInfiniteQuery({
-        queryKey: ['externalChatHistory', searchQuery, filters],
-        queryFn: ({ pageParam = 1 }) => fetchExternalChatHistory(searchQuery, filters, pageParam),
+        queryKey: ['externalChatHistory', executedSearchQuery, filters],
+        queryFn: ({ pageParam = 1 }) => fetchExternalChatHistory(executedSearchQuery, filters, pageParam),
         initialPageParam: 1,
         getNextPageParam: (lastPage, allPages) => {
             return lastPage.length === 20 ? allPages.length + 1 : undefined;
@@ -130,8 +131,8 @@ function HistoriesPage() {
         refetch: refetchSearch,
         isRefetching: isRefetchingSearch
     } = useInfiniteQuery({
-        queryKey: ['externalSearchHistory', searchQuery, filters],
-        queryFn: ({ pageParam = 1 }) => fetchExternalSearchHistory(searchQuery, filters, pageParam),
+        queryKey: ['externalSearchHistory', executedSearchQuery, filters],
+        queryFn: ({ pageParam = 1 }) => fetchExternalSearchHistory(executedSearchQuery, filters, pageParam),
         initialPageParam: 1,
         getNextPageParam: (lastPage, allPages) => {
             return lastPage.length === 20 ? allPages.length + 1 : undefined;
@@ -187,8 +188,8 @@ function HistoriesPage() {
 
     const handleSearch = (e: React.FormEvent) => {
         e.preventDefault();
-        if (activeTab === 'chat') refetchChat();
-        else refetchSearch();
+        setExecutedSearchQuery(searchQuery);
+        setSelectedSession(null); // Reset selection to trigger auto-select of first item
     };
 
     const handleApplyFilters = () => {
@@ -243,7 +244,7 @@ function HistoriesPage() {
                                 ? 'bg-white dark:bg-slate-800 text-primary dark:text-blue-400 shadow-sm ring-1 ring-black/5 dark:ring-white/5'
                                 : 'text-slate-500 hover:text-slate-700 dark:text-slate-300 dark:hover:text-white'
                                 }`}
-                            onClick={() => { setActiveTab('chat'); setSelectedSession(null); setSearchQuery(''); handleResetFilters(); }}
+                            onClick={() => { setActiveTab('chat'); setSelectedSession(null); setSearchQuery(''); setExecutedSearchQuery(''); handleResetFilters(); }}
                         >
                             <MessageSquare size={16} className={activeTab === 'chat' ? 'fill-current opacity-20' : ''} />
                             {t('histories.chatTab')}
@@ -253,7 +254,7 @@ function HistoriesPage() {
                                 ? 'bg-white dark:bg-slate-800 text-blue-500 dark:text-blue-400 shadow-sm ring-1 ring-black/5 dark:ring-white/5'
                                 : 'text-slate-500 hover:text-slate-700 dark:text-slate-300 dark:hover:text-white'
                                 }`}
-                            onClick={() => { setActiveTab('search'); setSelectedSession(null); setSearchQuery(''); handleResetFilters(); }}
+                            onClick={() => { setActiveTab('search'); setSelectedSession(null); setSearchQuery(''); setExecutedSearchQuery(''); handleResetFilters(); }}
                         >
                             <Search size={16} className={activeTab === 'search' ? 'text-blue-500' : ''} />
                             {t('histories.searchTab')}
@@ -320,9 +321,12 @@ function HistoriesPage() {
                                             <div className="flex justify-between items-start gap-2">
                                                 <h3 className={`font-semibold text-sm leading-snug line-clamp-2 transition-colors ${isSelected ? 'text-slate-900 dark:text-white' : 'text-slate-700 dark:text-slate-300'
                                                     }`}>
-                                                    {activeTab === 'chat'
-                                                        ? (item as ChatSessionSummary).user_prompt
-                                                        : (item as SearchSessionSummary).search_input}
+                                                    <HighlightMatch
+                                                        text={activeTab === 'chat'
+                                                            ? (item as ChatSessionSummary).user_prompt
+                                                            : (item as SearchSessionSummary).search_input}
+                                                        query={executedSearchQuery}
+                                                    />
                                                 </h3>
                                                 <span className="text-[10px] font-mono whitespace-nowrap text-slate-400 bg-slate-100 dark:bg-slate-800 px-1.5 py-0.5 rounded">
                                                     {new Date(item.created_at).toLocaleDateString(undefined, { month: 'short', day: 'numeric' })}
@@ -416,7 +420,7 @@ function HistoriesPage() {
                                                         <div className="relative max-w-[90%]">
                                                             <div className="bg-white dark:bg-slate-800 p-5 rounded-2xl rounded-tr-sm shadow-sm border border-slate-100 dark:border-slate-800">
                                                                 <div className="text-slate-800 dark:text-slate-200 leading-relaxed">
-                                                                    <MarkdownRenderer>
+                                                                    <MarkdownRenderer highlightText={executedSearchQuery}>
                                                                         {(item as ExternalChatHistory).user_prompt}
                                                                     </MarkdownRenderer>
                                                                 </div>
@@ -437,7 +441,7 @@ function HistoriesPage() {
                                                         </div>
                                                         <div className="flex-1 space-y-4">
                                                             <div className="bg-transparent text-slate-700 dark:text-slate-300 leading-relaxed overflow-hidden">
-                                                                <MarkdownRenderer>
+                                                                <MarkdownRenderer highlightText={executedSearchQuery}>
                                                                     {(item as ExternalChatHistory).llm_response}
                                                                 </MarkdownRenderer>
                                                             </div>
@@ -464,7 +468,9 @@ function HistoriesPage() {
                                                     <div className="flex justify-end pl-12">
                                                         <div className="relative max-w-[90%]">
                                                             <div className="bg-gradient-to-br from-blue-500 to-cyan-600 p-5 rounded-2xl rounded-tr-sm shadow-lg shadow-blue-500/20 text-white">
-                                                                <h3 className="text-lg font-medium italic">"{(item as ExternalSearchHistory).search_input}"</h3>
+                                                                <h3 className="text-lg font-medium italic">
+                                                                    "<HighlightMatch text={(item as ExternalSearchHistory).search_input} query={executedSearchQuery} />"
+                                                                </h3>
                                                             </div>
                                                         </div>
                                                     </div>
@@ -486,7 +492,7 @@ function HistoriesPage() {
                                                                         <span className="text-xs font-bold uppercase tracking-wider">AI Summary</span>
                                                                     </div>
                                                                     <div className="text-slate-700 dark:text-slate-300 leading-relaxed">
-                                                                        <MarkdownRenderer>
+                                                                        <MarkdownRenderer highlightText={executedSearchQuery}>
                                                                             {(item as ExternalSearchHistory).ai_summary}
                                                                         </MarkdownRenderer>
                                                                     </div>
@@ -506,7 +512,10 @@ function HistoriesPage() {
                                                                             </div>
                                                                             <div className="min-w-0">
                                                                                 <p className="text-sm font-medium text-slate-700 dark:text-slate-200 truncate" title={typeof file === 'string' ? file : JSON.stringify(file)}>
-                                                                                    {typeof file === 'string' ? file : JSON.stringify(file)}
+                                                                                    <HighlightMatch
+                                                                                        text={typeof file === 'string' ? file : JSON.stringify(file)}
+                                                                                        query={executedSearchQuery}
+                                                                                    />
                                                                                 </p>
                                                                                 <p className="text-[10px] text-slate-400 mt-0.5">Relevance Score: {(Math.random() * 0.5 + 0.5).toFixed(2)}</p>
                                                                             </div>
@@ -596,5 +605,25 @@ function HistoriesPage() {
         </div >
     );
 }
+
+// Helper component for highlighting text
+const HighlightMatch = ({ text, query }: { text: string; query: string }) => {
+    if (!query || !text) return <>{text}</>;
+
+    const parts = text.split(new RegExp(`(${query})`, 'gi'));
+    return (
+        <span>
+            {parts.map((part, i) =>
+                part.toLowerCase() === query.toLowerCase() ? (
+                    <mark key={i} className="bg-yellow-200 dark:bg-yellow-900/50 text-slate-900 dark:text-slate-100 rounded-sm px-0.5">
+                        {part}
+                    </mark>
+                ) : (
+                    part
+                )
+            )}
+        </span>
+    );
+};
 
 export default HistoriesPage;

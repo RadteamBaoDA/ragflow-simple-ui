@@ -2,14 +2,28 @@ import React from 'react';
 import ReactMarkdown from 'react-markdown';
 import remarkGfm from 'remark-gfm';
 import rehypeHighlight from 'rehype-highlight';
+import rehypeRaw from 'rehype-raw';
 import 'highlight.js/styles/github-dark.css'; // Import a highlight.js theme
 
 interface MarkdownRendererProps {
     children: string;
     className?: string; // Allow passing extra classes
+    highlightText?: string;
 }
 
-export const MarkdownRenderer: React.FC<MarkdownRendererProps> = ({ children, className }) => {
+export const MarkdownRenderer: React.FC<MarkdownRendererProps> = ({ children, className, highlightText }) => {
+    let content = children || '';
+    if (highlightText && highlightText.trim()) {
+        try {
+            const escapeRegExp = (string: string) => string.replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
+            const regex = new RegExp(`(${escapeRegExp(highlightText)})`, 'gi');
+            content = content.replace(regex, '<mark class="bg-yellow-200 dark:bg-yellow-900/50 text-slate-900 dark:text-slate-100 rounded-sm px-0.5">$1</mark>');
+        } catch (e) {
+            // Fallback to original content if regex fails
+            console.error("Highlight regex error", e);
+        }
+    }
+
     return (
         <div className={`prose prose-sm dark:prose-invert max-w-none 
                 prose-headings:font-semibold prose-h1:text-xl prose-h2:text-lg prose-h3:text-base
@@ -18,7 +32,7 @@ export const MarkdownRenderer: React.FC<MarkdownRendererProps> = ({ children, cl
                 ${className || ''}`}>
             <ReactMarkdown
                 remarkPlugins={[remarkGfm]}
-                rehypePlugins={[rehypeHighlight]}
+                rehypePlugins={[rehypeHighlight, rehypeRaw]}
                 components={{
                     // Custom link rendering to open in new tab
                     a: ({ node, ...props }) => (
@@ -54,7 +68,7 @@ export const MarkdownRenderer: React.FC<MarkdownRendererProps> = ({ children, cl
                     h6: ({ node, ...props }) => <h6 {...props} className="text-sm font-bold mt-4 mb-1 text-slate-900 dark:text-white uppercase tracking-wide" />,
                 }}
             >
-                {children}
+                {content}
             </ReactMarkdown>
         </div>
     );
