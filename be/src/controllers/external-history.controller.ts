@@ -43,7 +43,7 @@ export class ExternalHistoryController {
     async collectSearchHistory(req: Request, res: Response): Promise<void> {
         try {
             log.debug('External Search History Request', { body: req.body });
-            const { search_input, user_email, ai_summary, file_results } = req.body;
+            const { session_id, search_input, user_email, ai_summary, file_results } = req.body;
 
             if (!search_input) {
                 log.warn('External Search History Missing Fields', { body: req.body });
@@ -52,6 +52,7 @@ export class ExternalHistoryController {
             }
 
             await externalHistoryService.saveSearchHistory({
+                session_id,
                 search_input,
                 user_email,
                 ai_summary: ai_summary || '',

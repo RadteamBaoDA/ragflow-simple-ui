@@ -11,6 +11,7 @@ interface ChatHistoryData {
 }
 
 interface SearchHistoryData {
+    session_id?: string;
     user_email?: string;
     search_input: string;
     ai_summary: string;
@@ -31,7 +32,7 @@ export class ExternalHistoryService {
                     user_email: data.user_email || '',
                     user_prompt: data.user_prompt,
                     llm_response: data.llm_response,
-                    citations: data.citations,
+                    citations: JSON.stringify(data.citations) as any,
                 }, trx);
                 log.debug(`Successfully saved chat history for session ${data.session_id}`);
             } catch (error) {
@@ -50,10 +51,11 @@ export class ExternalHistoryService {
             log.debug('Starting transaction for search history');
             try {
                 await ModelFactory.externalSearchHistory.create({
+                    session_id: data.session_id,
                     search_input: data.search_input,
                     user_email: data.user_email || '',
                     ai_summary: data.ai_summary,
-                    file_results: data.file_results,
+                    file_results: JSON.stringify(data.file_results) as any,
                 }, trx);
                 log.debug('Successfully saved search history');
             } catch (error) {

@@ -142,7 +142,9 @@ function HistoriesPage() {
     // Fetch Details Query
     const {
         data: sessionDetails,
-        isLoading: isLoadingDetails
+        isLoading: isLoadingDetails,
+        refetch: refetchDetails,
+        isRefetching: isRefetchingDetails
     } = useQuery<ExternalChatHistory[] | ExternalSearchHistory[]>({
         queryKey: ['sessionDetails', activeTab, selectedSession?.session_id],
         queryFn: async () => {
@@ -203,9 +205,10 @@ function HistoriesPage() {
     const handleRefresh = () => {
         if (activeTab === 'chat') refetchChat();
         else refetchSearch();
+        if (selectedSession) refetchDetails();
     };
 
-    const isRefreshing = activeTab === 'chat' ? isRefetchingChat : isRefetchingSearch;
+    const isRefreshing = (activeTab === 'chat' ? isRefetchingChat : isRefetchingSearch) || isRefetchingDetails;
 
     // Auto-select first item when data loads if no item is selected
     useEffect(() => {
@@ -357,7 +360,7 @@ function HistoriesPage() {
 
             {/* Main Content */}
             <div className="flex-1 relative overflow-hidden bg-slate-50 dark:bg-slate-950 flex flex-col">
-                {selectedSession && sessionDetails ? (
+                {selectedSession ? (
                     <>
                         {/* Scrollable Content */}
                         <div className="flex-1 overflow-y-auto scrollbar-thin scrollbar-thumb-slate-300 dark:scrollbar-thumb-slate-700 pb-12 px-0">
@@ -404,7 +407,7 @@ function HistoriesPage() {
                                         <p className="text-sm font-medium">Restoring context...</p>
                                     </div>
                                 ) : (
-                                    (sessionDetails as any[]).map((item, index) => (
+                                    (sessionDetails || []).map((item, index) => (
                                         <div key={item.id || index} className="group animate-in fade-in slide-in-from-bottom-4 duration-700 fill-mode-forwards" style={{ animationDelay: `${index * 100}ms` }}>
                                             {activeTab === 'chat' ? (
                                                 <div className="space-y-6">
