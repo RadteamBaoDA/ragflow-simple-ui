@@ -32,7 +32,7 @@ async function debugFts() {
             .andWhere('id', record.id)
             .count('* as count');
 
-        console.log('Match count for FTS query:', match[0].count);
+        console.log('Match count for FTS query:', match[0]?.count ?? 0);
 
         // 4. Test specific user scenario "what is reranker"
         console.log('\n--- Scenario: "what is reranker" ---');
@@ -59,7 +59,7 @@ async function debugFts() {
                 .whereRaw("search_vector @@ websearch_to_tsquery('english', ?)", [t])
                 .andWhere('id', simulatedId)
                 .count('* as count');
-            console.log(`Query '${t}' match count:`, m[0].count);
+            console.log(`Query '${t}' match count:`, m[0]?.count ?? 0);
         }
 
         // Cleanup

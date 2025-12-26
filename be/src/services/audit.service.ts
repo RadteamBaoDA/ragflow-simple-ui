@@ -85,9 +85,15 @@ export interface AuditLogResponse {
 }
 
 class AuditService {
-    // Persist a single audit entry; best-effort to avoid throwing on logging failures
+    /**
+     * Persist a single audit entry.
+     * @param params - The audit log parameters.
+     * @returns Promise<number | null> - The ID of the created log entry or null on failure.
+     * @description Best-effort logging to avoid throwing on logging failures.
+     */
     async log(params: AuditLogParams): Promise<number | null> {
         try {
+            // Destructure params with default values
             const {
                 userId = null,
                 userEmail,
@@ -98,6 +104,7 @@ class AuditService {
                 ipAddress = null,
             } = params;
 
+            // Create audit log entry using model factory
             const logEntry = await ModelFactory.auditLog.create({
                 user_id: userId,
                 user_email: userEmail,
@@ -108,6 +115,7 @@ class AuditService {
                 ip_address: ipAddress,
             });
 
+            // Log debug info for successful creation
             log.debug('Audit log created', {
                 id: logEntry.id,
                 action,
@@ -115,8 +123,10 @@ class AuditService {
                 userId,
             });
 
+            // Return the new log ID
             return logEntry.id;
         } catch (error) {
+            // Log error but suppress exception to prevent disrupting main flow
             log.error('Failed to create audit log', {
                 error: error instanceof Error ? error.message : String(error),
                 action: params.action,
@@ -126,33 +136,43 @@ class AuditService {
         }
     }
 
-    // Retrieve paginated logs with lightweight filtering (approximate total)
+    /**
+     * Retrieve paginated logs with lightweight filtering.
+     * @param filters - Filtering criteria (userId, action, resourceType).
+     * @param limit - Number of logs per page.
+     * @param offset - Pagination offset.
+     * @returns Promise<AuditLogResponse> - Paginated audit logs.
+     * @description Fetches logs based on filters and pagination, returning metadata.
+     */
     async getLogs(filters: any = {}, limit: number = 50, offset: number = 0): Promise<AuditLogResponse> {
+        // Build where clause based on filters
         const whereClause: any = {};
         if (filters.userId) whereClause.user_id = filters.userId;
         if (filters.action) whereClause.action = filters.action;
         if (filters.resourceType) whereClause.resource_type = filters.resourceType;
 
-        // Use DB pagination
+        // Fetch paginated data from DB
         const data = await ModelFactory.auditLog.findAll(whereClause, {
             orderBy: { created_at: 'desc' },
             limit,
             offset
         });
 
-        // Need count for pagination metadata.
-        // Assuming client doesn't strictly need total or we fetch it separately.
-        // For now, returning length + offset as approximation or 0 if empty.
-        const total = data.length + offset + (data.length === limit ? limit : 0); // rough estimate
+        // Estimate total count for pagination metadata
+        const total = data.length + offset + (data.length === limit ? limit : 0);
 
+        // Calculate total pages
         const totalPages = Math.ceil(total / limit);
+        // Calculate current page number
         const page = Math.floor(offset / limit) + 1;
 
+        // Parse details JSON string back to object
         const parsedData = data.map(entry => ({
             ...entry,
             details: typeof entry.details === 'string' ? JSON.parse(entry.details as string) : entry.details
         }));
 
+        // Return structured response
         return {
             data: parsedData,
             pagination: {
@@ -164,29 +184,49 @@ class AuditService {
         };
     }
 
-    // Return audit history for a specific resource
+    /**
+     * Return audit history for a specific resource.
+     * @param resourceType - The type of resource.
+     * @param resourceId - The ID of the resource.
+     * @returns Promise<AuditLog[]> - Array of audit logs.
+     * @description Fetches logs filtered by resource type and ID.
+     */
     async getResourceHistory(resourceType: string, resourceId: string): Promise<AuditLog[]> {
+        // Fetch logs for the specific resource
         const logs = await ModelFactory.auditLog.findAll({
             resource_type: resourceType,
             resource_id: resourceId
         }, { orderBy: { created_at: 'desc' } });
 
+        // Parse details field for each log
         return logs.map(entry => ({
             ...entry,
             details: typeof entry.details === 'string' ? JSON.parse(entry.details as string) : entry.details
         }));
     }
 
-    // Produce CSV snapshot for bulk export/download
+    /**
+     * Produce CSV snapshot for bulk export/download.
+     * @param filters - Filters to apply to the export.
+     * @returns Promise<string> - CSV string content.
+     * @description Generates a CSV string containing all logs matching the filters.
+     */
     async exportLogsToCsv(filters: any): Promise<string> {
+        // Fetch a large batch of logs (limit 1,000,000)
         const response = await this.getLogs(filters, 1000000, 0);
         const logs = response.data;
 
+        // Return empty string if no logs found
         if (logs.length === 0) return '';
 
+        // Define CSV header
         const header = ['ID', 'User Email', 'Action', 'Resource Type', 'Resource ID', 'IP Address', 'Created At', 'Details'].join(',');
+
+        // Map logs to CSV rows
         const rows = logs.map(log => {
+            // Escape double quotes in details JSON
             const details = JSON.stringify(log.details).replace(/"/g, '""');
+            // Construct row string
             return [
                 log.id,
                 log.user_email,
@@ -199,21 +239,38 @@ class AuditService {
             ].join(',');
         });
 
+        // Join header and rows with newlines
         return [header, ...rows].join('\n');
     }
 
-    // Expose allowed action type values
+    /**
+     * Expose allowed action type values.
+     * @returns Promise<string[]> - List of action types.
+     * @description Returns all possible audit action types.
+     */
     async getActionTypes(): Promise<string[]> {
+        // Return values of AuditAction constant
         return Object.values(AuditAction);
     }
 
-    // Expose allowed resource type values
+    /**
+     * Expose allowed resource type values.
+     * @returns Promise<string[]> - List of resource types.
+     * @description Returns all possible audit resource types.
+     */
     async getResourceTypes(): Promise<string[]> {
+        // Return values of AuditResourceType constant
         return Object.values(AuditResourceType);
     }
 
-    // Placeholder for retention policy hook
+    /**
+     * Placeholder for retention policy hook.
+     * @param olderThanDays - Threshold in days for log deletion.
+     * @returns Promise<number> - Number of deleted logs.
+     * @description Intended for future implementation of log retention policies.
+     */
     async deleteOldLogs(olderThanDays: number): Promise<number> {
+        // Currently returns 0 as not implemented
         return 0;
     }
 }

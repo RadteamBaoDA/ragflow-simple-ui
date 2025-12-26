@@ -59,7 +59,7 @@ export class QueueService {
      * Formula: min(envOverride, cpuCores * 2, dbPoolSize / numQueues)
      * This ensures we don't overload CPU or exhaust DB connections.
      * 
-     * @returns Optimal concurrency per queue (minimum 1)
+     * @returns number - Optimal concurrency per queue (minimum 1)
      */
     private calculateOptimalConcurrency(): number {
         // Check for environment variable override first
@@ -105,17 +105,17 @@ export class QueueService {
 
     /**
      * Setup event listeners for queue monitoring and debugging
-     */
-    /**
-     * Setup event listeners for queue monitoring and debugging
+     * @returns void
+     * @description Placeholder for future queue event monitoring
      */
     private setupQueueEventListeners(): void {
+        // Implementation for queue event listeners
     }
 
     /**
      * Get the singleton instance of QueueService.
      * Creates a new instance if one doesn't exist.
-     * @returns The singleton QueueService instance
+     * @returns QueueService - The singleton QueueService instance
      */
     public static getInstance(): QueueService {
         // Check if singleton instance already exists
@@ -127,7 +127,13 @@ export class QueueService {
         return QueueService.instance;
     }
 
+    /**
+     * Gracefully close queue connections.
+     * @returns Promise<void>
+     * @description Placeholder for cleanup logic (e.g., closing Redis connections).
+     */
     public async close(): Promise<void> {
+        // Implementation for graceful shutdown
     }
 }
 

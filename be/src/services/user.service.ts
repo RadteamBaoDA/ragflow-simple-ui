@@ -15,8 +15,8 @@ import { User, UserIpHistory } from '@/models/types.js';
 export class UserService {
     /**
      * Initialize root admin user when database is empty.
-     * Creates a system administrator account on first startup.
-     * Skips if any users already exist in the database.
+     * @returns Promise<void>
+     * @description Creates a system administrator account on first startup if no users exist.
      */
     async initializeRootUser(): Promise<void> {
         try {
@@ -54,11 +54,11 @@ export class UserService {
 
     /**
      * Find existing user or create new one from Azure AD profile.
-     * Syncs user data and updates changed fields with audit logging.
-     * @param adUser - Azure AD user profile data
-     * @param ipAddress - Optional client IP for tracking
-     * @returns The found or created User record
-     * @throws Error if database operation fails
+     * @param adUser - Azure AD user profile data.
+     * @param ipAddress - Optional client IP for tracking.
+     * @returns Promise<User> - The found or created User record.
+     * @throws Error if database operation fails.
+     * @description Syncs user data, updates changed fields, logs audit events, and tracks IP.
      */
     async findOrCreateUser(adUser: AzureAdUser, ipAddress?: string): Promise<User> {
         try {
@@ -165,9 +165,8 @@ export class UserService {
 
     /**
      * Get all users, optionally filtered by role.
-     * Returns users sorted by creation date (newest first).
-     * @param roles - Optional array of roles to filter by
-     * @returns Array of User records
+     * @param roles - Optional array of roles to filter by.
+     * @returns Promise<User[]> - Array of User records sorted by creation date (newest first).
      */
     async getAllUsers(roles?: string[]): Promise<User[]> {
         // Initialize empty filter object
@@ -187,10 +186,10 @@ export class UserService {
 
     /**
      * Create a new user record.
-     * Logs audit entry if actor context is provided.
-     * @param data - User data for creation
-     * @param user - Optional actor for audit logging
-     * @returns The created User record
+     * @param data - User data for creation.
+     * @param user - Optional actor for audit logging.
+     * @returns Promise<User> - The created User record.
+     * @description Creates user in DB and logs audit event.
      */
     async createUser(data: any, user?: { id: string, email: string, ip?: string }): Promise<User> {
         // Create user in database
@@ -213,11 +212,11 @@ export class UserService {
 
     /**
      * Update an existing user's profile.
-     * Logs audit entry with change details if actor provided.
-     * @param id - User ID to update
-     * @param data - Partial user data to update
-     * @param user - Optional actor for audit logging
-     * @returns Updated User or undefined if not found
+     * @param id - User ID to update.
+     * @param data - Partial user data to update.
+     * @param user - Optional actor for audit logging.
+     * @returns Promise<User | undefined> - Updated User or undefined if not found.
+     * @description updates user record and audit logs changes.
      */
     async updateUser(id: string, data: any, user?: { id: string, email: string, ip?: string }): Promise<User | undefined> {
         // Apply updates to user record
@@ -240,9 +239,10 @@ export class UserService {
 
     /**
      * Delete a user from the system.
-     * Logs audit entry if actor context is provided.
-     * @param id - User ID to delete
-     * @param user - Optional actor for audit logging
+     * @param id - User ID to delete.
+     * @param user - Optional actor for audit logging.
+     * @returns Promise<void>
+     * @description Deletes user record and logs audit event.
      */
     async deleteUser(id: string, user?: { id: string, email: string, ip?: string }): Promise<void> {
         // Remove user from database
@@ -264,8 +264,8 @@ export class UserService {
 
     /**
      * Get a single user by their ID.
-     * @param userId - User ID to look up
-     * @returns User record or undefined if not found
+     * @param userId - User ID to look up.
+     * @returns Promise<User | undefined> - User record.
      */
     async getUserById(userId: string): Promise<User | undefined> {
         return ModelFactory.user.findById(userId);
@@ -273,13 +273,12 @@ export class UserService {
 
     /**
      * Update a user's global role.
-     * Includes security checks to prevent self-modification and unauthorized admin promotion.
-     * Logs audit event.
-     * @param userId - User ID to update
-     * @param role - New role: 'admin', 'leader', or 'user'
-     * @param actor - The user performing the action
-     * @returns Updated User or undefined if not found
-     * @throws Error if validation or security checks fail
+     * @param userId - User ID to update.
+     * @param role - New role: 'admin', 'leader', or 'user'.
+     * @param actor - The user performing the action.
+     * @returns Promise<User | undefined> - Updated User.
+     * @throws Error if validation or security checks fail.
+     * @description Includes security checks to prevent self-modification and unauthorized admin promotion.
      */
     async updateUserRole(userId: string, role: string, actor: { id: string, role: string, email: string, ip?: string }): Promise<User | undefined> {
         // Validate UUID format for id (unless it's a special system user)
@@ -343,10 +342,11 @@ export class UserService {
 
     /**
      * Update a user's permission array.
-     * Logs audit entry with permission changes if actor provided.
-     * @param userId - User ID to update
-     * @param permissions - New permissions array
-     * @param actor - Optional actor for audit logging
+     * @param userId - User ID to update.
+     * @param permissions - New permissions array.
+     * @param actor - Optional actor for audit logging.
+     * @returns Promise<void>
+     * @description Updates permissions JSON and logs audit event.
      */
     async updateUserPermissions(userId: string, permissions: string[], actor?: { id: string, email: string, ip?: string }): Promise<void> {
         // Update permissions as JSON string
@@ -368,9 +368,10 @@ export class UserService {
 
     /**
      * Record a user's IP address for login tracking.
-     * Uses throttling to avoid excessive database updates on rapid refreshes.
-     * @param userId - User ID to record IP for
-     * @param ipAddress - Client IP address
+     * @param userId - User ID to record IP for.
+     * @param ipAddress - Client IP address.
+     * @returns Promise<void>
+     * @description Uses throttle of 60s to avoid DB spam.
      */
     async recordUserIp(userId: string, ipAddress: string): Promise<void> {
         // Skip recording if IP is invalid or unknown
@@ -416,9 +417,8 @@ export class UserService {
 
     /**
      * Get IP address history for a specific user.
-     * Returns records sorted by most recent access first.
-     * @param userId - User ID to get history for
-     * @returns Array of UserIpHistory records
+     * @param userId - User ID to get history for.
+     * @returns Promise<UserIpHistory[]> - Array of history records sorted by most recent.
      */
     async getUserIpHistory(userId: string): Promise<UserIpHistory[]> {
         // Fetch all IP records for the specified user
@@ -432,8 +432,7 @@ export class UserService {
 
     /**
      * Get IP address history for all users.
-     * Returns a Map keyed by user ID with their IP history records.
-     * @returns Map of userId to array of UserIpHistory records
+     * @returns Promise<Map<string, UserIpHistory[]>> - Map keyed by user ID.
      */
     async getAllUsersIpHistory(): Promise<Map<string, UserIpHistory[]>> {
         // Fetch all IP history records from database

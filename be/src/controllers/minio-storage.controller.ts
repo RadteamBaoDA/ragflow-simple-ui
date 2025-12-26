@@ -9,19 +9,28 @@ import { minioStorageService } from '@/services/minio-storage.service.js'
 
 export class MinioStorageController {
 
+    /**
+     * List files in a bucket.
+     * @param req - Express request object.
+     * @param res - Express response object.
+     * @returns Promise<void>
+     */
     async listFiles(req: Request, res: Response): Promise<void> {
         const { bucketId } = req.params;
         const prefix = req.query.prefix as string || '';
 
+        // Validate bucket ID
         if (!bucketId) {
             res.status(400).json({ error: 'Bucket ID is required' });
             return;
         }
 
         try {
+            // List files via service (enforces permissions)
             const files = await minioStorageService.listFiles(req.user, bucketId, prefix);
             res.json({ objects: files });
         } catch (error: any) {
+            // Error handling with specific status codes
             const message = String(error.message || error);
             if (message.includes('Access Denied')) {
                 res.status(403).json({ error: 'Access Denied' });
@@ -36,6 +45,12 @@ export class MinioStorageController {
         }
     }
 
+    /**
+     * Upload files to a bucket.
+     * @param req - Express request object containing files.
+     * @param res - Express response object.
+     * @returns Promise<void>
+     */
     async uploadFile(req: Request, res: Response): Promise<void> {
         const { bucketId } = req.params;
         if (!bucketId) {
@@ -43,17 +58,20 @@ export class MinioStorageController {
             return;
         }
 
+        // Handle array or single file upload
         let files = req.files as Express.Multer.File[];
         if (!files && req.file) {
             files = [req.file];
         }
 
+        // Validate file presence
         if (!files || files.length === 0) {
             res.status(400).json({ error: 'No files uploaded' });
             return;
         }
 
         try {
+            // Upload via service
             const results = await minioStorageService.uploadFile(req.user, bucketId, files, req.body, getClientIp(req));
             res.status(201).json(results);
         } catch (error: any) {
@@ -71,6 +89,12 @@ export class MinioStorageController {
         }
     }
 
+    /**
+     * Create a virtual folder in a bucket.
+     * @param req - Express request object.
+     * @param res - Express response object.
+     * @returns Promise<void>
+     */
     async createFolder(req: Request, res: Response): Promise<void> {
         const { bucketId } = req.params;
         const { folderName, prefix } = req.body;
@@ -81,6 +105,7 @@ export class MinioStorageController {
         }
 
         try {
+            // Create folder via service
             await minioStorageService.createFolder(req.user, bucketId, folderName, prefix, getClientIp(req));
             res.status(201).json({ message: 'Folder created' });
         } catch (error: any) {
@@ -98,6 +123,12 @@ export class MinioStorageController {
         }
     }
 
+    /**
+     * Delete an object (file or folder).
+     * @param req - Express request object.
+     * @param res - Express response object.
+     * @returns Promise<void>
+     */
     async deleteObject(req: Request, res: Response): Promise<void> {
         const { bucketId } = req.params;
         const { path, isFolder } = req.body;
@@ -108,6 +139,7 @@ export class MinioStorageController {
         }
 
         try {
+            // Delete object via service
             await minioStorageService.deleteObject(req.user, bucketId, path, isFolder, getClientIp(req));
             res.status(204).send();
         } catch (error: any) {
@@ -125,6 +157,12 @@ export class MinioStorageController {
         }
     }
 
+    /**
+     * Bulk delete objects (batch).
+     * @param req - Express request object.
+     * @param res - Express response object.
+     * @returns Promise<void>
+     */
     async batchDelete(req: Request, res: Response): Promise<void> {
         const { bucketId } = req.params;
         const { items } = req.body;
@@ -135,6 +173,7 @@ export class MinioStorageController {
         }
 
         try {
+            // Batch delete via service
             await minioStorageService.batchDelete(req.user, bucketId, items, getClientIp(req));
             res.status(200).json({ message: 'Batch delete completed' });
         } catch (error: any) {
@@ -152,6 +191,12 @@ export class MinioStorageController {
         }
     }
 
+    /**
+     * Get a presigned download URL for a file.
+     * @param req - Express request object.
+     * @param res - Express response object.
+     * @returns Promise<void>
+     */
     async getDownloadUrl(req: Request, res: Response): Promise<void> {
         const { bucketId } = req.params;
         const objectPath = req.params[0] || req.params.objectPath;
@@ -163,6 +208,7 @@ export class MinioStorageController {
         }
 
         try {
+            // Generate presigned URL via service
             const url = await minioStorageService.getDownloadUrl(req.user, bucketId, objectPath, preview, getClientIp(req));
             res.json({ download_url: url });
         } catch (error: any) {
@@ -180,6 +226,12 @@ export class MinioStorageController {
         }
     }
 
+    /**
+     * Deprecated: direct download (use getDownloadUrl instead).
+     * @param req - Express request object.
+     * @param res - Express response object.
+     * @returns Promise<void>
+     */
     async downloadFile(req: Request, res: Response): Promise<void> {
         res.status(404).json({ error: "Use getDownloadUrl" });
     }

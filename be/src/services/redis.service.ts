@@ -21,7 +21,8 @@ let redisClient: RedisClient | null = null;
 /**
  * Initialize the Redis client if configured.
  * 
- * @returns Redis client instance or null if not configured
+ * @returns Promise<RedisClient | null> - Redis client instance or null if not configured.
+ * @description Creates client, sets up event listeners, and attempts connection.
  */
 export async function initRedis(): Promise<RedisClient | null> {
     if (config.sessionStore.type !== 'redis') {
@@ -73,7 +74,7 @@ export async function initRedis(): Promise<RedisClient | null> {
 /**
  * Get the initialized Redis client.
  * 
- * @returns Redis client instance or null
+ * @returns RedisClient | null - Redis client instance or null.
  */
 export function getRedisClient(): RedisClient | null {
     return redisClient;
@@ -81,6 +82,8 @@ export function getRedisClient(): RedisClient | null {
 
 /**
  * Shutdown the Redis client.
+ * @returns Promise<void>
+ * @description Gracefully quits the Redis client.
  */
 export async function shutdownRedis(): Promise<void> {
     if (redisClient && redisClient.isOpen) {
@@ -93,6 +96,7 @@ export async function shutdownRedis(): Promise<void> {
 /**
  * Get Redis connection status.
  * Used for health checks.
+ * @returns string - 'connected' | 'connecting' | 'disconnected' | 'not_initialized' | 'not_configured'
  */
 export function getRedisStatus(): 'connected' | 'connecting' | 'disconnected' | 'not_initialized' | 'not_configured' {
     if (config.sessionStore.type !== 'redis') {

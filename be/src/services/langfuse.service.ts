@@ -24,10 +24,8 @@ let langfuseClient: Langfuse | null = null;
 /**
  * Get or create the Langfuse client instance.
  * 
- * Uses lazy initialization to create the client only when first needed.
- * The same instance is reused for all subsequent calls.
- * 
- * @returns Langfuse client instance
+ * @returns Langfuse - Langfuse client instance.
+ * @description Uses lazy initialization to create or return the singleton client.
  * 
  * @example
  * const langfuse = getLangfuseClient();
@@ -37,6 +35,7 @@ let langfuseClient: Langfuse | null = null;
 export function getLangfuseClient(): Langfuse {
   if (!langfuseClient) {
     log.debug('Initializing Langfuse client', { baseUrl: config.langfuse.baseUrl });
+    // Initialize new client with config credentials
     langfuseClient = new Langfuse({
       secretKey: config.langfuse.secretKey,
       publicKey: config.langfuse.publicKey,
@@ -49,8 +48,8 @@ export function getLangfuseClient(): Langfuse {
 /**
  * Shutdown the Langfuse client gracefully.
  * 
- * This should be called during application shutdown to ensure
- * all pending traces are flushed to the Langfuse server.
+ * @returns Promise<void>
+ * @description Flushes pending traces and shuts down the client.
  * 
  * @example
  * // In graceful shutdown handler
@@ -60,6 +59,7 @@ export function getLangfuseClient(): Langfuse {
 export async function shutdownLangfuse(): Promise<void> {
   if (langfuseClient) {
     log.info('Shutting down Langfuse client');
+    // Ensure all events are sent before exit
     await langfuseClient.shutdownAsync();
     langfuseClient = null;
   }
@@ -68,35 +68,36 @@ export async function shutdownLangfuse(): Promise<void> {
 /**
  * Check connectivity to Langfuse server.
  * 
- * @returns true if connected/healthy, false otherwise
+ * @returns Promise<boolean> - True if connected/healthy, false otherwise.
+ * @description Verifies configuration and attempts a dummy ingestion request to check health.
  */
 export async function checkHealth(): Promise<boolean> {
-  // If not configured, it's technically "not healthy" in terms of connectivity
+  // Check for required configuration keys
   if (!config.langfuse.publicKey || !config.langfuse.secretKey || !config.langfuse.baseUrl) {
     return false;
   }
 
   try {
-    // The Langfuse JS SDK does not expose a direct 'authCheck' method.
-    // To verify both connectivity AND credentials (simulating an SDK interaction),
-    // we send a dummy ingestion request. 
-    // - If we get 200/201/202, it worked.
-    // - If we get 400 (Bad Request), it means Auth passed but payload was empty/invalid (Connection OK).
-    // - If we get 401/403, Auth failed.
+    // Ensure client is initialized
     if (!getLangfuseClient()) {
       return false;
     }
+
+    // Send a dummy ingestion request to verify connectivity and auth
     const response = await fetch(`${config.langfuse.baseUrl}/api/public/ingestion`, {
       method: 'POST',
       headers: {
         'Content-Type': 'application/json',
+        // Construct Basic Auth header manually for the test request
         'Authorization': `Basic ${Buffer.from(`${config.langfuse.publicKey}:${config.langfuse.secretKey}`).toString('base64')}`
       },
       body: JSON.stringify({ batch: [] })
     });
 
+    // 2XX is success, 400 means auth passed but payload invalid (still healthy connection)
     return response.ok || response.status === 400;
   } catch (error) {
+    // Log failure
     log.warn('Langfuse health check failed', { error: error instanceof Error ? error.message : String(error) });
     return false;
   }

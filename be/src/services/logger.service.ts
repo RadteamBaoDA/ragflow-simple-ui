@@ -67,19 +67,16 @@ const consoleFormat = winston.format.combine(
 
 /**
  * Determine the log level based on environment configuration.
- * 
- * Priority:
- * 1. LOG_LEVEL environment variable (if valid)
- * 2. 'info' for production (less verbose)
- * 3. 'debug' for development (full details)
- * 
- * @returns The log level to use
+ * @returns string - The log level to use ('error', 'warn', 'info', 'debug').
+ * @description Checks LOG_LEVEL env var, falling back to 'info' for prod and 'debug' for dev.
  */
 const getLogLevel = (): string => {
   const envLevel = process.env['LOG_LEVEL']?.toLowerCase();
+  // Validate env variable against allowed levels
   if (envLevel && ['error', 'warn', 'info', 'debug'].includes(envLevel)) {
     return envLevel;
   }
+  // Fallback defaults
   return config.nodeEnv === 'production' ? 'info' : 'debug';
 };
 
@@ -187,42 +184,36 @@ allLogsTransport.on('rotate', (oldFilename, newFilename) => {
 /**
  * Convenience logging methods.
  * Provides a simpler API than the full Winston logger.
- * 
- * @example
- * log.info('Server started', { port: 3001 });
- * log.error('Failed to connect', { error: err.message });
- * log.debug('Processing request', { path: '/api/data' });
- * log.warn('Rate limit approaching', { current: 95, limit: 100 });
  */
 export const log = {
   /**
    * Log debug-level message (development details).
-   * @param message - Log message
-   * @param meta - Optional metadata object
+   * @param message - Log message.
+   * @param meta - Optional metadata object.
    */
   debug: (message: string, meta?: Record<string, unknown>) => {
     logger.debug(message, meta);
   },
   /**
    * Log info-level message (normal operations).
-   * @param message - Log message
-   * @param meta - Optional metadata object
+   * @param message - Log message.
+   * @param meta - Optional metadata object.
    */
   info: (message: string, meta?: Record<string, unknown>) => {
     logger.info(message, meta);
   },
   /**
    * Log warning-level message (potential issues).
-   * @param message - Log message
-   * @param meta - Optional metadata object
+   * @param message - Log message.
+   * @param meta - Optional metadata object.
    */
   warn: (message: string, meta?: Record<string, unknown>) => {
     logger.warn(message, meta);
   },
   /**
    * Log error-level message (errors and failures).
-   * @param message - Log message
-   * @param meta - Optional metadata object
+   * @param message - Log message.
+   * @param meta - Optional metadata object.
    */
   error: (message: string, meta?: Record<string, unknown>) => {
     logger.error(message, meta);

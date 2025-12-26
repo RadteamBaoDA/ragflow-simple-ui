@@ -31,14 +31,23 @@ class SystemToolsService {
     constructor() {
     }
 
-    // Resolve config file and load tools into memory
+    /**
+     * Resolve config file and load tools into memory.
+     * @returns Promise<void>
+     * @description Initializes the service by loading configuration.
+     */
     async initialize(): Promise<void> {
         this.configPath = await this.resolveConfigPath();
         await this.loadConfig();
     }
 
-    // Pick config path from env > docker mount > repo config
+    /**
+     * Pick config path from env > docker mount > repo config.
+     * @returns Promise<string> - The resolved config file path.
+     * @description Checks multiple locations for the system tools config file.
+     */
     private async resolveConfigPath(): Promise<string> {
+        // 1. Check environment variable
         const envPath = config.systemToolsConfigPath;
         if (envPath) {
             try {
@@ -47,20 +56,27 @@ class SystemToolsService {
             } catch { }
         }
 
+        // 2. Check docker volume mount
         const dockerPath = '/app/config/system-tools.config.json';
         try {
             await fs.access(dockerPath, constants.F_OK);
             return dockerPath;
         } catch { }
 
+        // 3. Fallback to local source file
         const fallbackPath = path.join(__dirname, '../config/system-tools.config.json');
         return fallbackPath;
     }
 
-    // Read and parse system-tools config JSON
+    /**
+     * Read and parse system-tools config JSON.
+     * @returns Promise<void>
+     * @description Loads tool definitions from the filtered config file.
+     */
     private async loadConfig(): Promise<void> {
         try {
             try {
+                // Verify file exists
                 await fs.access(this.configPath, constants.F_OK);
             } catch {
                 log.warn('System tools config file not found', { path: this.configPath });
@@ -68,9 +84,11 @@ class SystemToolsService {
                 return;
             }
 
+            // Read file content
             const configData = await fs.readFile(this.configPath, 'utf-8');
             const config: SystemToolsConfig = JSON.parse(configData);
 
+            // Validate structure
             if (!config.tools || !Array.isArray(config.tools)) {
                 log.error('Invalid system tools config format');
                 this.tools = [];
@@ -87,37 +105,63 @@ class SystemToolsService {
         }
     }
 
-    // Alias for controller or internal use
+    /**
+     * Alias for getEnabledTools().
+     * @returns SystemTool[] - List of enabled tools.
+     * @description Public method to retrieve available tools.
+     */
     getTools(): SystemTool[] {
         return this.getEnabledTools();
     }
 
-    // Return enabled tools ordered for UI consumption
+    /**
+     * Return enabled tools ordered for UI consumption.
+     * @returns SystemTool[] - Sorted and filtered tools.
+     * @description Filters by enabled flag and sorts by order prop.
+     */
     getEnabledTools(): SystemTool[] {
         return this.tools
             .filter(tool => tool.enabled)
             .sort((a, b) => a.order - b.order);
     }
 
-    // Return all tools regardless of enabled flag
+    /**
+     * Return all tools regardless of enabled flag.
+     * @returns SystemTool[] - All configured tools.
+     */
     getAllTools(): SystemTool[] {
         return [...this.tools].sort((a, b) => a.order - b.order);
     }
 
-    // Reload configuration from disk
+    /**
+     * Reload configuration from disk.
+     * @returns Promise<void>
+     * @description Forces a reload of the config file.
+     */
     async reload(): Promise<void> {
         log.debug('Reloading system tools configuration');
         await this.loadConfig();
     }
 
-    // Placeholder executor for system tools
+    /**
+     * Placeholder executor for system tools.
+     * @param id - Tool ID.
+     * @param params - Execution parameters.
+     * @returns Promise<any> - Execution result.
+     * @throws Error if tool not found.
+     * @description Reserved for future tool execution logic.
+     */
     async runTool(id: string, params: any): Promise<any> {
         const tool = this.tools.find(t => t.id === id);
         if (!tool) throw new Error('Tool not found');
         return { message: `Tool ${tool.name} executed`, params };
     }
 
-    // Aggregate service health (DB, Redis, MinIO, Langfuse) plus host metrics
+    /**
+     * Aggregate service health (DB, Redis, MinIO, Langfuse) plus host metrics.
+     * @returns Promise<any> - Health status object.
+     * @description Checks connections to dependencies and gathers system stats.
+     */
     async getSystemHealth(): Promise<any> {
         const os = await import('os');
 
@@ -131,6 +175,7 @@ class SystemToolsService {
             dbStatus = false;
         }
 
+        // Check MinIO
         const { minioService } = await import('@/services/minio.service.js');
         const minioEnabled = !!(process.env.MINIO_ACCESS_KEY && process.env.MINIO_SECRET_KEY);
         let minioStatus = 'disconnected';
@@ -143,6 +188,7 @@ class SystemToolsService {
             }
         }
 
+        // Check Langfuse
         const langfuseEnabled = !!(config.langfuse.publicKey && config.langfuse.secretKey && config.langfuse.baseUrl);
         const langfuseStatus = langfuseEnabled ? 'enabled' : 'disabled';
 

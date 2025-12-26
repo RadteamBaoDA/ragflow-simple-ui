@@ -23,10 +23,11 @@ export class PreviewService {
     /**
      * Generate a local preview file for a MinIO object.
      * Downloads the object if not cached or if cache has expired.
-     * @param bucketName - MinIO bucket name or bucket UUID
-     * @param fileName - Object name/path within the bucket
-     * @returns Absolute path to the local cached file
-     * @throws Error if download fails
+     * @param bucketName - MinIO bucket name or bucket UUID.
+     * @param fileName - Object name/path within the bucket.
+     * @returns Promise<string> - Absolute path to the local cached file.
+     * @throws Error if download fails.
+     * @description Handles mapping UUID to bucket name, sanitizing local filenames, checking cache validity (TTL), and downloading from MinIO.
      */
     async generatePreview(bucketName: string, fileName: string): Promise<string> {
         // Start with the provided bucket name as target
