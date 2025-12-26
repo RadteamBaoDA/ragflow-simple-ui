@@ -3,7 +3,7 @@
  * Handles incoming requests for external chat and search history.
  */
 import { Request, Response } from 'express';
-import { queueService } from '@/services/queue.service.js';
+import { externalHistoryService } from '@/services/external-history.service.js';
 import { log } from '@/services/logger.service.js';
 
 export class ExternalHistoryController {
@@ -21,7 +21,7 @@ export class ExternalHistoryController {
                 return;
             }
 
-            await queueService.addChatHistoryJob({
+            await externalHistoryService.saveChatHistory({
                 session_id,
                 user_email,
                 user_prompt,
@@ -30,7 +30,7 @@ export class ExternalHistoryController {
             });
 
             log.debug('External Chat History Success', { session_id });
-            res.status(202).json({ message: 'Chat history collection started' });
+            res.status(201).json({ message: 'Chat history saved successfully' });
         } catch (error) {
             log.error('Error collecting chat history', error as Record<string, unknown>);
             res.status(500).json({ error: 'Internal server error' });
@@ -51,7 +51,7 @@ export class ExternalHistoryController {
                 return;
             }
 
-            await queueService.addSearchHistoryJob({
+            await externalHistoryService.saveSearchHistory({
                 search_input,
                 user_email,
                 ai_summary: ai_summary || '',
@@ -59,7 +59,7 @@ export class ExternalHistoryController {
             });
 
             log.debug('External Search History Success', { search_input });
-            res.status(202).json({ message: 'Search history collection started' });
+            res.status(201).json({ message: 'Search history saved successfully' });
         } catch (error) {
             log.error('Error collecting search history', error as Record<string, unknown>);
             res.status(500).json({ error: 'Internal server error' });

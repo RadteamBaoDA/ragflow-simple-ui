@@ -9,25 +9,11 @@ import { config } from '@/config/index.js';
 import { log } from '@/services/logger.service.js';
 import { ModelFactory } from '@/models/factory.js';
 
-interface ChatHistoryJobData {
-    session_id: string;
-    user_email?: string;
-    user_prompt: string;
-    llm_response: string;
-    citations: any[];
-}
 
-interface SearchHistoryJobData {
-    user_email?: string;
-    search_input: string;
-    ai_summary: string;
-    file_results: any[];
-}
 
 export class QueueService {
     private static instance: QueueService;
-    private chatHistoryQueue: Queue;
-    private searchHistoryQueue: Queue;
+
 
     /** Database connection pool size (should match postgresql adapter) */
     private static readonly DB_POOL_SIZE = 20;
@@ -52,32 +38,9 @@ export class QueueService {
             db: config.redis.db,
         };
 
-        // Initialize chat history queue with Redis backend
-        // isWorker: true enables this instance to process jobs
-        // removeOnSuccess: true automatically removes completed jobs
-        this.chatHistoryQueue = new Queue('chat_history', {
-            redis: redisConfig,
-            isWorker: true,
-            removeOnSuccess: true,
-        } as any);
-
-        // Initialize search history queue with same configuration
-        this.searchHistoryQueue = new Queue('search_history', {
-            redis: redisConfig,
-            isWorker: true,
-            removeOnSuccess: true,
-        } as any);
-
-        // Setup event listeners for monitoring and debugging both queues
-        this.setupQueueEventListeners();
-
-        // Start job processors for both queues
-        this.processChatHistoryJobs();
-        this.processSearchHistoryJobs();
-
         // Log successful startup with connection and concurrency details
         log.info('BeeQueue service started successfully', {
-            queues: ['chat_history', 'search_history'],
+            queues: [],
             redisHost: config.redis.host,
             redisPort: config.redis.port,
             concurrency: this.optimalConcurrency,
@@ -143,64 +106,10 @@ export class QueueService {
     /**
      * Setup event listeners for queue monitoring and debugging
      */
+    /**
+     * Setup event listeners for queue monitoring and debugging
+     */
     private setupQueueEventListeners(): void {
-        // Chat History Queue Events
-        this.chatHistoryQueue.on('ready', () => {
-            log.debug('Chat history queue is ready');
-        });
-
-        this.chatHistoryQueue.on('error', (err: Error) => {
-            log.error('Chat history queue error', { error: err.message });
-        });
-
-        this.chatHistoryQueue.on('retrying', (job: any, err: Error) => {
-            log.debug(`Chat history job ${job.id} retrying`, { error: err.message });
-        });
-
-        this.chatHistoryQueue.on('failed', (job: any, err: Error) => {
-            log.debug(`Chat history job ${job.id} failed`, { error: err.message });
-        });
-
-        this.chatHistoryQueue.on('stalled', (jobId: string) => {
-            log.debug(`Chat history job ${jobId} stalled`);
-        });
-
-        this.chatHistoryQueue.on('succeeded', (job: any, result: any) => {
-            log.debug(`Chat history job ${job.id} succeeded`, { result });
-        });
-
-        this.chatHistoryQueue.on('job progress', (jobId: string, progress: any) => {
-            log.debug(`Chat history job ${jobId} progress`, { progress });
-        });
-
-        // Search History Queue Events
-        this.searchHistoryQueue.on('ready', () => {
-            log.debug('Search history queue is ready');
-        });
-
-        this.searchHistoryQueue.on('error', (err: Error) => {
-            log.error('Search history queue error', { error: err.message });
-        });
-
-        this.searchHistoryQueue.on('retrying', (job: any, err: Error) => {
-            log.debug(`Search history job ${job.id} retrying`, { error: err.message });
-        });
-
-        this.searchHistoryQueue.on('failed', (job: any, err: Error) => {
-            log.debug(`Search history job ${job.id} failed`, { error: err.message });
-        });
-
-        this.searchHistoryQueue.on('stalled', (jobId: string) => {
-            log.debug(`Search history job ${jobId} stalled`);
-        });
-
-        this.searchHistoryQueue.on('succeeded', (job: any, result: any) => {
-            log.debug(`Search history job ${job.id} succeeded`, { result });
-        });
-
-        this.searchHistoryQueue.on('job progress', (jobId: string, progress: any) => {
-            log.debug(`Search history job ${jobId} progress`, { progress });
-        });
     }
 
     /**
@@ -218,127 +127,7 @@ export class QueueService {
         return QueueService.instance;
     }
 
-    /**
-     * Add a new chat history job to the queue for background processing.
-     * @param data - The chat history data containing session_id, user_prompt, llm_response, and citations
-     * @throws Error if job creation fails
-     */
-    public async addChatHistoryJob(data: ChatHistoryJobData): Promise<void> {
-        try {
-            // Create a new job with the chat history data payload
-            const job = this.chatHistoryQueue.createJob(data as any);
-
-            // Persist job to Redis queue for processing
-            await job.save();
-
-            // Log successful job creation with job ID for tracking
-            log.debug(`Added chat history job ${job.id}`);
-        } catch (error) {
-            // Log error and re-throw to let caller handle failure
-            log.error('Failed to add chat history job', error as Record<string, unknown>);
-            throw error;
-        }
-    }
-
-    /**
-     * Add a new search history job to the queue for background processing.
-     * @param data - The search history data containing search_input, ai_summary, and file_results
-     * @throws Error if job creation fails
-     */
-    public async addSearchHistoryJob(data: SearchHistoryJobData): Promise<void> {
-        try {
-            // Create a new job with the search history data payload
-            const job = this.searchHistoryQueue.createJob(data as any);
-
-            // Persist job to Redis queue for processing
-            await job.save();
-
-            // Log successful job creation with job ID for tracking
-            log.debug(`Added search history job ${job.id}`);
-        } catch (error) {
-            // Log error and re-throw to let caller handle failure
-            log.error('Failed to add search history job', error as Record<string, unknown>);
-            throw error;
-        }
-    }
-
-    /**
-     * Start processing chat history jobs from the queue.
-     * Uses smart concurrency based on CPU cores and database pool size.
-     * Each job saves chat history data to the database via ModelFactory.
-     */
-    private processChatHistoryJobs(): void {
-        // Register job processor with computed optimal concurrency
-        this.chatHistoryQueue.process(this.optimalConcurrency, async (job: any) => {
-            // Log when job processing starts
-            log.debug(`Processing chat history job ${job.id}`);
-
-            try {
-                // Destructure job data to extract chat history fields
-                const { session_id, user_email, user_prompt, llm_response, citations } = job.data;
-
-                // Persist chat history to database via model factory
-                await ModelFactory.externalChatHistory.create({
-                    session_id,
-                    user_email,
-                    user_prompt,
-                    llm_response,
-                    citations: citations as any,
-                });
-
-                // Log successful completion
-                log.debug(`Processed chat history job ${job.id}`);
-            } catch (error) {
-                // Log error and re-throw to trigger job failure/retry
-                log.error(`Failed to process chat history job ${job.id}`, error as Record<string, unknown>);
-                throw error;
-            }
-        });
-    }
-
-    /**
-     * Start processing search history jobs from the queue.
-     * Uses smart concurrency based on CPU cores and database pool size.
-     * Each job saves search history data to the database via ModelFactory.
-     */
-    private processSearchHistoryJobs(): void {
-        // Register job processor with computed optimal concurrency
-        this.searchHistoryQueue.process(this.optimalConcurrency, async (job: any) => {
-            // Log when job processing starts
-            log.debug(`Processing search history job ${job.id}`);
-
-            try {
-                // Destructure job data to extract search history fields
-                const { search_input, user_email, ai_summary, file_results } = job.data;
-
-                // Persist search history to database via model factory
-                await ModelFactory.externalSearchHistory.create({
-                    search_input,
-                    user_email,
-                    ai_summary,
-                    file_results: file_results as any,
-                });
-
-                // Log successful completion
-                log.debug(`Processed search history job ${job.id}`);
-            } catch (error) {
-                // Log error and re-throw to trigger job failure/retry
-                log.error(`Failed to process search history job ${job.id}`, error as Record<string, unknown>);
-                throw error;
-            }
-        });
-    }
-
-    /**
-     * Gracefully close all queue connections.
-     * Should be called during application shutdown to ensure proper cleanup.
-     */
     public async close(): Promise<void> {
-        // Close chat history queue connection to Redis
-        await this.chatHistoryQueue.close();
-
-        // Close search history queue connection to Redis
-        await this.searchHistoryQueue.close();
     }
 }
 

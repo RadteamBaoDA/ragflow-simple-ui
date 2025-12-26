@@ -23,15 +23,15 @@ export interface FindAllOptions {
  */
 export interface IBaseModel<T> {
   /** Create a new record */
-  create(data: Partial<T>): Promise<T>;
+  create(data: Partial<T>, trx?: Knex.Transaction): Promise<T>;
   /** Find a single record by ID */
   findById(id: string | number): Promise<T | undefined>;
   /** Find all records matching optional filter with query options */
   findAll(filter?: any, options?: FindAllOptions): Promise<T[]>;
   /** Update a record by ID or filter, returns updated record */
-  update(id: string | number | Partial<T>, data: Partial<T>): Promise<T | undefined>;
+  update(id: string | number | Partial<T>, data: Partial<T>, trx?: Knex.Transaction): Promise<T | undefined>;
   /** Delete a record by ID or filter */
-  delete(id: string | number | Partial<T>): Promise<void>;
+  delete(id: string | number | Partial<T>, trx?: Knex.Transaction): Promise<void>;
 }
 
 /**
@@ -51,9 +51,12 @@ export abstract class BaseModel<T> implements IBaseModel<T> {
    * @param data - Partial entity data to insert
    * @returns The created entity with all fields populated
    */
-  async create(data: Partial<T>): Promise<T> {
+  async create(data: Partial<T>, trx?: Knex.Transaction): Promise<T> {
     // Insert data and return the created record with all columns
-    const [result] = await this.knex(this.tableName).insert(data).returning('*');
+    const query = this.knex(this.tableName).insert(data).returning('*');
+    if (trx) query.transacting(trx);
+
+    const [result] = await query;
     return result;
   }
 
@@ -118,7 +121,7 @@ export abstract class BaseModel<T> implements IBaseModel<T> {
    * @param data - Partial entity data to update
    * @returns Updated entity if found, undefined otherwise
    */
-  async update(id: string | number | Partial<T>, data: Partial<T>): Promise<T | undefined> {
+  async update(id: string | number | Partial<T>, data: Partial<T>, trx?: Knex.Transaction): Promise<T | undefined> {
     // Build base query for the table
     const query = this.knex(this.tableName);
 
@@ -130,6 +133,8 @@ export abstract class BaseModel<T> implements IBaseModel<T> {
       // Primitive ID - look up by primary key
       query.where({ id });
     }
+
+    if (trx) query.transacting(trx);
 
     // Apply updates and return the updated record
     const [result] = await query.update(data).returning('*');
@@ -141,7 +146,7 @@ export abstract class BaseModel<T> implements IBaseModel<T> {
    * Supports both primary key lookup and object-based WHERE clause.
    * @param id - Record ID or object with filter conditions
    */
-  async delete(id: string | number | Partial<T>): Promise<void> {
+  async delete(id: string | number | Partial<T>, trx?: Knex.Transaction): Promise<void> {
     // Build base query for the table
     const query = this.knex(this.tableName);
 
@@ -153,6 +158,8 @@ export abstract class BaseModel<T> implements IBaseModel<T> {
       // Primitive ID - look up by primary key
       query.where({ id });
     }
+
+    if (trx) query.transacting(trx);
 
     // Execute deletion
     await query.delete();
