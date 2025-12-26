@@ -1,3 +1,8 @@
+
+/**
+ * External API Routes Index
+ * Aggregates all external-facing endpoints like tracing and history.
+ */
 import { Router } from 'express'
 import { checkEnabled } from '../../middleware/external.middleware.js'
 import traceRoutes from '@/routes/external/trace.routes.js'
@@ -7,17 +12,24 @@ import { ExternalTraceController } from '@/controllers/external/trace.controller
 const router = Router()
 const controller = new ExternalTraceController()
 
-// External tracing endpoints (submit/feedback) are mounted under /trace
+/**
+ * Mounts trace routes under /trace.
+ * Used for logging LangChain/LLM traces from external apps.
+ */
 router.use('/trace', traceRoutes)
 
-// External history endpoints (chat/search) are mounted under /history
+/**
+ * Mounts history routes under /history.
+ * Used for syncing chat/search history from external apps.
+ */
 router.use('/history', historyRoutes)
 
 /**
- * GET /api/external/health
- * 
- * Health check endpoint for external trace API.
+ * @route GET /api/external/health
+ * @description Health check endpoint for external trace API.
+ * @access Public (Protected by checkEnabled middleware)
  */
+// Simple liveness check for external integrations
 router.get('/health', checkEnabled, controller.getHealth.bind(controller))
 
 export default router

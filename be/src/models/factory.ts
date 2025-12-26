@@ -74,6 +74,7 @@ export class ModelFactory {
    * @returns TeamModel instance for team CRUD operations
    */
   static get team() {
+    // Create instance on first access (lazy initialization)
     if (!this.teamModel) this.teamModel = new TeamModel();
     return this.teamModel;
   }
@@ -84,6 +85,7 @@ export class ModelFactory {
    * @returns UserTeamModel instance for user-team relationship operations
    */
   static get userTeam() {
+    // Create instance on first access (lazy initialization)
     if (!this.userTeamModel) this.userTeamModel = new UserTeamModel();
     return this.userTeamModel;
   }
@@ -94,6 +96,7 @@ export class ModelFactory {
    * @returns ChatSessionModel instance for session CRUD operations
    */
   static get chatSession() {
+    // Create instance on first access (lazy initialization)
     if (!this.chatSessionModel) this.chatSessionModel = new ChatSessionModel();
     return this.chatSessionModel;
   }
@@ -104,6 +107,7 @@ export class ModelFactory {
    * @returns ChatMessageModel instance for message CRUD operations
    */
   static get chatMessage() {
+    // Create instance on first access (lazy initialization)
     if (!this.chatMessageModel) this.chatMessageModel = new ChatMessageModel();
     return this.chatMessageModel;
   }
@@ -114,6 +118,7 @@ export class ModelFactory {
    * @returns MinioBucketModel instance for bucket CRUD operations
    */
   static get minioBucket() {
+    // Create instance on first access (lazy initialization)
     if (!this.minioBucketModel) this.minioBucketModel = new MinioBucketModel();
     return this.minioBucketModel;
   }
@@ -124,6 +129,7 @@ export class ModelFactory {
    * @returns SystemConfigModel instance for config CRUD operations
    */
   static get systemConfig() {
+    // Create instance on first access (lazy initialization)
     if (!this.systemConfigModel) this.systemConfigModel = new SystemConfigModel();
     return this.systemConfigModel;
   }
@@ -134,6 +140,7 @@ export class ModelFactory {
    * @returns KnowledgeBaseSourceModel instance for source CRUD operations
    */
   static get knowledgeBaseSource() {
+    // Create instance on first access (lazy initialization)
     if (!this.knowledgeBaseSourceModel) this.knowledgeBaseSourceModel = new KnowledgeBaseSourceModel();
     return this.knowledgeBaseSourceModel;
   }
@@ -144,6 +151,7 @@ export class ModelFactory {
    * @returns AuditLogModel instance for audit log operations
    */
   static get auditLog() {
+    // Create instance on first access (lazy initialization)
     if (!this.auditLogModel) this.auditLogModel = new AuditLogModel();
     return this.auditLogModel;
   }
@@ -154,6 +162,7 @@ export class ModelFactory {
    * @returns UserIpHistoryModel instance for IP history operations
    */
   static get userIpHistory() {
+    // Create instance on first access (lazy initialization)
     if (!this.userIpHistoryModel) this.userIpHistoryModel = new UserIpHistoryModel();
     return this.userIpHistoryModel;
   }
@@ -164,6 +173,7 @@ export class ModelFactory {
    * @returns DocumentPermissionModel instance for permission operations
    */
   static get documentPermission() {
+    // Create instance on first access (lazy initialization)
     if (!this.documentPermissionModel) this.documentPermissionModel = new DocumentPermissionModel();
     return this.documentPermissionModel;
   }
@@ -174,6 +184,7 @@ export class ModelFactory {
    * @returns BroadcastMessageModel instance for broadcast operations
    */
   static get broadcastMessage() {
+    // Create instance on first access (lazy initialization)
     if (!this.broadcastMessageModel) this.broadcastMessageModel = new BroadcastMessageModel();
     return this.broadcastMessageModel;
   }
@@ -184,6 +195,7 @@ export class ModelFactory {
    * @returns UserDismissedBroadcastModel instance for dismissed broadcast operations
    */
   static get userDismissedBroadcast() {
+    // Create instance on first access (lazy initialization)
     if (!this.userDismissedBroadcastModel) this.userDismissedBroadcastModel = new UserDismissedBroadcastModel();
     return this.userDismissedBroadcastModel;
   }
@@ -194,6 +206,7 @@ export class ModelFactory {
    * @returns ExternalChatHistoryModel instance for external chat history operations
    */
   static get externalChatHistory() {
+    // Create instance on first access (lazy initialization)
     if (!this.externalChatHistoryModel) this.externalChatHistoryModel = new ExternalChatHistoryModel();
     return this.externalChatHistoryModel;
   }
@@ -204,6 +217,7 @@ export class ModelFactory {
    * @returns ExternalSearchHistoryModel instance for external search history operations
    */
   static get externalSearchHistory() {
+    // Create instance on first access (lazy initialization)
     if (!this.externalSearchHistoryModel) this.externalSearchHistoryModel = new ExternalSearchHistoryModel();
     return this.externalSearchHistoryModel;
   }

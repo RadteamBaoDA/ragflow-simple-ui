@@ -21,7 +21,8 @@ export class SystemConfigModel extends BaseModel<SystemConfig> {
    * Find a config entry by its key.
    * Overrides base findById to use 'key' column.
    * @param key - Configuration key to look up
-   * @returns Config record if found, undefined otherwise
+   * @returns Promise<SystemConfig | undefined> - Config record if found, undefined otherwise
+   * @description Overrides standard ID lookup to use the string 'key' column.
    */
   async findById(key: string): Promise<SystemConfig | undefined> {
     // Query by 'key' column instead of default 'id'
@@ -33,7 +34,8 @@ export class SystemConfigModel extends BaseModel<SystemConfig> {
    * Overrides base update to support natural key updates.
    * @param key - Config key string or filter object
    * @param data - Partial data to update
-   * @returns Updated config record if found, undefined otherwise
+   * @returns Promise<SystemConfig | undefined> - Updated config record if found, undefined otherwise
+   * @description Handles both simple key lookup and complex filter objects for updates.
    */
   async update(key: string | Partial<SystemConfig>, data: Partial<SystemConfig>): Promise<SystemConfig | undefined> {
     // Build base query
@@ -57,6 +59,8 @@ export class SystemConfigModel extends BaseModel<SystemConfig> {
    * Delete a config entry by key or filter object.
    * Overrides base delete to use 'key' column.
    * @param key - Config key string or filter object
+   * @returns Promise<void>
+   * @description Handles deletion by string key or complex filter object.
    */
   async delete(key: string | Partial<SystemConfig>): Promise<void> {
     // Build base query

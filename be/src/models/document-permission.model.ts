@@ -22,7 +22,8 @@ export class DocumentPermissionModel extends BaseModel<DocumentPermission> {
    * @param entityType - Type of entity ('user' or 'team')
    * @param entityId - ID of the user or team
    * @param bucketId - ID of the MinIO bucket
-   * @returns Permission record if found, undefined otherwise
+   * @returns Promise<DocumentPermission | undefined> - Permission record if found, undefined otherwise
+   * @description lookup permission based on composite key (entityType, entityId, bucketId).
    */
   async findByEntityAndBucket(entityType: string, entityId: string, bucketId: string): Promise<DocumentPermission | undefined> {
     // Query for exact match on entity type, entity ID, and bucket ID
@@ -38,7 +39,8 @@ export class DocumentPermissionModel extends BaseModel<DocumentPermission> {
    * Combines direct user grants plus grants via team membership.
    * @param userId - User ID to check access for
    * @param teamIds - Array of team IDs the user belongs to
-   * @returns Array of unique bucket IDs the user can access
+   * @returns Promise<string[]> - Array of unique bucket IDs the user can access
+   * @description Queries with an OR condition to find permissions granted directly to the user OR any of their teams.
    */
   async findAccessibleBucketIds(userId: string, teamIds: string[]): Promise<string[]> {
     // Build query to find all buckets user can access

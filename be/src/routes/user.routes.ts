@@ -1,3 +1,4 @@
+
 /**
  * @fileoverview User management routes.
  * 
@@ -40,6 +41,11 @@ const controller = new UserController();
  * @returns {Array<User>} List of all users
  * @returns {500} If database query fails
  */
+// Route guarded by requireAuth alone is likely incorrect per docs above, but kept consistent with existing code if intention is broader access
+// However, standard practice for user listing is usually admin-only.
+// Assuming 'requireAuth' + controller logic or subsequent permission checks.
+// If it strictly needs manage_users, should use requirePermission('manage_users') like others.
+// Keeping as is based on existing file content for minimal behavioral change, but noting context.
 router.get('/', requireAuth, controller.getUsers.bind(controller));
 
 /**
@@ -53,6 +59,7 @@ router.get('/', requireAuth, controller.getUsers.bind(controller));
  * @returns {Object} Map of user ID to IP history array
  * @returns {500} If database query fails
  */
+// Restricted to users with manage_users permission
 router.get('/ip-history', requirePermission('manage_users'), controller.getAllIpHistory.bind(controller));
 
 /**
@@ -67,6 +74,7 @@ router.get('/ip-history', requirePermission('manage_users'), controller.getAllIp
  * @returns {Array<UserIpHistory>} IP history records
  * @returns {500} If database query fails
  */
+// Restricted to users with manage_users permission
 router.get('/:id/ip-history', requirePermission('manage_users'), controller.getUserIpHistory.bind(controller));
 
 /**
@@ -97,6 +105,7 @@ router.get('/:id/ip-history', requirePermission('manage_users'), controller.getU
  * @returns {404} If user not found
  * @returns {500} If update fails
  */
+// High security route: requires permission AND recent authentication
 router.put('/:id/role', requirePermission('manage_users'), requireRecentAuth(15), controller.updateUserRole.bind(controller));
 
 /**
@@ -107,6 +116,7 @@ router.put('/:id/role', requirePermission('manage_users'), requireRecentAuth(15)
  * 
  * @requires manage_users permission
  */
+// Restricted to users with manage_users permission
 router.put('/:id/permissions', requirePermission('manage_users'), controller.updateUserPermissions.bind(controller));
 
 export default router;
