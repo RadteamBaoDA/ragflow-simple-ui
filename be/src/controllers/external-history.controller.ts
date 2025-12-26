@@ -12,9 +12,11 @@ export class ExternalHistoryController {
      */
     async collectChatHistory(req: Request, res: Response): Promise<void> {
         try {
+            log.debug('External Chat History Request', { body: req.body });
             const { session_id, user_email, user_prompt, llm_response, citations } = req.body;
 
             if (!session_id || !user_prompt || !llm_response) {
+                log.warn('External Chat History Missing Fields', { body: req.body });
                 res.status(400).json({ error: 'Missing required fields' });
                 return;
             }
@@ -27,6 +29,7 @@ export class ExternalHistoryController {
                 citations: citations || [],
             });
 
+            log.debug('External Chat History Success', { session_id });
             res.status(202).json({ message: 'Chat history collection started' });
         } catch (error) {
             log.error('Error collecting chat history', error as Record<string, unknown>);
@@ -39,9 +42,11 @@ export class ExternalHistoryController {
      */
     async collectSearchHistory(req: Request, res: Response): Promise<void> {
         try {
+            log.debug('External Search History Request', { body: req.body });
             const { search_input, user_email, ai_summary, file_results } = req.body;
 
             if (!search_input) {
+                log.warn('External Search History Missing Fields', { body: req.body });
                 res.status(400).json({ error: 'Missing required fields' });
                 return;
             }
@@ -53,6 +58,7 @@ export class ExternalHistoryController {
                 file_results: file_results || [],
             });
 
+            log.debug('External Search History Success', { search_input });
             res.status(202).json({ message: 'Search history collection started' });
         } catch (error) {
             log.error('Error collecting search history', error as Record<string, unknown>);

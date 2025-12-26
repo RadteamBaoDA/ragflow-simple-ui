@@ -232,7 +232,7 @@ export class QueueService {
             await job.save();
 
             // Log successful job creation with job ID for tracking
-            log.info(`Added chat history job ${job.id}`);
+            log.debug(`Added chat history job ${job.id}`);
         } catch (error) {
             // Log error and re-throw to let caller handle failure
             log.error('Failed to add chat history job', error as Record<string, unknown>);
@@ -254,7 +254,7 @@ export class QueueService {
             await job.save();
 
             // Log successful job creation with job ID for tracking
-            log.info(`Added search history job ${job.id}`);
+            log.debug(`Added search history job ${job.id}`);
         } catch (error) {
             // Log error and re-throw to let caller handle failure
             log.error('Failed to add search history job', error as Record<string, unknown>);
@@ -271,7 +271,7 @@ export class QueueService {
         // Register job processor with computed optimal concurrency
         this.chatHistoryQueue.process(this.optimalConcurrency, async (job: any) => {
             // Log when job processing starts
-            log.info(`Processing chat history job ${job.id}`);
+            log.debug(`Processing chat history job ${job.id}`);
 
             try {
                 // Destructure job data to extract chat history fields
@@ -287,7 +287,7 @@ export class QueueService {
                 });
 
                 // Log successful completion
-                log.info(`Processed chat history job ${job.id}`);
+                log.debug(`Processed chat history job ${job.id}`);
             } catch (error) {
                 // Log error and re-throw to trigger job failure/retry
                 log.error(`Failed to process chat history job ${job.id}`, error as Record<string, unknown>);
@@ -305,7 +305,7 @@ export class QueueService {
         // Register job processor with computed optimal concurrency
         this.searchHistoryQueue.process(this.optimalConcurrency, async (job: any) => {
             // Log when job processing starts
-            log.info(`Processing search history job ${job.id}`);
+            log.debug(`Processing search history job ${job.id}`);
 
             try {
                 // Destructure job data to extract search history fields
@@ -320,7 +320,7 @@ export class QueueService {
                 });
 
                 // Log successful completion
-                log.info(`Processed search history job ${job.id}`);
+                log.debug(`Processed search history job ${job.id}`);
             } catch (error) {
                 // Log error and re-throw to trigger job failure/retry
                 log.error(`Failed to process search history job ${job.id}`, error as Record<string, unknown>);

@@ -27,6 +27,13 @@ vi.mock('@/services/logger.service.js', () => ({
     }
 }))
 
+// Mock db
+vi.mock('@/db/knex.js', () => ({
+    db: {
+        raw: vi.fn((val) => val)
+    }
+}))
+
 describe('AdminHistoryController', () => {
     let controller: AdminHistoryController
     let req: Partial<Request>
@@ -52,8 +59,15 @@ describe('AdminHistoryController', () => {
             orderBy: vi.fn().mockReturnThis(),
             limit: vi.fn().mockReturnThis(),
             offset: vi.fn().mockReturnThis(),
-            where: vi.fn().mockReturnThis(),
+            where: vi.fn().mockImplementation((arg) => {
+                if (typeof arg === 'function') {
+                    arg(mockQueryBuilder);
+                }
+                return mockQueryBuilder;
+            }),
             orWhere: vi.fn().mockReturnThis(),
+            groupBy: vi.fn().mockReturnThis(),
+            orderByRaw: vi.fn().mockReturnThis(),
             then: vi.fn().mockImplementation((resolve) => resolve([])) // Allow await
         }
 
@@ -74,7 +88,7 @@ describe('AdminHistoryController', () => {
             await controller.getChatHistory(req as Request, res as Response)
 
             expect(mockQueryBuilder.from).toHaveBeenCalledWith('external_chat_history')
-            expect(mockQueryBuilder.limit).toHaveBeenCalledWith(50)
+            expect(mockQueryBuilder.limit).toHaveBeenCalledWith(20)
             expect(mockQueryBuilder.offset).toHaveBeenCalledWith(0)
             expect(res.json).toHaveBeenCalled()
         })
@@ -93,7 +107,7 @@ describe('AdminHistoryController', () => {
             await controller.getSearchHistory(req as Request, res as Response)
 
             expect(mockQueryBuilder.from).toHaveBeenCalledWith('external_search_history')
-            expect(mockQueryBuilder.limit).toHaveBeenCalledWith(50)
+            expect(mockQueryBuilder.limit).toHaveBeenCalledWith(20)
             expect(mockQueryBuilder.offset).toHaveBeenCalledWith(0)
             expect(res.json).toHaveBeenCalled()
         })

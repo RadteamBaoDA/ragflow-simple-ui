@@ -24,17 +24,33 @@ export class AuthController {
 
     async getMe(req: Request, res: Response): Promise<void> {
         if (req.session?.user) {
-            // Opportunistic IP recording so audit/IP alerts see resumed sessions
             try {
+                // Verify user still exists in database (in case of DB reset/deletion)
+                const dbUser = await userService.getUserById(req.session.user.id);
+
+                if (!dbUser) {
+                    log.warn('Session valid but user not found in DB (cleanup)', { userId: req.session.user.id });
+                    req.session.destroy((err) => {
+                        if (err) log.error('Failed to destroy invalid session', { error: err.message });
+                        res.status(401).json({ error: 'User not found' });
+                    });
+                    return;
+                }
+
+                // Opportunistic IP recording so audit/IP alerts see resumed sessions
                 const ipAddress = getClientIp(req)
                 if (ipAddress) {
                     await userService.recordUserIp(req.session.user.id, ipAddress)
                 }
-            } catch (error) {
-                log.warn('Failed to record IP on session resume', { error: String(error) })
-            }
 
-            res.json(req.session.user)
+                // Optional: update session with fresh DB data
+                // req.session.user = { ...req.session.user, ...dbUser };
+
+                res.json(req.session.user)
+            } catch (error) {
+                log.warn('Error verifying session user', { error: String(error) })
+                res.status(500).json({ error: 'Internal server error' })
+            }
         } else {
             res.status(401).json({ error: 'Unauthorized' })
         }

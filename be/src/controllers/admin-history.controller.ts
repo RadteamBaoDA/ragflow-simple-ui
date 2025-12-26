@@ -34,7 +34,7 @@ export class AdminHistoryController {
                 .select(
                     'session_id',
                     db.raw('MAX(created_at) as created_at'),
-                    db.raw('MAX(email) as user_email'),
+                    db.raw('MAX(user_email) as user_email'),
                     db.raw("(array_agg(user_prompt ORDER BY created_at ASC))[1] as user_prompt"),
                     db.raw('COUNT(*) as message_count')
                 )
@@ -60,7 +60,7 @@ export class AdminHistoryController {
             }
 
             if (email) {
-                query = query.where('email', 'ilike', `%${email}%`);
+                query = query.where('user_email', 'ilike', `%${email}%`);
             }
 
             if (startDate) {
@@ -121,7 +121,7 @@ export class AdminHistoryController {
                 .select(
                     'session_id',
                     db.raw('MAX(created_at) as created_at'),
-                    db.raw('MAX(email) as user_email'),
+                    db.raw('MAX(user_email) as user_email'),
                     db.raw("(array_agg(search_input ORDER BY created_at ASC))[1] as search_input"),
                     db.raw('COUNT(*) as message_count')
                 )
@@ -139,7 +139,7 @@ export class AdminHistoryController {
             }
 
             if (email) {
-                query = query.where('email', 'ilike', `%${email}%`);
+                query = query.where('user_email', 'ilike', `%${email}%`);
             }
 
             if (startDate) {

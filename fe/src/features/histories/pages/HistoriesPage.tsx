@@ -2,8 +2,9 @@ import { useState, useEffect, useRef, useMemo } from 'react';
 import { useInfiniteQuery, useQuery } from '@tanstack/react-query';
 import { useTranslation } from 'react-i18next';
 import { apiFetch } from '@/lib/api';
-import { Filter, Search, MessageSquare, FileText, Clock, User, ChevronRight, Sparkles } from 'lucide-react';
+import { Filter, Search, MessageSquare, FileText, Clock, User, ChevronRight, Sparkles, PanelLeftClose, PanelLeft, RefreshCw } from 'lucide-react';
 import { Dialog } from '@/components/Dialog';
+import { MarkdownRenderer } from '@/components/MarkdownRenderer';
 
 // ============================================================================
 // Types
@@ -93,6 +94,7 @@ async function fetchSearchSessionDetails(sessionId: string): Promise<ExternalSea
 
 function HistoriesPage() {
     const { t } = useTranslation();
+    const [isSidebarOpen, setIsSidebarOpen] = useState(true);
     const [activeTab, setActiveTab] = useState<'chat' | 'search'>('chat');
     const [selectedSession, setSelectedSession] = useState<ChatSessionSummary | SearchSessionSummary | null>(null);
     const [searchQuery, setSearchQuery] = useState('');
@@ -107,7 +109,8 @@ function HistoriesPage() {
         hasNextPage: hasNextChatPage,
         isFetchingNextPage: isFetchingNextChatPage,
         isLoading: isLoadingChat,
-        refetch: refetchChat
+        refetch: refetchChat,
+        isRefetching: isRefetchingChat
     } = useInfiniteQuery({
         queryKey: ['externalChatHistory', searchQuery, filters],
         queryFn: ({ pageParam = 1 }) => fetchExternalChatHistory(searchQuery, filters, pageParam),
@@ -124,7 +127,8 @@ function HistoriesPage() {
         hasNextPage: hasNextSearchPage,
         isFetchingNextPage: isFetchingNextSearchPage,
         isLoading: isLoadingSearch,
-        refetch: refetchSearch
+        refetch: refetchSearch,
+        isRefetching: isRefetchingSearch
     } = useInfiniteQuery({
         queryKey: ['externalSearchHistory', searchQuery, filters],
         queryFn: ({ pageParam = 1 }) => fetchExternalSearchHistory(searchQuery, filters, pageParam),
@@ -196,6 +200,13 @@ function HistoriesPage() {
         setFilters(reseted);
     };
 
+    const handleRefresh = () => {
+        if (activeTab === 'chat') refetchChat();
+        else refetchSearch();
+    };
+
+    const isRefreshing = activeTab === 'chat' ? isRefetchingChat : isRefetchingSearch;
+
     // Auto-select first item when data loads if no item is selected
     useEffect(() => {
         if (!selectedSession && flattenedData.length > 0) {
@@ -208,10 +219,22 @@ function HistoriesPage() {
     return (
         <div className="flex h-full bg-slate-50/50 dark:bg-slate-950/50 border-t border-slate-200 dark:border-slate-800 backdrop-blur-sm">
             {/* Sidebar */}
-            <div className="w-1/3 min-w-[320px] max-w-[420px] border-r border-slate-200/60 dark:border-slate-800/60 flex flex-col bg-white/80 dark:bg-slate-950/80 backdrop-blur-xl shadow-2xl z-20">
+            {/* Sidebar */}
+            <div
+                className={`border-r border-slate-200/60 dark:border-slate-800/60 flex flex-col bg-white/80 dark:bg-slate-950/80 backdrop-blur-xl shadow-2xl z-20 transition-all duration-300 ease-in-out ${isSidebarOpen ? 'w-[360px] translate-x-0' : 'w-0 -translate-x-full opacity-0 overflow-hidden border-none'
+                    }`}
+            >
                 {/* Sidebar Header */}
-                <div className="p-5 space-y-4 border-b border-slate-100 dark:border-slate-800/50">
-                    <div className="bg-slate-100/50 dark:bg-slate-900/50 p-1 rounded-xl flex shadow-inner">
+                <div className="p-5 space-y-4 border-b border-slate-100 dark:border-slate-800/50 relative group/sidebar-header">
+                    <button
+                        type="button"
+                        onClick={() => setIsSidebarOpen(false)}
+                        className="absolute right-2 top-2 p-2 rounded-lg text-slate-400 hover:text-slate-600 dark:hover:text-slate-200 hover:bg-slate-100 dark:hover:bg-slate-800 transition-all opacity-0 group-hover/sidebar-header:opacity-100 focus:opacity-100"
+                        title="Collapse sidebar"
+                    >
+                        <PanelLeftClose size={18} />
+                    </button>
+                    <div className="bg-slate-100/50 dark:bg-slate-900/50 p-1 rounded-xl flex shadow-inner mt-4">
                         <button
                             className={`flex-1 py-2.5 rounded-lg text-sm font-semibold transition-all duration-300 flex items-center justify-center gap-2 ${activeTab === 'chat'
                                 ? 'bg-white dark:bg-slate-800 text-primary dark:text-blue-400 shadow-sm ring-1 ring-black/5 dark:ring-white/5'
@@ -245,6 +268,14 @@ function HistoriesPage() {
                                 className="w-full pl-10 pr-4 py-2.5 bg-slate-50 dark:bg-slate-900/50 border-none ring-1 ring-slate-200 dark:ring-slate-800 rounded-xl focus:ring-2 focus:ring-primary/20 focus:bg-white dark:focus:bg-slate-900 transition-all text-sm font-medium"
                             />
                         </div>
+                        <button
+                            type="button"
+                            onClick={handleRefresh}
+                            className={`p-2.5 rounded-xl border border-slate-200 dark:border-slate-800 text-slate-500 dark:text-slate-300 hover:bg-slate-50 dark:hover:bg-slate-800 transition-all ${isRefreshing ? 'animate-spin' : ''}`}
+                            title={t('common.refresh')}
+                        >
+                            <RefreshCw size={18} />
+                        </button>
                         <button
                             type="button"
                             onClick={() => { setTempFilters(filters); setIsFilterDialogOpen(true); }}
@@ -334,6 +365,15 @@ function HistoriesPage() {
                             <div className="sticky top-0 z-20 bg-white/80 dark:bg-slate-950/80 backdrop-blur-xl border-b border-slate-200/50 dark:border-slate-800/50 px-8 py-4 shadow-sm">
                                 <div className="max-w-4xl mx-auto">
                                     <div className="flex items-center gap-4 mb-2">
+                                        {!isSidebarOpen && (
+                                            <button
+                                                onClick={() => setIsSidebarOpen(true)}
+                                                className="p-2 mr-2 rounded-lg text-slate-500 hover:text-primary hover:bg-slate-100 dark:hover:bg-slate-800 transition-all"
+                                                title="Expand sidebar"
+                                            >
+                                                <PanelLeft size={20} />
+                                            </button>
+                                        )}
                                         <div className={`w-10 h-10 rounded-xl flex items-center justify-center shadow-lg ${activeTab === 'chat'
                                             ? 'bg-gradient-to-br from-primary to-violet-600 text-white shadow-primary/25'
                                             : 'bg-gradient-to-br from-blue-500 to-cyan-500 text-white shadow-blue-500/25'
@@ -372,9 +412,11 @@ function HistoriesPage() {
                                                     <div className="flex justify-end pl-12">
                                                         <div className="relative max-w-[90%]">
                                                             <div className="bg-white dark:bg-slate-800 p-5 rounded-2xl rounded-tr-sm shadow-sm border border-slate-100 dark:border-slate-800">
-                                                                <p className="text-slate-800 dark:text-slate-200 whitespace-pre-wrap leading-relaxed">
-                                                                    {(item as ExternalChatHistory).user_prompt}
-                                                                </p>
+                                                                <div className="text-slate-800 dark:text-slate-200 leading-relaxed">
+                                                                    <MarkdownRenderer>
+                                                                        {(item as ExternalChatHistory).user_prompt}
+                                                                    </MarkdownRenderer>
+                                                                </div>
                                                             </div>
                                                             <div className="absolute -right-2 top-0 w-2 h-2 bg-white dark:bg-slate-800 [clip-path:polygon(0_0,0%_100%,100%_0)]" />
                                                             <div className="mt-2 flex justify-end gap-2 items-center opacity-0 group-hover:opacity-100 transition-opacity">
@@ -391,8 +433,10 @@ function HistoriesPage() {
                                                             </div>
                                                         </div>
                                                         <div className="flex-1 space-y-4">
-                                                            <div className="bg-transparent text-slate-700 dark:text-slate-300 leading-relaxed whitespace-pre-wrap">
-                                                                {(item as ExternalChatHistory).llm_response}
+                                                            <div className="bg-transparent text-slate-700 dark:text-slate-300 leading-relaxed overflow-hidden">
+                                                                <MarkdownRenderer>
+                                                                    {(item as ExternalChatHistory).llm_response}
+                                                                </MarkdownRenderer>
                                                             </div>
 
                                                             {/* Citations */}

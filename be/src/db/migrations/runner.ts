@@ -17,20 +17,18 @@
 import { DatabaseAdapter } from '@/db/types.js';
 import { log } from '@/services/logger.service.js';
 import { migration as migration001 } from '@/db/migrations/001_initial_schema.js';
-import { migration as migration002 } from '@/db/migrations/002_external_history_schema.js';
 
 /**
  * List of migrations to run.
  * Migrations are executed in array order (which should match numerical prefixes).
  * 
  * To add a new migration:
- * 1. Create a new file: 003_your_migration.ts
- * 2. Import it here: import { migration as migration003 } from './003_your_migration.js';
- * 3. Add to this array: migration003
+ * 1. Create a new file: 002_your_migration.ts
+ * 2. Import it here: import { migration as migration002 } from './002_your_migration.js';
+ * 3. Add to this array: migration002
  */
 const migrations = [
   migration001,  // Initial schema: users, chat_sessions, chat_messages, knowledge_base_sources, etc.
-  migration002,  // External history schema (chat/search)
 ];
 
 /**
