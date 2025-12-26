@@ -1,0 +1,48 @@
+
+> knowledge-base-backend@1.0.0 test
+> vitest run --run --coverage
+
+[33mTesting types with tsc and vue-tsc is an experimental feature.
+Breaking changes might not follow SemVer, please pin Vitest's version when using it.[39m
+
+[1m[7m[36m RUN [39m[27m[22m [36mv2.1.9 [39m[90mC:/Users/remoteadmin/Documents/ragflow-simple-ui/be[39m
+      [2mCoverage enabled with [22m[33mv8[39m
+
+ [32m✓[39m tests/services/broadcast-message.service.test.ts [2m([22m[2m22 tests[22m[2m)[22m[90m 73[2mms[22m[39m
+ [32m✓[39m tests/services/socket.service.simple.test.ts [2m([22m[2m29 tests[22m[2m)[22m[90m 82[2mms[22m[39m
+ [32m✓[39m tests/middleware/auth.middleware.test.ts [2m([22m[2m37 tests[22m[2m)[22m[90m 23[2mms[22m[39m
+ [32m✓[39m tests/controllers/minio-storage.controller.test.ts [2m([22m[2m33 tests[22m[2m)[22m[90m 24[2mms[22m[39m
+ [32m✓[39m tests/services/external/trace.service.test.ts [2m([22m[2m28 tests[22m[2m | [22m[33m1 skipped[39m[2m)[22m[90m 166[2mms[22m[39m
+ [32m✓[39m tests/config/index.test.ts [2m([22m[2m37 tests[22m[2m)[22m[90m 166[2mms[22m[39m
+ [32m✓[39m tests/services/system-tools.service.test.ts [2m([22m[2m37 tests[22m[2m)[22m[90m 243[2mms[22m[39m
+ [2m[90m↓[39m[22m tests/services/socket.service.test.ts [2m([22m[2m25 tests[22m[2m | [22m[33m25 skipped[39m[2m)[22m
+ [32m✓[39m tests/controllers/auth.controller.comprehensive.test.ts [2m([22m[2m28 tests[22m[2m)[22m[90m 67[2mms[22m[39m
+ [2m[90m↓[39m[22m tests/db/index.test.ts [2m([22m[2m25 tests[22m[2m | [22m[33m25 skipped[39m[2m)[22m
+ [32m✓[39m tests/models/base.model.test.ts [2m([22m[2m26 tests[22m[2m)[22m[90m 24[2mms[22m[39m
+ [32m✓[39m tests/services/file-validation.service.test.ts [2m([22m[2m54 tests[22m[2m)[22m[90m 15[2mms[22m[39m
+ [32m✓[39m tests/services/preview.service.test.ts [2m([22m[2m9 tests[22m[2m)[22m[90m 43[2mms[22m[39m
+ [32m✓[39m tests/services/minio.service.test.ts [2m([22m[2m23 tests[22m[2m)[22m[90m 23[2mms[22m[39m
+ [32m✓[39m tests/services/knowledge-base.service.test.ts [2m([22m[2m12 tests[22m[2m)[22m[90m 23[2mms[22m[39m
+ [32m✓[39m tests/services/team.service.test.ts [2m([22m[2m16 tests[22m[2m)[22m[90m 16[2mms[22m[39m
+ [32m✓[39m tests/services/langfuse.service.test.ts [2m([22m[2m12 tests[22m[2m)[22m[90m 70[2mms[22m[39m
+ [32m✓[39m tests/config/file-upload.config.test.ts [2m([22m[2m32 tests[22m[2m)[22m[90m 10[2mms[22m[39m
+ [32m✓[39m tests/routes/minio-storage.routes.test.ts [2m([22m[2m30 tests[22m[2m)[22m[33m 716[2mms[22m[39m
+   [33m[2m✓[22m[39m MinIO Storage Routes[2m > [22mModule exports[2m > [22mshould export a router [33m705[2mms[22m[39m
+ [32m✓[39m tests/services/cron.service.test.ts [2m([22m[2m10 tests[22m[2m)[22m[90m 43[2mms[22m[39m
+ [32m✓[39m tests/services/auth.service.test.ts [2m([22m[2m14 tests[22m[2m)[22m[90m 13[2mms[22m[39m
+ [32m✓[39m tests/services/audit.service.test.ts [2m([22m[2m17 tests[22m[2m)[22m[90m 17[2mms[22m[39m
+ [2m[90m↓[39m[22m tests/services/redis.service.test.ts [2m([22m[2m25 tests[22m[2m | [22m[33m25 skipped[39m[2m)[22m
+ [32m✓[39m tests/services/user.service.test.ts [2m([22m[2m17 tests[22m[2m)[22m[90m 19[2mms[22m[39m
+ [32m✓[39m tests/routes/audit.routes.test.ts [2m([22m[2m14 tests[22m[2m)[22m[90m 10[2mms[22m[39m
+ [32m✓[39m tests/controllers/user.controller.test.ts [2m([22m[2m18 tests[22m[2m)[22m[90m 14[2mms[22m[39m
+ [32m✓[39m tests/services/document-permission.service.test.ts [2m([22m[2m12 tests[22m[2m)[22m[90m 11[2mms[22m[39m
+ [32m✓[39m tests/routes/user.routes.test.ts [2m([22m[2m24 tests[22m[2m)[22m[90m 161[2mms[22m[39m
+ [32m✓[39m tests/controllers/broadcast-message.controller.test.ts [2m([22m[2m18 tests[22m[2m)[22m[90m 10[2mms[22m[39m
+ [32m✓[39m tests/config/rbac.test.ts [2m([22m[2m27 tests[22m[2m)[22m[90m 12[2mms[22m[39m
+ [32m✓[39m tests/routes/minio-bucket.routes.test.ts [2m([22m[2m26 tests[22m[2m)[22m[33m 437[2mms[22m[39m
+   [33m[2m✓[22m[39m MinIO Bucket Routes[2m > [22mModule exports[2m > [22mshould export a router [33m427[2mms[22m[39m
+ [32m✓[39m tests/models/broadcast-message.model.test.ts [2m([22m[2m12 tests[22m[2m)[22m[90m 11[2mms[22m[39m
+ [32m✓[39m tests/controllers/knowledge-base.controller.test.ts [2m([22m[2m15 tests[22m[2m)[22m[90m 14[2mms[22m[39m
+ [32m✓[39m tests/routes/admin.routes.test.ts [2m([22m[2m14 tests[22m[2m)[22m[33m 370[2mms[22m[39m
+   [33m[2m✓[22m[39m Admin Routes[2m > [22mModule exports[2m > [22mshould export a router [33m364[2mms[22m[39m
+ [32m✓[39m tests/controllers/team.controller.test.ts [2m([22m[2m17 tests[22m[2m)[22m[90m 15[2mms[22m[39m

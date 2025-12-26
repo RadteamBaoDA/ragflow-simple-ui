@@ -12,7 +12,6 @@ import {
   ADMIN_ROLES,
   ROLE_PERMISSIONS,
   type Role,
-  type Permission,
 } from '../../src/config/rbac.js';
 
 describe('RBAC Configuration', () => {
@@ -23,42 +22,44 @@ describe('RBAC Configuration', () => {
   });
 
   describe('ADMIN_ROLES', () => {
-    it('should include "admin" and "manager"', () => {
+    it('includes admin and leader only', () => {
       expect(ADMIN_ROLES).toContain('admin');
-      expect(ADMIN_ROLES).toContain('manager');
-    });
-
-    it('should not include "user"', () => {
-      expect(ADMIN_ROLES).not.toContain('user');
-    });
-
-    it('should be readonly', () => {
+      expect(ADMIN_ROLES).toContain('leader');
       expect(ADMIN_ROLES).toHaveLength(2);
+    });
+
+    it('excludes non-admin roles', () => {
+      expect(ADMIN_ROLES).not.toContain('user');
+      expect(ADMIN_ROLES).not.toContain('guest' as Role);
     });
   });
 
   describe('ROLE_PERMISSIONS', () => {
-    it('admin should have all permissions', () => {
+    it('admin should have broad permissions', () => {
       const adminPermissions = ROLE_PERMISSIONS.admin;
       expect(adminPermissions).toContain('view_chat');
       expect(adminPermissions).toContain('view_search');
       expect(adminPermissions).toContain('view_history');
       expect(adminPermissions).toContain('manage_users');
       expect(adminPermissions).toContain('manage_system');
+      expect(adminPermissions).toContain('manage_knowledge_base');
+      expect(adminPermissions).toContain('manage_storage');
       expect(adminPermissions).toContain('view_analytics');
+      expect(adminPermissions).toContain('view_system_tools');
       expect(adminPermissions).toContain('storage:read');
       expect(adminPermissions).toContain('storage:write');
       expect(adminPermissions).toContain('storage:delete');
     });
 
-    it('manager should have user management but not system management', () => {
-      const managerPermissions = ROLE_PERMISSIONS.manager;
-      expect(managerPermissions).toContain('manage_users');
-      expect(managerPermissions).not.toContain('manage_system');
-      expect(managerPermissions).toContain('view_analytics');
-      expect(managerPermissions).toContain('storage:read');
-      expect(managerPermissions).toContain('storage:write');
-      expect(managerPermissions).toContain('storage:delete');
+    it('leader should allow user management but not system management', () => {
+      const leaderPermissions = ROLE_PERMISSIONS.leader;
+      expect(leaderPermissions).toContain('manage_users');
+      expect(leaderPermissions).not.toContain('manage_system');
+      expect(leaderPermissions).toContain('view_analytics');
+      expect(leaderPermissions).toContain('view_system_tools');
+      expect(leaderPermissions).not.toContain('manage_storage');
+      expect(leaderPermissions).not.toContain('storage:write');
+      expect(leaderPermissions).not.toContain('storage:delete');
     });
 
     it('user should have basic permissions only', () => {
@@ -66,10 +67,11 @@ describe('RBAC Configuration', () => {
       expect(userPermissions).toContain('view_chat');
       expect(userPermissions).toContain('view_search');
       expect(userPermissions).toContain('view_history');
-      expect(userPermissions).toContain('storage:read');
       expect(userPermissions).not.toContain('manage_users');
       expect(userPermissions).not.toContain('manage_system');
       expect(userPermissions).not.toContain('view_analytics');
+      expect(userPermissions).not.toContain('manage_storage');
+      expect(userPermissions).not.toContain('storage:read');
       expect(userPermissions).not.toContain('storage:write');
       expect(userPermissions).not.toContain('storage:delete');
     });
@@ -78,10 +80,6 @@ describe('RBAC Configuration', () => {
   describe('isAdminRole', () => {
     it('should return true for admin', () => {
       expect(isAdminRole('admin')).toBe(true);
-    });
-
-    it('should return true for manager', () => {
-      expect(isAdminRole('manager')).toBe(true);
     });
 
     it('should return false for user', () => {
@@ -118,23 +116,23 @@ describe('RBAC Configuration', () => {
       });
     });
 
-    describe('manager role', () => {
+    describe('leader role', () => {
       it('should have view_chat permission', () => {
-        expect(hasPermission('manager', 'view_chat')).toBe(true);
+        expect(hasPermission('leader', 'view_chat')).toBe(true);
       });
 
       it('should NOT have manage_system permission', () => {
-        expect(hasPermission('manager', 'manage_system')).toBe(false);
+        expect(hasPermission('leader', 'manage_system')).toBe(false);
       });
 
       it('should have manage_users permission', () => {
-        expect(hasPermission('manager', 'manage_users')).toBe(true);
+        expect(hasPermission('leader', 'manage_users')).toBe(true);
       });
 
-      it('should have all storage permissions', () => {
-        expect(hasPermission('manager', 'storage:read')).toBe(true);
-        expect(hasPermission('manager', 'storage:write')).toBe(true);
-        expect(hasPermission('manager', 'storage:delete')).toBe(true);
+      it('should not have storage modification permissions', () => {
+        expect(hasPermission('leader', 'manage_storage')).toBe(false);
+        expect(hasPermission('leader', 'storage:write')).toBe(false);
+        expect(hasPermission('leader', 'storage:delete')).toBe(false);
       });
     });
 
@@ -149,10 +147,6 @@ describe('RBAC Configuration', () => {
 
       it('should have view_history permission', () => {
         expect(hasPermission('user', 'view_history')).toBe(true);
-      });
-
-      it('should have storage:read permission', () => {
-        expect(hasPermission('user', 'storage:read')).toBe(true);
       });
 
       it('should NOT have manage_users permission', () => {
