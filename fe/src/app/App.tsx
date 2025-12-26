@@ -32,6 +32,8 @@ import '@/i18n';
 const AiChatPage = lazy(() => import('@/features/ai').then(m => ({ default: m.AiChatPage })));
 const AiSearchPage = lazy(() => import('@/features/ai').then(m => ({ default: m.AiSearchPage })));
 const HistoryPage = lazy(() => import('@/features/history').then(m => ({ default: m.HistoryPage })));
+const ChatHistoryPage = lazy(() => import('@/features/history').then(m => ({ default: m.ChatHistoryPage })));
+const SearchHistoryPage = lazy(() => import('@/features/history').then(m => ({ default: m.SearchHistoryPage })));
 const LoginPage = lazy(() => import('@/features/auth').then(m => ({ default: m.LoginPage })));
 const LogoutPage = lazy(() => import('@/features/auth').then(m => ({ default: m.LogoutPage })));
 const UserManagementPage = lazy(() => import('@/features/users').then(m => ({ default: m.UserManagementPage })));
@@ -130,7 +132,11 @@ function App() {
                       )}
 
                       {config.features.enableHistory && (
-                        <Route path="history" element={<HistoryPage />} />
+                        <>
+                          <Route path="history" element={<HistoryPage />} />
+                          <Route path="chat-history" element={<ChatHistoryPage />} />
+                          <Route path="search-history" element={<SearchHistoryPage />} />
+                        </>
                       )}
 
                       <Route path="user-management" element={

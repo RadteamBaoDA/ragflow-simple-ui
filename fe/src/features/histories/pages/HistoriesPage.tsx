@@ -451,7 +451,7 @@ function HistoriesPage() {
                         <div className="flex-1 overflow-y-auto scrollbar-thin scrollbar-thumb-slate-300 dark:scrollbar-thumb-slate-700 pb-12 px-0">
                             {/* Sticky Header */}
                             <div className="sticky top-0 z-20 bg-white/80 dark:bg-slate-950/80 backdrop-blur-xl border-b border-slate-200/50 dark:border-slate-800/50 px-8 py-4 shadow-sm">
-                                <div className="max-w-4xl mx-auto">
+                                <div className="mx-auto">
                                     <div className="flex items-center gap-4 mb-2">
                                         {!isSidebarOpen && (
                                             <button
@@ -485,7 +485,7 @@ function HistoriesPage() {
                                 </div>
                             </div>
 
-                            <div className="max-w-4xl mx-auto space-y-10 px-8 pt-8">
+                            <div className="mx-auto space-y-10 px-8 pt-8">
                                 {isLoadingDetails ? (
                                     <div className="flex flex-col items-center justify-center py-20 gap-4 opacity-50">
                                         <div className="w-10 h-10 border-4 border-slate-200 border-t-primary rounded-full animate-spin" />

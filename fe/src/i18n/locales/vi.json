@@ -66,6 +66,8 @@
     "aiChat": "Trò chuyện",
     "aiSearch": "Tìm kiếm",
     "history": "Lịch sử",
+    "chatHistory": "Lịch sử Chat",
+    "searchHistory": "Lịch sử Tìm kiếm",
     "documents": "Tài liệu",
     "iam": "IAM",
     "userManagement": "Người dùng",
@@ -202,6 +204,14 @@
     "history": {
       "title": "Lịch sử trò chuyện",
       "description": "Xem các cuộc trò chuyện trước đây"
+    },
+    "chatHistory": {
+      "title": "Lịch sử Chat",
+      "description": "Xem các cuộc trò chuyện AI của bạn"
+    },
+    "searchHistory": {
+      "title": "Lịch sử Tìm kiếm",
+      "description": "Xem các truy vấn tìm kiếm AI của bạn"
     },
     "systemTools": {
       "title": "Công cụ Giám sát Hệ thống"
@@ -623,6 +633,24 @@
     "applyFilter": "Áp dụng",
     "resetFilter": "Đặt lại",
     "filterButton": "Lọc"
+  },
+  "userHistory": {
+    "chatHistory": "Lịch sử Chat",
+    "searchHistory": "Lịch sử Tìm kiếm",
+    "searchPlaceholder": "Tìm kiếm lịch sử của bạn...",
+    "loading": "Đang tải...",
+    "loadingDetails": "Đang tải chi tiết...",
+    "noSessions": "Không tìm thấy phiên nào",
+    "noSessionSelected": "Chưa chọn phiên",
+    "selectSessionHint": "Chọn một cuộc trò chuyện từ thanh bên để xem chi tiết.",
+    "selectSearchHint": "Chọn một phiên tìm kiếm từ thanh bên để xem chi tiết.",
+    "conversationHistory": "Lịch sử cuộc trò chuyện",
+    "searchSession": "Phiên tìm kiếm",
+    "you": "Bạn",
+    "aiSummary": "Tóm tắt AI",
+    "fileResults": "Các tệp được tìm thấy",
+    "filterTitle": "Lọc lịch sử",
+    "applyFilter": "Áp dụng bộ lọc"
   },
   "errors": {
     "REAUTH_REQUIRED": "Yêu cầu xác thực lại"
