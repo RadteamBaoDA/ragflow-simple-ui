@@ -317,4 +317,111 @@ describe('Config Module', () => {
             expect(config.sessionStore.type).toBe('redis');
         });
     });
+
+    describe('CORS Configuration', () => {
+        it('uses frontend URL when CORS_ORIGINS is not set', async () => {
+            delete process.env.CORS_ORIGINS;
+            process.env.FRONTEND_URL = 'http://example.com';
+
+            const { config } = await import('../../src/config/index.js');
+
+            expect(config.cors.origins).toEqual(['http://example.com']);
+        });
+
+        it('supports wildcard origins', async () => {
+            process.env.CORS_ORIGINS = '*';
+
+            const { config } = await import('../../src/config/index.js');
+
+            expect(config.cors.origins).toBe('*');
+        });
+
+        it('parses comma-separated origins', async () => {
+            process.env.CORS_ORIGINS = 'http://one.com, https://two.com';
+
+            const { config } = await import('../../src/config/index.js');
+
+            expect(config.cors.origins).toEqual(['http://one.com', 'https://two.com']);
+        });
+    });
+
+    describe('External Trace Configuration', () => {
+        it('uses defaults when unset', async () => {
+            const { config } = await import('../../src/config/index.js');
+
+            expect(config.externalTrace.enabled).toBe(false);
+            expect(config.externalTrace.apiKey).toBe('');
+            expect(config.externalTrace.cacheTtlSeconds).toBe(300);
+            expect(config.externalTrace.lockTimeoutMs).toBe(5000);
+        });
+
+        it('reads values from environment', async () => {
+            process.env.EXTERNAL_TRACE_ENABLED = 'true';
+            process.env.EXTERNAL_TRACE_API_KEY = 'trace-key';
+            process.env.EXTERNAL_TRACE_CACHE_TTL = '120';
+            process.env.EXTERNAL_TRACE_LOCK_TIMEOUT = '2000';
+
+            const { config } = await import('../../src/config/index.js');
+
+            expect(config.externalTrace.enabled).toBe(true);
+            expect(config.externalTrace.apiKey).toBe('trace-key');
+            expect(config.externalTrace.cacheTtlSeconds).toBe(120);
+            expect(config.externalTrace.lockTimeoutMs).toBe(2000);
+        });
+    });
+
+    describe('WebSocket Configuration', () => {
+        it('uses defaults when unset', async () => {
+            const { config } = await import('../../src/config/index.js');
+
+            expect(config.websocket.enabled).toBe(true);
+            expect(config.websocket.apiKey).toBe('');
+            expect(config.websocket.corsOrigin).toBe('http://localhost:5173');
+            expect(config.websocket.pingTimeout).toBe(60000);
+            expect(config.websocket.pingInterval).toBe(25000);
+        });
+
+        it('reads values from environment', async () => {
+            process.env.WEBSOCKET_ENABLED = 'false';
+            process.env.WEBSOCKET_API_KEY = 'ws-key';
+            process.env.WEBSOCKET_CORS_ORIGIN = 'http://ws.example.com';
+            process.env.WEBSOCKET_PING_TIMEOUT = '12345';
+            process.env.WEBSOCKET_PING_INTERVAL = '54321';
+
+            const { config } = await import('../../src/config/index.js');
+
+            expect(config.websocket.enabled).toBe(false);
+            expect(config.websocket.apiKey).toBe('ws-key');
+            expect(config.websocket.corsOrigin).toBe('http://ws.example.com');
+            expect(config.websocket.pingTimeout).toBe(12345);
+            expect(config.websocket.pingInterval).toBe(54321);
+        });
+    });
+
+    describe('Additional flags', () => {
+        it('respects ignoreSelfSignedCerts flag', async () => {
+            process.env.IGNORE_SELF_SIGNED_CERTS = 'true';
+
+            const { config } = await import('../../src/config/index.js');
+
+            expect(config.ignoreSelfSignedCerts).toBe(true);
+        });
+
+        it('exposes root user defaults', async () => {
+            const { config } = await import('../../src/config/index.js');
+
+            expect(config.rootUser).toBe('admin@localhost');
+            expect(config.rootPassword).toBe('admin');
+        });
+
+        it('honors ragflow and system tool config paths', async () => {
+            process.env.RAGFLOW_CONFIG_PATH = '/tmp/ragflow.json';
+            process.env.SYSTEM_TOOLS_CONFIG_PATH = '/tmp/system-tools.json';
+
+            const { config } = await import('../../src/config/index.js');
+
+            expect(config.ragflowConfigPath).toBe('/tmp/ragflow.json');
+            expect(config.systemToolsConfigPath).toBe('/tmp/system-tools.json');
+        });
+    });
 });

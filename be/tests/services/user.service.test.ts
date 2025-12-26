@@ -1,365 +1,289 @@
 /**
- * @fileoverview Unit tests for user service.
- * 
- * Tests user management operations with mocked database.
+ * @fileoverview Unit tests for UserService.
  */
 
-import { describe, it, expect, vi, beforeEach } from 'vitest';
-import { query, queryOne } from '../../src/db/index.js';
-import { userService, UserService } from '../../src/services/user.service.js';
+import { describe, it, expect, vi, beforeEach } from 'vitest'
 
-// Get mocked functions
-const mockQuery = vi.mocked(query);
-const mockQueryOne = vi.mocked(queryOne);
+const mockLog = vi.hoisted(() => ({
+  debug: vi.fn(),
+  warn: vi.fn(),
+  error: vi.fn(),
+}))
 
-describe('User Service', () => {
+vi.mock('../../src/services/logger.service.js', () => ({
+  log: mockLog,
+}))
+
+const mockAudit = vi.hoisted(() => ({
+  log: vi.fn(),
+}))
+
+vi.mock('../../src/services/audit.service.js', () => ({
+  auditService: mockAudit,
+  AuditAction: {
+    CREATE_USER: 'CREATE_USER',
+    UPDATE_USER: 'UPDATE_USER',
+    DELETE_USER: 'DELETE_USER',
+  },
+  AuditResourceType: {
+    USER: 'USER',
+  },
+}))
+
+const mockUserModel = vi.hoisted(() => ({
+  findAll: vi.fn(),
+  findById: vi.fn(),
+  findByEmail: vi.fn(),
+  create: vi.fn(),
+  update: vi.fn(),
+  delete: vi.fn(),
+}))
+
+const mockUserIpHistory = vi.hoisted(() => ({
+  findAll: vi.fn(),
+  findByUserAndIp: vi.fn(),
+  update: vi.fn(),
+  create: vi.fn(),
+}))
+
+vi.mock('../../src/models/factory.js', () => ({
+  ModelFactory: {
+    user: mockUserModel,
+    userIpHistory: mockUserIpHistory,
+  },
+}))
+
+vi.mock('../../src/config/index.js', () => ({
+  config: {
+    rootUser: 'admin@localhost',
+    rootPassword: 'admin',
+    enableRootLogin: true,
+  },
+}))
+
+import { UserService } from '../../src/services/user.service.js'
+
+const service = new UserService()
+
+const resetMocks = () => {
+  vi.clearAllMocks()
+  mockUserModel.findAll.mockReset()
+  mockUserModel.findById.mockReset()
+  mockUserModel.findByEmail.mockReset()
+  mockUserModel.create.mockReset()
+  mockUserModel.update.mockReset()
+  mockUserModel.delete.mockReset()
+  mockUserIpHistory.findAll.mockReset()
+  mockUserIpHistory.findByUserAndIp.mockReset()
+  mockUserIpHistory.update.mockReset()
+  mockUserIpHistory.create.mockReset()
+  mockAudit.log.mockReset()
+}
+
+describe('UserService', () => {
   beforeEach(() => {
-    vi.clearAllMocks();
-  });
+    resetMocks()
+  })
 
   describe('initializeRootUser', () => {
-    it('should skip initialization if users exist', async () => {
-      mockQueryOne.mockResolvedValueOnce({ count: 5 });
+    it('skips creation when users exist', async () => {
+      mockUserModel.findAll.mockResolvedValueOnce([{}])
 
-      await userService.initializeRootUser();
+      await service.initializeRootUser()
 
-      // Should only call queryOne for count check, not insert
-      expect(mockQueryOne).toHaveBeenCalledTimes(1);
-      expect(mockQuery).not.toHaveBeenCalled();
-    });
+      expect(mockUserModel.create).not.toHaveBeenCalled()
+    })
 
-    it('should create root user if no users exist', async () => {
-      mockQueryOne.mockResolvedValueOnce({ count: 0 });
-      mockQuery.mockResolvedValueOnce([]);
+    it('creates root user when none exist', async () => {
+      mockUserModel.findAll.mockResolvedValueOnce([])
+      mockUserModel.create.mockResolvedValueOnce({ id: 'root-user' })
 
-      await userService.initializeRootUser();
+      await service.initializeRootUser()
 
-      expect(mockQuery).toHaveBeenCalledWith(
-        expect.stringContaining('INSERT INTO users'),
-        expect.arrayContaining([
-          'root-user',
-          expect.any(String), // email
-          'System Administrator',
-          'admin',
-          expect.any(String), // permissions JSON
-        ])
-      );
-    });
+      expect(mockUserModel.create).toHaveBeenCalledWith(expect.objectContaining({
+        id: 'root-user',
+        email: 'admin@localhost',
+        role: 'admin',
+      }))
+    })
 
-    it('should handle database error gracefully', async () => {
-      mockQueryOne.mockRejectedValueOnce(new Error('Database error'));
+    it('logs error but does not throw on failure', async () => {
+      mockUserModel.findAll.mockRejectedValueOnce(new Error('db'))
 
-      // Should not throw
-      await expect(userService.initializeRootUser()).resolves.not.toThrow();
-    });
-  });
+      await expect(service.initializeRootUser()).resolves.not.toThrow()
+      expect(mockLog.error).toHaveBeenCalled()
+    })
+  })
 
   describe('findOrCreateUser', () => {
-    const mockAzureAdUser = {
-      id: 'azure-user-123',
+    const adUser = {
+      id: 'azure-id',
       email: 'user@example.com',
-      name: 'Test User',
-      displayName: 'Test User',
+      displayName: 'User Example',
       department: 'IT',
-      jobTitle: 'Developer',
-      mobilePhone: '+1234567890',
-    };
+      jobTitle: 'Engineer',
+      mobilePhone: '+1',
+    }
 
-    it('should return existing user if found', async () => {
-      const existingUser = {
-        id: 'azure-user-123',
+    it('returns existing user without update when unchanged', async () => {
+      const existing = {
+        id: 'azure-id',
         email: 'user@example.com',
-        display_name: 'Test User',
-        role: 'manager',
-        permissions: '["view_chat"]',
-        department: 'IT',
-        job_title: 'Developer',
-        mobile_phone: '+1234567890',
-        created_at: '2024-01-01T00:00:00Z',
-        updated_at: '2024-01-01T00:00:00Z',
-      };
-      mockQueryOne.mockResolvedValueOnce(existingUser);
-
-      const result = await userService.findOrCreateUser(mockAzureAdUser);
-
-      expect(result.id).toBe('azure-user-123');
-      expect(result.role).toBe('manager');
-      expect(result.permissions).toEqual(['view_chat']);
-    });
-
-    it('should update user if Azure AD data changed', async () => {
-      const existingUser = {
-        id: 'azure-user-123',
-        email: 'old@example.com', // Different email
-        display_name: 'Old Name', // Different name
-        role: 'user',
-        permissions: '[]',
-        department: 'Sales', // Different department
-        job_title: 'Analyst', // Different title
-        mobile_phone: null, // No phone
-        created_at: '2024-01-01T00:00:00Z',
-        updated_at: '2024-01-01T00:00:00Z',
-      };
-      mockQueryOne.mockResolvedValueOnce(existingUser);
-      mockQuery.mockResolvedValueOnce([]);
-
-      const result = await userService.findOrCreateUser(mockAzureAdUser);
-
-      // Should update with new values
-      expect(mockQuery).toHaveBeenCalledWith(
-        expect.stringContaining('UPDATE users SET'),
-        expect.arrayContaining([
-          'Test User', // display_name
-          'user@example.com', // email
-          'IT', // department
-          'Developer', // job_title
-          '+1234567890', // mobile_phone
-        ])
-      );
-
-      // Should return updated values
-      expect(result.display_name).toBe('Test User');
-      expect(result.email).toBe('user@example.com');
-    });
-
-    it('should not update if nothing changed', async () => {
-      const existingUser = {
-        id: 'azure-user-123',
-        email: 'user@example.com',
-        display_name: 'Test User',
+        display_name: 'User Example',
         role: 'user',
         permissions: '[]',
         department: 'IT',
-        job_title: 'Developer',
-        mobile_phone: '+1234567890',
-        created_at: '2024-01-01T00:00:00Z',
-        updated_at: '2024-01-01T00:00:00Z',
-      };
-      mockQueryOne.mockResolvedValueOnce(existingUser);
+        job_title: 'Engineer',
+        mobile_phone: '+1',
+      }
+      mockUserModel.findById.mockResolvedValueOnce(existing)
 
-      await userService.findOrCreateUser(mockAzureAdUser);
+      const result = await service.findOrCreateUser(adUser)
 
-      // Should not call UPDATE if nothing changed
-      expect(mockQuery).not.toHaveBeenCalled();
-    });
+      expect(result).toBe(existing)
+      expect(mockUserModel.update).not.toHaveBeenCalled()
+    })
 
-    it('should create new user if not found', async () => {
-      mockQueryOne.mockResolvedValueOnce(undefined);
-      mockQuery.mockResolvedValueOnce([]);
+    it('updates changed fields and logs audit', async () => {
+      const existing = {
+        id: 'azure-id',
+        email: 'old@example.com',
+        display_name: 'Old',
+        role: 'user',
+        permissions: '[]',
+        department: 'OldDept',
+        job_title: 'OldTitle',
+        mobile_phone: '000',
+      }
+      mockUserModel.findById.mockResolvedValueOnce(existing)
+      mockUserModel.update.mockResolvedValueOnce({ ...existing, email: 'user@example.com' })
 
-      const result = await userService.findOrCreateUser(mockAzureAdUser);
+      const result = await service.findOrCreateUser(adUser, '1.1.1.1')
 
-      expect(mockQuery).toHaveBeenCalledWith(
-        expect.stringContaining('INSERT INTO users'),
-        expect.arrayContaining([
-          'azure-user-123',
-          'user@example.com',
-          'Test User',
-          'user', // Default role
-        ])
-      );
-      expect(result.role).toBe('user');
-    });
+      expect(mockUserModel.update).toHaveBeenCalled()
+      expect(mockAudit.log).toHaveBeenCalled()
+      expect(result.email).toBe('user@example.com')
+    })
 
-    it('should handle Azure AD user without optional fields', async () => {
-      const minimalUser = {
-        id: 'azure-user-456',
-        email: 'minimal@example.com',
-        name: 'Minimal User',
-        displayName: 'Minimal User',
-      };
-      mockQueryOne.mockResolvedValueOnce(undefined);
-      mockQuery.mockResolvedValueOnce([]);
+    it('creates new user when none found and audits', async () => {
+      mockUserModel.findById.mockResolvedValueOnce(undefined)
+      mockUserModel.findByEmail.mockResolvedValueOnce(undefined)
+      mockUserModel.create.mockResolvedValueOnce({ id: 'azure-id', email: 'user@example.com', role: 'user' })
 
-      const result = await userService.findOrCreateUser(minimalUser);
+      const result = await service.findOrCreateUser(adUser)
 
-      expect(result.department).toBeNull();
-      expect(result.job_title).toBeNull();
-      expect(result.mobile_phone).toBeNull();
-    });
+      expect(mockUserModel.create).toHaveBeenCalled()
+      expect(mockAudit.log).toHaveBeenCalled()
+      expect(result.id).toBe('azure-id')
+    })
 
-    it('should throw error on database failure', async () => {
-      mockQueryOne.mockRejectedValueOnce(new Error('Connection failed'));
+    it('propagates errors and logs', async () => {
+      mockUserModel.findById.mockRejectedValueOnce(new Error('fail'))
 
-      await expect(userService.findOrCreateUser(mockAzureAdUser)).rejects.toThrow('Connection failed');
-    });
-  });
+      await expect(service.findOrCreateUser(adUser)).rejects.toThrow('fail')
+      expect(mockLog.error).toHaveBeenCalled()
+    })
+  })
 
   describe('getAllUsers', () => {
-    it('should return all users with parsed permissions', async () => {
-      mockQuery.mockResolvedValueOnce([
-        {
-          id: 'user-1',
-          email: 'user1@example.com',
-          display_name: 'User One',
-          role: 'admin',
-          permissions: '["manage_users","manage_system"]',
-        },
-        {
-          id: 'user-2',
-          email: 'user2@example.com',
-          display_name: 'User Two',
-          role: 'user',
-          permissions: '[]',
-        },
-      ]);
+    it('filters by roles and sorts desc', async () => {
+      const now = new Date()
+      const earlier = new Date(now.getTime() - 1000)
+      mockUserModel.findAll.mockResolvedValueOnce([
+        { id: 'b', role: 'user', created_at: earlier },
+        { id: 'a', role: 'admin', created_at: now },
+      ])
 
-      const result = await userService.getAllUsers();
+      const result = await service.getAllUsers(['admin'])
 
-      expect(result).toHaveLength(2);
-      expect(result[0]?.permissions).toEqual(['manage_users', 'manage_system']);
-      expect(result[1]?.permissions).toEqual([]);
-    });
+      expect(result).toHaveLength(1)
+      expect(result[0]?.id).toBe('a')
+    })
+  })
 
-    it('should handle already-parsed permissions', async () => {
-      mockQuery.mockResolvedValueOnce([
-        {
-          id: 'user-1',
-          email: 'user1@example.com',
-          display_name: 'User One',
-          role: 'admin',
-          permissions: ['already', 'parsed'],
-        },
-      ]);
+  describe('create/update/delete users', () => {
+    it('creates user and audits when actor provided', async () => {
+      mockUserModel.create.mockResolvedValueOnce({ id: 'new' })
 
-      const result = await userService.getAllUsers();
+      const actor = { id: 'admin', email: 'a@a.com', ip: '1.1.1.1' }
+      await service.createUser({ email: 'x' }, actor)
 
-      expect(result[0]?.permissions).toEqual(['already', 'parsed']);
-    });
+      expect(mockAudit.log).toHaveBeenCalledWith(expect.objectContaining({ resourceId: 'new' }))
+    })
 
-    it('should return empty array when no users', async () => {
-      mockQuery.mockResolvedValueOnce([]);
+    it('updates user and audits when actor provided', async () => {
+      mockUserModel.update.mockResolvedValueOnce({ id: 'u1' })
 
-      const result = await userService.getAllUsers();
+      await service.updateUser('u1', { role: 'admin' }, { id: 'admin', email: 'a@a.com' })
 
-      expect(result).toEqual([]);
-    });
-  });
+      expect(mockAudit.log).toHaveBeenCalledWith(expect.objectContaining({ resourceId: 'u1' }))
+    })
 
-  describe('updateUserRole', () => {
-    it('should update user role and return updated user', async () => {
-      mockQuery.mockResolvedValueOnce([]);
-      mockQueryOne.mockResolvedValueOnce({
-        id: 'user-123',
-        email: 'user@example.com',
-        role: 'manager',
-        permissions: '["manage_users"]',
-      });
+    it('deletes user and audits when actor provided', async () => {
+      await service.deleteUser('u1', { id: 'admin', email: 'a@a.com' })
 
-      const result = await userService.updateUserRole('user-123', 'manager');
+      expect(mockUserModel.delete).toHaveBeenCalledWith('u1')
+      expect(mockAudit.log).toHaveBeenCalled()
+    })
 
-      expect(mockQuery).toHaveBeenCalledWith(
-        expect.stringContaining('UPDATE users SET role'),
-        ['manager', 'user-123']
-      );
-      expect(result?.role).toBe('manager');
-    });
+    it('updates permissions and audits', async () => {
+      await service.updateUserPermissions('u1', ['p1', 'p2'], { id: 'admin', email: 'a@a.com' })
 
-    it('should return undefined if user not found', async () => {
-      mockQuery.mockResolvedValueOnce([]);
-      mockQueryOne.mockResolvedValueOnce(undefined);
-
-      const result = await userService.updateUserRole('nonexistent', 'admin');
-
-      expect(result).toBeUndefined();
-    });
-
-    it('should parse permissions from JSON string', async () => {
-      mockQuery.mockResolvedValueOnce([]);
-      mockQueryOne.mockResolvedValueOnce({
-        id: 'user-123',
-        role: 'admin',
-        permissions: '["view_chat","manage_system"]',
-      });
-
-      const result = await userService.updateUserRole('user-123', 'admin');
-
-      expect(result?.permissions).toEqual(['view_chat', 'manage_system']);
-    });
-  });
+      expect(mockUserModel.update).toHaveBeenCalledWith('u1', { permissions: JSON.stringify(['p1', 'p2']) })
+      expect(mockAudit.log).toHaveBeenCalled()
+    })
+  })
 
   describe('recordUserIp', () => {
-    it('should record user IP with upsert', async () => {
-      mockQuery.mockResolvedValueOnce([]);
+    it('skips unknown IPs', async () => {
+      await service.recordUserIp('u1', 'unknown')
+      expect(mockUserIpHistory.create).not.toHaveBeenCalled()
+    })
 
-      await userService.recordUserIp('user-123', '192.168.1.1');
+    it('updates existing when stale', async () => {
+      const old = new Date(Date.now() - 120000)
+      mockUserIpHistory.findByUserAndIp.mockResolvedValueOnce({ id: 'h1', last_accessed_at: old })
 
-      expect(mockQuery).toHaveBeenCalledWith(
-        expect.stringContaining('INSERT INTO user_ip_history'),
-        ['user-123', '192.168.1.1']
-      );
-      expect(mockQuery).toHaveBeenCalledWith(
-        expect.stringContaining('ON CONFLICT'),
-        expect.any(Array)
-      );
-    });
+      await service.recordUserIp('u1', '1.1.1.1')
 
-    it('should skip recording if IP is empty', async () => {
-      await userService.recordUserIp('user-123', '');
+      expect(mockUserIpHistory.update).toHaveBeenCalled()
+    })
 
-      expect(mockQuery).not.toHaveBeenCalled();
-    });
+    it('creates when none exists', async () => {
+      mockUserIpHistory.findByUserAndIp.mockResolvedValueOnce(undefined)
 
-    it('should skip recording if IP is "unknown"', async () => {
-      await userService.recordUserIp('user-123', 'unknown');
+      await service.recordUserIp('u1', '2.2.2.2')
 
-      expect(mockQuery).not.toHaveBeenCalled();
-    });
-
-    it('should not throw on database error', async () => {
-      mockQuery.mockRejectedValueOnce(new Error('Database error'));
-
-      // Should not throw
-      await expect(userService.recordUserIp('user-123', '192.168.1.1')).resolves.not.toThrow();
-    });
-  });
+      expect(mockUserIpHistory.create).toHaveBeenCalledWith(expect.objectContaining({ user_id: 'u1' }))
+    })
+  })
 
   describe('getUserIpHistory', () => {
-    it('should return IP history for user', async () => {
-      mockQuery.mockResolvedValueOnce([
-        { id: 1, user_id: 'user-123', ip_address: '192.168.1.1', last_accessed_at: '2024-01-15T10:00:00Z' },
-        { id: 2, user_id: 'user-123', ip_address: '10.0.0.1', last_accessed_at: '2024-01-14T10:00:00Z' },
-      ]);
+    it('sorts history descending', async () => {
+      const recent = { last_accessed_at: new Date('2024-02-02'), user_id: 'u1' }
+      const old = { last_accessed_at: new Date('2024-01-01'), user_id: 'u1' }
+      mockUserIpHistory.findAll.mockResolvedValueOnce([recent, old])
 
-      const result = await userService.getUserIpHistory('user-123');
+      const result = await service.getUserIpHistory('u1')
 
-      expect(result).toHaveLength(2);
-      expect(mockQuery).toHaveBeenCalledWith(
-        expect.stringContaining('user_ip_history WHERE user_id = $1'),
-        ['user-123']
-      );
-    });
-
-    it('should return empty array for user with no IP history', async () => {
-      mockQuery.mockResolvedValueOnce([]);
-
-      const result = await userService.getUserIpHistory('user-123');
-
-      expect(result).toEqual([]);
-    });
-  });
+      expect(result[0]).toBe(recent)
+      expect(result[1]).toBe(old)
+    })
+  })
 
   describe('getAllUsersIpHistory', () => {
-    it('should return IP history grouped by user', async () => {
-      mockQuery.mockResolvedValueOnce([
-        { id: 1, user_id: 'user-1', ip_address: '192.168.1.1', last_accessed_at: '2024-01-15T10:00:00Z' },
-        { id: 2, user_id: 'user-1', ip_address: '10.0.0.1', last_accessed_at: '2024-01-14T10:00:00Z' },
-        { id: 3, user_id: 'user-2', ip_address: '172.16.0.1', last_accessed_at: '2024-01-15T09:00:00Z' },
-      ]);
+    it('aggregates histories by user', async () => {
+      const entries = [
+        { user_id: 'a', last_accessed_at: new Date('2024-01-02') },
+        { user_id: 'a', last_accessed_at: new Date('2024-01-01') },
+        { user_id: 'b', last_accessed_at: new Date('2024-01-03') },
+      ]
+      mockUserIpHistory.findAll.mockResolvedValueOnce(entries as any)
 
-      const result = await userService.getAllUsersIpHistory();
+      const map = await service.getAllUsersIpHistory()
 
-      expect(result).toBeInstanceOf(Map);
-      expect(result.get('user-1')).toHaveLength(2);
-      expect(result.get('user-2')).toHaveLength(1);
-    });
-
-    it('should return empty map when no history exists', async () => {
-      mockQuery.mockResolvedValueOnce([]);
-
-      const result = await userService.getAllUsersIpHistory();
-
-      expect(result.size).toBe(0);
-    });
-  });
-});
+      expect(map.get('a')?.length).toBe(2)
+      expect(map.get('b')?.length).toBe(1)
+    })
+  })
+})

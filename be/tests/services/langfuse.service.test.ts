@@ -88,9 +88,186 @@ describe('LangfuseService', () => {
     });
 
     describe('shutdownLangfuse', () => {
-        it('should export shutdownLangfuse function', async () => {
-            const langfuseService = await import('../../src/services/langfuse.service.js');
-            expect(typeof langfuseService.shutdownLangfuse).toBe('function');
+        it('should call shutdownAsync on client and reset singleton', async () => {
+            vi.resetModules();
+            vi.clearAllMocks();
+            
+            // Re-setup mocks
+            vi.doMock('langfuse', () => ({
+                Langfuse: vi.fn().mockImplementation(() => mockLangfuseInstance),
+            }));
+            vi.doMock('../../src/config/index.js', () => ({
+                config: {
+                    langfuse: {
+                        secretKey: 'test-secret-key',
+                        publicKey: 'test-public-key',
+                        baseUrl: 'https://langfuse.example.com',
+                    },
+                },
+            }));
+            
+            const { getLangfuseClient, shutdownLangfuse } = await import('../../src/services/langfuse.service.js');
+            const { log } = await import('../../src/services/logger.service.js');
+            
+            // Initialize client
+            const client = getLangfuseClient();
+            expect(client).toBeTruthy();
+            
+            // Now shutdown
+            await shutdownLangfuse();
+            
+            expect(mockLangfuseInstance.shutdownAsync).toHaveBeenCalled();
+            expect(log.info).toHaveBeenCalledWith('Shutting down Langfuse client');
+        });
+
+        it('should handle shutdown when no client exists', async () => {
+            vi.resetModules();
+            vi.clearAllMocks();
+            
+            const { shutdownLangfuse } = await import('../../src/services/langfuse.service.js');
+            
+            // Should not throw when no client is initialized
+            await expect(shutdownLangfuse()).resolves.toBeUndefined();
+        });
+    });
+
+    describe('checkHealth', () => {
+        beforeEach(() => {
+            vi.resetModules();
+            vi.clearAllMocks();
+            global.fetch = vi.fn();
+        });
+
+        it('should return false when Langfuse not configured', async () => {
+            vi.doMock('../../src/config/index.js', () => ({
+                config: {
+                    langfuse: {
+                        secretKey: '',
+                        publicKey: '',
+                        baseUrl: '',
+                    },
+                },
+            }));
+
+            const { checkHealth } = await import('../../src/services/langfuse.service.js');
+            const result = await checkHealth();
+
+            expect(result).toBe(false);
+        });
+
+        it('should return true when API returns ok', async () => {
+            vi.doMock('../../src/config/index.js', () => ({
+                config: {
+                    langfuse: {
+                        secretKey: 'test-secret-key',
+                        publicKey: 'test-public-key',
+                        baseUrl: 'https://langfuse.example.com',
+                    },
+                },
+            }));
+            vi.doMock('langfuse', () => ({
+                Langfuse: vi.fn().mockImplementation(() => mockLangfuseInstance),
+            }));
+
+            (global.fetch as any).mockResolvedValue({ ok: true, status: 200 });
+
+            const { checkHealth, getLangfuseClient } = await import('../../src/services/langfuse.service.js');
+            
+            // Initialize client first
+            getLangfuseClient();
+            
+            const result = await checkHealth();
+
+            expect(result).toBe(true);
+            expect(global.fetch).toHaveBeenCalledWith(
+                'https://langfuse.example.com/api/public/ingestion',
+                expect.objectContaining({
+                    method: 'POST',
+                    headers: expect.objectContaining({
+                        'Content-Type': 'application/json',
+                    }),
+                })
+            );
+        });
+
+        it('should return true when API returns 400 (auth passed)', async () => {
+            vi.doMock('../../src/config/index.js', () => ({
+                config: {
+                    langfuse: {
+                        secretKey: 'test-secret-key',
+                        publicKey: 'test-public-key',
+                        baseUrl: 'https://langfuse.example.com',
+                    },
+                },
+            }));
+            vi.doMock('langfuse', () => ({
+                Langfuse: vi.fn().mockImplementation(() => mockLangfuseInstance),
+            }));
+
+            (global.fetch as any).mockResolvedValue({ ok: false, status: 400 });
+
+            const { checkHealth, getLangfuseClient } = await import('../../src/services/langfuse.service.js');
+            
+            // Initialize client first
+            getLangfuseClient();
+            
+            const result = await checkHealth();
+
+            expect(result).toBe(true);
+        });
+
+        it('should return false when API returns 401', async () => {
+            vi.doMock('../../src/config/index.js', () => ({
+                config: {
+                    langfuse: {
+                        secretKey: 'test-secret-key',
+                        publicKey: 'test-public-key',
+                        baseUrl: 'https://langfuse.example.com',
+                    },
+                },
+            }));
+            vi.doMock('langfuse', () => ({
+                Langfuse: vi.fn().mockImplementation(() => mockLangfuseInstance),
+            }));
+
+            (global.fetch as any).mockResolvedValue({ ok: false, status: 401 });
+
+            const { checkHealth, getLangfuseClient } = await import('../../src/services/langfuse.service.js');
+            
+            // Initialize client first
+            getLangfuseClient();
+            
+            const result = await checkHealth();
+
+            expect(result).toBe(false);
+        });
+
+        it('should return false on network error', async () => {
+            vi.doMock('../../src/config/index.js', () => ({
+                config: {
+                    langfuse: {
+                        secretKey: 'test-secret-key',
+                        publicKey: 'test-public-key',
+                        baseUrl: 'https://langfuse.example.com',
+                    },
+                },
+            }));
+            vi.doMock('langfuse', () => ({
+                Langfuse: vi.fn().mockImplementation(() => mockLangfuseInstance),
+            }));
+
+            (global.fetch as any).mockRejectedValue(new Error('Network error'));
+
+            const { checkHealth, getLangfuseClient } = await import('../../src/services/langfuse.service.js');
+            const { log } = await import('../../src/services/logger.service.js');
+            
+            // Initialize client first
+            getLangfuseClient();
+            
+            const result = await checkHealth();
+
+            expect(result).toBe(false);
+            expect(log.warn).toHaveBeenCalledWith('Langfuse health check failed', expect.any(Object));
         });
     });
 });
