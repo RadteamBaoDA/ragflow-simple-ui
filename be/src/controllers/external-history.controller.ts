@@ -17,7 +17,7 @@ export class ExternalHistoryController {
         try {
             // Debug log incoming request
             log.debug('External Chat History Request', { body: req.body });
-            const { session_id, user_email, user_prompt, llm_response, citations } = req.body;
+            const { session_id, share_id, user_email, user_prompt, llm_response, citations } = req.body;
 
             // Validate required fields
             if (!session_id || !user_prompt || !llm_response) {
@@ -29,6 +29,7 @@ export class ExternalHistoryController {
             // Save chat history via service
             await externalHistoryService.saveChatHistory({
                 session_id,
+                share_id,
                 user_email,
                 user_prompt,
                 llm_response,
@@ -54,7 +55,7 @@ export class ExternalHistoryController {
         try {
             // Debug log incoming request
             log.debug('External Search History Request', { body: req.body });
-            const { session_id, search_input, user_email, ai_summary, file_results } = req.body;
+            const { session_id, share_id, search_input, user_email, ai_summary, file_results } = req.body;
 
             // Validate required fields
             if (!search_input) {
@@ -66,6 +67,7 @@ export class ExternalHistoryController {
             // Save search history via service
             await externalHistoryService.saveSearchHistory({
                 session_id,
+                share_id,
                 search_input,
                 user_email,
                 ai_summary: ai_summary || '',

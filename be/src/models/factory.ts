@@ -15,8 +15,10 @@ import { UserIpHistoryModel } from '@/models/user-ip-history.model.js';
 import { DocumentPermissionModel } from '@/models/document-permission.model.js';
 import { BroadcastMessageModel } from '@/models/broadcast-message.model.js';
 import { UserDismissedBroadcastModel } from '@/models/user-dismissed-broadcast.model.js';
-import { ExternalChatHistoryModel } from '@/models/external/chat-history.model.js';
-import { ExternalSearchHistoryModel } from '@/models/external/search-history.model.js';
+import { ExternalChatSessionModel } from '@/models/external/chat-session.model.js';
+import { ExternalChatMessageModel } from '@/models/external/chat-message.model.js';
+import { ExternalSearchSessionModel } from '@/models/external/search-session.model.js';
+import { ExternalSearchRecordModel } from '@/models/external/search-record.model.js';
 
 /**
  * ModelFactory class implementing the Factory Pattern.
@@ -52,10 +54,12 @@ export class ModelFactory {
   private static broadcastMessageModel: BroadcastMessageModel;
   /** User dismissed broadcast model singleton instance */
   private static userDismissedBroadcastModel: UserDismissedBroadcastModel;
-  /** External chat history model singleton instance */
-  private static externalChatHistoryModel: ExternalChatHistoryModel;
-  /** External search history model singleton instance */
-  private static externalSearchHistoryModel: ExternalSearchHistoryModel;
+
+  // External History Models
+  private static externalChatSessionModel: ExternalChatSessionModel;
+  private static externalChatMessageModel: ExternalChatMessageModel;
+  private static externalSearchSessionModel: ExternalSearchSessionModel;
+  private static externalSearchRecordModel: ExternalSearchRecordModel;
 
   /**
    * Get the User model singleton.
@@ -201,24 +205,34 @@ export class ModelFactory {
   }
 
   /**
-   * Get the ExternalChatHistory model singleton.
-   * Manages chat history from external API integrations.
-   * @returns ExternalChatHistoryModel instance for external chat history operations
+   * Get the ExternalChatSession model singleton.
    */
-  static get externalChatHistory() {
-    // Create instance on first access (lazy initialization)
-    if (!this.externalChatHistoryModel) this.externalChatHistoryModel = new ExternalChatHistoryModel();
-    return this.externalChatHistoryModel;
+  static get externalChatSession() {
+    if (!this.externalChatSessionModel) this.externalChatSessionModel = new ExternalChatSessionModel();
+    return this.externalChatSessionModel;
   }
 
   /**
-   * Get the ExternalSearchHistory model singleton.
-   * Manages search history from external API integrations.
-   * @returns ExternalSearchHistoryModel instance for external search history operations
+   * Get the ExternalChatMessage model singleton.
    */
-  static get externalSearchHistory() {
-    // Create instance on first access (lazy initialization)
-    if (!this.externalSearchHistoryModel) this.externalSearchHistoryModel = new ExternalSearchHistoryModel();
-    return this.externalSearchHistoryModel;
+  static get externalChatMessage() {
+    if (!this.externalChatMessageModel) this.externalChatMessageModel = new ExternalChatMessageModel();
+    return this.externalChatMessageModel;
+  }
+
+  /**
+   * Get the ExternalSearchSession model singleton.
+   */
+  static get externalSearchSession() {
+    if (!this.externalSearchSessionModel) this.externalSearchSessionModel = new ExternalSearchSessionModel();
+    return this.externalSearchSessionModel;
+  }
+
+  /**
+   * Get the ExternalSearchRecord model singleton.
+   */
+  static get externalSearchRecord() {
+    if (!this.externalSearchRecordModel) this.externalSearchRecordModel = new ExternalSearchRecordModel();
+    return this.externalSearchRecordModel;
   }
 }

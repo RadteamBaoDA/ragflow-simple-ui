@@ -36,60 +36,63 @@ export class UserHistoryService {
         // Calculate offset for pagination
         const offset = (page - 1) * limit;
 
-        // Base query to select chat sessions grouped by session_id
-        let query = ModelFactory.externalChatHistory.getKnex()
+        // Base query to select chat sessions
+        let query = ModelFactory.externalChatSession.getKnex()
             .select(
-                'session_id',
-                db.raw('MAX(created_at) as created_at'),
-                db.raw('MAX(user_email) as user_email'),
-                db.raw("(array_agg(user_prompt ORDER BY created_at ASC))[1] as user_prompt"),
-                db.raw('COUNT(*) as message_count')
+                'external_chat_sessions.session_id',
+                'external_chat_sessions.updated_at as created_at',
+                'external_chat_sessions.user_email',
+                // Subquery for first prompt
+                db.raw(`(
+                    SELECT user_prompt FROM external_chat_messages 
+                    WHERE session_id = external_chat_sessions.session_id 
+                    ORDER BY created_at ASC LIMIT 1
+                ) as user_prompt`),
+                // Subquery for message count
+                db.raw(`(
+                    SELECT COUNT(*) FROM external_chat_messages 
+                    WHERE session_id = external_chat_sessions.session_id
+                ) as message_count`)
             )
-            .from('external_chat_history')
-            // Always filter by user email for data isolation
-            .where('user_email', userEmail)
-            .groupBy('session_id')
-            .orderByRaw('MAX(created_at) DESC')
+            .from('external_chat_sessions')
+            .where('external_chat_sessions.user_email', userEmail)
+            .orderBy('external_chat_sessions.updated_at', 'desc')
             .limit(limit)
             .offset(offset);
 
         // Apply search filter if provided
         if (search) {
-            // Sanitize search input to remove special characters
             const cleanSearch = search.replace(/[^\w\s]/g, '').trim();
-            // Split search into terms
             const terms = cleanSearch.split(/\s+/).filter(t => t.length > 0);
 
-            // Construct full-text search query
-            if (terms.length > 0) {
-                // Combine terms for prefix search
-                const prefixQuery = terms.join(' & ') + ':*';
-                // Combine terms for OR search
-                const orQuery = terms.join(' | ');
+            query = query.where(builder => {
+                builder.whereExists(function () {
+                    const sub = this.select('id').from('external_chat_messages')
+                        .whereRaw('external_chat_messages.session_id = external_chat_sessions.session_id');
 
-                // Apply hybrid search logic
-                query = query.where(builder => {
-                    builder.whereRaw("search_vector @@ websearch_to_tsquery('english', ?)", [search])
-                        .orWhereRaw("search_vector @@ to_tsquery('english', ?)", [prefixQuery])
-                        .orWhereRaw("search_vector @@ to_tsquery('english', ?)", [orQuery]);
+                    if (terms.length > 0) {
+                        const prefixQuery = terms.join(' & ') + ':*';
+                        const orQuery = terms.join(' | ');
+                        sub.where(b => {
+                            b.whereRaw("search_vector @@ websearch_to_tsquery('english', ?)", [search])
+                                .orWhereRaw("search_vector @@ to_tsquery('english', ?)", [prefixQuery])
+                                .orWhereRaw("search_vector @@ to_tsquery('english', ?)", [orQuery]);
+                        });
+                    } else {
+                        sub.whereRaw("search_vector @@ websearch_to_tsquery('english', ?)", [search]);
+                    }
                 });
-            } else {
-                // Fallback to simple websearch if no valid terms
-                query = query.whereRaw("search_vector @@ websearch_to_tsquery('english', ?)", [search]);
-            }
+            });
         }
 
-        // Apply start date filter if provided
         if (startDate) {
-            query = query.where('created_at', '>=', startDate);
+            query = query.where('external_chat_sessions.updated_at', '>=', startDate);
         }
 
-        // Apply end date filter if provided
         if (endDate) {
-            query = query.where('created_at', '<=', `${endDate} 23:59:59`);
+            query = query.where('external_chat_sessions.updated_at', '<=', `${endDate} 23:59:59`);
         }
 
-        // Execute query and return results
         return await query;
     }
 
@@ -102,13 +105,19 @@ export class UserHistoryService {
      * @returns {Promise<any[]>} - Array of chat messages in the session.
      */
     async getChatSessionDetails(sessionId: string, userEmail: string) {
-        // Query all messages for the session, filtered by user email
-        return await ModelFactory.externalChatHistory.getKnex()
-            .from('external_chat_history')
-            .select('*')
-            .where('session_id', sessionId)
-            .andWhere('user_email', userEmail)
-            .orderBy('created_at', 'asc');
+        // Check session ownership first (optional but good for security, though subquery logic below implicitly handles it if we joined)
+        // But simply querying messages and joining session or checking session first.
+
+        // Simpler: Query messages where session_id matches AND session belongs to user.
+        // But messages don't have user_email column anymore (it's in session).
+
+        return await ModelFactory.externalChatMessage.getKnex()
+            .select('external_chat_messages.*')
+            .from('external_chat_messages')
+            .join('external_chat_sessions', 'external_chat_messages.session_id', 'external_chat_sessions.session_id')
+            .where('external_chat_messages.session_id', sessionId)
+            .andWhere('external_chat_sessions.user_email', userEmail)
+            .orderBy('external_chat_messages.created_at', 'asc');
     }
 
     /**
@@ -133,58 +142,63 @@ export class UserHistoryService {
         // Calculate pagination offset
         const offset = (page - 1) * limit;
 
-        // Base query to select search sessions grouped by session_id
-        let query = ModelFactory.externalSearchHistory.getKnex()
+        // Base query to select search sessions
+        let query = ModelFactory.externalSearchSession.getKnex()
             .select(
-                'session_id',
-                db.raw('MAX(created_at) as created_at'),
-                db.raw('MAX(user_email) as user_email'),
-                db.raw("(array_agg(search_input ORDER BY created_at ASC))[1] as search_input"),
-                db.raw('COUNT(*) as message_count')
+                'external_search_sessions.session_id',
+                'external_search_sessions.updated_at as created_at',
+                'external_search_sessions.user_email',
+                // Subquery for first search input
+                db.raw(`(
+                    SELECT search_input FROM external_search_records 
+                    WHERE session_id = external_search_sessions.session_id 
+                    ORDER BY created_at ASC LIMIT 1
+                ) as search_input`),
+                // Subquery for count
+                db.raw(`(
+                    SELECT COUNT(*) FROM external_search_records 
+                    WHERE session_id = external_search_sessions.session_id
+                ) as message_count`)
             )
-            .from('external_search_history')
-            // Always filter by user email for data isolation
-            .where('user_email', userEmail)
-            .groupBy('session_id')
-            .orderByRaw('MAX(created_at) DESC')
+            .from('external_search_sessions')
+            .where('external_search_sessions.user_email', userEmail)
+            .orderBy('external_search_sessions.updated_at', 'desc')
             .limit(limit)
             .offset(offset);
 
         // Apply search filter if provided
         if (search) {
-            // Sanitize search string
             const cleanSearch = search.replace(/[^\w\s]/g, '').trim();
-            // Split into unique terms
             const terms = cleanSearch.split(/\s+/).filter(t => t.length > 0);
 
-            // Construct search conditions
-            if (terms.length > 0) {
-                const prefixQuery = terms.join(' & ') + ':*';
-                const orQuery = terms.join(' | ');
+            query = query.where(builder => {
+                builder.whereExists(function () {
+                    const sub = this.select('id').from('external_search_records')
+                        .whereRaw('external_search_records.session_id = external_search_sessions.session_id');
 
-                // Apply hybrid full-text search
-                query = query.where(builder => {
-                    builder.whereRaw("search_vector @@ websearch_to_tsquery('english', ?)", [search])
-                        .orWhereRaw("search_vector @@ to_tsquery('english', ?)", [prefixQuery])
-                        .orWhereRaw("search_vector @@ to_tsquery('english', ?)", [orQuery]);
+                    if (terms.length > 0) {
+                        const prefixQuery = terms.join(' & ') + ':*';
+                        const orQuery = terms.join(' | ');
+                        sub.where(b => {
+                            b.whereRaw("search_vector @@ websearch_to_tsquery('english', ?)", [search])
+                                .orWhereRaw("search_vector @@ to_tsquery('english', ?)", [prefixQuery])
+                                .orWhereRaw("search_vector @@ to_tsquery('english', ?)", [orQuery]);
+                        });
+                    } else {
+                        sub.whereRaw("search_vector @@ websearch_to_tsquery('english', ?)", [search]);
+                    }
                 });
-            } else {
-                // Fallback search
-                query = query.whereRaw("search_vector @@ websearch_to_tsquery('english', ?)", [search]);
-            }
+            });
         }
 
-        // Apply start date filter
         if (startDate) {
-            query = query.where('created_at', '>=', startDate);
+            query = query.where('external_search_sessions.updated_at', '>=', startDate);
         }
 
-        // Apply end date filter
         if (endDate) {
-            query = query.where('created_at', '<=', `${endDate} 23:59:59`);
+            query = query.where('external_search_sessions.updated_at', '<=', `${endDate} 23:59:59`);
         }
 
-        // Execute query and return results
         return await query;
     }
 
@@ -197,13 +211,13 @@ export class UserHistoryService {
      * @returns {Promise<any[]>} - Array of search records in the session.
      */
     async getSearchSessionDetails(sessionId: string, userEmail: string) {
-        // Query all search entries for the session, filtered by user email
-        return await ModelFactory.externalSearchHistory.getKnex()
-            .from('external_search_history')
-            .select('*')
-            .where('session_id', sessionId)
-            .andWhere('user_email', userEmail)
-            .orderBy('created_at', 'asc');
+        return await ModelFactory.externalSearchRecord.getKnex()
+            .select('external_search_records.*')
+            .from('external_search_records')
+            .join('external_search_sessions', 'external_search_records.session_id', 'external_search_sessions.session_id')
+            .where('external_search_records.session_id', sessionId)
+            .andWhere('external_search_sessions.user_email', userEmail)
+            .orderBy('external_search_records.created_at', 'asc');
     }
 }
 
