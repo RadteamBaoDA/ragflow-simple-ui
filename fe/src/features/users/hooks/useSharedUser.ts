@@ -125,7 +125,16 @@ export function useSharedUser(): UseSharedUserResult {
   useEffect(() => {
     const initUser = async () => {
       // Check shared storage cache first
-      const cachedUser = sharedStorage.getUser();
+      let cachedUser = null
+      try {
+        cachedUser = sharedStorage.getUser()
+      } catch (err) {
+        console.error('[useSharedUser] Error reading shared storage:', err)
+        setError(err instanceof Error ? err.message : 'Unknown error')
+        setIsLoading(false)
+        return
+      }
+
       if (cachedUser) {
         console.log('[useSharedUser] Found cached user:', cachedUser.email);
         setUser(cachedUser);

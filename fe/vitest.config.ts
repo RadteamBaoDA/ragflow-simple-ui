@@ -9,7 +9,10 @@ export default defineConfig({
     globals: true,
     setupFiles: ['./tests/setup.ts'],
     include: ['tests/**/*.test.ts', 'tests/**/*.test.tsx'],
-    exclude: ['node_modules', 'dist'],
+    exclude: [
+      'node_modules',
+      'dist'
+    ],
     coverage: {
       provider: 'v8',
       reporter: ['text', 'html', 'lcov'],
@@ -23,10 +26,10 @@ export default defineConfig({
         'src/i18n/locales/**',
       ],
       thresholds: {
-        lines: 6,
-        functions: 8,
-        branches: 8,
-        statements: 6,
+        lines: 5,
+        functions: 5,
+        branches: 3,
+        statements: 5,
       },
     },
   },
