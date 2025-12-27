@@ -46,6 +46,7 @@ import {
   User as UserIcon,
   UserCog,
   Megaphone,
+  History,
 } from 'lucide-react';
 
 import logo from '../assets/logo.png';
@@ -137,12 +138,15 @@ function Layout() {
     switch (location.pathname) {
       case '/ai-chat':
         return t('pages.aiChat.title');
-      case '/ai-search':
-        return t('pages.aiSearch.title');
       case '/history':
         return t('pages.history.title');
+      case '/chat-history':
+        return t('pages.chatHistory.title');
+      case '/search-history':
+        return t('pages.searchHistory.title');
+      case '/histories':
+        return t('histories.title');
       case '/system-tools':
-        return t('pages.systemTools.title');
       case '/system-monitor':
         return t('pages.systemMonitor.title');
       case '/documents':
@@ -168,11 +172,16 @@ function Layout() {
   const isKnowledgeBaseActive = ['/documents', '/knowledge-base/config', '/storage-dashboard'].includes(location.pathname);
   const isIamActive = ['/user-management', '/iam/teams'].includes(location.pathname);
   const isAdministratorsActive = ['/audit-log', '/system-tools', '/system-monitor', '/tokenizer', '/broadcast-messages'].includes(location.pathname);
+  const isChatActive = ['/ai-chat', '/chat-history'].includes(location.pathname);
+  const isSearchActive = ['/ai-search', '/search-history'].includes(location.pathname);
 
   // Combine manual toggle with auto-expand logic
+  // Chat and Search menus only expand when their routes are active (auto-collapse when navigating away)
   const shouldExpandKnowledgeBase = isKnowledgeBaseExpanded || isKnowledgeBaseActive;
   const shouldExpandIam = isIamExpanded || isIamActive;
   const shouldExpandAdministrators = isAdministratorsExpanded || isAdministratorsActive;
+  const shouldExpandChat = isChatActive;
+  const shouldExpandSearch = isSearchActive;
 
   // Determine if source selection dropdowns should be shown
   // Only show when multiple sources are configured
@@ -203,16 +212,56 @@ function Layout() {
 
         <nav className="flex flex-col gap-2 flex-1 mt-4 overflow-y-auto scrollbar-hide px-2">
           {config.features.enableAiChat && (
-            <NavLink to="/ai-chat" className={({ isActive }: { isActive: boolean }) => `sidebar-link ${isActive ? 'active' : ''} ${isCollapsed ? 'justify-center px-2' : ''}`} title={t('nav.aiChat')}>
-              <MessageSquare size={20} />
-              {!isCollapsed && <span>{t('nav.aiChat')}</span>}
-            </NavLink>
+            <div className="flex flex-col gap-1">
+              <NavLink
+                to="/ai-chat"
+                className={({ isActive }: { isActive: boolean }) => `sidebar-link w-full ${isActive && !location.pathname.includes('history') ? 'active' : ''} ${isCollapsed ? 'justify-center px-2' : ''}`}
+                title={t('nav.aiChat')}
+              >
+                <MessageSquare size={20} />
+                {!isCollapsed && (
+                  <>
+                    <span className="flex-1 text-left">{t('nav.aiChat')}</span>
+                    {shouldExpandChat ? <ChevronDown size={16} /> : <ChevronRight size={16} />}
+                  </>
+                )}
+              </NavLink>
+
+              {(!isCollapsed && shouldExpandChat) && config.features.enableHistory && (
+                <div className="pl-4 flex flex-col gap-1">
+                  <NavLink to="/chat-history" className={({ isActive }: { isActive: boolean }) => `sidebar-link text-sm ${isActive ? 'active' : ''}`} title={t('nav.chatHistory')}>
+                    <History size={16} />
+                    <span>{t('nav.chatHistory')}</span>
+                  </NavLink>
+                </div>
+              )}
+            </div>
           )}
           {config.features.enableAiSearch && (
-            <NavLink to="/ai-search" className={({ isActive }: { isActive: boolean }) => `sidebar-link ${isActive ? 'active' : ''} ${isCollapsed ? 'justify-center px-2' : ''}`} title={t('nav.aiSearch')}>
-              <Search size={20} />
-              {!isCollapsed && <span>{t('nav.aiSearch')}</span>}
-            </NavLink>
+            <div className="flex flex-col gap-1">
+              <NavLink
+                to="/ai-search"
+                className={({ isActive }: { isActive: boolean }) => `sidebar-link w-full ${isActive && !location.pathname.includes('history') ? 'active' : ''} ${isCollapsed ? 'justify-center px-2' : ''}`}
+                title={t('nav.aiSearch')}
+              >
+                <Search size={20} />
+                {!isCollapsed && (
+                  <>
+                    <span className="flex-1 text-left">{t('nav.aiSearch')}</span>
+                    {shouldExpandSearch ? <ChevronDown size={16} /> : <ChevronRight size={16} />}
+                  </>
+                )}
+              </NavLink>
+
+              {(!isCollapsed && shouldExpandSearch) && config.features.enableHistory && (
+                <div className="pl-4 flex flex-col gap-1">
+                  <NavLink to="/search-history" className={({ isActive }: { isActive: boolean }) => `sidebar-link text-sm ${isActive ? 'active' : ''}`} title={t('nav.searchHistory')}>
+                    <ClipboardList size={16} />
+                    <span>{t('nav.searchHistory')}</span>
+                  </NavLink>
+                </div>
+              )}
+            </div>
           )}
           {(user?.role === 'admin' || user?.role === 'leader') && (
             <div className="flex flex-col gap-1">
@@ -326,6 +375,10 @@ function Layout() {
                     <Megaphone size={18} />
                     <span>{t('nav.broadcastMessages')}</span>
                   </NavLink>
+                  <NavLink to="/histories" className={({ isActive }: { isActive: boolean }) => `sidebar-link ${isActive ? 'active' : ''}`} title={t('nav.histories')}>
+                    <History size={18} />
+                    <span>{t('nav.histories')}</span>
+                  </NavLink>
 
                 </div>
               )}
@@ -362,30 +415,32 @@ function Layout() {
 
       <main className="flex-1 flex flex-col bg-slate-50 dark:bg-slate-900 overflow-hidden">
         <BroadcastBanner />
-        <header className="bg-white dark:bg-slate-800 border-b border-slate-200 dark:border-slate-700 px-8 h-16 flex justify-between items-center">
-          <h1 className="text-2xl font-semibold text-slate-800 dark:text-slate-100">{getPageTitle()}</h1>
+        {!['/chat-history', '/search-history'].includes(location.pathname) && (
+          <header className="bg-white dark:bg-slate-800 border-b border-slate-200 dark:border-slate-700 px-8 h-16 flex justify-between items-center">
+            <h1 className="text-2xl font-semibold text-slate-800 dark:text-slate-100">{getPageTitle()}</h1>
 
-          <div id="header-actions" className="flex items-center gap-2 ml-auto"></div>
+            <div id="header-actions" className="flex items-center gap-2 ml-auto"></div>
 
-          {showChatDropdown && (
-            <Select
-              value={knowledgeBase.selectedChatSourceId}
-              onChange={knowledgeBase.setSelectedChatSource}
-              options={knowledgeBase.config?.chatSources || []}
-              icon={<MessageSquare size={18} />}
-            />
-          )}
+            {showChatDropdown && (
+              <Select
+                value={knowledgeBase.selectedChatSourceId}
+                onChange={knowledgeBase.setSelectedChatSource}
+                options={knowledgeBase.config?.chatSources || []}
+                icon={<MessageSquare size={18} />}
+              />
+            )}
 
-          {showSearchDropdown && (
-            <Select
-              value={knowledgeBase.selectedSearchSourceId}
-              onChange={knowledgeBase.setSelectedSearchSource}
-              options={knowledgeBase.config?.searchSources || []}
-              icon={<Search size={18} />}
-            />
-          )}
-        </header>
-        <div className={`flex-1 overflow-hidden ${['/ai-chat', '/ai-search', '/documents', '/system-tools', '/storage-dashboard', '/ragflow-config', '/iam/teams'].includes(location.pathname) ? '' : 'p-8 overflow-auto'}`}>
+            {showSearchDropdown && (
+              <Select
+                value={knowledgeBase.selectedSearchSourceId}
+                onChange={knowledgeBase.setSelectedSearchSource}
+                options={knowledgeBase.config?.searchSources || []}
+                icon={<Search size={18} />}
+              />
+            )}
+          </header>
+        )}
+        <div className={`flex-1 overflow-hidden ${['/ai-chat', '/ai-search', '/documents', '/system-tools', '/storage-dashboard', '/ragflow-config', '/iam/teams', '/histories', '/chat-history', '/search-history'].includes(location.pathname) ? '' : 'p-8 overflow-auto'}`}>
           <Outlet />
         </div>
       </main>

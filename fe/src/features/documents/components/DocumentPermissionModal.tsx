@@ -1,3 +1,7 @@
+/**
+ * @fileoverview Modal component for managing document storage permissions.
+ */
+
 import { useState } from 'react';
 import { useTranslation } from 'react-i18next';
 import { useQuery, useQueryClient } from '@tanstack/react-query';
@@ -7,13 +11,33 @@ import { userService } from '@/features/users';
 import { getAllPermissions, setPermission, PermissionLevel } from '../api/minioService';
 import { Search, Users, User as UserIcon, Loader2 } from 'lucide-react';
 
+/**
+ * @description Props for DocumentPermissionModal.
+ */
 interface DocumentPermissionModalProps {
+    /** Whether the modal is open */
     isOpen: boolean;
+    /** Callback to close the modal */
     onClose: () => void;
+    /** ID of the bucket to manage permissions for */
     bucketId?: string;
+    /** Display name of the bucket */
     bucketName?: string;
 }
 
+/**
+ * @description Modal allowing admins/owners to configure read/write access levels
+ * for users and teams on a specific MinIO bucket.
+ *
+ * Capabilities:
+ * - Search for users and teams.
+ * - View current permission levels.
+ * - Change permission levels (None, View, Upload, Full).
+ * - Batch save changes.
+ *
+ * @param {DocumentPermissionModalProps} props - Component properties.
+ * @returns {JSX.Element} The permission configuration modal.
+ */
 export function DocumentPermissionModal({ isOpen, onClose, bucketId, bucketName }: DocumentPermissionModalProps) {
     const { t } = useTranslation();
     const queryClient = useQueryClient();
@@ -40,7 +64,12 @@ export function DocumentPermissionModal({ isOpen, onClose, bucketId, bucketName 
         enabled: isOpen,
     });
 
-    // Helper: Get current level for an entity
+    /**
+     * @description Helper to get current level for an entity (from pending changes or saved state).
+     * @param {'user' | 'team'} type - Entity type.
+     * @param {string} id - Entity ID.
+     * @returns {number} Permission level.
+     */
     const getLevel = (type: 'user' | 'team', id: string) => {
         const key = `${type}:${id}`;
         if (pendingChanges[key]) return pendingChanges[key].level;
@@ -49,6 +78,9 @@ export function DocumentPermissionModal({ isOpen, onClose, bucketId, bucketName 
         return perm ? perm.permission_level : PermissionLevel.NONE;
     };
 
+    /**
+     * @description Handler for changing a permission level in the UI (stages the change).
+     */
     const handleLevelChange = (type: 'user' | 'team', id: string, newLevel: number) => {
         const key = `${type}:${id}`;
         setPendingChanges(prev => ({
@@ -57,6 +89,9 @@ export function DocumentPermissionModal({ isOpen, onClose, bucketId, bucketName 
         }));
     };
 
+    /**
+     * @description Commit all pending permission changes to the backend.
+     */
     const handleSave = async () => {
         if (!bucketId || Object.keys(pendingChanges).length === 0) return;
 

@@ -1,9 +1,9 @@
 /**
  * @fileoverview Logout page component.
- * 
+ *
  * Displays a loading spinner while redirecting to the backend
  * logout endpoint. The backend handles Azure AD SSO logout.
- * 
+ *
  * @module pages/LogoutPage
  */
 
@@ -16,18 +16,20 @@ import { useSettings } from '@/app/contexts/SettingsContext';
 // ============================================================================
 
 /**
- * Logout page - redirects to backend logout endpoint.
- * 
+ * @description Logout page - redirects to backend logout endpoint.
+ *
  * Displays a loading spinner with "signing out" message while
  * redirecting to the backend. The backend clears the session
  * and redirects to Azure AD logout if SSO is enabled.
+ *
+ * @returns {JSX.Element} The rendered Logout page.
  */
 function LogoutPage() {
   const { t } = useTranslation();
   const { resolvedTheme } = useSettings();
 
   /**
-   * Effect: Apply theme class to document.
+   * @description Effect: Apply theme class to document.
    * Required since logout page is outside Layout component.
    */
   useEffect(() => {
@@ -39,7 +41,7 @@ function LogoutPage() {
   }, [resolvedTheme]);
 
   /**
-   * Effect: Redirect to backend logout endpoint.
+   * @description Effect: Redirect to backend logout endpoint.
    * The backend handles session cleanup and Azure AD logout.
    */
   useEffect(() => {

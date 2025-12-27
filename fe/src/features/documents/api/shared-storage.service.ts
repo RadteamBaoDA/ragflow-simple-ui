@@ -1,35 +1,19 @@
-23 /**
+/**
  * @fileoverview Shared Storage Service for cross-subdomain user sharing.
- * 
+ *
  * This service uses BroadcastChannel + localStorage to share user info
  * across subdomains (e.g., a.abc.com and b.abc.com).
- * 
+ *
  * Storage Mechanisms:
  * - localStorage: Primary storage for same-origin access
  * - BroadcastChannel: Real-time sync between same-origin tabs
  * - Cookies: Cross-subdomain access with parent domain
- * 
+ *
  * Requirements for cross-subdomain sharing:
  * 1. Both apps must be on the same parent domain (e.g., *.abc.com)
  * 2. Cookies/localStorage must be set with the parent domain
  * 3. SHARED_STORAGE_DOMAIN env variable must be configured
- * 
- * Usage:
- * ```typescript
- * import { sharedStorage } from './shared-storage.service';
- * 
- * // Store user info
- * sharedStorage.storeUser({ id, email, name, displayName, avatar });
- * 
- * // Get user info
- * const user = sharedStorage.getUser();
- * 
- * // Subscribe to changes from other tabs
- * const unsubscribe = sharedStorage.subscribe((user) => {
- *   console.log('User changed:', user);
- * });
- * ```
- * 
+ *
  * @module services/shared-storage
  */
 
@@ -37,7 +21,9 @@
 // Type Declarations
 // ============================================================================
 
-/** Vite-injected environment variable for shared domain */
+/** 
+ * @description Global declaration for the injected shared storage domain variable. 
+ */
 declare const __SHARED_STORAGE_DOMAIN__: string;
 
 // ============================================================================
@@ -45,7 +31,7 @@ declare const __SHARED_STORAGE_DOMAIN__: string;
 // ============================================================================
 
 /**
- * User information that can be shared across subdomains.
+ * @description User information that can be shared across subdomains.
  */
 export interface SharedUserInfo {
   /** Unique user identifier */
@@ -75,8 +61,8 @@ const STORAGE_KEY = 'kb_shared_user_info';
 const BROADCAST_CHANNEL_NAME = 'kb_user_info_channel';
 
 /** Shared domain for cross-subdomain cookies */
-const SHARED_DOMAIN = typeof __SHARED_STORAGE_DOMAIN__ !== 'undefined' 
-  ? __SHARED_STORAGE_DOMAIN__ 
+const SHARED_DOMAIN = typeof __SHARED_STORAGE_DOMAIN__ !== 'undefined'
+  ? __SHARED_STORAGE_DOMAIN__
   : '.localhost';
 
 // ============================================================================
@@ -84,14 +70,18 @@ const SHARED_DOMAIN = typeof __SHARED_STORAGE_DOMAIN__ !== 'undefined'
 // ============================================================================
 
 /**
- * Get the shared storage domain for cookies
+ * @description Get the shared storage domain currently configured for cookies.
+ * @returns {string} The domain string.
  */
 export function getSharedDomain(): string {
   return SHARED_DOMAIN;
 }
 
 /**
- * Store user info in localStorage and broadcast to other tabs/windows
+ * @description Store user info in localStorage and broadcast to other tabs/windows.
+ * Also sets a cross-domain cookie if configured.
+ *
+ * @param {Omit<SharedUserInfo, 'lastUpdated' | 'source'>} user - User info to store.
  */
 export function storeUserInfo(user: Omit<SharedUserInfo, 'lastUpdated' | 'source'>): void {
   const userInfo: SharedUserInfo = {
@@ -111,7 +101,7 @@ export function storeUserInfo(user: Omit<SharedUserInfo, 'lastUpdated' | 'source
       channel.postMessage({ type: 'USER_INFO_UPDATED', data: userInfo });
       channel.close();
     } catch (e) {
-      // BroadcastChannel not supported
+      // BroadcastChannel not supported in this environment
       console.log('[SharedStorage] BroadcastChannel not supported');
     }
 
@@ -123,7 +113,10 @@ export function storeUserInfo(user: Omit<SharedUserInfo, 'lastUpdated' | 'source
 }
 
 /**
- * Get user info from localStorage or cookie
+ * @description Get user info from localStorage or cookie.
+ * Prioritizes localStorage, falls back to cookie.
+ *
+ * @returns {SharedUserInfo | null} retrieved user info or null.
  */
 export function getUserInfo(): SharedUserInfo | null {
   try {
@@ -152,13 +145,13 @@ export function getUserInfo(): SharedUserInfo | null {
 }
 
 /**
- * Clear user info from all storage mechanisms
+ * @description Clear user info from all storage mechanisms (local, cookie, broadcast).
  */
 export function clearUserInfo(): void {
   try {
     localStorage.removeItem(STORAGE_KEY);
     clearCrossSubdomainCookie();
-    
+
     // Broadcast to other tabs
     try {
       const channel = new BroadcastChannel(BROADCAST_CHANNEL_NAME);
@@ -167,7 +160,7 @@ export function clearUserInfo(): void {
     } catch (e) {
       // BroadcastChannel not supported
     }
-    
+
     console.log('[SharedStorage] User info cleared');
   } catch (error) {
     console.error('[SharedStorage] Failed to clear user info:', error);
@@ -175,7 +168,10 @@ export function clearUserInfo(): void {
 }
 
 /**
- * Subscribe to user info changes from other tabs/windows
+ * @description Subscribe to user info changes from other tabs/windows.
+ *
+ * @param {(userInfo: SharedUserInfo | null) => void} callback - Function called on change.
+ * @returns {() => void} Unsubscribe function.
  */
 export function subscribeToUserInfoChanges(
   callback: (userInfo: SharedUserInfo | null) => void
@@ -214,38 +210,37 @@ export function subscribeToUserInfoChanges(
 // ============================================================================
 
 /**
- * Set a cookie that works across subdomains.
- * 
+ * @description Set a cookie that works across subdomains.
  * Sets cookie with parent domain for cross-subdomain access.
- * Cookie expires after 24 hours. Uses SameSite=Lax and Secure
- * flag for HTTPS connections.
- * 
- * @param userInfo - User information to store in cookie
+ * Cookie expires after 24 hours. Uses SameSite=Lax and Secure flag for HTTPS.
+ *
+ * @param {SharedUserInfo} userInfo - User information to store in cookie.
  */
 function setCrossSubdomainCookie(userInfo: SharedUserInfo): void {
   const value = encodeURIComponent(JSON.stringify(userInfo));
   const domain = SHARED_DOMAIN;
   const maxAge = 24 * 60 * 60; // 24 hours
-  
+
   // Set cookie with parent domain for cross-subdomain access
   let cookieString = `${STORAGE_KEY}=${value}; path=/; max-age=${maxAge}; SameSite=Lax`;
-  
+
   // Only add domain if it's not localhost
   if (domain && !domain.includes('localhost')) {
     cookieString += `; domain=${domain}`;
   }
-  
+
   // Add Secure flag for HTTPS
   if (window.location.protocol === 'https:') {
     cookieString += '; Secure';
   }
-  
+
   document.cookie = cookieString;
   console.log('[SharedStorage] Cross-subdomain cookie set for domain:', domain);
 }
 
 /**
- * Get user info from cross-subdomain cookie
+ * @description Get user info from cross-subdomain cookie.
+ * @returns {SharedUserInfo | null} Parsed user info or null.
  */
 function getCrossSubdomainCookie(): SharedUserInfo | null {
   const cookies = document.cookie.split(';');
@@ -263,21 +258,22 @@ function getCrossSubdomainCookie(): SharedUserInfo | null {
 }
 
 /**
- * Clear cross-subdomain cookie
+ * @description Clear cross-subdomain cookie.
  */
 function clearCrossSubdomainCookie(): void {
   const domain = SHARED_DOMAIN;
   let cookieString = `${STORAGE_KEY}=; path=/; expires=Thu, 01 Jan 1970 00:00:00 GMT`;
-  
+
   if (domain && !domain.includes('localhost')) {
     cookieString += `; domain=${domain}`;
   }
-  
+
   document.cookie = cookieString;
 }
 
 /**
- * Check if shared storage is available
+ * @description Check if shared storage is available (functionally wraps localStorage test).
+ * @returns {boolean} True if storage works.
  */
 export function isSharedStorageAvailable(): boolean {
   try {
@@ -294,7 +290,7 @@ export function isSharedStorageAvailable(): boolean {
 // ============================================================================
 
 /**
- * Shared storage service instance.
+ * @description Shared storage service instance.
  * Provides a convenient API for cross-subdomain user info sharing.
  */
 export const sharedStorage = {

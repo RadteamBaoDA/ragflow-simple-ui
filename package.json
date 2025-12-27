@@ -26,6 +26,7 @@
     "@types/nprogress": "^0.2.3",
     "concurrently": "^9.1.0",
     "dotenv": "^16.4.5",
+    "typescript": "^5.9.3",
     "vite-plugin-top-level-await": "^1.6.0",
     "vite-plugin-wasm": "^3.5.0"
   },
@@ -33,6 +34,7 @@
     "node": ">=18.0.0"
   },
   "dependencies": {
+    "bee-queue": "^2.0.0",
     "nprogress": "^0.2.0"
   }
 }

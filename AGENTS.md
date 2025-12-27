@@ -54,7 +54,10 @@ RAGFlow Simple UI is an opensource UI centrailze and manage AI Search and Chat a
 - TypeScript strict mode
 - Single quotes, no semicolons
 - Use functional patterns where possible
-- Must add code comment when generate new code or big update make change flow in function and inline code for easy maintain and transfer new member
+- Add JSDoc headers to every function/class and provide step-by-step inline comments for all logic. 
+- JSDoc: Include @param, @returns, and @description.
+- Inline: Add a comment above every significant line of logic or control flow.
+
 2. FE 
 - when add new page must implement locales for new html string in en, vi, jp.
 - Always check and add theme(dark and light) for new html control or new pages

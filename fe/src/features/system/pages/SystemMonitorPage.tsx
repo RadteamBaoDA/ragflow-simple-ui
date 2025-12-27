@@ -51,6 +51,9 @@ const DEFAULT_INTERVAL = 30000;
 
 /**
  * Status indicator badge component.
+ * Displays a color-coded badge based on service status.
+ * 
+ * @param props.status - The status string (connected, disconnected, etc.)
  */
 const StatusBadge = ({ status }: { status: string }) => {
     const { t } = useTranslation();
@@ -100,7 +103,14 @@ const StatusBadge = ({ status }: { status: string }) => {
 };
 
 /**
- * Card for displaying a service health.
+ * Card for displaying a service health status.
+ * Includes title, icon, status badge, and optional subtext (host/details).
+ * 
+ * @param props.title - Service name
+ * @param props.icon - Lucide icon component
+ * @param props.status - Current status string
+ * @param props.enabled - Whether the service is enabled in config
+ * @param props.subtext - Additional details (e.g. host:port)
  */
 const ServiceCard = ({
     title,
@@ -151,7 +161,13 @@ const ServiceCard = ({
 };
 
 /**
- * Card for displaying a resource metric.
+ * Card for displaying a resource metric (CPU, RAM, Disk).
+ * 
+ * @param props.title - Metric name
+ * @param props.value - Primary metric value
+ * @param props.subValue - Secondary details (e.g. usage vs total)
+ * @param props.icon - Lucide icon component
+ * @param props.colorClass - Tailwind text color class for the icon
  */
 const MetricCard = ({
     title,
@@ -206,7 +222,9 @@ const SystemMonitorPage = () => {
 
     /**
      * Fetch health data from backend.
-     * Prevents concurrent requests.
+     * Prevents concurrent requests using a ref lock.
+     * 
+     * @param isAutoRefresh - If true, suppresses the full page loading spinner.
      */
     const fetchData = useCallback(async (isAutoRefresh = false) => {
         // Concurrency Lock: Check if a request is already in progress
@@ -252,7 +270,10 @@ const SystemMonitorPage = () => {
         };
     }, [autoRefresh, intervalMs, fetchData]);
 
-    /** Format seconds to human readable string */
+    /** 
+     * Format seconds to human readable string (days, hours, minutes).
+     * @param seconds - Uptime in seconds
+     */
     const formatUptime = (seconds: number) => {
         const days = Math.floor(seconds / (3600 * 24));
         const hours = Math.floor((seconds % (3600 * 24)) / 3600);
@@ -260,7 +281,10 @@ const SystemMonitorPage = () => {
         return `${days}d ${hours}h ${minutes}m`;
     };
 
-    /** Format bytes to MB/GB */
+    /** 
+     * Format bytes to MB/GB/TB.
+     * @param bytes - Size in bytes
+     */
     const formatBytes = (bytes: number) => {
         if (bytes === 0) return '0 B';
         const k = 1024;

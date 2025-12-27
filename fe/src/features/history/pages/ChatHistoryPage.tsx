@@ -1,0 +1,506 @@
+/**
+ * @fileoverview Chat History page component.
+ * Displays user's personal chat history with filtering and detail view.
+ * UI pattern follows HistoriesPage but for single user's chat sessions only.
+ * 
+ * @module features/history/pages/ChatHistoryPage
+ */
+import { useState, useEffect, useRef, useMemo } from 'react';
+import { useInfiniteQuery, useQuery } from '@tanstack/react-query';
+import { useTranslation } from 'react-i18next';
+import { apiFetch } from '@/lib/api';
+import { Filter, Search, MessageSquare, Clock, ChevronRight, Sparkles, PanelLeftClose, PanelLeft, RefreshCw } from 'lucide-react';
+import { Dialog } from '@/components/Dialog';
+import { MarkdownRenderer } from '@/components/MarkdownRenderer';
+
+// ============================================================================
+// Types
+// ============================================================================
+
+/**
+ * Summary of a chat session, used for the list view.
+ */
+interface ChatSessionSummary {
+    session_id: string;
+    user_email?: string;
+    user_prompt: string;
+    created_at: string;
+    message_count: string | number;
+}
+
+/**
+ * Detailed chat history record.
+ */
+interface ExternalChatHistory {
+    id: string;
+    session_id: string;
+    user_email?: string;
+    user_prompt: string;
+    llm_response: string;
+    citations: any[];
+    created_at: string;
+}
+
+/**
+ * Filter state for history queries.
+ */
+interface FilterState {
+    startDate: string;
+    endDate: string;
+}
+
+// ============================================================================
+// API Functions
+// ============================================================================
+
+/**
+ * Fetch user's chat history with pagination and filtering.
+ * 
+ * @param {string} search - Search query.
+ * @param {FilterState} filters - Date filters.
+ * @param {number} page - Page number.
+ * @returns {Promise<ChatSessionSummary[]>} List of chat sessions.
+ */
+async function fetchChatHistory(search: string, filters: FilterState, page: number): Promise<ChatSessionSummary[]> {
+    const params = new URLSearchParams({
+        q: search,
+        startDate: filters.startDate,
+        endDate: filters.endDate,
+        page: page.toString(),
+        limit: '20'
+    });
+    return apiFetch<ChatSessionSummary[]>(`/api/user/history/chat?${params.toString()}`);
+}
+
+/**
+ * Fetch detailed messages for a specific chat session.
+ * 
+ * @param {string} sessionId - ID of the session.
+ * @returns {Promise<ExternalChatHistory[]>} List of messages in the session.
+ */
+async function fetchChatSessionDetails(sessionId: string): Promise<ExternalChatHistory[]> {
+    return apiFetch<ExternalChatHistory[]>(`/api/user/history/chat/${sessionId}`);
+}
+
+// ============================================================================
+// Component
+// ============================================================================
+
+/**
+ * ChatHistoryPage Component.
+ * 
+ * Displays the user's personal chat history with:
+ * - Infinite scrolling session list
+ * - Search and date filtering
+ * - Detailed message view for selected session
+ */
+function ChatHistoryPage() {
+    const { t } = useTranslation();
+    const [isSidebarOpen, setIsSidebarOpen] = useState(true);
+    const [selectedSession, setSelectedSession] = useState<ChatSessionSummary | null>(null);
+    const [searchQuery, setSearchQuery] = useState('');
+    const [executedSearchQuery, setExecutedSearchQuery] = useState('');
+    const [filters, setFilters] = useState<FilterState>({ startDate: '', endDate: '' });
+    const [tempFilters, setTempFilters] = useState<FilterState>({ startDate: '', endDate: '' });
+    const [isFilterDialogOpen, setIsFilterDialogOpen] = useState(false);
+    const loadMoreRef = useRef<HTMLDivElement>(null);
+
+    // Fetch chat history with infinite scrolling
+    const {
+        data: chatData,
+        fetchNextPage,
+        hasNextPage,
+        isFetchingNextPage,
+        isLoading,
+        refetch,
+        isRefetching
+    } = useInfiniteQuery({
+        queryKey: ['userChatHistory', executedSearchQuery, filters],
+        queryFn: ({ pageParam = 1 }) => fetchChatHistory(executedSearchQuery, filters, pageParam),
+        initialPageParam: 1,
+        getNextPageParam: (lastPage, allPages) => {
+            return lastPage.length === 20 ? allPages.length + 1 : undefined;
+        },
+    });
+
+    // Fetch session details when a session is selected
+    const {
+        data: sessionDetails,
+        isLoading: isLoadingDetails,
+        refetch: refetchDetails,
+        isRefetching: isRefetchingDetails
+    } = useQuery<ExternalChatHistory[]>({
+        queryKey: ['chatSessionDetails', selectedSession?.session_id],
+        queryFn: async () => {
+            if (!selectedSession?.session_id) return [];
+            return fetchChatSessionDetails(selectedSession.session_id);
+        },
+        enabled: !!selectedSession?.session_id
+    });
+
+    // Flatten paginated data
+    const flattenedData = useMemo(() => {
+        return chatData?.pages?.flat() || [];
+    }, [chatData]);
+
+    // Infinite scroll observer
+    useEffect(() => {
+        const observer = new IntersectionObserver(
+            (entries) => {
+                if (entries[0]?.isIntersecting && hasNextPage && !isFetchingNextPage) {
+                    fetchNextPage();
+                }
+            },
+            { threshold: 0.1 }
+        );
+
+        if (loadMoreRef.current) {
+            observer.observe(loadMoreRef.current);
+        }
+
+        return () => observer.disconnect();
+    }, [hasNextPage, isFetchingNextPage, fetchNextPage]);
+
+    /**
+     * Handle search form submission.
+     */
+    const handleSearch = (e: React.FormEvent) => {
+        e.preventDefault();
+        setExecutedSearchQuery(searchQuery);
+        setSelectedSession(null);
+    };
+
+    /**
+     * Apply filters from dialog.
+     */
+    const handleApplyFilters = () => {
+        setFilters(tempFilters);
+        setIsFilterDialogOpen(false);
+    };
+
+    /**
+     * Reset filters to default.
+     */
+    const handleResetFilters = () => {
+        const reset = { startDate: '', endDate: '' };
+        setTempFilters(reset);
+        setFilters(reset);
+    };
+
+    /**
+     * Refresh data.
+     */
+    const handleRefresh = () => {
+        refetch();
+        if (selectedSession) refetchDetails();
+    };
+
+    const isRefreshing = isRefetching || isRefetchingDetails;
+
+    // Auto-select first item when data loads
+    useEffect(() => {
+        if (!selectedSession && flattenedData.length > 0) {
+            setSelectedSession(flattenedData[0] ?? null);
+        }
+    }, [flattenedData, selectedSession]);
+
+    const isFiltered = filters.startDate || filters.endDate;
+
+    return (
+        <div className="flex h-full bg-slate-50/50 dark:bg-slate-950/50 border-t border-slate-200 dark:border-slate-800 backdrop-blur-sm">
+            {/* Sidebar */}
+            <div
+                className={`border-r border-slate-200/60 dark:border-slate-800/60 flex flex-col bg-white/80 dark:bg-slate-950/80 backdrop-blur-xl shadow-2xl z-20 transition-all duration-300 ease-in-out ${isSidebarOpen ? 'w-[360px] translate-x-0' : 'w-0 -translate-x-full opacity-0 overflow-hidden border-none'}`}
+            >
+                {/* Sidebar Header */}
+                <div className="p-5 space-y-4 border-b border-slate-100 dark:border-slate-800/50 relative group/sidebar-header">
+                    <button
+                        type="button"
+                        onClick={() => setIsSidebarOpen(false)}
+                        className="absolute right-2 top-2 p-2 rounded-lg text-slate-400 hover:text-slate-600 dark:hover:text-slate-200 hover:bg-slate-100 dark:hover:bg-slate-800 transition-all opacity-0 group-hover/sidebar-header:opacity-100 focus:opacity-100"
+                        title={t('common.close')}
+                    >
+                        <PanelLeftClose size={18} />
+                    </button>
+
+                    <div className="flex items-center gap-3 mt-4">
+                        <div className="w-10 h-10 rounded-xl bg-gradient-to-br from-primary to-violet-600 flex items-center justify-center shadow-lg shadow-primary/25">
+                            <MessageSquare size={20} className="text-white" />
+                        </div>
+                        <h2 className="text-lg font-bold text-slate-900 dark:text-white">{t('userHistory.chatHistory')}</h2>
+                    </div>
+
+                    <form onSubmit={handleSearch} className="flex gap-2">
+                        <div className="relative flex-1 group">
+                            <Search size={16} className="absolute left-3 top-1/2 -translate-y-1/2 text-slate-400 dark:text-slate-300 group-focus-within:text-primary dark:group-focus-within:text-blue-400 transition-colors" />
+                            <input
+                                type="text"
+                                placeholder={t('userHistory.searchPlaceholder')}
+                                value={searchQuery}
+                                onChange={(e) => setSearchQuery(e.target.value)}
+                                className="w-full pl-10 pr-4 py-2.5 bg-slate-50 dark:bg-slate-900/50 border-none ring-1 ring-slate-200 dark:ring-slate-800 rounded-xl focus:ring-2 focus:ring-primary/20 focus:bg-white dark:focus:bg-slate-900 transition-all text-sm font-medium"
+                            />
+                        </div>
+                        <button
+                            type="button"
+                            onClick={handleRefresh}
+                            className={`p-2.5 rounded-xl border border-slate-200 dark:border-slate-800 text-slate-500 dark:text-slate-300 hover:bg-slate-50 dark:hover:bg-slate-800 transition-all ${isRefreshing ? 'animate-spin' : ''}`}
+                            title={t('common.refresh')}
+                        >
+                            <RefreshCw size={18} />
+                        </button>
+                        <button
+                            type="button"
+                            onClick={() => { setTempFilters(filters); setIsFilterDialogOpen(true); }}
+                            className={`p-2.5 rounded-xl border transition-all duration-200 ${isFiltered
+                                ? 'bg-primary/10 border-primary/20 text-primary'
+                                : 'bg-white dark:bg-slate-900 border-slate-200 dark:border-slate-800 text-slate-500 dark:text-slate-300 hover:bg-slate-50 dark:hover:bg-slate-800'
+                                }`}
+                        >
+                            <Filter size={18} />
+                        </button>
+                    </form>
+                </div>
+
+                {/* Session List */}
+                <div className="flex-1 overflow-y-auto scrollbar-thin scrollbar-thumb-slate-200 dark:scrollbar-thumb-slate-800 bg-slate-50/30 dark:bg-black/20">
+                    {isLoading && flattenedData.length === 0 ? (
+                        <div className="flex flex-col items-center justify-center h-64 text-slate-400 gap-3">
+                            <div className="w-8 h-8 rounded-full border-2 border-primary/30 border-t-primary animate-spin" />
+                            <span className="text-sm font-medium animate-pulse">{t('userHistory.loading')}</span>
+                        </div>
+                    ) : flattenedData.length === 0 ? (
+                        <div className="flex flex-col items-center justify-center h-64 text-slate-400 gap-2">
+                            <MessageSquare size={48} className="opacity-30" />
+                            <span className="text-sm font-medium">{t('userHistory.noSessions')}</span>
+                        </div>
+                    ) : (
+                        <div className="p-3 space-y-2">
+                            {flattenedData.map((item: ChatSessionSummary) => {
+                                const isSelected = selectedSession && item.session_id === selectedSession.session_id;
+                                return (
+                                    <div
+                                        key={item.session_id || Math.random().toString()}
+                                        onClick={() => setSelectedSession(item)}
+                                        className={`group relative p-4 rounded-xl cursor-pointer transition-all duration-300 border ${isSelected
+                                            ? 'bg-white dark:bg-slate-800 shadow-lg shadow-primary/5 border-primary/20 dark:border-primary/20 translate-x-1'
+                                            : 'bg-white/50 dark:bg-slate-900/40 border-transparent hover:bg-white dark:hover:bg-slate-800 hover:shadow-md hover:border-slate-200 dark:hover:border-slate-700'
+                                            }`}
+                                    >
+                                        {isSelected && (
+                                            <div className="absolute left-0 top-3 bottom-3 w-1 bg-primary rounded-r-full" />
+                                        )}
+
+                                        <div className="pl-2 space-y-2">
+                                            <div className="flex justify-between items-start gap-2">
+                                                <h3 className={`font-semibold text-sm leading-snug line-clamp-2 transition-colors ${isSelected ? 'text-slate-900 dark:text-white' : 'text-slate-700 dark:text-slate-300'}`}>
+                                                    <HighlightMatch text={item.user_prompt} query={executedSearchQuery} />
+                                                </h3>
+                                                <span className="text-[10px] font-mono whitespace-nowrap text-slate-400 bg-slate-100 dark:bg-slate-800 px-1.5 py-0.5 rounded">
+                                                    {new Date(item.created_at).toLocaleDateString(undefined, { month: 'short', day: 'numeric' })}
+                                                </span>
+                                            </div>
+
+                                            <div className="flex items-center justify-between text-xs">
+                                                <span className="bg-slate-100 dark:bg-slate-800 px-2 py-0.5 rounded-full font-medium text-[10px] text-slate-400 dark:text-slate-300">
+                                                    {item.message_count} msgs
+                                                </span>
+                                                <ChevronRight size={12} className={`transition-transform duration-300 ${isSelected ? 'translate-x-1 text-primary' : 'opacity-0 group-hover:opacity-100'}`} />
+                                            </div>
+                                        </div>
+                                    </div>
+                                );
+                            })}
+
+                            <div ref={loadMoreRef} className="h-4" />
+                        </div>
+                    )}
+                </div>
+            </div>
+
+            {/* Main Content */}
+            <div className="flex-1 relative overflow-hidden bg-slate-50 dark:bg-slate-950 flex flex-col">
+                {selectedSession ? (
+                    <>
+                        {/* Scrollable Content */}
+                        <div className="flex-1 overflow-y-auto scrollbar-thin scrollbar-thumb-slate-300 dark:scrollbar-thumb-slate-700 pb-12 px-0">
+                            {/* Sticky Header */}
+                            <div className="sticky top-0 z-20 bg-white/80 dark:bg-slate-950/80 backdrop-blur-xl border-b border-slate-200/50 dark:border-slate-800/50 px-8 py-4 shadow-sm">
+                                <div className="mx-auto">
+                                    <div className="flex items-center gap-4 mb-2">
+                                        {!isSidebarOpen && (
+                                            <button
+                                                onClick={() => setIsSidebarOpen(true)}
+                                                className="p-2 mr-2 rounded-lg text-slate-500 hover:text-primary hover:bg-slate-100 dark:hover:bg-slate-800 transition-all"
+                                                title={t('nav.expandMenu')}
+                                            >
+                                                <PanelLeft size={20} />
+                                            </button>
+                                        )}
+                                        <div className="w-10 h-10 rounded-xl flex items-center justify-center shadow-lg bg-gradient-to-br from-primary to-violet-600 text-white shadow-primary/25">
+                                            <MessageSquare size={20} />
+                                        </div>
+                                        <div>
+                                            <h2 className="text-lg font-bold text-slate-900 dark:text-white leading-tight">
+                                                {t('userHistory.conversationHistory')}
+                                            </h2>
+                                            <div className="flex items-center gap-3 text-xs text-slate-500 dark:text-slate-300 mt-0.5">
+                                                <span className="flex items-center gap-1">
+                                                    <Clock size={12} />
+                                                    {new Date(selectedSession.created_at).toLocaleString()}
+                                                </span>
+                                            </div>
+                                        </div>
+                                    </div>
+                                </div>
+                            </div>
+
+                            <div className="mx-auto space-y-10 px-8 pt-8">
+                                {isLoadingDetails ? (
+                                    <div className="flex flex-col items-center justify-center py-20 gap-4 opacity-50">
+                                        <div className="w-10 h-10 border-4 border-slate-200 border-t-primary rounded-full animate-spin" />
+                                        <p className="text-sm font-medium">{t('userHistory.loadingDetails')}</p>
+                                    </div>
+                                ) : (
+                                    (sessionDetails || []).map((item, index) => (
+                                        <div key={item.id || index} className="group animate-in fade-in slide-in-from-bottom-4 duration-700 fill-mode-forwards" style={{ animationDelay: `${index * 100}ms` }}>
+                                            <div className="space-y-6">
+                                                {/* User Message */}
+                                                <div className="flex justify-end pl-12">
+                                                    <div className="relative max-w-[90%]">
+                                                        <div className="bg-white dark:bg-slate-800 p-5 rounded-2xl rounded-tr-sm shadow-sm border border-slate-100 dark:border-slate-800">
+                                                            <div className="text-slate-800 dark:text-slate-200 leading-relaxed">
+                                                                <MarkdownRenderer highlightText={executedSearchQuery}>
+                                                                    {item.user_prompt}
+                                                                </MarkdownRenderer>
+                                                            </div>
+                                                        </div>
+                                                        <div className="absolute -right-2 top-0 w-2 h-2 bg-white dark:bg-slate-800 [clip-path:polygon(0_0,0%_100%,100%_0)]" />
+                                                        <div className="mt-2 flex justify-end gap-2 items-center opacity-0 group-hover:opacity-100 transition-opacity">
+                                                            <span className="text-[10px] uppercase font-bold text-slate-400 tracking-wider">{t('userHistory.you')}</span>
+                                                        </div>
+                                                    </div>
+                                                </div>
+
+                                                {/* AI Response */}
+                                                <div className="flex gap-5 pr-12">
+                                                    <div className="flex-shrink-0">
+                                                        <div className="w-9 h-9 rounded-full bg-gradient-to-br from-primary/10 to-violet-500/10 dark:from-primary/20 dark:to-violet-500/20 flex items-center justify-center ring-1 ring-inset ring-primary/20">
+                                                            <Sparkles size={16} className="text-primary dark:text-blue-300" />
+                                                        </div>
+                                                    </div>
+                                                    <div className="flex-1 space-y-4">
+                                                        <div className="bg-transparent text-slate-700 dark:text-slate-300 leading-relaxed overflow-hidden">
+                                                            <MarkdownRenderer highlightText={executedSearchQuery}>
+                                                                {item.llm_response}
+                                                            </MarkdownRenderer>
+                                                        </div>
+
+                                                        {/* Citations */}
+                                                        {item.citations?.length > 0 && (
+                                                            <div className="pt-2">
+                                                                <div className="inline-flex flex-wrap gap-2">
+                                                                    {item.citations.map((citation: any, idx: number) => (
+                                                                        <span key={idx} className="inline-flex items-center gap-1.5 px-3 py-1 rounded-full bg-slate-100/80 dark:bg-slate-800/80 text-[11px] font-medium text-slate-600 dark:text-slate-400 border border-slate-200 dark:border-slate-700/50 hover:border-primary/30 hover:bg-white dark:hover:bg-slate-800 transition-all cursor-default select-none">
+                                                                            <span className="w-4 h-4 rounded-full bg-slate-200 dark:bg-slate-700 flex items-center justify-center text-[9px] font-bold text-slate-500 dark:text-slate-300">{idx + 1}</span>
+                                                                            <span className="truncate max-w-[200px]">{citation}</span>
+                                                                        </span>
+                                                                    ))}
+                                                                </div>
+                                                            </div>
+                                                        )}
+                                                    </div>
+                                                </div>
+                                            </div>
+                                        </div>
+                                    ))
+                                )}
+                            </div>
+                        </div>
+                    </>
+                ) : (
+                    <div className="flex-1 flex flex-col items-center justify-center bg-slate-50/50 dark:bg-slate-950/50">
+                        <div className="w-32 h-32 bg-gradient-to-tr from-slate-200 to-slate-100 dark:from-slate-800 dark:to-slate-900 rounded-full flex items-center justify-center mb-6 shadow-inner relative overflow-hidden">
+                            <div className="absolute inset-0 bg-[radial-gradient(circle_at_50%_120%,rgba(120,119,198,0.3),rgba(255,255,255,0))]" />
+                            <MessageSquare size={48} className="text-slate-400 dark:text-slate-500 relative z-10" />
+                        </div>
+                        <h3 className="text-xl font-bold text-slate-700 dark:text-slate-200 mb-2">{t('userHistory.noSessionSelected')}</h3>
+                        <p className="text-slate-500 dark:text-slate-300 max-w-xs text-center">
+                            {t('userHistory.selectSessionHint')}
+                        </p>
+                    </div>
+                )}
+            </div>
+
+            {/* Filter Dialog */}
+            <Dialog
+                open={isFilterDialogOpen}
+                onClose={() => setIsFilterDialogOpen(false)}
+                title={t('userHistory.filterTitle')}
+                footer={
+                    <div className="flex justify-end gap-3 w-full">
+                        <button
+                            onClick={() => { setIsFilterDialogOpen(false); handleResetFilters(); }}
+                            className="px-4 py-2 text-sm font-medium text-slate-600 hover:text-slate-900 dark:text-slate-400 dark:hover:text-white transition-colors"
+                        >
+                            {t('common.reset')}
+                        </button>
+                        <button
+                            onClick={handleApplyFilters}
+                            className="px-6 py-2 rounded-xl bg-primary text-white text-sm font-bold shadow-lg shadow-primary/25 hover:shadow-primary/40 hover:-translate-y-0.5 transition-all"
+                        >
+                            {t('userHistory.applyFilter')}
+                        </button>
+                    </div>
+                }
+            >
+                <div className="space-y-4">
+                    <div className="grid grid-cols-2 gap-4">
+                        <div>
+                            <label className="block text-sm font-medium text-slate-700 dark:text-slate-300 mb-1.5">{t('common.startDate')}</label>
+                            <input
+                                type="date"
+                                value={tempFilters.startDate}
+                                onChange={(e) => setTempFilters({ ...tempFilters, startDate: e.target.value })}
+                                className="w-full px-4 py-2.5 rounded-xl border border-slate-200 dark:border-slate-800 bg-slate-50 dark:bg-slate-900 focus:ring-2 focus:ring-primary/20 outline-none transition-all text-sm"
+                            />
+                        </div>
+                        <div>
+                            <label className="block text-sm font-medium text-slate-700 dark:text-slate-300 mb-1.5">{t('common.endDate')}</label>
+                            <input
+                                type="date"
+                                value={tempFilters.endDate}
+                                onChange={(e) => setTempFilters({ ...tempFilters, endDate: e.target.value })}
+                                className="w-full px-4 py-2.5 rounded-xl border border-slate-200 dark:border-slate-800 bg-slate-50 dark:bg-slate-900 focus:ring-2 focus:ring-primary/20 outline-none transition-all text-sm"
+                            />
+                        </div>
+                    </div>
+                </div>
+            </Dialog>
+        </div>
+    );
+}
+
+/**
+ * Helper component for highlighting matching text.
+ */
+const HighlightMatch = ({ text, query }: { text: string; query: string }) => {
+    if (!query || !text) return <>{text}</>;
+
+    const parts = text.split(new RegExp(`(${query})`, 'gi'));
+    return (
+        <span>
+            {parts.map((part, i) =>
+                part.toLowerCase() === query.toLowerCase() ? (
+                    <mark key={i} className="bg-yellow-200 dark:bg-yellow-900/50 text-slate-900 dark:text-slate-100 rounded-sm px-0.5">
+                        {part}
+                    </mark>
+                ) : (
+                    part
+                )
+            )}
+        </span>
+    );
+};
+
+export default ChatHistoryPage;

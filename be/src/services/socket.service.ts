@@ -62,7 +62,8 @@ export class SocketService {
      * Initialize Socket.IO server and attach to HTTP/HTTPS server.
      * 
      * @param server - HTTP or HTTPS server instance
-     * @returns The Socket.IO server instance
+     * @returns SocketIOServer - The Socket.IO server instance
+     * @description Configures server with CORS, timeouts, and attaches event handlers.
      */
     initialize(server: http.Server | https.Server): SocketIOServer {
         if (this.initialized && this.io) {
@@ -77,6 +78,7 @@ export class SocketService {
             ? '*'
             : (config.websocket?.corsOrigin ?? config.frontendUrl)
 
+        // Initialize server instance
         this.io = new SocketIOServer(server, {
             cors: {
                 origin: corsOrigin,
@@ -88,6 +90,7 @@ export class SocketService {
             transports: ['websocket', 'polling'],
         })
 
+        // Setup handlers
         this.setupEventHandlers()
         this.initialized = true
 
@@ -100,6 +103,8 @@ export class SocketService {
 
     /**
      * Setup Socket.IO event handlers.
+     * @returns void
+     * @description Registers connection, auth, message, and error handlers.
      */
     private setupEventHandlers(): void {
         if (!this.io) return
@@ -119,6 +124,7 @@ export class SocketService {
                 log.debug('Socket joined room', { socketId: socket.id, room })
             })
 
+            // Unsubscribe handler
             socket.on('unsubscribe', (room: string) => {
                 socket.leave(room)
                 log.debug('Socket left room', { socketId: socket.id, room })
@@ -151,6 +157,8 @@ export class SocketService {
      * 2. Email/userId authentication for browser clients
      * 
      * @param socket - Socket instance
+     * @returns void
+     * @description Validates credentials and joins user-specific rooms.
      */
     private handleAuthentication(socket: Socket): void {
         const auth = socket.handshake.auth as SocketAuthData
@@ -210,8 +218,10 @@ export class SocketService {
     /**
      * Handle socket disconnection.
      * 
-     * @param socket - Socket instance
-     * @param reason - Disconnection reason
+     * @param socket - Socket instance.
+     * @param reason - Disconnection reason.
+     * @returns void
+     * @description Cleans up user socket mapping on disconnect.
      */
     private handleDisconnect(socket: Socket, reason: string): void {
         const auth = socket.handshake.auth as SocketAuthData
@@ -233,8 +243,9 @@ export class SocketService {
     /**
      * Emit event to all connected clients.
      * 
-     * @param event - Event name
-     * @param data - Event payload
+     * @param event - Event name.
+     * @param data - Event payload.
+     * @returns void
      */
     emit(event: string, data: unknown): void {
         if (!this.io) {
@@ -248,9 +259,10 @@ export class SocketService {
     /**
      * Emit event to a specific room/channel.
      * 
-     * @param room - Room name
-     * @param event - Event name
-     * @param data - Event payload
+     * @param room - Room name.
+     * @param event - Event name.
+     * @param data - Event payload.
+     * @returns void
      */
     emitToRoom(room: string, event: string, data: unknown): void {
         if (!this.io) {
@@ -264,9 +276,11 @@ export class SocketService {
     /**
      * Emit event to a specific user by their ID/email.
      * 
-     * @param userId - User ID or email
-     * @param event - Event name
-     * @param data - Event payload
+     * @param userId - User ID or email.
+     * @param event - Event name.
+     * @param data - Event payload.
+     * @returns void
+     * @description Convenience wrapper for emitToRoom(`user:${userId}`).
      */
     emitToUser(userId: string, event: string, data: unknown): void {
         this.emitToRoom(`user:${userId}`, event, data)
@@ -275,7 +289,9 @@ export class SocketService {
     /**
      * Send notification to all connected clients.
      * 
-     * @param notification - Notification payload
+     * @param notification - Notification payload.
+     * @returns void
+     * @description Broadcasts a 'notification' event with timestamp.
      */
     sendNotification(notification: NotificationPayload): void {
         const payload = {
@@ -288,8 +304,10 @@ export class SocketService {
     /**
      * Send notification to a specific user.
      * 
-     * @param userId - User ID or email
-     * @param notification - Notification payload
+     * @param userId - User ID or email.
+     * @param notification - Notification payload.
+     * @returns void
+     * @description Sends a 'notification' event to the user's room.
      */
     sendNotificationToUser(userId: string, notification: NotificationPayload): void {
         const payload = {
@@ -302,8 +320,10 @@ export class SocketService {
     /**
      * Send notification to a specific room/channel.
      * 
-     * @param room - Room name
-     * @param notification - Notification payload
+     * @param room - Room name.
+     * @param notification - Notification payload.
+     * @returns void
+     * @description Sends a 'notification' event to the room.
      */
     sendNotificationToRoom(room: string, notification: NotificationPayload): void {
         const payload = {
@@ -316,7 +336,7 @@ export class SocketService {
     /**
      * Get the Socket.IO server instance.
      * 
-     * @returns Socket.IO server instance or null
+     * @returns SocketIOServer | null - The server instance.
      */
     getIO(): SocketIOServer | null {
         return this.io
@@ -325,8 +345,8 @@ export class SocketService {
     /**
      * Check if a user is currently connected.
      * 
-     * @param userId - User ID or email
-     * @returns True if user has active connections
+     * @param userId - User ID or email.
+     * @returns boolean - True if user has active connections.
      */
     isUserConnected(userId: string): boolean {
         return !!this.userSockets[userId] && this.userSockets[userId].size > 0
@@ -335,7 +355,7 @@ export class SocketService {
     /**
      * Get count of connected clients.
      * 
-     * @returns Number of connected clients
+     * @returns number - Number of connected clients.
      */
     getConnectedCount(): number {
         if (!this.io) return 0
@@ -344,6 +364,8 @@ export class SocketService {
 
     /**
      * Gracefully shutdown Socket.IO server.
+     * @returns Promise<void>
+     * @description Emits shutdown signal, closes connections, and cleans up references.
      */
     async shutdown(): Promise<void> {
         if (!this.io) return

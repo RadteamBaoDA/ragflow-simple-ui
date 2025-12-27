@@ -66,6 +66,8 @@
     "aiChat": "チャット",
     "aiSearch": "検索",
     "history": "履歴",
+    "chatHistory": "チャット履歴",
+    "searchHistory": "検索履歴",
     "documents": "ドキュメント",
     "iam": "IAM",
     "userManagement": "ユーザー",
@@ -79,6 +81,7 @@
     "signOut": "サインアウト",
     "knowledgeBase": "ナレッジベース",
     "broadcastMessages": "一斉通知",
+    "histories": "履歴一覧",
     "expandMenu": "メニューを展開",
     "administrators": "管理者",
     "collapseMenu": "メニューを折りたたむ"
@@ -201,6 +204,14 @@
     "history": {
       "title": "チャット履歴",
       "description": "過去の会話を表示"
+    },
+    "chatHistory": {
+      "title": "チャット履歴",
+      "description": "AIチャットの会話を表示"
+    },
+    "searchHistory": {
+      "title": "検索履歴",
+      "description": "AI検索クエリを表示"
     },
     "systemTools": {
       "title": "システム監視ツール"
@@ -586,6 +597,46 @@
     "addSuccess": "ソースが正常に追加されました",
     "updateSuccess": "ソースが正常に更新されました",
     "deleteSuccess": "ソースが正常に削除されました"
+  },
+  "histories": {
+    "title": "履歴一覧",
+    "chatTab": "チャット履歴",
+    "searchTab": "検索履歴",
+    "searchPlaceholder": "履歴を検索...",
+    "searchButton": "検索",
+    "loading": "読み込み中...",
+    "noSelected": "履歴から項目を選択して詳細を表示",
+    "prompt": "ユーザープロンプト",
+    "response": "アシスタントの回答",
+    "citations": "引用元",
+    "searchInput": "検索入力",
+    "aiSummary": "AIサマリー",
+    "fileResults": "ファイル結果",
+    "filterTitle": "履歴をフィルター",
+    "emailLabel": "ユーザーメール",
+    "startDateLabel": "開始日",
+    "endDateLabel": "終了日",
+    "applyFilter": "適用する",
+    "resetFilter": "リセット",
+    "filterButton": "フィルター"
+  },
+  "userHistory": {
+    "chatHistory": "チャット履歴",
+    "searchHistory": "検索履歴",
+    "searchPlaceholder": "履歴を検索...",
+    "loading": "読み込み中...",
+    "loadingDetails": "詳細を読み込み中...",
+    "noSessions": "セッションが見つかりません",
+    "noSessionSelected": "セッションが選択されていません",
+    "selectSessionHint": "サイドバーから会話を選択して詳細を表示。",
+    "selectSearchHint": "サイドバーから検索セッションを選択して詳細を表示。",
+    "conversationHistory": "会話履歴",
+    "searchSession": "検索セッション",
+    "you": "あなた",
+    "aiSummary": "AIサマリー",
+    "fileResults": "取得したファイル",
+    "filterTitle": "履歴をフィルター",
+    "applyFilter": "フィルターを適用"
   },
   "errors": {
     "REAUTH_REQUIRED": "再認証が必要です"

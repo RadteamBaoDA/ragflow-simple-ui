@@ -67,6 +67,8 @@
     "aiChat": "Chat",
     "aiSearch": "Search",
     "history": "History",
+    "chatHistory": "Chat History",
+    "searchHistory": "Search History",
     "documents": "Document",
     "iam": "IAM",
     "userManagement": "Users",
@@ -80,6 +82,7 @@
     "signOut": "Sign Out",
     "knowledgeBase": "Knowledge Base",
     "broadcastMessages": "Broadcast",
+    "histories": "Histories",
     "expandMenu": "Expand menu",
     "administrators": "Administrators",
     "collapseMenu": "Collapse menu"
@@ -202,6 +205,14 @@
     "history": {
       "title": "Chat History",
       "description": "View your past conversations"
+    },
+    "chatHistory": {
+      "title": "Chat History",
+      "description": "View your AI chat conversations"
+    },
+    "searchHistory": {
+      "title": "Search History",
+      "description": "View your AI search queries"
     },
     "systemTools": {
       "title": "System Monitoring Tools"
@@ -601,6 +612,46 @@
     "addSuccess": "Source added successfully",
     "updateSuccess": "Source updated successfully",
     "deleteSuccess": "Source deleted successfully"
+  },
+  "histories": {
+    "title": "Histories",
+    "chatTab": "Chat History",
+    "searchTab": "Search History",
+    "searchPlaceholder": "Search history...",
+    "searchButton": "Search",
+    "loading": "Loading...",
+    "noSelected": "Select an item from the history to view details",
+    "prompt": "User Prompt",
+    "response": "Assistant Response",
+    "citations": "Citations",
+    "searchInput": "Search Input",
+    "aiSummary": "AI Summary",
+    "fileResults": "File Results",
+    "filterTitle": "Filter History",
+    "emailLabel": "User Email",
+    "startDateLabel": "Start Date",
+    "endDateLabel": "End Date",
+    "applyFilter": "Apply Filters",
+    "resetFilter": "Reset",
+    "filterButton": "Filter"
+  },
+  "userHistory": {
+    "chatHistory": "Chat History",
+    "searchHistory": "Search History",
+    "searchPlaceholder": "Search your history...",
+    "loading": "Loading...",
+    "loadingDetails": "Loading details...",
+    "noSessions": "No sessions found",
+    "noSessionSelected": "No Session Selected",
+    "selectSessionHint": "Select a conversation from the sidebar to view details.",
+    "selectSearchHint": "Select a search session from the sidebar to view details.",
+    "conversationHistory": "Conversation History",
+    "searchSession": "Search Session",
+    "you": "You",
+    "aiSummary": "AI Summary",
+    "fileResults": "Retrieved Files",
+    "filterTitle": "Filter History",
+    "applyFilter": "Apply Filters"
   },
   "errors": {
     "REAUTH_REQUIRED": "Re-authentication required"

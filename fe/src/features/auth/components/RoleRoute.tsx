@@ -1,16 +1,9 @@
 /**
  * @fileoverview Role-based route wrapper component.
- * 
+ *
  * Restricts access to routes based on allowed roles.
  * More flexible than AdminRoute - supports any combination of roles.
- * 
- * Usage:
- * ```tsx
- * <RoleRoute allowedRoles={['admin', 'manager']}>
- *   <StoragePage />
- * </RoleRoute>
- * ```
- * 
+ *
  * @module components/RoleRoute
  */
 
@@ -21,9 +14,14 @@ import { useAuth } from '@/features/auth';
 // Types
 // ============================================================================
 
-/** Valid user roles */
+/** 
+ * @description Valid user roles within the application.
+ */
 type Role = 'admin' | 'leader' | 'user';
 
+/** 
+ * @description Props for RoleRoute component.
+ */
 interface RoleRouteProps {
     /** Child components to render for allowed roles */
     children: React.ReactNode;
@@ -36,29 +34,27 @@ interface RoleRouteProps {
 // ============================================================================
 
 /**
- * Route wrapper that restricts access based on user roles.
- * 
- * Behavior:
- * - Returns null while auth is loading
- * - Redirects to /403 if user role is not in allowedRoles
- * - Renders children if user has an allowed role
- * 
- * @param children - Components to render for allowed users
- * @param allowedRoles - Array of roles that can access this route
+ * @description Route wrapper that restricts access based on user roles.
+ * Verifies if the current user has one of the allowed roles.
+ *
+ * @param {RoleRouteProps} props - Component properties.
+ * @returns {JSX.Element | null} The child components or a redirect.
  */
 const RoleRoute = ({ children, allowedRoles }: RoleRouteProps) => {
     const { user, isLoading } = useAuth();
 
-    // Return null while loading (parent handles loading state)
+    // Return null while auth state is loading to prevent premature redirection
     if (isLoading) {
         return null;
     }
 
-    // Redirect if user is not authenticated or role not allowed
+    // Check if user is authenticated and if their role is in the allowed list
     if (!user || !allowedRoles.includes(user.role as Role)) {
+        // Redirect to 403 Forbidden page if access is denied
         return <Navigate to="/403" replace />;
     }
 
+    // Render children if access is granted
     return <>{children}</>;
 };
 

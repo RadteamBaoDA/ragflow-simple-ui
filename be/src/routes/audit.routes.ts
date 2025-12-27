@@ -24,7 +24,9 @@ const controller = new AuditController()
 // ============================================================================
 
 /** Apply authentication and admin role requirement to all audit routes */
+// Ensure all requests to this router are from authenticated users
 router.use(requireAuth)
+// Ensure all requests are from users with the 'admin' role
 router.use(requireRole('admin'))
 
 // ============================================================================
@@ -48,6 +50,7 @@ router.use(requireRole('admin'))
  * @requires admin role
  * @returns {AuditLogResponse} Paginated audit logs with metadata
  */
+// Delegate to controller method to fetch filtered logs
 router.get('/', controller.getLogs.bind(controller))
 
 /**
@@ -58,6 +61,7 @@ router.get('/', controller.getLogs.bind(controller))
  * @requires admin role
  * @returns {string[]} List of action types
  */
+// Delegate to controller method to fetch unique actions
 router.get('/actions', controller.getActions.bind(controller))
 
 /**
@@ -68,6 +72,7 @@ router.get('/actions', controller.getActions.bind(controller))
  * @requires admin role
  * @returns {string[]} List of resource types
  */
+// Delegate to controller method to fetch unique resource types
 router.get('/resource-types', controller.getResourceTypes.bind(controller))
 
 export default router

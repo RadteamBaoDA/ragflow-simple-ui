@@ -36,18 +36,24 @@ const getBoolEnv = (key: string, defaultValue: boolean): boolean => {
 
 /**
  * Application configuration object.
- * Contains all feature flags and settings.
+ * Centralizes feature flags and environment-specific settings.
+ * 
+ * Used throughout the app to conditionally render features or 
+ * configure service endpoints.
  */
 export const config = {
-    /** Feature toggles for conditional rendering */
+    /** Feature toggles for conditional rendering based on environment */
     features: {
-        /** Enable AI Chat page with RAGFlow chat iframe */
+        /** Enable AI Chat page and its associated navigation links */
         enableAiChat: getBoolEnv('VITE_ENABLE_AI_CHAT', true),
-        /** Enable AI Search page with RAGFlow search iframe */
+        /** Enable AI Search page and its associated navigation links */
         enableAiSearch: getBoolEnv('VITE_ENABLE_AI_SEARCH', true),
-        /** Enable chat history page */
+        /** Enable chat history page and its associated navigation links */
         enableHistory: getBoolEnv('VITE_ENABLE_HISTORY', true),
     },
-    /** API Base URL */
+    /** 
+     * Base URL for the backend API.
+     * Proxied in development, absolute in production.
+     */
     apiBaseUrl: import.meta.env.VITE_API_BASE_URL || '',
 };

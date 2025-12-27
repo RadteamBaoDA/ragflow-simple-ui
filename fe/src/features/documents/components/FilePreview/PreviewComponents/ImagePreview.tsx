@@ -1,10 +1,25 @@
+/**
+ * @fileoverview Component for previewing image files.
+ */
+
 import React, { useState } from 'react';
 
+/**
+ * @description Props for ImagePreview component.
+ */
 interface ImagePreviewProps {
+    /** URL of the image to display */
     url: string;
+    /** Alt text for the image */
     alt: string;
 }
 
+/**
+ * @description Renders an image preview with a loading spinner and error handling.
+ *
+ * @param {ImagePreviewProps} props - Component props.
+ * @returns {JSX.Element} Image preview component.
+ */
 export const ImagePreview: React.FC<ImagePreviewProps> = ({ url, alt }) => {
     const [loading, setLoading] = useState(true);
     const [error, setError] = useState(false);

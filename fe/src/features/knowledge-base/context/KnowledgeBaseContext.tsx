@@ -156,6 +156,7 @@ export function KnowledgeBaseProvider({ children }: KnowledgeBaseProviderProps) 
 
     /**
      * Update selected chat source and persist preference.
+     * @param id - The ID of the chat source to select.
      */
     const setSelectedChatSource = useCallback(async (id: string) => {
         setSelectedChatSourceId(id);
@@ -166,6 +167,7 @@ export function KnowledgeBaseProvider({ children }: KnowledgeBaseProviderProps) 
 
     /**
      * Update selected search source and persist preference.
+     * @param id - The ID of the search source to select.
      */
     const setSelectedSearchSource = useCallback(async (id: string) => {
         setSelectedSearchSourceId(id);

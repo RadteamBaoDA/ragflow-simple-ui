@@ -3,7 +3,13 @@ import { useTranslation } from 'react-i18next';
 import { encodingForModel, getEncoding, Tiktoken } from 'js-tiktoken';
 import { Eraser, Copy, Check } from 'lucide-react';
 
-// Visual tokenizer playground for OpenAI/Ollama models using js-tiktoken.
+/**
+ * @description Visual tokenizer playground component.
+ * Allows users to input text and see how it is tokenized by different OpenAI and Ollama models.
+ * Uses `js-tiktoken` for client-side tokenization.
+ *
+ * @returns {JSX.Element} The rendered Tokenizer page.
+ */
 const TokenizerPage = () => {
     const { t } = useTranslation();
     const [text, setText] = useState('');
@@ -13,24 +19,30 @@ const TokenizerPage = () => {
     const [encoding, setEncoding] = useState<Tiktoken | null>(null);
     const [copied, setCopied] = useState(false);
 
-    // Initialize encoder
+    /**
+     * @description Effect to initialize the tokenizer encoder based on the selected model.
+     * Maps the model name to the appropriate encoding scheme (e.g., cl100k_base, p50k_base).
+     */
     useEffect(() => {
         setIsLoading(true);
         let enc: Tiktoken | null = null;
         try {
             // OpenAI models with specific encodings
             if (model === 'gpt-4' || model === 'gpt-3.5-turbo') {
+                // Use encodingForModel for specific OpenAI models
                 enc = encodingForModel(model as 'gpt-4' | 'gpt-3.5-turbo');
             } else if (model === 'text-davinci-003' || model === 'text-davinci-002') {
+                // Use p50k_base for older GPT-3 models
                 enc = getEncoding('p50k_base');
             } else if (model === 'text-embedding-ada-002') {
+                // Use cl100k_base for embeddings
                 enc = getEncoding('cl100k_base');
             }
-            // Ollama and vLLM - use cl100k_base
+            // Ollama and vLLM - use cl100k_base as a common default
             else if (model === 'ollama' || model === 'vllm') {
                 enc = getEncoding('cl100k_base');
             }
-            // Default fallback
+            // Default fallback encoding
             else {
                 enc = getEncoding('cl100k_base');
             }
@@ -38,17 +50,23 @@ const TokenizerPage = () => {
         } catch (e) {
             console.error('Failed to load encoding:', e);
         } finally {
+            // Ensure loading state is turned off
             setIsLoading(false);
         }
     }, [model]);
 
-    // Update tokens when text or encoding changes
+    /**
+     * @description Effect to update token counts whenever the input text or encoding changes.
+     * Encodes the text into integer tokens.
+     */
     useEffect(() => {
         if (!encoding || !text) {
+            // Reset tokens if no text or encoding is available
             setTokens([]);
             return;
         }
         try {
+            // Encode the text using the selected encoding
             const encoded = encoding.encode(text);
             setTokens(encoded);
         } catch (e) {
@@ -57,14 +75,22 @@ const TokenizerPage = () => {
         }
     }, [text, encoding]);
 
+    /**
+     * @description Handler to clear the input text and reset token state.
+     */
     const handleClear = () => {
         setText('');
         setTokens([]);
     };
 
+    /**
+     * @description Handler to copy the token array to the clipboard.
+     * Shows a brief success indicator.
+     */
     const handleCopy = () => {
         navigator.clipboard.writeText(JSON.stringify(tokens));
         setCopied(true);
+        // Reset the copied state after 2 seconds
         setTimeout(() => setCopied(false), 2000);
     };
 
@@ -77,6 +103,12 @@ const TokenizerPage = () => {
         'bg-violet-200 dark:bg-violet-900/50',
     ];
 
+    /**
+     * @description Memoized calculation of display chunks for the tokenized text.
+     * Decodes each token back to its string representation and assigns a color for visualization.
+     *
+     * @returns {Array<{token: number, text: string, colorClass: string}>} Array of token chunks for rendering.
+     */
     const tokenizedText = useMemo(() => {
         if (!encoding) return [];
 
@@ -90,6 +122,7 @@ const TokenizerPage = () => {
             chunks.push({
                 token,
                 text: displayDecoded,
+                // Cycle through colors for distinct token visualization
                 colorClass: colors[currentColorIndex % colors.length] ?? colors[0] ?? ''
             });
             currentColorIndex++;

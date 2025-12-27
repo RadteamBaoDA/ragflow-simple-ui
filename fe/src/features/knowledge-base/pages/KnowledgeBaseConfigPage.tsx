@@ -7,6 +7,15 @@ import { Dialog } from '@/components/Dialog';
 import { SourcePermissionsModal, PermissionsSelector } from '@/features/documents/components/SourcePermissionsModal';
 import { useConfirm } from '@/components/ConfirmDialog';
 
+/**
+ * @fileoverview Knowledge Base Configuration Page.
+ * 
+ * Allows administrators to:
+ * - Configure separate Chat and Search knowledge base sources.
+ * - Set default sources for the system.
+ * - Manage access control permissions (Public/Private/Team/User) for each source.
+ * - Add/Edit/Delete sources via CRUD operations.
+ */
 export default function KnowledgeBaseConfigPage() {
     const { t } = useTranslation();
     const confirm = useConfirm();
@@ -38,6 +47,9 @@ export default function KnowledgeBaseConfigPage() {
         }
     }, [configQuery.data, activeTab]);
 
+    /**
+     * Save the default source selection for the current tab (Chat/Search).
+     */
     const handleSaveDefault = () => {
         const payload = activeTab === 'chat' ? { defaultChatSourceId: defaultSourceId } : { defaultSearchSourceId: defaultSourceId };
         updateConfigMutation.mutate(payload);
@@ -53,6 +65,10 @@ export default function KnowledgeBaseConfigPage() {
     const [selectedTeamIds, setSelectedTeamIds] = useState<string[]>([]);
     const [selectedUserIds, setSelectedUserIds] = useState<string[]>([]);
 
+    /**
+     * Open the dialog to create a new source.
+     * Resets form data and permissions to defaults (Private).
+     */
     const openCreateDialog = () => {
         setEditingSource(null);
         setFormData({ name: '', url: '' });
@@ -66,6 +82,11 @@ export default function KnowledgeBaseConfigPage() {
         setIsDialogOpen(true);
     };
 
+    /**
+     * Open the dialog to edit an existing source.
+     * Loads existing data and permissions.
+     * @param source - The source to edit.
+     */
     const openEditDialog = (source: KnowledgeBaseSource) => {
         setEditingSource(source);
         setFormData({ name: source.name, url: source.url });
@@ -84,11 +105,20 @@ export default function KnowledgeBaseConfigPage() {
     const [isPermModalOpen, setIsPermModalOpen] = useState(false);
     const [permSource, setPermSource] = useState<KnowledgeBaseSource | null>(null);
 
+    /**
+     * Open the standalone permissions modal for a source.
+     * @param source - The source to manage permissions for.
+     */
     const openPermDialog = (source: KnowledgeBaseSource) => {
         setPermSource(source);
         setIsPermModalOpen(true);
     };
 
+    /**
+     * Save updated permissions from the standalone permissions modal.
+     * @param id - Source ID.
+     * @param accessControl - New access control settings.
+     */
     const handleSavePermissions = (id: string, accessControl: AccessControl) => {
         const source = (activeTab === 'chat' ? configQuery.data?.chatSources : configQuery.data?.searchSources)?.find(s => s.id === id);
         if (source) {
@@ -132,6 +162,10 @@ export default function KnowledgeBaseConfigPage() {
         meta: { successMessage: t('knowledgeBaseConfig.deleteSuccess') }
     });
 
+    /**
+     * Submit the Create/Edit form.
+     * Constructs the payload including permissions and triggers appropriate mutation.
+     */
     const handleSubmitSource = () => {
         if (!formData.name || !formData.url) return;
 

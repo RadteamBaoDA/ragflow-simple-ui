@@ -196,17 +196,29 @@ function HistoryPage() {
     meta: { successMessage: t('history.deleteAllSuccess') }
   });
 
+  /**
+   * Handle search form submission.
+   * Prevents default form submission and triggers a refetch of search results.
+   * @param e - Form submission event
+   */
   const handleSearch = (e: React.FormEvent) => {
     e.preventDefault();
     refetch();
   };
 
+  /**
+   * Clear all search filters and reset search state.
+   */
   const handleClearFilters = () => {
     setSearchQuery('');
     setStartDate('');
     setEndDate('');
   };
 
+  /**
+   * Toggle selection state for a single session.
+   * @param sessionId - ID of the session to toggle
+   */
   const toggleSessionSelection = (sessionId: string) => {
     const newSelected = new Set(selectedSessions);
     if (newSelected.has(sessionId)) {
@@ -217,6 +229,10 @@ function HistoryPage() {
     setSelectedSessions(newSelected);
   };
 
+  /**
+   * Toggle select all sessions in the current view.
+   * If all are selected, unselects all. Otherwise, selects all currently visible.
+   */
   const toggleSelectAll = () => {
     if (!result?.sessions) return;
 
@@ -227,6 +243,10 @@ function HistoryPage() {
     }
   };
 
+  /**
+   * Execute bulk deletion of selected sessions.
+   * Closes confirmation dialog upon initiation.
+   */
   const handleBulkDelete = () => {
     if (selectedSessions.size > 0) {
       bulkDeleteMutation.mutate(Array.from(selectedSessions));
@@ -234,6 +254,9 @@ function HistoryPage() {
     }
   };
 
+  /**
+   * Execute deletion of ALL user sessions.
+   */
   const handleDeleteAll = () => {
     deleteAllMutation.mutate();
   };

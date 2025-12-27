@@ -17,7 +17,9 @@ import { config } from '@/config/index.js';
 import { log } from '@/services/logger.service.js';
 import { initRedis, getRedisClient, getRedisStatus, shutdownRedis } from '@/services/redis.service.js';
 import { db, getAdapter, checkConnection, closePool } from '@/db/index.js';
-import { runMigrations } from '@/db/migrations/runner.js';
+// import { runMigrations } from '@/db/migrations/runner.js'; // Deprecated/Removed
+import knex from 'knex';
+import dbConfig from '@/db/knexfile.js';
 import { cronService } from '@/services/cron.service.js';
 import { knowledgeBaseService } from '@/services/knowledge-base.service.js';
 import { systemToolsService } from '@/services/system-tools.service.js';
@@ -40,6 +42,9 @@ import auditRoutes from '@/routes/audit.routes.js';
 import externalRoutes from '@/routes/external/index.js';
 import previewRoutes from '@/routes/preview.routes.js';
 import broadcastMessageRoutes from '@/routes/broadcast-message.routes.js';
+import adminHistoryRoutes from '@/routes/admin-history.routes.js';
+import chatHistoryRoutes from '@/routes/chat-history.routes.js';
+import userHistoryRoutes from '@/routes/user-history.routes.js';
 
 const app = express();
 
@@ -176,6 +181,9 @@ app.use('/api/audit', auditRoutes);
 app.use('/api/external', externalRoutes);
 app.use('/api/preview', previewRoutes);
 app.use('/api/broadcast-messages', broadcastMessageRoutes);
+app.use('/api/admin/history', adminHistoryRoutes);
+app.use('/api/chat', chatHistoryRoutes);
+app.use('/api/user/history', userHistoryRoutes);
 
 app.use('/api/*', (_req: express.Request, res: express.Response) => {
   res.status(404).json({ error: 'Not Found', message: 'The requested API endpoint does not exist' });
@@ -231,8 +239,11 @@ const startServer = async (): Promise<http.Server | https.Server> => {
 
       // Keep schema aligned on boot to avoid drift across environments
       try {
-        const adapter = await getAdapter();
-        await runMigrations(adapter);
+        log.info('Running Knex migrations...');
+        const k = knex(dbConfig);
+        await k.migrate.latest();
+        await k.destroy();
+        log.info('Knex migrations completed successfully');
       } catch (error) {
         log.error('Failed to run migrations', { error });
         process.exit(1);

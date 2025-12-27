@@ -141,7 +141,7 @@ export function SettingsProvider({ children }: SettingsProviderProps) {
 
     updateDarkMode();
 
-    // Listen for system theme changes when using 'system' theme
+    // Listen for system theme changes when using 'system' theme for real-time updates
     if (theme === 'system') {
       const mediaQuery = window.matchMedia('(prefers-color-scheme: dark)');
       const handler = () => updateDarkMode();
@@ -151,7 +151,7 @@ export function SettingsProvider({ children }: SettingsProviderProps) {
   }, [theme]);
 
   /**
-   * Effect: Sync language with i18n library.
+   * Effect: Sync language with i18n library on change.
    */
   useEffect(() => {
     if (i18n.language !== language) {
@@ -159,22 +159,27 @@ export function SettingsProvider({ children }: SettingsProviderProps) {
     }
   }, [language, i18n]);
 
-  /** Update theme and persist to localStorage */
+  /** 
+   * Update theme and persist to localStorage.
+   * Also triggers class toggle on document element.
+   */
   const setTheme = useCallback((newTheme: Theme) => {
     setThemeState(newTheme);
     localStorage.setItem(STORAGE_KEY_THEME, newTheme);
   }, []);
 
-  /** Update language and persist to localStorage */
+  /** 
+   * Update language and persist to localStorage.
+   * Also updates i18n instance.
+   */
   const setLanguage = useCallback((newLang: LanguageCode) => {
     setLanguageState(newLang);
     localStorage.setItem(STORAGE_KEY_LANGUAGE, newLang);
     i18n.changeLanguage(newLang);
   }, [i18n]);
 
-  /** Open settings dialog */
+  /** Context methods for managing settings dialog visibility */
   const openSettings = useCallback(() => setIsSettingsOpen(true), []);
-  /** Close settings dialog */
   const closeSettings = useCallback(() => setIsSettingsOpen(false), []);
 
   return (
@@ -191,6 +196,7 @@ export function SettingsProvider({ children }: SettingsProviderProps) {
         closeSettings,
       }}
     >
+      {/* Configure Ant Design theme algorithm based on app state */}
       <ConfigProvider
         theme={{
           algorithm: isDarkMode ? antTheme.darkAlgorithm : antTheme.defaultAlgorithm,

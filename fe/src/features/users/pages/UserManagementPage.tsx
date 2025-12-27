@@ -92,6 +92,11 @@ export default function UserManagementPage() {
      * Fetch all users from the API.
      * Requires admin credentials (handled by backend).
      */
+    /**
+     * Fetch all users from the API.
+     * Requires admin credentials (verified by backend).
+     * Updates loading and error states.
+     */
     const fetchUsers = async () => {
         try {
             const response = await fetch(`${API_BASE_URL}/api/users`, {
@@ -110,6 +115,10 @@ export default function UserManagementPage() {
     /**
      * Fetch IP history for all users.
      */
+    /**
+     * Fetch IP access history for users.
+     * Populates the map of user IDs to IP history records.
+     */
     const fetchIpHistory = async () => {
         try {
             const response = await fetch(`${API_BASE_URL}/api/users/ip-history`, {
@@ -126,6 +135,10 @@ export default function UserManagementPage() {
     /**
      * Handle IP history button click - open dialog.
      */
+    /**
+     * Open the IP history dialog for a specific user.
+     * @param user - The user whose history to view.
+     */
     const handleViewIpHistory = (user: User) => {
         setIpDialogUser(user);
         setIsIpDialogOpen(true);
@@ -133,6 +146,10 @@ export default function UserManagementPage() {
 
     /**
      * Format date for display.
+     */
+    /**
+     * Format a date string to current locale string.
+     * @param dateString - ISO date string.
      */
     const formatDate = (dateString: string) => {
         return new Date(dateString).toLocaleString();
@@ -226,6 +243,11 @@ export default function UserManagementPage() {
     /**
      * Handle edit button click - open dialog with user's current role.
      */
+    /**
+     * Open the edit role dialog for a user.
+     * Pre-fills the current role.
+     * @param user - The user to edit.
+     */
     const handleEditClick = (user: User) => {
         setSelectedUser(user);
         setNewRole(user.role);
@@ -247,6 +269,10 @@ export default function UserManagementPage() {
 
     /**
      * Save role change via API and update local state.
+     */
+    /**
+     * Save the new role for the selected user.
+     * Triggers the mutation to update the backend.
      */
     const handleSaveRole = async () => {
         if (!selectedUser) return;

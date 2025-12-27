@@ -12,12 +12,13 @@ import { BroadcastMessage } from '@/models/types.js';
 export class BroadcastMessageService {
     /**
      * Get all currently active broadcast messages.
-     * If userId is provided, filter out messages that the user has already dismissed.
-     * 
-     * Uses ModelFactory.broadcastMessage.findActive() or findActiveExcludingDismissed().
+     * @param userId - Optional User ID to filter out dismissed messages.
+     * @returns Promise<BroadcastMessage[]> - List of active messages.
+     * @description Fetches messages that are currently active, optionally excluding those dismissed by the user.
      */
     async getActiveMessages(userId?: string): Promise<BroadcastMessage[]> {
         try {
+            // Get current timestamp
             const now = new Date().toISOString();
 
             if (userId) {
@@ -28,6 +29,7 @@ export class BroadcastMessageService {
                 return ModelFactory.broadcastMessage.findActive(now);
             }
         } catch (error) {
+            // Log error and rethrow
             log.error('Failed to fetch active broadcast messages', { userId, error: String(error) });
             throw error;
         }
@@ -35,8 +37,12 @@ export class BroadcastMessageService {
 
     /**
      * Record a message dismissal for a user.
-     * 
-     * Uses ModelFactory.userDismissedBroadcast.upsertDismissal() for INSERT ON CONFLICT.
+     * @param userId - The ID of the user.
+     * @param broadcastId - The ID of the broadcast message.
+     * @param userEmail - Optional email for audit log.
+     * @param ipAddress - Optional IP address for audit log.
+     * @returns Promise<void>
+     * @description Marks a message as dismissed for a specific user and logs the action.
      */
     async dismissMessage(userId: string, broadcastId: string, userEmail?: string, ipAddress?: string): Promise<void> {
         try {
@@ -55,6 +61,7 @@ export class BroadcastMessageService {
 
             log.info('Broadcast message dismissed by user', { userId, broadcastId });
         } catch (error) {
+            // Log error and rethrow
             log.error('Failed to dismiss broadcast message', { userId, broadcastId, error: String(error) });
             throw error;
         }
@@ -62,13 +69,15 @@ export class BroadcastMessageService {
 
     /**
      * Get all broadcast messages (admin only).
-     * 
-     * Uses ModelFactory.broadcastMessage.findAll() with ordering.
+     * @returns Promise<BroadcastMessage[]> - List of all messages.
+     * @description Fetches all broadcast messages ordered by creation date.
      */
     async getAllMessages(): Promise<BroadcastMessage[]> {
         try {
+            // Fetch all messages via model factory
             return ModelFactory.broadcastMessage.findAll({}, { orderBy: { created_at: 'desc' } });
         } catch (error) {
+            // Log error and rethrow
             log.error('Failed to fetch all broadcast messages', { error: String(error) });
             throw error;
         }
@@ -76,15 +85,17 @@ export class BroadcastMessageService {
 
     /**
      * Create a new broadcast message.
-     * 
-     * Uses ModelFactory.broadcastMessage.create() for database insertion.
+     * @param data - The message data.
+     * @param user - Optional user context for audit.
+     * @returns Promise<BroadcastMessage> - The created message.
+     * @description Creates a new broadcast message and logs the action.
      */
     async createMessage(
         data: Omit<BroadcastMessage, 'id' | 'created_at' | 'updated_at'>,
         user?: { id: string, email: string, ip?: string }
     ): Promise<BroadcastMessage> {
         try {
-            // Create message using model factory
+            // Create message using model factory with defaults
             const message = await ModelFactory.broadcastMessage.create({
                 message: data.message,
                 starts_at: data.starts_at,
@@ -114,6 +125,7 @@ export class BroadcastMessageService {
 
             return message;
         } catch (error) {
+            // Log error and rethrow
             log.error('Failed to create broadcast message', { error: String(error) });
             throw error;
         }
@@ -121,8 +133,11 @@ export class BroadcastMessageService {
 
     /**
      * Update an existing broadcast message.
-     * 
-     * Uses ModelFactory.broadcastMessage.update() for partial updates.
+     * @param id - The ID of the message to update.
+     * @param data - The data to update.
+     * @param user - Optional user context for audit.
+     * @returns Promise<BroadcastMessage | null> - The updated message or null.
+     * @description Updates a broadcast message and logs the action.
      */
     async updateMessage(
         id: string,
@@ -161,6 +176,7 @@ export class BroadcastMessageService {
 
             return message || null;
         } catch (error) {
+            // Log error and rethrow
             log.error('Failed to update broadcast message', { id, error: String(error) });
             throw error;
         }
@@ -168,12 +184,14 @@ export class BroadcastMessageService {
 
     /**
      * Delete a broadcast message.
-     * 
-     * Uses ModelFactory.broadcastMessage.findById() and delete().
+     * @param id - The ID of the message to delete.
+     * @param user - Optional user context for audit.
+     * @returns Promise<boolean> - True if deleted successfully.
+     * @description Deletes a broadcast message and logs the action.
      */
     async deleteMessage(id: string, user?: { id: string, email: string, ip?: string }): Promise<boolean> {
         try {
-            // Fetch message before deletion for audit logging
+            // Fetch message before deletion for audit logging details
             const message = await ModelFactory.broadcastMessage.findById(id);
 
             // Delete message using model factory
@@ -194,6 +212,7 @@ export class BroadcastMessageService {
 
             return true;
         } catch (error) {
+            // Log error and rethrow
             log.error('Failed to delete broadcast message', { id, error: String(error) });
             throw error;
         }

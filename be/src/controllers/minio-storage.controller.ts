@@ -3,64 +3,54 @@
  * Uses documentPermissionService to guard every action; audit events are emitted for mutating operations.
  */
 import { Request, Response } from 'express'
-import { minioService } from '@/services/minio.service.js'
 import { log } from '@/services/logger.service.js'
-import { ModelFactory } from '@/models/factory.js'
-import { documentPermissionService, PermissionLevel } from '@/services/document-permission.service.js'
-import { auditService, AuditAction, AuditResourceType } from '@/services/audit.service.js'
 import { getClientIp } from '@/utils/ip.js'
+import { minioStorageService } from '@/services/minio-storage.service.js'
 
 export class MinioStorageController {
 
-    private async getBucketName(bucketId: string): Promise<string | null> {
-        try {
-            const bucket = await ModelFactory.minioBucket.findById(bucketId);
-            return bucket ? bucket.bucket_name : null;
-        } catch (error) {
-            log.error('Failed to resolve bucket name', { bucketId, error: String(error) });
-            return null;
-        }
-    }
-
-    private async checkBucketAccess(req: Request, bucketId: string, requiredLevel: PermissionLevel): Promise<boolean> {
-        const user = req.user;
-        if (!user) return false;
-
-        if (user.role === 'admin') return true;
-
-        const level = await documentPermissionService.resolveUserPermission(user.id, bucketId);
-        return level >= requiredLevel;
-    }
-
+    /**
+     * List files in a bucket.
+     * @param req - Express request object.
+     * @param res - Express response object.
+     * @returns Promise<void>
+     */
     async listFiles(req: Request, res: Response): Promise<void> {
         const { bucketId } = req.params;
         const prefix = req.query.prefix as string || '';
 
+        // Validate bucket ID
         if (!bucketId) {
             res.status(400).json({ error: 'Bucket ID is required' });
             return;
         }
 
-        if (!(await this.checkBucketAccess(req, bucketId, PermissionLevel.VIEW))) {
-            res.status(403).json({ error: 'Access Denied' });
-            return;
-        }
-
-        const bucketName = await this.getBucketName(bucketId);
-        if (!bucketName) {
-            res.status(404).json({ error: 'Bucket not found' });
-            return;
-        }
-
         try {
-            const files = await minioService.listFiles(bucketName, prefix);
+            // List files via service (enforces permissions)
+            const files = await minioStorageService.listFiles(req.user, bucketId, prefix);
             res.json({ objects: files });
-        } catch (error) {
-            log.error('Failed to list files', { error: String(error) });
+        } catch (error: any) {
+            // Error handling with specific status codes
+            const message = String(error.message || error);
+            if (message.includes('Access Denied')) {
+                res.status(403).json({ error: 'Access Denied' });
+                return;
+            }
+            if (message.includes('Bucket not found')) {
+                res.status(404).json({ error: 'Bucket not found' });
+                return;
+            }
+            log.error('Failed to list files', { error: message });
             res.status(500).json({ error: 'Failed to list files' });
         }
     }
 
+    /**
+     * Upload files to a bucket.
+     * @param req - Express request object containing files.
+     * @param res - Express response object.
+     * @returns Promise<void>
+     */
     async uploadFile(req: Request, res: Response): Promise<void> {
         const { bucketId } = req.params;
         if (!bucketId) {
@@ -68,84 +58,43 @@ export class MinioStorageController {
             return;
         }
 
-        if (!(await this.checkBucketAccess(req, bucketId, PermissionLevel.UPLOAD))) {
-            res.status(403).json({ error: 'Access Denied' });
-            return;
-        }
-
-        const bucketName = await this.getBucketName(bucketId);
-        if (!bucketName) {
-            res.status(404).json({ error: 'Bucket not found' });
-            return;
-        }
-
+        // Handle array or single file upload
         let files = req.files as Express.Multer.File[];
         if (!files && req.file) {
             files = [req.file];
         }
 
+        // Validate file presence
         if (!files || files.length === 0) {
             res.status(400).json({ error: 'No files uploaded' });
             return;
         }
 
-        const filePaths = req.body.filePaths;
-        const preserveStructure = req.body.preserveFolderStructure === 'true';
-
         try {
-            const results = [];
-            for (const file of files) {
-                let objectName = file.originalname;
-
-                if (preserveStructure && filePaths) {
-                    // Try to find matching path if array, or use single path
-                    // Note: This logic assumes filePaths array index matches files array index
-                    // If filePaths is not an array but a single string, unexpected behavior if multiple files?
-                    // Assuming frontend sends parallel arrays.
-                    const paths = Array.isArray(filePaths) ? filePaths : [filePaths];
-                    // Find index of current file in files array if we need to map by index
-                    const index = files.indexOf(file);
-                    if (paths[index]) {
-                        objectName = paths[index];
-                    }
-                }
-
-                const prefix = req.query.prefix as string;
-                if (prefix) {
-                    const cleanPrefix = prefix.endsWith('/') ? prefix : `${prefix}/`;
-                    const cleanName = objectName.startsWith('/') ? objectName.substring(1) : objectName;
-                    file.originalname = `${cleanPrefix}${cleanName}`;
-                } else if (preserveStructure) {
-                    file.originalname = objectName;
-                }
-
-                await minioService.uploadFile(bucketName, file, req.user?.id);
-                results.push({ name: file.originalname, status: 'uploaded' });
-
-                await auditService.log({
-                    userId: req.user?.id,
-                    userEmail: req.user?.email || 'unknown',
-                    action: AuditAction.UPLOAD_FILE,
-                    resourceType: AuditResourceType.FILE,
-                    resourceId: file.originalname,
-                    details: {
-                        bucketId,
-                        bucketName,
-                        fileName: file.originalname,
-                        size: file.size,
-                        mimeType: file.mimetype
-                    },
-                    ipAddress: getClientIp(req)
-                });
-            }
-
+            // Upload via service
+            const results = await minioStorageService.uploadFile(req.user, bucketId, files, req.body, getClientIp(req));
             res.status(201).json(results);
-        } catch (error) {
-            log.error('Failed to upload file', { error: String(error) });
+        } catch (error: any) {
+            const message = String(error.message || error);
+            if (message.includes('Access Denied')) {
+                res.status(403).json({ error: 'Access Denied' });
+                return;
+            }
+            if (message.includes('Bucket not found')) {
+                res.status(404).json({ error: 'Bucket not found' });
+                return;
+            }
+            log.error('Failed to upload file', { error: message });
             res.status(500).json({ error: 'Failed to upload file' });
         }
     }
 
+    /**
+     * Create a virtual folder in a bucket.
+     * @param req - Express request object.
+     * @param res - Express response object.
+     * @returns Promise<void>
+     */
     async createFolder(req: Request, res: Response): Promise<void> {
         const { bucketId } = req.params;
         const { folderName, prefix } = req.body;
@@ -155,38 +104,31 @@ export class MinioStorageController {
             return;
         }
 
-        if (!(await this.checkBucketAccess(req, bucketId, PermissionLevel.UPLOAD))) {
-            res.status(403).json({ error: 'Access Denied' });
-            return;
-        }
-
-        const bucketName = await this.getBucketName(bucketId);
-        if (!bucketName) {
-            res.status(404).json({ error: 'Bucket not found' });
-            return;
-        }
-
         try {
-            const fullPath = prefix ? `${prefix}${folderName}` : folderName;
-            await minioService.createFolder(bucketName, fullPath);
-
-            await auditService.log({
-                userId: req.user?.id,
-                userEmail: req.user?.email || 'unknown',
-                action: AuditAction.CREATE_FOLDER,
-                resourceType: AuditResourceType.FILE,
-                resourceId: fullPath,
-                details: { bucketId, bucketName, folderName: fullPath },
-                ipAddress: getClientIp(req)
-            });
-
+            // Create folder via service
+            await minioStorageService.createFolder(req.user, bucketId, folderName, prefix, getClientIp(req));
             res.status(201).json({ message: 'Folder created' });
-        } catch (error) {
-            log.error('Failed to create folder', { error: String(error) });
+        } catch (error: any) {
+            const message = String(error.message || error);
+            if (message.includes('Access Denied')) {
+                res.status(403).json({ error: 'Access Denied' });
+                return;
+            }
+            if (message.includes('Bucket not found')) {
+                res.status(404).json({ error: 'Bucket not found' });
+                return;
+            }
+            log.error('Failed to create folder', { error: message });
             res.status(500).json({ error: 'Failed to create folder' });
         }
     }
 
+    /**
+     * Delete an object (file or folder).
+     * @param req - Express request object.
+     * @param res - Express response object.
+     * @returns Promise<void>
+     */
     async deleteObject(req: Request, res: Response): Promise<void> {
         const { bucketId } = req.params;
         const { path, isFolder } = req.body;
@@ -196,43 +138,31 @@ export class MinioStorageController {
             return;
         }
 
-        // Deletion requires FULL permission? Or UPLOAD? 
-        // Frontend hides Delete unless FULL. Enforcing FULL here.
-        if (!(await this.checkBucketAccess(req, bucketId, PermissionLevel.FULL))) {
-            res.status(403).json({ error: 'Access Denied' });
-            return;
-        }
-
-        const bucketName = await this.getBucketName(bucketId);
-        if (!bucketName) {
-            res.status(404).json({ error: 'Bucket not found' });
-            return;
-        }
-
         try {
-            if (isFolder) {
-                await minioService.deleteFolder(bucketName, path);
-            } else {
-                await minioService.deleteFile(bucketName, path, req.user?.id);
-            }
-
-            await auditService.log({
-                userId: req.user?.id,
-                userEmail: req.user?.email || 'unknown',
-                action: isFolder ? AuditAction.DELETE_FOLDER : AuditAction.DELETE_FILE,
-                resourceType: AuditResourceType.FILE,
-                resourceId: path,
-                details: { bucketId, bucketName, path, isFolder },
-                ipAddress: getClientIp(req)
-            });
-
+            // Delete object via service
+            await minioStorageService.deleteObject(req.user, bucketId, path, isFolder, getClientIp(req));
             res.status(204).send();
-        } catch (error) {
-            log.error('Failed to delete object', { error: String(error) });
+        } catch (error: any) {
+            const message = String(error.message || error);
+            if (message.includes('Access Denied')) {
+                res.status(403).json({ error: 'Access Denied' });
+                return;
+            }
+            if (message.includes('Bucket not found')) {
+                res.status(404).json({ error: 'Bucket not found' });
+                return;
+            }
+            log.error('Failed to delete object', { error: message });
             res.status(500).json({ error: 'Failed to delete object' });
         }
     }
 
+    /**
+     * Bulk delete objects (batch).
+     * @param req - Express request object.
+     * @param res - Express response object.
+     * @returns Promise<void>
+     */
     async batchDelete(req: Request, res: Response): Promise<void> {
         const { bucketId } = req.params;
         const { items } = req.body;
@@ -242,46 +172,31 @@ export class MinioStorageController {
             return;
         }
 
-        if (!(await this.checkBucketAccess(req, bucketId, PermissionLevel.FULL))) {
-            res.status(403).json({ error: 'Access Denied' });
-            return;
-        }
-
-        const bucketName = await this.getBucketName(bucketId);
-        if (!bucketName) {
-            res.status(404).json({ error: 'Bucket not found' });
-            return;
-        }
-
         try {
-            const files = items.filter(i => !i.isFolder).map(i => i.path);
-            const folders = items.filter(i => i.isFolder).map(i => i.path);
-
-            if (files.length > 0) {
-                await minioService.deleteObjects(bucketName, files);
-            }
-
-            for (const folder of folders) {
-                await minioService.deleteFolder(bucketName, folder);
-            }
-
-            await auditService.log({
-                userId: req.user?.id,
-                userEmail: req.user?.email || 'unknown',
-                action: AuditAction.BATCH_DELETE,
-                resourceType: AuditResourceType.FILE,
-                resourceId: `batch-${items.length}`,
-                details: { bucketId, bucketName, count: items.length, items },
-                ipAddress: getClientIp(req)
-            });
-
+            // Batch delete via service
+            await minioStorageService.batchDelete(req.user, bucketId, items, getClientIp(req));
             res.status(200).json({ message: 'Batch delete completed' });
-        } catch (error) {
-            log.error('Failed to batch delete', { error: String(error) });
+        } catch (error: any) {
+            const message = String(error.message || error);
+            if (message.includes('Access Denied')) {
+                res.status(403).json({ error: 'Access Denied' });
+                return;
+            }
+            if (message.includes('Bucket not found')) {
+                res.status(404).json({ error: 'Bucket not found' });
+                return;
+            }
+            log.error('Failed to batch delete', { error: message });
             res.status(500).json({ error: 'Failed to batch delete' });
         }
     }
 
+    /**
+     * Get a presigned download URL for a file.
+     * @param req - Express request object.
+     * @param res - Express response object.
+     * @returns Promise<void>
+     */
     async getDownloadUrl(req: Request, res: Response): Promise<void> {
         const { bucketId } = req.params;
         const objectPath = req.params[0] || req.params.objectPath;
@@ -292,40 +207,31 @@ export class MinioStorageController {
             return;
         }
 
-        if (!(await this.checkBucketAccess(req, bucketId, PermissionLevel.VIEW))) {
-            res.status(403).json({ error: 'Access Denied' });
-            return;
-        }
-
-        const bucketName = await this.getBucketName(bucketId);
-        if (!bucketName) {
-            res.status(404).json({ error: 'Bucket not found' });
-            return;
-        }
-
         try {
-            const disposition = preview ? 'inline' : 'attachment';
-            const url = await minioService.getDownloadUrl(bucketName, objectPath, 3600, disposition);
-
-            if (!preview) {
-                await auditService.log({
-                    userId: req.user?.id,
-                    userEmail: req.user?.email || 'unknown',
-                    action: AuditAction.DOWNLOAD_FILE,
-                    resourceType: AuditResourceType.FILE,
-                    resourceId: objectPath,
-                    details: { bucketId, bucketName, objectPath },
-                    ipAddress: getClientIp(req)
-                });
-            }
-
+            // Generate presigned URL via service
+            const url = await minioStorageService.getDownloadUrl(req.user, bucketId, objectPath, preview, getClientIp(req));
             res.json({ download_url: url });
-        } catch (error) {
-            log.error('Failed to get download URL', { error: String(error) });
+        } catch (error: any) {
+            const message = String(error.message || error);
+            if (message.includes('Access Denied')) {
+                res.status(403).json({ error: 'Access Denied' });
+                return;
+            }
+            if (message.includes('Bucket not found')) {
+                res.status(404).json({ error: 'Bucket not found' });
+                return;
+            }
+            log.error('Failed to get download URL', { error: message });
             res.status(500).json({ error: 'Failed to get download URL' });
         }
     }
 
+    /**
+     * Deprecated: direct download (use getDownloadUrl instead).
+     * @param req - Express request object.
+     * @param res - Express response object.
+     * @returns Promise<void>
+     */
     async downloadFile(req: Request, res: Response): Promise<void> {
         res.status(404).json({ error: "Use getDownloadUrl" });
     }

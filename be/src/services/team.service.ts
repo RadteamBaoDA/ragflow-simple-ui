@@ -36,7 +36,11 @@ export interface UpdateTeamDTO {
 export class TeamService {
     /**
      * Create a new team.
-     * Uses ModelFactory.team.create() for database insertion.
+     * @param data - Team creation data (name, project, description).
+     * @param user - User context for audit logging.
+     * @returns Promise<Team> - The created Team object.
+     * @throws Error if creation fails.
+     * @description Creates a team record and logs the action.
      */
     async createTeam(data: CreateTeamDTO, user?: { id: string, email: string, ip?: string }): Promise<Team> {
         const id = uuidv4();
@@ -69,7 +73,8 @@ export class TeamService {
 
     /**
      * Get all teams ordered by creation date.
-     * Uses ModelFactory.team.findAll() with ordering.
+     * @returns Promise<Team[]> - List of all teams.
+     * @description Fetches all teams sorted by created_at desc.
      */
     async getAllTeams(): Promise<Team[]> {
         return ModelFactory.team.findAll({}, { orderBy: { created_at: 'desc' } });
@@ -77,7 +82,9 @@ export class TeamService {
 
     /**
      * Get a team by ID.
-     * Uses ModelFactory.team.findById() for single record lookup.
+     * @param id - Team ID.
+     * @returns Promise<Team | undefined> - Team object or undefined if not found.
+     * @description Retrieves a single team record.
      */
     async getTeam(id: string): Promise<Team | undefined> {
         return ModelFactory.team.findById(id);
@@ -85,7 +92,11 @@ export class TeamService {
 
     /**
      * Update a team.
-     * Uses ModelFactory.team.update() for partial updates.
+     * @param id - Team ID.
+     * @param data - Update payload.
+     * @param user - User context for audit logging.
+     * @returns Promise<Team | undefined> - Updated team object.
+     * @description Updates team details and logs the action.
      */
     async updateTeam(id: string, data: UpdateTeamDTO, user?: { id: string, email: string, ip?: string }): Promise<Team | undefined> {
         // Build update data object with only defined fields
@@ -118,7 +129,10 @@ export class TeamService {
 
     /**
      * Delete a team.
-     * Uses ModelFactory.team.delete() for removal.
+     * @param id - Team ID.
+     * @param user - User context for audit logging.
+     * @returns Promise<void>
+     * @description Removes a team and logs the action.
      */
     async deleteTeam(id: string, user?: { id: string, email: string, ip?: string }): Promise<void> {
         // Fetch team details before deletion for audit logging
@@ -143,7 +157,12 @@ export class TeamService {
 
     /**
      * Add a user to a team (or update role if already member).
-     * Uses ModelFactory.userTeam.upsert() for INSERT ON CONFLICT.
+     * @param teamId - Team ID.
+     * @param userId - User ID.
+     * @param role - Role ('member' or 'leader').
+     * @param actor - Actor context for audit logging.
+     * @returns Promise<void>
+     * @description Upserts user-team membership and logs action.
      */
     async addUserToTeam(
         teamId: string,
@@ -170,7 +189,11 @@ export class TeamService {
 
     /**
      * Remove a user from a team.
-     * Uses ModelFactory.userTeam.deleteByUserAndTeam().
+     * @param teamId - Team ID.
+     * @param userId - User ID to remove.
+     * @param actor - Actor context for audit logging.
+     * @returns Promise<void>
+     * @description Deletes user-team membership and logs action.
      */
     async removeUserFromTeam(teamId: string, userId: string, actor?: { id: string, email: string, ip?: string }): Promise<void> {
         // Delete user-team membership using model factory
@@ -192,7 +215,9 @@ export class TeamService {
 
     /**
      * Get users in a team with their membership roles.
-     * Uses ModelFactory.userTeam.findMembersByTeamId() for JOIN query.
+     * @param teamId - Team ID.
+     * @returns Promise<any[]> - List of members with user details.
+     * @description Wraps model method to join users and user_teams.
      */
     async getTeamMembers(teamId: string): Promise<any[]> {
         return ModelFactory.userTeam.findMembersByTeamId(teamId);
@@ -200,7 +225,9 @@ export class TeamService {
 
     /**
      * Get teams for a specific user.
-     * Uses ModelFactory.userTeam.findTeamsWithDetailsByUserId() for JOIN query.
+     * @param userId - User ID.
+     * @returns Promise<Team[]> - List of teams the user belongs to.
+     * @description Wraps model method to find teams by user.
      */
     async getUserTeams(userId: string): Promise<Team[]> {
         return ModelFactory.userTeam.findTeamsWithDetailsByUserId(userId);
@@ -209,13 +236,12 @@ export class TeamService {
 
     /**
      * Add multiple members to a team with automatic role assignment.
-     * 
-     * Role mapping logic:
-     * - Global 'admin' -> Throw error (Cannot be added to teams)
-     * - Global 'leader' -> Team 'leader'
-     * - Global 'user' -> Team 'member'
-     * 
-     * Uses ModelFactory.userTeam.findUsersByIds() for batch user lookup.
+     * @param teamId - Team ID.
+     * @param userIds - Array of user IDs to add.
+     * @param actor - Actor context for audit logging.
+     * @returns Promise<void>
+     * @throws Error if no users found or if admin is included.
+     * @description Maps global roles to team roles (leader->leader, user->member) and adds qualified users.
      */
     async addMembersWithAutoRole(teamId: string, userIds: string[], actor?: { id: string, email: string, ip?: string }): Promise<void> {
         if (!userIds || userIds.length === 0) return;
@@ -242,9 +268,11 @@ export class TeamService {
 
     /**
      * Grant permissions to all members of a team.
-     * Merges new permissions with existing ones for each user.
-     * 
-     * Uses ModelFactory.user.findById() for individual user lookup.
+     * @param teamId - Team ID.
+     * @param permissionsToGrant - Array of permissions strings.
+     * @param actor - Actor context for audit logging.
+     * @returns Promise<void>
+     * @description Iterates all team members and merges new permissions into their user profile.
      */
     async grantPermissionsToTeam(teamId: string, permissionsToGrant: string[], actor?: { id: string, email: string, ip?: string }): Promise<void> {
         // Get all team members

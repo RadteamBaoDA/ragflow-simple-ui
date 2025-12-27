@@ -1,13 +1,13 @@
 /**
  * @fileoverview Login page component with Azure AD OAuth.
- * 
+ *
  * Provides authentication UI with:
  * - Microsoft/Azure AD sign-in button
  * - Optional root login dialog for development/emergency access
  * - Redirect handling for post-login navigation
  * - Error message display from OAuth flow
  * - Full i18n support for all text
- * 
+ *
  * @module pages/LoginPage
  */
 
@@ -29,14 +29,16 @@ const API_BASE_URL = import.meta.env.VITE_API_BASE_URL || '';
 // ============================================================================
 
 /**
- * Login page with Azure AD OAuth and optional root login.
- * 
+ * @description Login page with Azure AD OAuth and optional root login.
+ *
  * Features:
  * - Azure AD OAuth sign-in button
  * - Optional root login dialog (when enabled in config)
  * - Theme-aware styling
  * - Automatic redirect if already authenticated
  * - Error display from OAuth callback
+ *
+ * @returns {JSX.Element} The rendered Login page.
  */
 function LoginPage() {
   const { t } = useTranslation();
@@ -57,7 +59,6 @@ function LoginPage() {
   const [rootLoginError, setRootLoginError] = useState<string | null>(null);
 
   // Select logo based on theme
-  // Select logo based on theme
   const logoSrc = resolvedTheme === 'dark' ? logoDark : logo;
 
   // ============================================================================
@@ -65,8 +66,8 @@ function LoginPage() {
   // ============================================================================
 
   /**
-   * Effect: Apply theme class to document.
-   * Required since login page is outside Layout component.
+   * @description Effect: Apply theme class to document.
+   * Required since login page is found outside the main Layout component which normally handles this.
    */
   useEffect(() => {
     if (resolvedTheme === 'dark') {
@@ -77,8 +78,8 @@ function LoginPage() {
   }, [resolvedTheme]);
 
   /**
-   * Effect: Fetch auth configuration.
-   * Checks if root login is enabled for this deployment.
+   * @description Effect: Fetch auth configuration.
+   * Checks if root login is enabled for this deployment to conditionally render the option.
    */
   useEffect(() => {
     const fetchConfig = async () => {
@@ -96,8 +97,8 @@ function LoginPage() {
   }, []);
 
   /**
-   * Effect: Redirect if already authenticated.
-   * Navigates to the intended destination from redirect param.
+   * @description Effect: Redirect if already authenticated.
+   * Navigates to the intended destination from redirect param or default page.
    */
   useEffect(() => {
     if (!isLoading && isAuthenticated) {
@@ -111,8 +112,8 @@ function LoginPage() {
   // ============================================================================
 
   /**
-   * Handle Microsoft/Azure AD login button click.
-   * Redirects to backend OAuth login endpoint with redirect URL.
+   * @description Handle Microsoft/Azure AD login button click.
+   * Redirects to backend OAuth login endpoint with redirect URL for callback.
    */
   const handleLogin = () => {
     const loginUrl = `${API_BASE_URL}/api/auth/login?redirect=${encodeURIComponent(window.location.origin + redirect)}`;
@@ -121,7 +122,7 @@ function LoginPage() {
   };
 
   /**
-   * Handle root login form submission.
+   * @description Handle root login form submission.
    * Posts credentials to backend and redirects on success.
    */
   const handleRootLogin = async () => {
@@ -135,7 +136,7 @@ function LoginPage() {
       });
 
       if (response.ok) {
-        // Force reload to pick up session
+        // Force reload to pick up session and redirect
         window.location.href = redirect;
       } else {
         const data = await response.json();
@@ -148,7 +149,8 @@ function LoginPage() {
   };
 
   /**
-   * Handle Enter key press in root login form.
+   * @description Handle Enter key press in root login form.
+   * Triggers login submission.
    */
   const handleKeyDown = (e: React.KeyboardEvent) => {
     if (e.key === 'Enter') {
@@ -156,12 +158,12 @@ function LoginPage() {
     }
   };
 
-  // Show loading while checking auth status
+  // Show loading while checking auth status to prevent flicker
   if (isLoading) {
     return (
       <div className="min-h-screen bg-slate-50 dark:bg-slate-900 flex items-center justify-center">
         <div className="text-center">
-          <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-blue-600 mx-auto mb-4"></div>
+          <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-primary mx-auto mb-4"></div>
           <p className="text-slate-600 dark:text-slate-400">{t('common.checkingSession')}</p>
         </div>
       </div>

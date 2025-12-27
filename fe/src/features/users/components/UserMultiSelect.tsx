@@ -1,16 +1,29 @@
+/**
+ * @fileoverview Multi-select component for users.
+ * Uses Headless UI Combobox for search and selection.
+ */
 import { useState, useMemo, Fragment } from 'react';
 import { Combobox, Transition } from '@headlessui/react';
 import { Check, ChevronsUpDown, X } from 'lucide-react';
 import { User } from '@/features/auth';
 import { useTranslation } from 'react-i18next';
 
+/** Props for UserMultiSelect component */
 interface UserMultiSelectProps {
+    /** List of available users */
     users: User[];
+    /** Array of selected user IDs */
     selectedUserIds: string[];
+    /** Callback when selection changes */
     onChange: (userIds: string[]) => void;
+    /** Placeholder text for input */
     placeholder?: string;
 }
 
+/**
+ * UserMultiSelect Component
+ * Allows selecting multiple users from a list with search filtering.
+ */
 export default function UserMultiSelect({ users, selectedUserIds, onChange, placeholder }: UserMultiSelectProps) {
     const { t } = useTranslation();
     const [query, setQuery] = useState('');
@@ -29,11 +42,19 @@ export default function UserMultiSelect({ users, selectedUserIds, onChange, plac
         return users.filter(u => selectedUserIds.includes(u.id));
     }, [users, selectedUserIds]);
 
+    /**
+     * Handle selection change from Combobox.
+     * @param userIds - New array of selected IDs.
+     */
     const handleChange = (userIds: string[]) => {
         onChange(userIds);
         setQuery(''); // Clear query after selection
     };
 
+    /**
+     * Remove a user from the selected list.
+     * @param userId - ID of the user to remove.
+     */
     const removeUser = (userId: string) => {
         onChange(selectedUserIds.filter(id => id !== userId));
     };

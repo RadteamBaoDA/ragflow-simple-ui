@@ -1,3 +1,7 @@
+/**
+ * @fileoverview Modal component for managing Knowledge Base source permissions.
+ */
+
 import { useState, useEffect } from 'react';
 import { useTranslation } from 'react-i18next';
 import { useQuery } from '@tanstack/react-query';
@@ -7,6 +11,9 @@ import { teamService } from '@/features/teams';
 import { userService } from '@/features/users';
 import { Check, Search, Users, Shield, User as UserIcon } from 'lucide-react';
 
+/**
+ * @description Props for PermissionsSelector sub-component.
+ */
 interface PermissionsSelectorProps {
     isPublic: boolean;
     setIsPublic: (val: boolean) => void;
@@ -16,6 +23,10 @@ interface PermissionsSelectorProps {
     setSelectedUserIds: (ids: string[]) => void;
 }
 
+/**
+ * @description Sub-component responsible for rendering the UI controls to select permissions.
+ * Includes a toggle for public access, and multi-select lists for teams and users.
+ */
 export function PermissionsSelector({
     isPublic,
     setIsPublic,
@@ -168,6 +179,9 @@ export function PermissionsSelector({
     );
 }
 
+/**
+ * @description Props for SourcePermissionsModal.
+ */
 interface SourcePermissionsModalProps {
     open: boolean;
     onClose: () => void;
@@ -175,6 +189,13 @@ interface SourcePermissionsModalProps {
     onSave: (sourceId: string, accessControl: AccessControl) => void;
 }
 
+/**
+ * @description Modal for configuring Access Control List (ACL) for a specific Knowledge Base Source.
+ * Wraps the PermissionsSelector in a Dialog.
+ *
+ * @param {SourcePermissionsModalProps} props - Component properties.
+ * @returns {JSX.Element | null} The permissions modal.
+ */
 export function SourcePermissionsModal({ open, onClose, source, onSave }: SourcePermissionsModalProps) {
     const { t } = useTranslation();
     const [isPublic, setIsPublic] = useState(true);
@@ -243,7 +264,6 @@ export function SourcePermissionsModal({ open, onClose, source, onSave }: Source
         </Dialog>
     );
 }
-
 
 // Add strict identifier for search reference
 export const ComponentName = "SourcePermissionsModal";

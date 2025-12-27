@@ -32,6 +32,8 @@ import '@/i18n';
 const AiChatPage = lazy(() => import('@/features/ai').then(m => ({ default: m.AiChatPage })));
 const AiSearchPage = lazy(() => import('@/features/ai').then(m => ({ default: m.AiSearchPage })));
 const HistoryPage = lazy(() => import('@/features/history').then(m => ({ default: m.HistoryPage })));
+const ChatHistoryPage = lazy(() => import('@/features/history').then(m => ({ default: m.ChatHistoryPage })));
+const SearchHistoryPage = lazy(() => import('@/features/history').then(m => ({ default: m.SearchHistoryPage })));
 const LoginPage = lazy(() => import('@/features/auth').then(m => ({ default: m.LoginPage })));
 const LogoutPage = lazy(() => import('@/features/auth').then(m => ({ default: m.LogoutPage })));
 const UserManagementPage = lazy(() => import('@/features/users').then(m => ({ default: m.UserManagementPage })));
@@ -45,6 +47,7 @@ const TokenizerPage = lazy(() => import('@/features/ai').then(m => ({ default: m
 const StoragePage = lazy(() => import('@/features/storage').then(m => ({ default: m.StoragePage })));
 const KnowledgeBaseConfigPage = lazy(() => import('@/features/knowledge-base').then(m => ({ default: m.KnowledgeBaseConfigPage })));
 const BroadcastMessagePage = lazy(() => import('@/features/broadcast').then(m => ({ default: m.BroadcastMessagePage })));
+const HistoriesPage = lazy(() => import('@/features/histories').then(m => ({ default: m.HistoriesPage })));
 
 // ============================================================================
 // Loading Component
@@ -129,7 +132,11 @@ function App() {
                       )}
 
                       {config.features.enableHistory && (
-                        <Route path="history" element={<HistoryPage />} />
+                        <>
+                          <Route path="history" element={<HistoryPage />} />
+                          <Route path="chat-history" element={<ChatHistoryPage />} />
+                          <Route path="search-history" element={<SearchHistoryPage />} />
+                        </>
                       )}
 
                       <Route path="user-management" element={
@@ -180,6 +187,11 @@ function App() {
                       <Route path="broadcast-messages" element={
                         <AdminRoute>
                           <BroadcastMessagePage />
+                        </AdminRoute>
+                      } />
+                      <Route path="histories" element={
+                        <AdminRoute>
+                          <HistoriesPage />
                         </AdminRoute>
                       } />
                     </Route>

@@ -1,16 +1,9 @@
 /**
  * @fileoverview Protected route wrapper for authenticated pages.
- * 
+ *
  * Guards routes that require authentication. Shows loading state
  * while checking session and redirects to login if not authenticated.
- * 
- * Usage:
- * ```tsx
- * <Route element={<ProtectedRoute><Layout /></ProtectedRoute>}>
- *   <Route path="/dashboard" element={<Dashboard />} />
- * </Route>
- * ```
- * 
+ *
  * @module components/ProtectedRoute
  */
 
@@ -24,9 +17,12 @@ import { useEffect } from 'react';
 // Types
 // ============================================================================
 
+/** 
+ * @description Props for ProtectedRoute component 
+ */
 interface ProtectedRouteProps {
-    /** Child components to render when authenticated */
-    children: React.ReactNode;
+  /** Child components to render when authenticated */
+  children: React.ReactNode;
 }
 
 // ============================================================================
@@ -34,16 +30,11 @@ interface ProtectedRouteProps {
 // ============================================================================
 
 /**
- * Route wrapper that protects routes requiring authentication.
- * 
- * Behavior:
- * - Shows loading spinner while checking session
- * - Redirects to /login with redirect param if not authenticated
- * - Renders children if authenticated
- * 
- * Also applies theme class during loading (before Layout is rendered).
- * 
- * @param children - Components to render for authenticated users
+ * @description Route wrapper that protects routes requiring authentication.
+ * Manages loading state and redirects unauthenticated users to login.
+ *
+ * @param {ProtectedRouteProps} props - Component properties.
+ * @returns {JSX.Element} The child components or a loading/redirect state.
  */
 function ProtectedRoute({ children }: ProtectedRouteProps) {
   const { t } = useTranslation();
@@ -52,7 +43,7 @@ function ProtectedRoute({ children }: ProtectedRouteProps) {
   const location = useLocation();
 
   /**
-   * Effect: Apply theme class to document during loading.
+   * @description Effect: Apply theme class to document during loading.
    * This ensures proper styling before Layout component mounts.
    */
   useEffect(() => {
@@ -63,7 +54,7 @@ function ProtectedRoute({ children }: ProtectedRouteProps) {
     }
   }, [resolvedTheme]);
 
-  // Show loading spinner while checking session
+  // Display a loading spinner while the session is being checked
   if (isLoading) {
     return (
       <div className="min-h-screen bg-slate-50 dark:bg-slate-900 flex items-center justify-center">
@@ -75,13 +66,14 @@ function ProtectedRoute({ children }: ProtectedRouteProps) {
     );
   }
 
-  // Redirect to login if not authenticated
+  // If loading is complete and user is not authenticated, redirect to login
   if (!isAuthenticated) {
-    // Preserve intended destination for post-login redirect
+    // Preserve the current path to redirect back after successful login
     const redirectUrl = location.pathname + location.search;
     return <Navigate to={`/login?redirect=${encodeURIComponent(redirectUrl)}`} replace />;
   }
 
+  // Render the protected content if authenticated
   return <>{children}</>;
 }
 

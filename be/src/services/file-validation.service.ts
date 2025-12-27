@@ -1,10 +1,6 @@
 /**
- * @fileoverview File upload validation utilities.
- * 
- * Provides validation functions for secure file uploads based on
- * OWASP File Upload Cheat Sheet recommendations.
- * 
  * @module services/file-validation
+ * @description Provides validation functions for secure file uploads based on OWASP File Upload Cheat Sheet.
  */
 
 import path from 'path';
@@ -39,10 +35,10 @@ export interface SanitizeResult {
 
 /**
  * Validate file extension against allowlist and blocklist.
- * 
- * @param filename - The original filename
- * @param useAllowlist - If true, only allow extensions in ALLOWED_DOCUMENT_EXTENSIONS
- * @returns Validation result with error message if invalid
+ * @param filename - The original filename.
+ * @param useAllowlist - If true, restricts to allowed extensions only.
+ * @returns ValidationResult - Result indicating if extension is valid.
+ * @description Checks against dangerous extensions and optionally enforces an allowlist.
  */
 export function validateFileExtension(filename: string, useAllowlist: boolean = false): ValidationResult {
     const ext = path.extname(filename).toLowerCase();
@@ -55,6 +51,7 @@ export function validateFileExtension(filename: string, useAllowlist: boolean = 
     // Check for double extensions (e.g., .jpg.php)
     const parts = filename.split('.');
     if (parts.length > 2) {
+        // Iterate parts to find dangerous extensions embedded in filename
         for (let i = 1; i < parts.length; i++) {
             const partExt = '.' + parts[i]!.toLowerCase();
             if (DANGEROUS_EXTENSIONS.has(partExt)) {
@@ -63,7 +60,7 @@ export function validateFileExtension(filename: string, useAllowlist: boolean = 
         }
     }
 
-    // Always block dangerous extensions
+    // Always block dangerous extensions from main extension
     if (DANGEROUS_EXTENSIONS.has(ext)) {
         return { isValid: false, error: `File type not allowed: ${ext}` };
     }
@@ -82,10 +79,10 @@ export function validateFileExtension(filename: string, useAllowlist: boolean = 
 
 /**
  * Validate Content-Type header matches file extension.
- * 
- * @param mimetype - The Content-Type from the upload
- * @param filename - The original filename
- * @returns Validation result with warning if mismatch
+ * @param mimetype - The Content-Type from the upload header.
+ * @param filename - The original filename.
+ * @returns ValidationResult - Result indicating if mime type matches extension.
+ * @description Ensures the declared Content-Type aligns with the file extension to prevent spoofing.
  */
 export function validateContentType(mimetype: string, filename: string): ValidationResult {
     const ext = path.extname(filename).toLowerCase();
@@ -116,10 +113,10 @@ export function validateContentType(mimetype: string, filename: string): Validat
 
 /**
  * Validate file signature (magic bytes) matches claimed extension.
- * 
- * @param buffer - The file content buffer
- * @param filename - The original filename
- * @returns Validation result with error if mismatch
+ * @param buffer - The file content buffer.
+ * @param filename - The original filename.
+ * @returns ValidationResult - Result indicating if signature matches.
+ * @description Inspects file header bytes to verify file type authenticity.
  */
 export function validateFileSignature(buffer: Buffer, filename: string): ValidationResult {
     const ext = path.extname(filename).toLowerCase();
@@ -134,6 +131,7 @@ export function validateFileSignature(buffer: Buffer, filename: string): Validat
     for (const signature of expectedSignatures) {
         if (buffer.length >= signature.length) {
             const fileStart = buffer.subarray(0, signature.length);
+            // Compare bytes
             if (fileStart.equals(signature)) {
                 return { isValid: true };
             }
@@ -152,11 +150,9 @@ export function validateFileSignature(buffer: Buffer, filename: string): Validat
 
 /**
  * Sanitize and validate filename according to OWASP guidelines.
- * Supports Unicode characters (Japanese, Chinese, Vietnamese, etc.)
- * while blocking dangerous characters and path traversal.
- * 
- * @param filename - The original filename
- * @returns Sanitized filename or null if invalid
+ * @param filename - The original filename.
+ * @returns SanitizeResult - Object containing sanitized filename or error.
+ * @description Removes dangerous characters, path traversal patterns, and enforces length limits while supporting Unicode.
  */
 export function sanitizeFilename(filename: string): SanitizeResult {
     if (!filename || typeof filename !== 'string') {
@@ -181,10 +177,7 @@ export function sanitizeFilename(filename: string): SanitizeResult {
         return { sanitized: null, error: 'Filename contains path traversal characters' };
     }
 
-    // Remove dangerous control characters (ASCII 0-31 except tab, newline) and special chars
-    // Keep: Unicode letters/numbers (\p{L}\p{N}), basic punctuation, space
-    // Block: Control chars, path separators, shell metacharacters
-    // Using Unicode-aware regex with 'u' flag
+    // Remove dangerous control characters and special chars using Unicode-aware regex
     sanitized = sanitized.replace(/[\x00-\x1f\x7f<>:"|?*\\]/gu, '_');
 
     // Prevent leading/trailing periods (hidden files, extension manipulation)
@@ -205,10 +198,9 @@ export function sanitizeFilename(filename: string): SanitizeResult {
 
 /**
  * Generate a safe, unique filename with UUID.
- * Preserves original extension but replaces the base name.
- * 
- * @param originalFilename - The original filename (for extension)
- * @returns Safe filename with UUID
+ * @param originalFilename - The original filename.
+ * @returns string - safe filename.
+ * @description Preserves original extension but replaces the base name with a UUID.
  */
 export function generateSafeFilename(originalFilename: string): string {
     const ext = path.extname(originalFilename).toLowerCase();
@@ -222,9 +214,9 @@ export function generateSafeFilename(originalFilename: string): string {
 
 /**
  * Validate and sanitize object path to prevent path traversal attacks.
- * 
- * @param objectPath - The object path to validate
- * @returns Sanitized path or null if invalid
+ * @param objectPath - The object path to validate.
+ * @returns string | null - Sanitized path or null if invalid.
+ * @description Checks for directory traversal and control characters in file paths.
  */
 export function sanitizeObjectPath(objectPath: string): string | null {
     if (!objectPath || typeof objectPath !== 'string') return null;
@@ -252,15 +244,12 @@ export function sanitizeObjectPath(objectPath: string): string | null {
 
 /**
  * Sanitize folder path components.
- * Supports Unicode characters (Japanese, Chinese, Vietnamese, etc.)
- * while blocking dangerous characters.
- * 
- * @param folderPath - The folder path to sanitize
- * @returns Sanitized folder path
+ * @param folderPath - The folder path to sanitize.
+ * @returns string - Sanitized folder path.
+ * @description Cleans folder names of dangerous characters while supporting Unicode.
  */
 export function sanitizeFolderPath(folderPath: string): string {
     // Remove dangerous control characters and special chars
-    // Keep: Unicode letters/numbers, basic punctuation, space
     return folderPath.replace(/[\x00-\x1f\x7f<>:"|?*\\]/gu, '_');
 }
 
@@ -270,10 +259,10 @@ export function sanitizeFolderPath(folderPath: string): string {
 
 /**
  * Perform all file validations in one call.
- * 
- * @param file - The uploaded file object
- * @param options - Validation options
- * @returns Combined validation result
+ * @param file - The uploaded file object (name, mime, buffer).
+ * @param options - Validation configuration choices.
+ * @returns ValidationResult - Composite result of all checks.
+ * @description Runs all validation steps: sanitization, extension, content-type, and signature.
  */
 export function validateUploadedFile(
     file: { originalname: string; mimetype: string; buffer: Buffer },
@@ -299,7 +288,7 @@ export function validateUploadedFile(
         return contentTypeResult;
     }
 
-    // 4. Validate file signature (if enabled and buffer available)
+    // 4. Validate file signature if buffer provided
     if (validateSignature && file.buffer) {
         const signatureResult = validateFileSignature(file.buffer, file.originalname);
         if (!signatureResult.isValid) {

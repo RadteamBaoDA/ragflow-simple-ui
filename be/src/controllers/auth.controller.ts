@@ -11,6 +11,12 @@ import { config } from '@/config/index.js'
 import { updateAuthTimestamp, getCurrentUser } from '@/middleware/auth.middleware.js'
 
 export class AuthController {
+    /**
+     * Get authenication configuration (public).
+     * @param req - Express request object.
+     * @param res - Express response object.
+     * @returns Promise<void>
+     */
     async getAuthConfig(req: Request, res: Response): Promise<void> {
         res.json({
             enableRootLogin: config.enableRootLogin,
@@ -22,45 +28,84 @@ export class AuthController {
         });
     }
 
+    /**
+     * Get current user session info.
+     * @param req - Express request object.
+     * @param res - Express response object.
+     * @returns Promise<void>
+     */
     async getMe(req: Request, res: Response): Promise<void> {
         if (req.session?.user) {
-            // Opportunistic IP recording so audit/IP alerts see resumed sessions
             try {
+                // Verify user still exists in database (in case of DB reset/deletion)
+                const dbUser = await userService.getUserById(req.session.user.id);
+
+                if (!dbUser) {
+                    log.warn('Session valid but user not found in DB (cleanup)', { userId: req.session.user.id });
+                    // Destroy invalid session
+                    req.session.destroy((err) => {
+                        if (err) log.error('Failed to destroy invalid session', { error: err.message });
+                        res.status(401).json({ error: 'User not found' });
+                    });
+                    return;
+                }
+
+                // Opportunistic IP recording so audit/IP alerts see resumed sessions
                 const ipAddress = getClientIp(req)
                 if (ipAddress) {
                     await userService.recordUserIp(req.session.user.id, ipAddress)
                 }
-            } catch (error) {
-                log.warn('Failed to record IP on session resume', { error: String(error) })
-            }
 
-            res.json(req.session.user)
+                // Optional: update session with fresh DB data
+                // req.session.user = { ...req.session.user, ...dbUser };
+
+                res.json(req.session.user)
+            } catch (error) {
+                log.warn('Error verifying session user', { error: String(error) })
+                res.status(500).json({ error: 'Internal server error' })
+            }
         } else {
             res.status(401).json({ error: 'Unauthorized' })
         }
     }
 
+    /**
+     * Initiate Azure AD login flow.
+     * @param req - Express request object.
+     * @param res - Express response object.
+     * @returns Promise<void>
+     */
     async loginAzureAd(req: Request, res: Response): Promise<void> {
         // CSRF-style state guard per OAuth best practices
         const state = authService.generateState()
         req.session.oauthState = state
+        // Redirect to Azure AD authorization URL
         res.redirect(authService.getAuthorizationUrl(state))
     }
 
+    /**
+     * Handle Azure AD callback.
+     * @param req - Express request object.
+     * @param res - Express response object.
+     * @returns Promise<void>
+     */
     async handleCallback(req: Request, res: Response): Promise<void> {
         const { code, state, error } = req.query;
 
+        // Handle error from provider
         if (error) {
             log.error('Azure AD login error', { error })
             res.redirect(`${config.frontendUrl}/login?error=auth_failed`)
             return
         }
 
+        // Validate code presence
         if (!code || typeof code !== 'string') {
             res.redirect(`${config.frontendUrl}/login?error=no_code`)
             return
         }
 
+        // Validate state to prevent CSRF
         if (state !== req.session.oauthState) {
             log.warn('State mismatch in OAuth callback')
             res.redirect(`${config.frontendUrl}/login?error=invalid_state`)
@@ -73,8 +118,10 @@ export class AuthController {
             const adUser = await authService.getUserProfile(tokens.access_token)
             const ipAddress = getClientIp(req)
 
+            // Find or create user in local DB
             const user = await userService.findOrCreateUser(adUser, ipAddress)
 
+            // Setup session user
             req.session.user = {
                 ...user,
                 displayName: user.display_name as string,
@@ -86,12 +133,14 @@ export class AuthController {
                 (req.session.user as any).avatar = adUser.avatar
             }
 
+            // Store tokens in session
             req.session.accessToken = tokens.access_token as any
             req.session.refreshToken = tokens.refresh_token as any
             req.session.tokenExpiresAt = (Date.now() + (tokens.expires_in * 1000)) as any
 
             updateAuthTimestamp(req, false)
 
+            // Save session and redirect
             req.session.save((err) => {
                 if (err) {
                     log.error('Session save failed in OAuth callback', {
@@ -106,12 +155,20 @@ export class AuthController {
                 res.redirect(config.frontendUrl)
             })
         } catch (err: any) {
+            // detailed logging for debugging
             log.error('Authentication failed', { error: err.message })
             res.redirect(`${config.frontendUrl}/login?error=auth_failed`)
         }
     }
 
+    /**
+     * Logout user and destroy session.
+     * @param req - Express request object.
+     * @param res - Express response object.
+     * @returns Promise<void>
+     */
     async logout(req: Request, res: Response): Promise<void> {
+        // Destroy session
         req.session.destroy((err) => {
             if (err) {
                 log.error('Logout failed', { error: err.message });
@@ -122,6 +179,12 @@ export class AuthController {
         })
     }
 
+    /**
+     * Re-authenticate user (e.g. for sensitive actions).
+     * @param req - Express request object.
+     * @param res - Express response object.
+     * @returns Promise<void>
+     */
     async reauth(req: Request, res: Response): Promise<void> {
         const user = getCurrentUser(req)
         if (!user) {
@@ -129,11 +192,13 @@ export class AuthController {
             return
         }
 
+        // For root user, check password
         if (user.id === 'root-user') {
             const { password } = req.body
             const rootPass = config.rootPassword
             const crypto = await import('crypto')
 
+            // Constant-time comparison to prevent timing attacks
             const passwordMatch = crypto.timingSafeEqual(
                 Buffer.from(password.padEnd(256, '\0')),
                 Buffer.from(rootPass.padEnd(256, '\0'))
@@ -146,10 +211,17 @@ export class AuthController {
             }
         }
 
+        // For other users, assume session is enough or extend logic
         updateAuthTimestamp(req, true)
         res.json({ success: true })
     }
 
+    /**
+     * Refresh access token.
+     * @param req - Express request object.
+     * @param res - Express response object.
+     * @returns Promise<void>
+     */
     async refreshToken(req: Request, res: Response): Promise<void> {
         const user = getCurrentUser(req)
         if (!user) {
@@ -157,6 +229,7 @@ export class AuthController {
             return
         }
 
+        // Root user does not use tokens
         if (user.id === 'root-user') {
             res.json({ success: true, message: 'Root user does not use tokens' })
             return
@@ -169,11 +242,13 @@ export class AuthController {
         }
 
         try {
+            // Exchange refresh token for new access token
             const newTokens = await authService.refreshAccessToken(refreshToken)
             req.session.accessToken = newTokens.access_token as any
             req.session.tokenExpiresAt = (Date.now() + (newTokens.expires_in * 1000)) as any
             if (newTokens.refresh_token) req.session.refreshToken = newTokens.refresh_token as any
 
+            // Save new tokens to session
             req.session.save(() => {
                 res.json({ success: true, expiresIn: newTokens.expires_in })
             })
@@ -182,15 +257,30 @@ export class AuthController {
         }
     }
 
+    /**
+     * Get status of current token.
+     * @param req - Express request object.
+     * @param res - Express response object.
+     * @returns Promise<void>
+     */
     async getTokenStatus(req: Request, res: Response): Promise<void> {
+        // Check if access token exists in session
         const user = getCurrentUser(req)
         res.json({ hasToken: !!req.session.accessToken })
     }
 
+    /**
+     * Login as root user.
+     * @param req - Express request object.
+     * @param res - Express response object.
+     * @returns Promise<void>
+     */
     async loginRoot(req: Request, res: Response): Promise<void> {
         try {
             const { username, password } = req.body
+            // Authenticate with service
             const result = await authService.login(username, password, getClientIp(req))
+            // Setup session user
             req.session.user = {
                 ...result.user,
                 permissions: result.user.permissions || ['*'],
@@ -200,6 +290,7 @@ export class AuthController {
                 updated_at: new Date()
             }
             updateAuthTimestamp(req, false)
+            // Save session
             req.session.save(() => {
                 res.json(result)
             })
@@ -208,10 +299,22 @@ export class AuthController {
         }
     }
 
+    /**
+     * Generic login handler (aliased to loginRoot for now).
+     * @param req - Express request object.
+     * @param res - Express response object.
+     * @returns Promise<void>
+     */
     async login(req: Request, res: Response): Promise<void> {
         await this.loginRoot(req, res);
     }
 
+    /**
+     * Callback alias.
+     * @param req - Express request object.
+     * @param res - Express response object.
+     * @returns Promise<void>
+     */
     async callback(req: Request, res: Response): Promise<void> {
         await this.handleCallback(req, res);
     }

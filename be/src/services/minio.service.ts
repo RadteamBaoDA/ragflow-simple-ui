@@ -9,7 +9,6 @@ import { minioClient } from '@/models/external/minio.js';
 import { ModelFactory } from '@/models/factory.js';
 import { log } from '@/services/logger.service.js';
 import { auditService, AuditAction, AuditResourceType } from '@/services/audit.service.js';
-import { config } from '@/config/index.js';
 
 export interface FileObject {
     name: string;
@@ -20,8 +19,15 @@ export interface FileObject {
     prefix?: string;
 }
 
+/**
+ * MinioService
+ * Wraps MinIO client operations plus admin API helpers for buckets and Objects.
+ * Provides file upload, download, folder management, and storage statistics.
+ * Uses AWS SigV4 signing for admin API calls.
+ */
 class MinioService {
     private client = minioClient;
+    // Configuration for Admin API calls (manual signing required)
     private config = {
         endPoint: process.env.MINIO_ENDPOINT || 'localhost',
         port: parseInt(process.env.MINIO_PORT || '9000'),
@@ -31,36 +37,52 @@ class MinioService {
         publicEndPoint: process.env.MINIO_PUBLIC_ENDPOINT,
     };
 
-    // Minimal AWS SigV4 request builder for MinIO admin API calls
+    /**
+     * Execute an admin API request with AWS SigV4 authentication.
+     * @param method - HTTP method (GET, POST, DELETE).
+     * @param path - API endpoint path without leading slash.
+     * @param query - Optional query parameters object.
+     * @param body - Optional request body (will be JSON stringified).
+     * @returns Promise<any> - Parsed JSON response or raw data string.
+     * @throws Error if request fails or returns 4xx/5xx status.
+     * @description internal helper to calculate signatures and make requests to MinIO Admin API.
+     */
     private async adminRequest(method: string, path: string, query: any = {}, body: any = null): Promise<any> {
         return new Promise((resolve, reject) => {
             const urlPath = `/${path}`;
+            // Construct query string
             const queryString = Object.keys(query).length > 0
                 ? '?' + Object.entries(query).map(([k, v]) => `${k}=${encodeURIComponent(v as string)}`).join('&')
                 : '';
 
             const fullPath = urlPath + queryString;
             const payload = body ? JSON.stringify(body) : '';
+            // Hash payload for signature
             const payloadHash = crypto.createHash('sha256').update(payload).digest('hex');
 
+            // prepare timestamps
             const date = new Date();
             const amzDate = date.toISOString().replace(/[:-]|\.\d{3}/g, '');
             const dateStamp = amzDate.slice(0, 8);
             const host = `${this.config.endPoint}:${this.config.port}`;
 
+            // Create canonical headers
             const canonicalHeaders = `host:${host}\nx-amz-content-sha256:${payloadHash}\nx-amz-date:${amzDate}\n`;
             const signedHeaders = 'host;x-amz-content-sha256;x-amz-date';
 
+            // create canonical request
             const canonicalRequest = [method, urlPath, queryString.replace('?', ''), canonicalHeaders, signedHeaders, payloadHash].join('\n');
             const credentialScope = `${dateStamp}/us-east-1/s3/aws4_request`;
             const stringToSign = ['AWS4-HMAC-SHA256', amzDate, credentialScope, crypto.createHash('sha256').update(canonicalRequest).digest('hex')].join('\n');
 
+            // Calculate signing keys
             const kDate = crypto.createHmac('sha256', 'AWS4' + this.config.secretKey).update(dateStamp).digest();
             const kRegion = crypto.createHmac('sha256', kDate).update('us-east-1').digest();
             const kService = crypto.createHmac('sha256', kRegion).update('s3').digest();
             const signingKey = crypto.createHmac('sha256', kService).update('aws4_request').digest();
             const signature = crypto.createHmac('sha256', signingKey).update(stringToSign).digest('hex');
 
+            // Build authorization header
             const authHeader = `AWS4-HMAC-SHA256 Credential=${this.config.accessKey}/${credentialScope}, SignedHeaders=${signedHeaders}, Signature=${signature}`;
 
             const reqHeaders: Record<string, string | number> = {
@@ -68,11 +90,14 @@ class MinioService {
             };
             if (payload) { reqHeaders['Content-Type'] = 'application/json'; reqHeaders['Content-Length'] = Buffer.byteLength(payload); }
 
+            // Choose http/https based on config
             const protocol = this.config.useSSL ? https : http;
+            // Execute request
             const req = protocol.request({ hostname: this.config.endPoint, port: this.config.port, path: fullPath, method, headers: reqHeaders }, (res) => {
                 let data = '';
                 res.on('data', (chunk) => { data += chunk.toString(); });
                 res.on('end', () => {
+                    // Normalize response
                     if (res.statusCode && res.statusCode >= 400) { log.error('Admin API Error', { statusCode: res.statusCode, data }); return reject(new Error(`Admin API Error ${res.statusCode}: ${data}`)); }
                     try { if (!data) return resolve(null); resolve(JSON.parse(data)); } catch { resolve(data); }
                 });
@@ -83,12 +108,21 @@ class MinioService {
         });
     }
 
-    // List all buckets visible to configured credentials
+    /**
+     * List all buckets visible to configured MinIO credentials.
+     * @returns Promise<Minio.BucketItemFromList[]> - List of buckets.
+     * @description Wraps client.listBuckets().
+     */
     async listBuckets(): Promise<Minio.BucketItemFromList[]> {
         return this.client.listBuckets();
     }
 
-    // Check if bucket exists (swallowing errors to boolean)
+    /**
+     * Check if a bucket exists in MinIO.
+     * @param bucketName - Name of the bucket to check.
+     * @returns Promise<boolean> - True if bucket exists, false otherwise.
+     * @description Swallows errors (like NotFound) to return a simple boolean.
+     */
     async bucketExists(bucketName: string): Promise<boolean> {
         try {
             return await this.client.bucketExists(bucketName);
@@ -97,7 +131,15 @@ class MinioService {
         }
     }
 
-    // Create bucket both in MinIO and metadata table; audit actor
+    /**
+     * Create a new bucket in MinIO and register it in the metadata table.
+     * @param bucketName - Unique bucket name to create.
+     * @param description - Human-readable description.
+     * @param user - Optional user context for audit.
+     * @returns Promise<any> - Created bucket record.
+     * @throws Error if bucket already configured or MinIO fail.
+     * @description Checks DB config, creates bucket in MinIO, saves to DB, and logs audit.
+     */
     async createBucket(bucketName: string, description: string, user?: { id: string, email: string, ip?: string }): Promise<any> {
         try {
             // 1. Check if configured in DB
@@ -106,12 +148,13 @@ class MinioService {
                 throw new Error(`Bucket '${bucketName}' is already configured in the system.`);
             }
 
-            // 2. config in MinIO
+            // 2. Ensure exists in MinIO
             const exists = await this.client.bucketExists(bucketName);
             if (!exists) {
                 await this.client.makeBucket(bucketName, 'us-east-1');
             }
 
+            // 3. Register in DB
             const bucket = await ModelFactory.minioBucket.create({
                 bucket_name: bucketName,
                 display_name: bucketName,
@@ -119,6 +162,7 @@ class MinioService {
                 created_by: user?.id || 'system'
             });
 
+            // 4. Audit Log
             if (user) {
                 await auditService.log({
                     userId: user.id,
@@ -137,16 +181,25 @@ class MinioService {
         }
     }
 
-    // Remove bucket and database record
+    /**
+     * Remove a bucket from MinIO and delete its database metadata record.
+     * @param bucketName - Name of the bucket.
+     * @param user - Optional user context for audit.
+     * @returns Promise<void>
+     * @description Removes from MinIO, then from DB, then logs audit.
+     */
     async deleteBucket(bucketName: string, user?: { id: string, email: string, ip?: string }): Promise<void> {
         try {
+            // Remove from backend storage
             await this.client.removeBucket(bucketName);
 
+            // Remove from database
             const bucket = await ModelFactory.minioBucket.findByName(bucketName);
             if (bucket) {
                 await ModelFactory.minioBucket.delete(bucket.id);
             }
 
+            // Audit log
             if (user) {
                 await auditService.log({
                     userId: user.id,
@@ -163,13 +216,22 @@ class MinioService {
         }
     }
 
-    // List objects or pseudo-folders under a prefix
+    /**
+     * List objects or pseudo-folders under a prefix in a bucket.
+     * @param bucketName - Target bucket name.
+     * @param prefix - Object prefix to filter.
+     * @param recursive - Whether to list deeply.
+     * @returns Promise<FileObject[]> - Array of standardized FileObjects.
+     * @description Normalizes MinIO list objects stream into an array of FileObject.
+     */
     async listObjects(bucketName: string, prefix: string = '', recursive: boolean = false): Promise<FileObject[]> {
         const objects: FileObject[] = [];
+        // Get stream from MinIO client
         const stream = this.client.listObjectsV2(bucketName, prefix, recursive, '');
 
         for await (const obj of stream) {
             if (obj.prefix) {
+                // Handle Folder (CommonPrefix)
                 objects.push({
                     name: obj.prefix.replace(/\/$/, ''),
                     size: 0,
@@ -179,6 +241,7 @@ class MinioService {
                     prefix: obj.prefix
                 });
             } else if (obj.name) {
+                // Handle File
                 // Skip folder placeholder objects (objects ending with /)
                 if (obj.name.endsWith('/')) continue;
 
@@ -194,12 +257,25 @@ class MinioService {
         return objects;
     }
 
-    // Convenience wrapper to list non-recursive files
+    /**
+     * Convenience wrapper to list files (non-recursive) in a bucket prefix.
+     * @param bucketName - Target bucket name.
+     * @param prefix - Object prefix.
+     * @returns Promise<FileObject[]> - List of files at current level.
+     */
     async listFiles(bucketName: string, prefix: string = ''): Promise<FileObject[]> {
         return this.listObjects(bucketName, prefix, false);
     }
 
-    // Upload buffer/stream/filepath into MinIO
+    /**
+     * Upload a file to MinIO bucket.
+     * @param bucketName - Target bucket name.
+     * @param file - File object (supports buffer, path, or stream).
+     * @param userId - ID of uploader (unused param for now).
+     * @returns Promise<any> - Success message.
+     * @throws Error on upload failure.
+     * @description Supports multiple input types (buffer/file path/stream) and sets Content-Type.
+     */
     async uploadFile(bucketName: string, file: any, userId?: string): Promise<any> {
         try {
             const objectName = file.originalname || 'unknown';
@@ -207,6 +283,7 @@ class MinioService {
                 'Content-Type': file.mimetype || 'application/octet-stream'
             };
 
+            // Switch strategy based on input type
             if (file.buffer) {
                 await this.client.putObject(bucketName, objectName, file.buffer, file.size, metaData);
             } else if (file.path) {
@@ -216,7 +293,6 @@ class MinioService {
                 await this.client.putObject(bucketName, objectName, file, size, metaData);
             }
 
-
             return { message: 'File uploaded' };
         } catch (error) {
             log.error('Failed to upload file', { bucketName, error: String(error) });
@@ -224,22 +300,44 @@ class MinioService {
         }
     }
 
-    // Fetch object as readable stream
+    /**
+     * Get a readable stream for downloading a file from MinIO.
+     * @param bucketName - Target bucket name.
+     * @param fileName - Object name.
+     * @returns Promise<Readable> - File stream.
+     */
     async getFileStream(bucketName: string, fileName: string): Promise<Readable> {
         return this.client.getObject(bucketName, fileName);
     }
 
-    // Delete single object
+    /**
+     * Delete a single object from a bucket.
+     * @param bucketName - Target bucket name.
+     * @param objectName - Object name to delete.
+     * @returns Promise<void>
+     */
     async deleteObject(bucketName: string, objectName: string): Promise<void> {
         await this.client.removeObject(bucketName, objectName);
     }
 
-    // Alias for object deletion to match controller naming
+    /**
+     * Alias for deleteObject to match controller naming convention.
+     * @param bucketName - Target bucket name.
+     * @param fileName - Object name.
+     * @param userId - Uploader ID (unused).
+     * @returns Promise<void>
+     */
     async deleteFile(bucketName: string, fileName: string, userId?: string): Promise<void> {
         await this.deleteObject(bucketName, fileName);
     }
 
-    // statObject and translate not-found to boolean
+    /**
+     * Check if a file exists using statObject.
+     * @param bucketName - Target bucket name.
+     * @param objectName - Object name.
+     * @returns Promise<boolean> - True if exists.
+     * @description Returns false on NotFound error, true otherwise.
+     */
     async checkFileExists(bucketName: string, objectName: string): Promise<boolean> {
         try {
             await this.client.statObject(bucketName, objectName);
@@ -250,27 +348,54 @@ class MinioService {
         }
     }
 
-    // Create folder placeholder object
+    /**
+     * Create a folder placeholder object in MinIO.
+     * @param bucketName - Target bucket name.
+     * @param folderPath - Folder path.
+     * @returns Promise<void>
+     * @description MinIO mimics folders with zero-byte objects ending in '/'.
+     */
     async createFolder(bucketName: string, folderPath: string): Promise<void> {
         const objectName = folderPath.endsWith('/') ? folderPath : `${folderPath}/`;
         await this.client.putObject(bucketName, objectName, Buffer.from(''), 0);
     }
 
-    // Delete folder by removing all objects under prefix
+    /**
+     * Delete a folder and all its contents.
+     * @param bucketName - Target bucket name.
+     * @param folderPath - Folder prefix.
+     * @returns Promise<void>
+     * @description Recursively finds all objects with prefix and batch deletes them.
+     */
     async deleteFolder(bucketName: string, folderPath: string): Promise<void> {
+        // Find all objects under prefix
         const objects = await this.listObjects(bucketName, folderPath, true);
         const names = objects.map(o => o.name);
+
+        // Batch remove
         if (names.length > 0) {
             await this.client.removeObjects(bucketName, names);
         }
     }
 
-    // Bulk delete objects
+    /**
+     * Bulk delete multiple objects from a bucket.
+     * @param bucketName - Target bucket name.
+     * @param objectNames - Array of object names.
+     * @returns Promise<void>
+     */
     async deleteObjects(bucketName: string, objectNames: string[]): Promise<void> {
         await this.client.removeObjects(bucketName, objectNames);
     }
 
-    // Generate presigned download URL with optional content disposition
+    /**
+     * Generate a presigned download URL for temporary access.
+     * @param bucketName - Target bucket name.
+     * @param objectName - Object name.
+     * @param expiry - Expiry in seconds (default 1h).
+     * @param disposition - 'inline' or 'attachment'.
+     * @returns Promise<string> - The presigned URL.
+     */
     async getDownloadUrl(bucketName: string, objectName: string, expiry: number = 3600, disposition?: string): Promise<string> {
         const reqParams: any = {};
         if (disposition) {
@@ -279,11 +404,16 @@ class MinioService {
         return this.client.presignedGetObject(bucketName, objectName, expiry, reqParams);
     }
 
-    // Compute storage stats across all buckets (best effort)
+    /**
+     * Compute storage statistics across all buckets.
+     * @returns Promise<any> - Global stats object.
+     * @description Aggregates stats from all buckets including size distribution and top files.
+     */
     async getGlobalStats(): Promise<any> {
         const buckets = await this.listBuckets();
         let totalObjects = 0;
         let totalSize = 0;
+        // Initialize distribution buckets
         const distribution = {
             '<1MB': 0,
             '1MB-10MB': 0,
@@ -296,10 +426,12 @@ class MinioService {
         const bucketStats: { name: string; size: number; objectCount: number }[] = [];
         const allFiles: { name: string; size: number; lastModified: Date; bucketName: string }[] = [];
 
+        // Iterate all buckets
         for (const bucket of buckets) {
             let bObjects = 0;
             let bSize = 0;
             try {
+                // recursive list
                 const stream = this.client.listObjects(bucket.name, '', true);
                 for await (const obj of stream) {
                     if (obj.name && !obj.name.endsWith('/')) {
@@ -307,7 +439,7 @@ class MinioService {
                         const size = obj.size || 0;
                         bSize += size;
 
-                        // Add to distribution
+                        // Add to distribution logic
                         if (size < 1024 * 1024) distribution['<1MB']++;
                         else if (size < 10 * 1024 * 1024) distribution['1MB-10MB']++;
                         else if (size < 100 * 1024 * 1024) distribution['10MB-100MB']++;
@@ -316,7 +448,7 @@ class MinioService {
                         else if (size < 10 * 1024 * 1024 * 1024) distribution['5GB-10GB']++;
                         else distribution['>10GB']++;
 
-                        // Add to all files (keep it reasonably sized)
+                        // Maintain top files list (limited to 100)
                         if (allFiles.length < 100 || size > (allFiles[allFiles.length - 1]?.size || 0)) {
                             allFiles.push({
                                 name: obj.name,
@@ -324,6 +456,7 @@ class MinioService {
                                 lastModified: obj.lastModified,
                                 bucketName: bucket.name,
                             });
+                            // keep sorted
                             allFiles.sort((a, b) => b.size - a.size);
                             if (allFiles.length > 100) allFiles.pop();
                         }
@@ -342,12 +475,16 @@ class MinioService {
             totalObjects,
             totalSize,
             distribution,
-            topBuckets: bucketStats.sort((a, b) => b.size - a.size),
+            topBuckets: bucketStats.sort((a, b) => b.size - a.size), // Sort buckets by size
             topFiles: allFiles,
         };
     }
 
-    // Return MinIO buckets not yet tracked in database
+    /**
+     * Get MinIO buckets not yet tracked in the application database.
+     * @returns Promise<any[]> - Unconfigured buckets.
+     * @description Diff between MinIO buckets and DB bucket records.
+     */
     async getAvailableBuckets(): Promise<any[]> {
         // 1. Get all actual buckets from MinIO
         const minioBuckets = await this.listBuckets();
@@ -357,7 +494,6 @@ class MinioService {
         const configuredNames = new Set(configuredBuckets.map(b => b.bucket_name));
 
         // 3. Filter out buckets that are already configured
-        // And Map to simpler format
         return minioBuckets
             .filter(b => b.name && !configuredNames.has(b.name))
             .map(b => ({
@@ -366,7 +502,12 @@ class MinioService {
             }));
     }
 
-    // Summarize object count and size for a single bucket
+    /**
+     * Get object count and total size for a single bucket.
+     * @param bucketName - Target bucket name.
+     * @returns Promise<any> - { objectCount, totalSize }.
+     * @description Recursively iterates bucket to compute stats.
+     */
     async getBucketStats(bucketName: string): Promise<any> {
         let objectCount = 0;
         let totalSize = 0;
@@ -380,13 +521,22 @@ class MinioService {
         return { objectCount, totalSize };
     }
 
-    // List MinIO service accounts via admin API
+    /**
+     * List MinIO service accounts via admin API.
+     * @returns Promise<any[]> - List of service accounts.
+     */
     async listServiceAccounts(): Promise<any[]> {
         const result = await this.adminRequest('GET', 'minio/admin/v3/list-service-accounts');
         return result?.accounts || [];
     }
 
-    // Create service account with readwrite/readonly policy
+    /**
+     * Create a new MinIO service account.
+     * @param policy - 'readonly' or 'readwrite'.
+     * @param name - Account name.
+     * @param description - Account description.
+     * @returns Promise<any> - JSON result with creds.
+     */
     async createServiceAccount(policy: string, name: string, description: string): Promise<any> {
         const payload = {
             policy: policy === 'readonly' ? 'readonly' : 'readwrite',
@@ -396,17 +546,29 @@ class MinioService {
         return this.adminRequest('POST', 'minio/admin/v3/add-service-account', {}, payload);
     }
 
-    // Delete service account by access key
+    /**
+     * Delete a MinIO service account.
+     * @param accessKey - Access key to delete.
+     * @returns Promise<void>
+     */
     async deleteServiceAccount(accessKey: string): Promise<void> {
         await this.adminRequest('POST', 'minio/admin/v3/delete-service-account', {}, { accessKey });
     }
 
-    // Expose underlying MinIO client (avoid where possible)
+    /**
+     * Get the underlying MinIO client instance.
+     * @returns Minio.Client
+     */
     getClient() {
         return this.client;
     }
 
-    // Fetch stat metadata for object
+    /**
+     * Fetch stat metadata for an object.
+     * @param bucketName - Target bucket name.
+     * @param objectName - Object name.
+     * @returns Promise<Minio.BucketItemStat>
+     */
     async getObjectStat(bucketName: string, objectName: string): Promise<Minio.BucketItemStat> {
         return this.client.statObject(bucketName, objectName);
     }

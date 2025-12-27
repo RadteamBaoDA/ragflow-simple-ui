@@ -1,4 +1,12 @@
-// Raw object storage admin dashboard (MinIO buckets and stats).
+/**
+ * @fileoverview Raw object storage admin dashboard.
+ * 
+ * Provides an interface to:
+ * - View list of MinIO/S3 buckets.
+ * - Create and delete buckets.
+ * - View bucket statistics (object count, total size).
+ * - View global storage metrics (distribution, top files).
+ */
 import { useState, useEffect } from 'react';
 import { useTranslation } from 'react-i18next';
 import {
@@ -16,16 +24,29 @@ import { formatFileSize } from '@/utils/format';
 
 const { Title, Text } = Typography;
 
+/**
+ * Represents a storage bucket.
+ */
 interface Bucket {
+    /** Name of the bucket */
     name: string;
+    /** ISO creation date string */
     creationDate: string;
 }
 
+/**
+ * Statistics for a specific bucket.
+ */
 interface BucketStats {
+    /** Number of objects in the bucket */
     objectCount: number;
+    /** Total size of objects in bytes */
     totalSize: number;
+    /** Whether stats are currently loading */
     loading: boolean;
+    /** Whether stats have been successfully loaded */
     loaded: boolean;
+    /** Whether an error occurred loading stats */
     error?: boolean;
 }
 
@@ -72,6 +93,10 @@ const StoragePage = () => {
         // loadAccessKeys();
     }, []);
 
+    /**
+     * Fetch list of all buckets from the backend.
+     * Initializes stats state for new buckets.
+     */
     const loadBuckets = async () => {
         setLoading(true);
         try {
@@ -101,6 +126,9 @@ const StoragePage = () => {
         }
     };
 
+    /**
+     * Fetch global storage statistics (total size, object count, distribution).
+     */
     const loadGlobalStats = async () => {
         setLoadingMetrics(true);
         try {
@@ -202,6 +230,10 @@ const StoragePage = () => {
     ];
     */
 
+    /**
+     * Handle the creation of a new bucket.
+     * Validates input name and refreshes bucket list on success.
+     */
     const handleCreate = async () => {
         if (!newBucketName.trim()) return;
         setCreating(true);
@@ -218,12 +250,20 @@ const StoragePage = () => {
         }
     };
 
+    /**
+     * Open the delete confirmation modal for a specific bucket.
+     * @param name - Name of the bucket to delete.
+     */
     const openDeleteModal = (name: string) => {
         setBucketToDelete(name);
         setDeleteConfirmationName('');
         setDeleteModalVisible(true);
     };
 
+    /**
+     * Handle the deletion of a bucket.
+     * Verifies confirmation name matches bucket name.
+     */
     const handleDelete = async () => {
         if (!bucketToDelete || deleteConfirmationName !== bucketToDelete) return;
 
@@ -242,6 +282,11 @@ const StoragePage = () => {
         }
     };
 
+    /**
+     * Fetch statistics for a specific bucket on demand.
+     * Updates local stats state.
+     * @param name - Name of the bucket.
+     */
     const loadBucketStats = async (name: string) => {
         setStats(prev => ({
             ...prev,
