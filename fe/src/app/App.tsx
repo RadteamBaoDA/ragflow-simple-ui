@@ -161,7 +161,7 @@ function App() {
                       } />
                       <Route path="knowledge-base/config" element={
                         <AdminRoute>
-                          <KnowledgeBaseConfigPage />
+                          <UserManagementPage />
                         </AdminRoute>
                       } />
                       <Route path="knowledge-base/storage" element={
