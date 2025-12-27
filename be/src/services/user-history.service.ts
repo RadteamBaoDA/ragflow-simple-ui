@@ -42,6 +42,7 @@ export class UserHistoryService {
                 'external_chat_sessions.session_id',
                 'external_chat_sessions.updated_at as created_at',
                 'external_chat_sessions.user_email',
+                'knowledge_base_sources.name as source_name',
                 // Subquery for first prompt
                 db.raw(`(
                     SELECT user_prompt FROM external_chat_messages 
@@ -55,6 +56,7 @@ export class UserHistoryService {
                 ) as message_count`)
             )
             .from('external_chat_sessions')
+            .leftJoin('knowledge_base_sources', 'external_chat_sessions.share_id', 'knowledge_base_sources.share_id')
             .where('external_chat_sessions.user_email', userEmail)
             .orderBy('external_chat_sessions.updated_at', 'desc')
             .limit(limit)
@@ -148,6 +150,7 @@ export class UserHistoryService {
                 'external_search_sessions.session_id',
                 'external_search_sessions.updated_at as created_at',
                 'external_search_sessions.user_email',
+                'knowledge_base_sources.name as source_name',
                 // Subquery for first search input
                 db.raw(`(
                     SELECT search_input FROM external_search_records 
@@ -161,6 +164,7 @@ export class UserHistoryService {
                 ) as message_count`)
             )
             .from('external_search_sessions')
+            .leftJoin('knowledge_base_sources', 'external_search_sessions.share_id', 'knowledge_base_sources.share_id')
             .where('external_search_sessions.user_email', userEmail)
             .orderBy('external_search_sessions.updated_at', 'desc')
             .limit(limit)
