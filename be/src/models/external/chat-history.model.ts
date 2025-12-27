@@ -14,6 +14,8 @@ export interface ExternalChatHistory {
     id: string
     /** Session ID from external client */
     session_id: string
+    /** Share ID of the source */
+    share_id?: string
     /** Optional user email */
     user_email?: string
     /** User's prompt text */

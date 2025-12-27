@@ -99,6 +99,7 @@ export class UserService {
 
                 // Apply updates if any fields changed
                 if (needsUpdate) {
+                    updateData.updated_by = existingUser.id;
                     existingUser = await ModelFactory.user.update(existingUser.id, updateData);
 
                     // Log profile sync as audit event
@@ -134,6 +135,8 @@ export class UserService {
                 department: adUser.department || null,
                 job_title: adUser.jobTitle || null,
                 mobile_phone: adUser.mobilePhone || null,
+                created_by: adUser.id,
+                updated_by: adUser.id,
             });
 
             // Log user creation as audit event
@@ -192,6 +195,11 @@ export class UserService {
      * @description Creates user in DB and logs audit event.
      */
     async createUser(data: any, user?: { id: string, email: string, ip?: string }): Promise<User> {
+        // Add audit metadata
+        if (user) {
+            data.created_by = user.id;
+            data.updated_by = user.id;
+        }
         // Create user in database
         const newUser = await ModelFactory.user.create(data);
 
@@ -219,6 +227,10 @@ export class UserService {
      * @description updates user record and audit logs changes.
      */
     async updateUser(id: string, data: any, user?: { id: string, email: string, ip?: string }): Promise<User | undefined> {
+        // Add audit metadata
+        if (user) {
+            data.updated_by = user.id;
+        }
         // Apply updates to user record
         const updatedUser = await ModelFactory.user.update(id, data);
 
@@ -313,7 +325,7 @@ export class UserService {
             throw new Error('Only administrators can grant admin role');
         }
 
-        const updatedUser = await ModelFactory.user.update(userId, { role });
+        const updatedUser = await ModelFactory.user.update(userId, { role, updated_by: actor.id });
 
         if (updatedUser) {
             // Log audit event for role change
@@ -350,7 +362,9 @@ export class UserService {
      */
     async updateUserPermissions(userId: string, permissions: string[], actor?: { id: string, email: string, ip?: string }): Promise<void> {
         // Update permissions as JSON string
-        await ModelFactory.user.update(userId, { permissions: JSON.stringify(permissions) });
+        const updateData: any = { permissions: JSON.stringify(permissions) };
+        if (actor) updateData.updated_by = actor.id;
+        await ModelFactory.user.update(userId, updateData);
 
         // Log audit event with permission details if actor provided
         if (actor) {

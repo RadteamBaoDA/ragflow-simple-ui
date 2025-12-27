@@ -50,7 +50,9 @@ export class TeamService {
             id,
             name: data.name,
             project_name: data.project_name || null,
-            description: data.description || null
+            description: data.description || null,
+            created_by: user?.id || null,
+            updated_by: user?.id || null
         });
 
         if (!team) throw new Error('Failed to create team');
@@ -104,6 +106,7 @@ export class TeamService {
         if (data.name !== undefined) updateData.name = data.name;
         if (data.project_name !== undefined) updateData.project_name = data.project_name;
         if (data.description !== undefined) updateData.description = data.description;
+        if (user) updateData.updated_by = user.id;
 
         // Return existing team if no changes
         if (Object.keys(updateData).length === 0) return this.getTeam(id);
@@ -171,7 +174,7 @@ export class TeamService {
         actor?: { id: string, email: string, ip?: string }
     ): Promise<void> {
         // Upsert user-team membership using model factory
-        await ModelFactory.userTeam.upsert(userId, teamId, role);
+        await ModelFactory.userTeam.upsert(userId, teamId, role, actor?.id);
 
         // Log audit event for member addition
         if (actor) {

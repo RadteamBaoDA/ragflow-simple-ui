@@ -30,7 +30,12 @@ export class UserDismissedBroadcastModel extends BaseModel<UserDismissedBroadcas
   async upsertDismissal(userId: string, broadcastId: string): Promise<void> {
     // Perform insert with on conflict ignore strategy
     await this.knex(this.tableName)
-      .insert({ user_id: userId, broadcast_id: broadcastId })
+      .insert({
+        user_id: userId,
+        broadcast_id: broadcastId,
+        created_by: userId,
+        updated_by: userId
+      })
       .onConflict(['user_id', 'broadcast_id'])
       .ignore()
   }

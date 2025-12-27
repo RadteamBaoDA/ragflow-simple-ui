@@ -54,7 +54,8 @@
     "saveSuccess": "Lưu thành công",
     "updateSuccess": "Cập nhật thành công",
     "deleteSuccess": "Xóa thành công",
-    "createSuccess": "Tạo thành công"
+    "createSuccess": "Tạo thành công",
+    "description": "Mô tả"
   },
   "dialog": {
     "confirm": "Xác nhận",
@@ -608,6 +609,10 @@
     "publicAccess": "Truy cập toàn hệ thống",
     "publicAccessDesc": "Cho phép tất cả người dùng đã xác thực truy cập nguồn này.",
     "publicOnlyNote": "Chỉ các nguồn công khai mới có thể được đặt làm mặc định hệ thống.",
+    "shareId": "ID Chia sẻ",
+    "shareIdPlaceholder": "Tự động lấy từ URL",
+    "shareIdDesc": "Tự động trích xuất từ tham số shared_id trong URL",
+    "descriptionPlaceholder": "Mô tả tùy chọn cho nguồn này",
     "addSuccess": "Thêm nguồn thành công",
     "updateSuccess": "Cập nhật nguồn thành công",
     "deleteSuccess": "Xóa nguồn thành công"

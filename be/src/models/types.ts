@@ -32,6 +32,10 @@ export interface User {
     job_title?: string | null;
     /** Mobile phone number from Azure AD */
     mobile_phone?: string | null;
+    /** User ID who created this record */
+    created_by?: string | null;
+    /** User ID who last updated this record */
+    updated_by?: string | null;
     /** Timestamp of record creation */
     created_at: Date;
     /** Timestamp of last update */
@@ -52,6 +56,10 @@ export interface Team {
     project_name?: string | null;
     /** Description of the team's purpose */
     description?: string | null;
+    /** User ID who created this record */
+    created_by?: string | null;
+    /** User ID who last updated this record */
+    updated_by?: string | null;
     /** Timestamp of record creation */
     created_at: Date;
     /** Timestamp of last update */
@@ -71,6 +79,14 @@ export interface UserTeam {
     role: string;
     /** Timestamp when user joined the team */
     joined_at: Date;
+    /** User ID who created this record */
+    created_by?: string | null;
+    /** User ID who last updated this record */
+    updated_by?: string | null;
+    /** Timestamp of record creation */
+    created_at?: Date;
+    /** Timestamp of last update */
+    updated_at?: Date;
 }
 
 /**
@@ -83,6 +99,10 @@ export interface ChatSession {
     user_id: string;
     /** Title of the chat session, usually generated from first prompt */
     title: string;
+    /** User ID who created this record */
+    created_by?: string | null;
+    /** User ID who last updated this record */
+    updated_by?: string | null;
     /** Timestamp of record creation */
     created_at: Date;
     /** Timestamp of last update */
@@ -103,6 +123,10 @@ export interface ChatMessage {
     content: string;
     /** Timestamp when the message was created */
     timestamp: Date;
+    /** User ID who created this record */
+    created_by?: string | null;
+    /** User ID who last updated this record */
+    updated_by?: string | null;
 }
 
 /**
@@ -119,8 +143,12 @@ export interface MinioBucket {
     description?: string | null;
     /** UUID of the user who created the bucket */
     created_by: string;
+    /** User ID who last updated this record */
+    updated_by?: string | null;
     /** Timestamp of record creation */
     created_at: Date;
+    /** Timestamp of last update */
+    updated_at?: Date;
     /** Flag indicating if the bucket is active (1) or not (0) */
     is_active: number;
 }
@@ -133,6 +161,12 @@ export interface SystemConfig {
     key: string;
     /** Configuration value */
     value: string;
+    /** User ID who created this record */
+    created_by?: string | null;
+    /** User ID who last updated this record */
+    updated_by?: string | null;
+    /** Timestamp of record creation */
+    created_at?: Date;
     /** Timestamp of last update */
     updated_at: Date;
 }
@@ -149,8 +183,16 @@ export interface KnowledgeBaseSource {
     name: string;
     /** URL or path to the source data */
     url: string;
+    /** Description of the source */
+    description?: string | null;
+    /** Share ID extracted from URL (shared_id param) */
+    share_id?: string | null;
     /** Access Control List details in JSON format */
     access_control: any;
+    /** User ID who created this record */
+    created_by?: string | null;
+    /** User ID who last updated this record */
+    updated_by?: string | null;
     /** Timestamp of record creation */
     created_at: Date;
     /** Timestamp of last update */
@@ -179,6 +221,10 @@ export interface AuditLog {
     ip_address?: string | null;
     /** Timestamp when the action occurred */
     created_at: Date;
+    /** User ID who created this record */
+    created_by?: string | null;
+    /** User ID who last updated this record */
+    updated_by?: string | null;
 }
 
 /**
@@ -193,6 +239,10 @@ export interface UserIpHistory {
     ip_address: string;
     /** Timestamp of last access from this IP */
     last_accessed_at: Date;
+    /** User ID who created this record */
+    created_by?: string | null;
+    /** User ID who last updated this record */
+    updated_by?: string | null;
 }
 
 /**
@@ -209,6 +259,10 @@ export interface DocumentPermission {
     bucket_id: string;
     /** Numeric permission level */
     permission_level: number;
+    /** User ID who created this record */
+    created_by?: string | null;
+    /** User ID who last updated this record */
+    updated_by?: string | null;
     /** Timestamp of record creation */
     created_at: Date;
     /** Timestamp of last update */
@@ -235,6 +289,10 @@ export interface BroadcastMessage {
     is_active: boolean;
     /** Whether users can dismiss this message */
     is_dismissible: boolean;
+    /** User ID who created this record */
+    created_by?: string | null;
+    /** User ID who last updated this record */
+    updated_by?: string | null;
     /** Timestamp of record creation */
     created_at: Date;
     /** Timestamp of last update */
@@ -251,6 +309,10 @@ export interface UserDismissedBroadcast {
     broadcast_id: string;
     /** Timestamp when it was dismissed */
     dismissed_at: Date;
+    /** User ID who created this record */
+    created_by?: string | null;
+    /** User ID who last updated this record */
+    updated_by?: string | null;
 }
 
 /**

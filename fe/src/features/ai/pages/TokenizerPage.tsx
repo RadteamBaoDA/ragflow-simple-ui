@@ -1,7 +1,7 @@
 import { useState, useEffect, useMemo } from 'react';
 import { useTranslation } from 'react-i18next';
 import { encodingForModel, getEncoding, Tiktoken } from 'js-tiktoken';
-import { Eraser, Copy, Check } from 'lucide-react';
+import { Eraser, Copy, Check, FileCode } from 'lucide-react';
 
 /**
  * @description Visual tokenizer playground component.
@@ -132,10 +132,18 @@ const TokenizerPage = () => {
 
     return (
         <div className="flex flex-col h-full bg-slate-50 dark:bg-slate-900 p-6 gap-6">
+            {/* Page Header */}
+            <div className="flex items-center gap-3">
+                <div className="p-2 bg-primary-100 dark:bg-primary-900/30 rounded-lg">
+                    <FileCode className="w-6 h-6 text-primary-600 dark:text-primary-400" />
+                </div>
+                <div>
+                    <h1 className="text-2xl font-bold text-slate-800 dark:text-white">{t('pages.tokenizer.title')}</h1>
+                    <p className="text-slate-600 dark:text-slate-400 text-sm">{t('pages.tokenizer.description')}</p>
+                </div>
+            </div>
+
             <div className="flex flex-col md:flex-row justify-between items-start md:items-center gap-4">
-                <p className="text-slate-600 dark:text-slate-400">
-                    {t('pages.tokenizer.description', 'Calculate token counts for OpenAI, Ollama, and vLLM models')}
-                </p>
 
                 <div className="flex items-center gap-3">
                     <select

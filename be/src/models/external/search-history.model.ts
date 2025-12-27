@@ -14,6 +14,8 @@ export interface ExternalSearchHistory {
     id: string
     /** Optional Session ID */
     session_id?: string
+    /** Share ID of the source */
+    share_id?: string
     /** Optional user email */
     user_email?: string
     /** The search query text */

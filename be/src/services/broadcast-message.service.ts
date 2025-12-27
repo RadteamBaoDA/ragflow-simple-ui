@@ -103,7 +103,9 @@ export class BroadcastMessageService {
                 color: data.color || '#E75E40',
                 font_color: data.font_color || '#FFFFFF',
                 is_active: data.is_active === undefined ? true : data.is_active,
-                is_dismissible: data.is_dismissible === undefined ? false : data.is_dismissible
+                is_dismissible: data.is_dismissible === undefined ? false : data.is_dismissible,
+                created_by: user?.id || null,
+                updated_by: user?.id || null
             });
 
             if (!message) {
@@ -154,6 +156,7 @@ export class BroadcastMessageService {
             if (data.font_color !== undefined) updateData.font_color = data.font_color;
             if (data.is_active !== undefined) updateData.is_active = data.is_active;
             if (data.is_dismissible !== undefined) updateData.is_dismissible = data.is_dismissible;
+            if (user) updateData.updated_by = user.id;
 
             // Return null if no fields to update
             if (Object.keys(updateData).length === 0) return null;

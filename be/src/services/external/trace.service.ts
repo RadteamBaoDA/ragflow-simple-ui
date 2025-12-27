@@ -10,6 +10,7 @@ export interface ExternalTraceParams {
     email: string;
     message: string;
     ipAddress: string;
+    share_id?: string;
     role?: 'user' | 'assistant';
     response?: string;
     metadata?: any;
@@ -256,13 +257,18 @@ export class ExternalTraceService {
      * @returns string[] - Array of unique tags.
      * @description Merges default tags, environment, and metadata tags.
      */
-    private buildTags(metadata?: any): string[] {
+    private buildTags(metadata?: any, shareId?: string): string[] {
         // Initialize with default tags
         const tags = [...this.DEFAULT_TAGS];
 
         // Add server environment tag
         if (config.nodeEnv) {
             tags.push(config.nodeEnv);
+        }
+
+        // Add share_id as tag
+        if (shareId) {
+            tags.push(`share_id:${shareId}`);
         }
 
         // Add tags from metadata
@@ -309,7 +315,7 @@ export class ExternalTraceService {
             // Determine identifiers and context
             const chatId = metadata?.chatId ?? metadata?.sessionId ?? `chat-${email}-${Date.now()}`;
             const taskName = metadata?.task ?? (role === 'assistant' ? 'llm_response' : 'user_response');
-            const tags = this.buildTags(metadata);
+            const tags = this.buildTags(metadata, params.share_id);
 
             // Access or initialize memory trace object
             let trace = this.chatTraces.get(chatId);

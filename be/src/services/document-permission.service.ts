@@ -46,14 +46,19 @@ export class DocumentPermissionService {
 
             if (existing) {
                 // Update existing permission
-                await ModelFactory.documentPermission.update(existing.id, { permission_level: level });
+                await ModelFactory.documentPermission.update(existing.id, {
+                    permission_level: level,
+                    updated_by: actor?.id || null
+                });
             } else {
                 // Create new permission
                 await ModelFactory.documentPermission.create({
                     entity_type: entityType,
                     entity_id: entityId,
                     bucket_id: bucketId,
-                    permission_level: level
+                    permission_level: level,
+                    created_by: actor?.id || null,
+                    updated_by: actor?.id || null
                 });
             }
 

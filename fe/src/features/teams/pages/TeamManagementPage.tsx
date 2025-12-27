@@ -196,36 +196,42 @@ export default function TeamManagementPage() {
         !members.some(member => member.id === user.id)
     );
 
+    // Portal Create button to header-actions container
+    useEffect(() => {
+        const headerActions = document.getElementById('header-actions');
+        if (!headerActions) return;
+
+        // Clear existing content
+        headerActions.innerHTML = '';
+
+        // Create button element
+        const button = document.createElement('button');
+        button.className = 'flex items-center gap-2 px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition-colors';
+        button.innerHTML = `<svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><line x1="12" y1="5" x2="12" y2="19"></line><line x1="5" y1="12" x2="19" y2="12"></line></svg>${t('iam.teams.create')}`;
+        button.onclick = () => {
+            setFormData({ name: '', project_name: '', description: '' });
+            setIsCreateModalOpen(true);
+        };
+
+        headerActions.appendChild(button);
+
+        return () => {
+            headerActions.innerHTML = '';
+        };
+    }, [t]);
+
     return (
         <div className="h-full flex flex-col p-6 max-w-7xl mx-auto">
-            <div className="flex-none">
-                <div className="flex justify-between items-center mb-6">
-                    <div>
-                        <h1 className="text-2xl font-bold text-slate-800 dark:text-white">{t('iam.teams.title')}</h1>
-                        <p className="text-slate-600 dark:text-slate-400 mt-1">{t('iam.teams.description')}</p>
-                    </div>
-                    <button
-                        onClick={() => {
-                            setFormData({ name: '', project_name: '', description: '' });
-                            setIsCreateModalOpen(true);
-                        }}
-                        className="flex items-center gap-2 px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition-colors"
-                    >
-                        <Plus size={20} />
-                        {t('iam.teams.create')}
-                    </button>
-                </div>
-
-                <div className="mb-6 relative">
-                    <Search className="absolute left-3 top-1/2 -translate-y-1/2 text-slate-400" size={20} />
-                    <input
-                        type="text"
-                        placeholder={t('common.searchPlaceholder')}
-                        value={searchTerm}
-                        onChange={(e) => setSearchTerm(e.target.value)}
-                        className="w-full pl-10 pr-4 py-2 rounded-lg border border-slate-200 dark:border-slate-700 bg-white dark:bg-slate-800 text-slate-900 dark:text-white focus:ring-2 focus:ring-blue-500 outline-none"
-                    />
-                </div>
+            {/* Search */}
+            <div className="flex-none mb-6 relative">
+                <Search className="absolute left-3 top-1/2 -translate-y-1/2 text-slate-400" size={20} />
+                <input
+                    type="text"
+                    placeholder={t('common.searchPlaceholder')}
+                    value={searchTerm}
+                    onChange={(e) => setSearchTerm(e.target.value)}
+                    className="w-full pl-10 pr-4 py-2 rounded-lg border border-slate-200 dark:border-slate-700 bg-white dark:bg-slate-800 text-slate-900 dark:text-white focus:ring-2 focus:ring-blue-500 outline-none"
+                />
             </div>
 
             {loading ? (
