@@ -26,6 +26,7 @@ interface ChatSessionSummary {
     user_prompt: string;
     created_at: string;
     message_count: string | number;
+    source_name?: string;
 }
 
 /**
@@ -303,10 +304,17 @@ function ChatHistoryPage() {
                                                 </span>
                                             </div>
 
-                                            <div className="flex items-center justify-between text-xs">
-                                                <span className="bg-slate-100 dark:bg-slate-800 px-2 py-0.5 rounded-full font-medium text-[10px] text-slate-400 dark:text-slate-300">
-                                                    {item.message_count} msgs
-                                                </span>
+                                            <div className="flex items-center justify-between text-xs mt-2">
+                                                <div className="flex items-center gap-2">
+                                                    {item.source_name && (
+                                                        <div className="flex items-center gap-1.5 px-2 py-0.5 rounded-full bg-violet-50/50 dark:bg-violet-900/10 border border-violet-100 dark:border-violet-900/30">
+                                                            <span className="truncate max-w-[100px] font-bold text-[10px] text-violet-600 dark:text-violet-400 uppercase tracking-wide">{item.source_name}</span>
+                                                        </div>
+                                                    )}
+                                                    <span className="bg-slate-100 dark:bg-slate-800 px-2 py-0.5 rounded-full font-medium text-[10px] text-slate-400 dark:text-slate-300">
+                                                        {item.message_count} msgs
+                                                    </span>
+                                                </div>
                                                 <ChevronRight size={12} className={`transition-transform duration-300 ${isSelected ? 'translate-x-1 text-primary' : 'opacity-0 group-hover:opacity-100'}`} />
                                             </div>
                                         </div>
