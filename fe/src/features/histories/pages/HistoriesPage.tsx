@@ -6,152 +6,20 @@
 import { useState, useEffect, useRef, useMemo } from 'react';
 import { useInfiniteQuery, useQuery } from '@tanstack/react-query';
 import { useTranslation } from 'react-i18next';
-import { apiFetch } from '@/lib/api';
+import {
+    ChatSessionSummary,
+    SearchSessionSummary,
+    ExternalChatHistory,
+    ExternalSearchHistory,
+    FilterState,
+    fetchExternalChatHistory,
+    fetchExternalSearchHistory,
+    fetchChatSessionDetails,
+    fetchSearchSessionDetails
+} from '@/features/histories/api/historiesService';
 import { Filter, Search, MessageSquare, FileText, Clock, User, ChevronRight, Sparkles, PanelLeftClose, PanelLeft, RefreshCw } from 'lucide-react';
 import { Dialog } from '@/components/Dialog';
 import { MarkdownRenderer } from '@/components/MarkdownRenderer';
-
-// ============================================================================
-// Types
-// ============================================================================
-
-/**
- * Summary of a chat session, used for the list view.
- */
-interface ChatSessionSummary {
-    /** Unique session identifier */
-    session_id: string;
-    /** User email if authenticated, otherwise undefined/null */
-    user_email?: string;
-    /** First prompt of the session, used as title */
-    user_prompt: string; // Preview (first prompt)
-    /** Timestamp of the latest activity in the session */
-    created_at: string; // Max/Latest timestamp
-    /** Total number of messages in the session */
-    message_count: string | number;
-    /** Source name if available */
-    source_name?: string;
-}
-
-/**
- * Summary of a search session, used for the list view.
- */
-interface SearchSessionSummary {
-    /** Unique session identifier */
-    session_id: string;
-    /** User email if authenticated */
-    user_email?: string;
-    /** The search query */
-    search_input: string; // Preview
-    /** Timestamp of the search */
-    created_at: string;
-    /** Number of related activities/messages */
-    message_count: string | number;
-    /** Source name if available */
-    source_name?: string;
-}
-
-/**
- * Detailed chat history record.
- */
-interface ExternalChatHistory {
-    id: string;
-    session_id: string;
-    user_email?: string;
-    user_prompt: string;
-    llm_response: string;
-    citations: any[];
-    created_at: string;
-}
-
-/**
- * Detailed search history record.
- */
-interface ExternalSearchHistory {
-    id: string;
-    session_id: string;
-    user_email?: string;
-    search_input: string;
-    ai_summary: string;
-    file_results: any[];
-    created_at: string;
-}
-
-/**
- * Filter state for history queries.
- */
-interface FilterState {
-    email: string;
-    startDate: string;
-    endDate: string;
-    sourceName: string;
-}
-
-// ============================================================================
-// API Functions
-// ============================================================================
-
-/**
- * Fetch chat history summaries with pagination and filtering.
- * 
- * @param {string} search - Search query for prompts/content.
- * @param {FilterState} filters - Filters for email and date range.
- * @param {number} page - Page number to fetch.
- * @returns {Promise<ChatSessionSummary[]>} List of chat sessions.
- */
-async function fetchExternalChatHistory(search: string, filters: FilterState, page: number): Promise<ChatSessionSummary[]> {
-    const params = new URLSearchParams({
-        q: search,
-        email: filters.email,
-        startDate: filters.startDate,
-        endDate: filters.endDate,
-        sourceName: filters.sourceName,
-        page: page.toString(),
-        limit: '20'
-    });
-    return apiFetch<ChatSessionSummary[]>(`/api/admin/history/chat?${params.toString()}`);
-}
-
-/**
- * Fetch search history summaries with pagination and filtering.
- * 
- * @param {string} search - Search query.
- * @param {FilterState} filters - Filters.
- * @param {number} page - Page number.
- * @returns {Promise<SearchSessionSummary[]>} List of search sessions.
- */
-async function fetchExternalSearchHistory(search: string, filters: FilterState, page: number): Promise<SearchSessionSummary[]> {
-    const params = new URLSearchParams({
-        q: search,
-        email: filters.email,
-        startDate: filters.startDate,
-        endDate: filters.endDate,
-        sourceName: filters.sourceName,
-        page: page.toString(),
-        limit: '20'
-    });
-    return apiFetch<SearchSessionSummary[]>(`/api/admin/history/search?${params.toString()}`);
-}
-
-/**
- * Fetch detailed messages for a specific chat session.
- * 
- * @param {string} sessionId - ID of the session.
- * @returns {Promise<ExternalChatHistory[]>} List of messages in the session.
- */
-async function fetchChatSessionDetails(sessionId: string): Promise<ExternalChatHistory[]> {
-    return apiFetch<ExternalChatHistory[]>(`/api/admin/history/chat/${sessionId}`);
-}
-
-/**
- * Fetch details for a specific search session.
- * 
- * @param {string} sessionId - ID of the session.
- * @returns {Promise<ExternalSearchHistory[]>} Details of the search session.
- */
-async function fetchSearchSessionDetails(sessionId: string): Promise<ExternalSearchHistory[]> {
-    return apiFetch<ExternalSearchHistory[]>(`/api/admin/history/search/${sessionId}`);
-}
 
 // ============================================================================
 // Component
