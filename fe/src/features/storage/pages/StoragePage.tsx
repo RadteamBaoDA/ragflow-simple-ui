@@ -88,6 +88,11 @@ const StoragePage = () => {
                         newStats[b.name] = { objectCount: 0, totalSize: 0, loading: false, loaded: false, error: false };
                     }
                 });
+                // After initializing stats, trigger a stats load for each bucket to populate metrics
+                data.forEach((b: any) => {
+                    // fire-and-forget; update uses setState inside
+                    loadBucketStats(b.name).catch(() => {})
+                });
                 return newStats;
             });
         } catch (error: any) {
@@ -255,6 +260,11 @@ const StoragePage = () => {
         }));
         try {
             const bucketStats = await getRawBucketStats(name);
+            // Defensive: handle undefined or unexpected response shapes from service
+            if (!bucketStats || typeof bucketStats.objectCount !== 'number' || typeof bucketStats.totalSize !== 'number') {
+                throw new Error('Invalid bucket stats')
+            }
+
             setStats(prev => ({
                 ...prev,
                 [name]: {

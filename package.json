@@ -22,7 +22,10 @@
     "test": "npm run test --workspaces --if-present"
   },
   "devDependencies": {
+    "@testing-library/react": "^16.3.1",
+    "@types/jest": "^30.0.0",
     "@types/jszip": "^3.4.0",
+    "@types/mocha": "^10.0.10",
     "@types/nprogress": "^0.2.3",
     "concurrently": "^9.1.0",
     "dotenv": "^16.4.5",
