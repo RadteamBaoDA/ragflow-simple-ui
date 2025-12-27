@@ -120,8 +120,6 @@ function Layout() {
   const [isIamExpanded, setIsIamExpanded] = useState(false);
   const [isAdministratorsExpanded, setIsAdministratorsExpanded] = useState(false);
   const [isKnowledgeBaseExpanded, setIsKnowledgeBaseExpanded] = useState(false);
-  const [isChatExpanded, setIsChatExpanded] = useState(false);
-  const [isSearchExpanded, setIsSearchExpanded] = useState(false);
 
   // Get auth, settings, and Knowledge Base context
   const { user } = useAuth();
@@ -178,11 +176,12 @@ function Layout() {
   const isSearchActive = ['/ai-search', '/search-history'].includes(location.pathname);
 
   // Combine manual toggle with auto-expand logic
+  // Chat and Search menus only expand when their routes are active (auto-collapse when navigating away)
   const shouldExpandKnowledgeBase = isKnowledgeBaseExpanded || isKnowledgeBaseActive;
   const shouldExpandIam = isIamExpanded || isIamActive;
   const shouldExpandAdministrators = isAdministratorsExpanded || isAdministratorsActive;
-  const shouldExpandChat = isChatExpanded || isChatActive;
-  const shouldExpandSearch = isSearchExpanded || isSearchActive;
+  const shouldExpandChat = isChatActive;
+  const shouldExpandSearch = isSearchActive;
 
   // Determine if source selection dropdowns should be shown
   // Only show when multiple sources are configured
@@ -214,9 +213,9 @@ function Layout() {
         <nav className="flex flex-col gap-2 flex-1 mt-4 overflow-y-auto scrollbar-hide px-2">
           {config.features.enableAiChat && (
             <div className="flex flex-col gap-1">
-              <button
-                onClick={() => setIsChatExpanded(!isChatExpanded)}
-                className={`sidebar-link w-full ${isCollapsed ? 'justify-center px-2' : ''}`}
+              <NavLink
+                to="/ai-chat"
+                className={({ isActive }: { isActive: boolean }) => `sidebar-link w-full ${isActive && !location.pathname.includes('history') ? 'active' : ''} ${isCollapsed ? 'justify-center px-2' : ''}`}
                 title={t('nav.aiChat')}
               >
                 <MessageSquare size={20} />
@@ -226,29 +225,23 @@ function Layout() {
                     {shouldExpandChat ? <ChevronDown size={16} /> : <ChevronRight size={16} />}
                   </>
                 )}
-              </button>
+              </NavLink>
 
-              {(!isCollapsed && shouldExpandChat) && (
+              {(!isCollapsed && shouldExpandChat) && config.features.enableHistory && (
                 <div className="pl-4 flex flex-col gap-1">
-                  <NavLink to="/ai-chat" className={({ isActive }: { isActive: boolean }) => `sidebar-link text-sm ${isActive ? 'active' : ''}`} title={t('nav.aiChat')}>
-                    <MessageSquare size={16} />
-                    <span>{t('nav.aiChat')}</span>
+                  <NavLink to="/chat-history" className={({ isActive }: { isActive: boolean }) => `sidebar-link text-sm ${isActive ? 'active' : ''}`} title={t('nav.chatHistory')}>
+                    <History size={16} />
+                    <span>{t('nav.chatHistory')}</span>
                   </NavLink>
-                  {config.features.enableHistory && (
-                    <NavLink to="/chat-history" className={({ isActive }: { isActive: boolean }) => `sidebar-link text-sm ${isActive ? 'active' : ''}`} title={t('nav.chatHistory')}>
-                      <History size={16} />
-                      <span>{t('nav.chatHistory')}</span>
-                    </NavLink>
-                  )}
                 </div>
               )}
             </div>
           )}
           {config.features.enableAiSearch && (
             <div className="flex flex-col gap-1">
-              <button
-                onClick={() => setIsSearchExpanded(!isSearchExpanded)}
-                className={`sidebar-link w-full ${isCollapsed ? 'justify-center px-2' : ''}`}
+              <NavLink
+                to="/ai-search"
+                className={({ isActive }: { isActive: boolean }) => `sidebar-link w-full ${isActive && !location.pathname.includes('history') ? 'active' : ''} ${isCollapsed ? 'justify-center px-2' : ''}`}
                 title={t('nav.aiSearch')}
               >
                 <Search size={20} />
@@ -258,20 +251,14 @@ function Layout() {
                     {shouldExpandSearch ? <ChevronDown size={16} /> : <ChevronRight size={16} />}
                   </>
                 )}
-              </button>
+              </NavLink>
 
-              {(!isCollapsed && shouldExpandSearch) && (
+              {(!isCollapsed && shouldExpandSearch) && config.features.enableHistory && (
                 <div className="pl-4 flex flex-col gap-1">
-                  <NavLink to="/ai-search" className={({ isActive }: { isActive: boolean }) => `sidebar-link text-sm ${isActive ? 'active' : ''}`} title={t('nav.aiSearch')}>
-                    <Search size={16} />
-                    <span>{t('nav.aiSearch')}</span>
+                  <NavLink to="/search-history" className={({ isActive }: { isActive: boolean }) => `sidebar-link text-sm ${isActive ? 'active' : ''}`} title={t('nav.searchHistory')}>
+                    <ClipboardList size={16} />
+                    <span>{t('nav.searchHistory')}</span>
                   </NavLink>
-                  {config.features.enableHistory && (
-                    <NavLink to="/search-history" className={({ isActive }: { isActive: boolean }) => `sidebar-link text-sm ${isActive ? 'active' : ''}`} title={t('nav.searchHistory')}>
-                      <ClipboardList size={16} />
-                      <span>{t('nav.searchHistory')}</span>
-                    </NavLink>
-                  )}
                 </div>
               )}
             </div>
