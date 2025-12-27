@@ -159,7 +159,8 @@ class MinioService {
                 bucket_name: bucketName,
                 display_name: bucketName,
                 description,
-                created_by: user?.id || 'system'
+                created_by: user?.id || 'system',
+                updated_by: user?.id || 'system'
             });
 
             // 4. Audit Log

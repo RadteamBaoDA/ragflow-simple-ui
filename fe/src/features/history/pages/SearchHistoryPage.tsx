@@ -121,6 +121,8 @@ function SearchHistoryPage() {
         getNextPageParam: (lastPage, allPages) => {
             return lastPage.length === 20 ? allPages.length + 1 : undefined;
         },
+        // Force refetch when navigating back to this page to get latest data
+        refetchOnMount: 'always',
     });
 
     // Fetch session details when a session is selected

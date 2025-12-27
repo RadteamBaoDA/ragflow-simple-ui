@@ -28,6 +28,8 @@ interface KnowledgeBaseSource {
     name: string;
     /** Iframe URL for the source */
     url: string;
+    /** Description of the source */
+    description?: string | null;
 }
 
 /**

@@ -22,9 +22,10 @@ export class AdminHistoryController {
             const email = req.query.email as string || '';
             const startDate = req.query.startDate as string || '';
             const endDate = req.query.endDate as string || '';
+            const sourceName = req.query.sourceName as string || '';
 
             // Fetch chat history from service
-            const sessions = await adminHistoryService.getChatHistory(page, limit, search, email, startDate, endDate);
+            const sessions = await adminHistoryService.getChatHistory(page, limit, search, email, startDate, endDate, sourceName);
             res.json(sessions);
         } catch (error) {
             // Log error and return 500 status
@@ -73,9 +74,10 @@ export class AdminHistoryController {
             const email = req.query.email as string || '';
             const startDate = req.query.startDate as string || '';
             const endDate = req.query.endDate as string || '';
+            const sourceName = req.query.sourceName as string || '';
 
             // Fetch search history from service
-            const sessions = await adminHistoryService.getSearchHistory(page, limit, search, email, startDate, endDate);
+            const sessions = await adminHistoryService.getSearchHistory(page, limit, search, email, startDate, endDate, sourceName);
             res.json(sessions);
         } catch (error) {
             // Log error and return 500 status

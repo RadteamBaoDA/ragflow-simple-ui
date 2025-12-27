@@ -54,7 +54,8 @@
     "saveSuccess": "正常に保存されました",
     "updateSuccess": "正常に更新されました",
     "deleteSuccess": "正常に削除されました",
-    "createSuccess": "正常に作成されました"
+    "createSuccess": "正常に作成されました",
+    "description": "説明"
   },
   "dialog": {
     "confirm": "確認",
@@ -594,6 +595,10 @@
     "publicAccess": "システム全体へのアクセス",
     "publicAccessDesc": "すべての認証済みユーザーにこのソースへのアクセスを許可します。",
     "publicOnlyNote": "パブリックソースのみをシステムデフォルトとして設定できます。",
+    "shareId": "共有ID",
+    "shareIdPlaceholder": "URLから自動抽出",
+    "shareIdDesc": "URLパラメータshared_idから自動抽出されます",
+    "descriptionPlaceholder": "このソースのオプション説明",
     "addSuccess": "ソースが正常に追加されました",
     "updateSuccess": "ソースが正常に更新されました",
     "deleteSuccess": "ソースが正常に削除されました"

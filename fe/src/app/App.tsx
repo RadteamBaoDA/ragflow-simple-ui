@@ -50,9 +50,13 @@ const BroadcastMessagePage = lazy(() => import('@/features/broadcast').then(m =>
 const HistoriesPage = lazy(() => import('@/features/histories').then(m => ({ default: m.HistoriesPage })));
 
 // ============================================================================
-// Loading Component
+// Loading Component (for initial app load / login page)
 // ============================================================================
 
+/**
+ * Full-screen loader shown during initial app load or non-layout routes.
+ * Layout pages use their own ContentLoader inside the layout.
+ */
 const PageLoader = () => (
   <div className="flex items-center justify-center min-h-screen bg-gray-50 dark:bg-gray-900">
     <div className="animate-spin rounded-full h-12 w-12 border-t-2 border-b-2 border-primary-600"></div>
@@ -98,10 +102,10 @@ const GlobalNotifications = () => {
 
 function App() {
   const getDefaultPath = () => {
-    if (config.features.enableAiChat) return '/ai-chat';
-    if (config.features.enableAiSearch) return '/ai-search';
+    if (config.features.enableAiChat) return '/chat';
+    if (config.features.enableAiSearch) return '/search';
     if (config.features.enableHistory) return '/history';
-    return '/ai-chat';
+    return '/chat';
   };
 
   return (
@@ -123,60 +127,51 @@ function App() {
                     <Route element={<Layout />}>
                       <Route index element={<Navigate to={getDefaultPath()} replace />} />
 
+                      {/* Chat routes */}
                       {config.features.enableAiChat && (
-                        <Route path="ai-chat" element={<AiChatPage />} />
-                      )}
-
-                      {config.features.enableAiSearch && (
-                        <Route path="ai-search" element={<AiSearchPage />} />
-                      )}
-
-                      {config.features.enableHistory && (
                         <>
-                          <Route path="history" element={<HistoryPage />} />
-                          <Route path="chat-history" element={<ChatHistoryPage />} />
-                          <Route path="search-history" element={<SearchHistoryPage />} />
+                          <Route path="chat" element={<AiChatPage />} />
+                          {config.features.enableHistory && (
+                            <Route path="chat/history" element={<ChatHistoryPage />} />
+                          )}
                         </>
                       )}
 
-                      <Route path="user-management" element={
-                        <AdminRoute>
-                          <UserManagementPage />
-                        </AdminRoute>
-                      } />
-                      <Route path="system-tools" element={
-                        <AdminRoute>
-                          <SystemToolsPage />
-                        </AdminRoute>
-                      } />
-                      <Route path="system-monitor" element={
-                        <AdminRoute>
-                          <SystemMonitorPage />
-                        </AdminRoute>
-                      } />
-                      <Route path="documents" element={
+                      {/* Search routes */}
+                      {config.features.enableAiSearch && (
+                        <>
+                          <Route path="search" element={<AiSearchPage />} />
+                          {config.features.enableHistory && (
+                            <Route path="search/history" element={<SearchHistoryPage />} />
+                          )}
+                        </>
+                      )}
+
+                      {config.features.enableHistory && (
+                        <Route path="history" element={<HistoryPage />} />
+                      )}
+
+                      {/* Knowledge Base routes */}
+                      <Route path="knowledge-base/documents" element={
                         <RoleRoute allowedRoles={['admin', 'leader']}>
                           <DocumentManagerPage />
                         </RoleRoute>
                       } />
-                      <Route path="audit-log" element={
+                      <Route path="knowledge-base/config" element={
                         <AdminRoute>
-                          <AuditLogPage />
+                          <KnowledgeBaseConfigPage />
                         </AdminRoute>
                       } />
-                      <Route path="tokenizer" element={
-                        <AdminRoute>
-                          <TokenizerPage />
-                        </AdminRoute>
-                      } />
-                      <Route path="storage-dashboard" element={
+                      <Route path="knowledge-base/storage" element={
                         <AdminRoute>
                           <StoragePage />
                         </AdminRoute>
                       } />
-                      <Route path="knowledge-base/config" element={
+
+                      {/* IAM routes */}
+                      <Route path="iam/users" element={
                         <AdminRoute>
-                          <KnowledgeBaseConfigPage />
+                          <UserManagementPage />
                         </AdminRoute>
                       } />
                       <Route path="iam/teams" element={
@@ -184,12 +179,34 @@ function App() {
                           <TeamManagementPage />
                         </AdminRoute>
                       } />
-                      <Route path="broadcast-messages" element={
+
+                      {/* Admin routes */}
+                      <Route path="admin/audit-log" element={
+                        <AdminRoute>
+                          <AuditLogPage />
+                        </AdminRoute>
+                      } />
+                      <Route path="admin/system-tools" element={
+                        <AdminRoute>
+                          <SystemToolsPage />
+                        </AdminRoute>
+                      } />
+                      <Route path="admin/system-monitor" element={
+                        <AdminRoute>
+                          <SystemMonitorPage />
+                        </AdminRoute>
+                      } />
+                      <Route path="admin/tokenizer" element={
+                        <AdminRoute>
+                          <TokenizerPage />
+                        </AdminRoute>
+                      } />
+                      <Route path="admin/broadcast-messages" element={
                         <AdminRoute>
                           <BroadcastMessagePage />
                         </AdminRoute>
                       } />
-                      <Route path="histories" element={
+                      <Route path="admin/histories" element={
                         <AdminRoute>
                           <HistoriesPage />
                         </AdminRoute>

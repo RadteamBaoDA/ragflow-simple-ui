@@ -5,6 +5,7 @@ import { Knex } from 'knex';
 
 interface ChatHistoryData {
     session_id: string;
+    share_id?: string;
     user_email?: string;
     user_prompt: string;
     llm_response: string;
@@ -13,6 +14,7 @@ interface ChatHistoryData {
 
 interface SearchHistoryData {
     session_id?: string;
+    share_id?: string;
     user_email?: string;
     search_input: string;
     ai_summary: string;
@@ -31,14 +33,27 @@ export class ExternalHistoryService {
         return db.transaction(async (trx) => {
             log.debug(`Starting transaction for chat history session ${data.session_id}`);
             try {
-                // Create chat history record within transaction
-                await ModelFactory.externalChatHistory.create({
+                // Upsert session
+                const sessionData = {
                     session_id: data.session_id,
+                    share_id: data.share_id || null,
                     user_email: data.user_email || '',
+                };
+
+                await ModelFactory.externalChatSession.getKnex()
+                    .transacting(trx)
+                    .insert(sessionData)
+                    .onConflict('session_id')
+                    .merge(['updated_at', 'user_email']); // Update timestamp and email if changed
+
+                // Create chat message record within transaction
+                await ModelFactory.externalChatMessage.create({
+                    session_id: data.session_id,
                     user_prompt: data.user_prompt,
                     llm_response: data.llm_response,
                     citations: JSON.stringify(data.citations) as any,
                 } as any, trx as any);
+
                 log.debug(`Successfully saved chat history for session ${data.session_id}`);
             } catch (error) {
                 // Log and rethrow error to trigger rollback
@@ -59,14 +74,27 @@ export class ExternalHistoryService {
         return db.transaction(async (trx) => {
             log.debug('Starting transaction for search history');
             try {
-                // Create search history record within transaction
-                await ModelFactory.externalSearchHistory.create({
-                    session_id: data.session_id,
-                    search_input: data.search_input,
+                // Upsert session
+                const sessionData = {
+                    session_id: data.session_id || `search-${Date.now()}`, // Fallback if no session_id
+                    share_id: data.share_id || null,
                     user_email: data.user_email || '',
+                };
+
+                await ModelFactory.externalSearchSession.getKnex()
+                    .transacting(trx)
+                    .insert(sessionData)
+                    .onConflict('session_id')
+                    .merge(['updated_at', 'user_email']);
+
+                // Create search record within transaction
+                await ModelFactory.externalSearchRecord.create({
+                    session_id: sessionData.session_id,
+                    search_input: data.search_input,
                     ai_summary: data.ai_summary,
                     file_results: JSON.stringify(data.file_results) as any,
                 } as any, trx as any);
+
                 log.debug('Successfully saved search history');
             } catch (error) {
                 // Log and rethrow error to trigger rollback

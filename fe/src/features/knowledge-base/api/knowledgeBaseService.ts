@@ -22,6 +22,10 @@ export interface KnowledgeBaseSource {
     name: string;
     /** URL of the source (iframe URL) */
     url: string;
+    /** Description of the source */
+    description?: string | null;
+    /** Share ID extracted from URL (shared_id param) */
+    share_id?: string | null;
     /** Type of source: chat or search */
     type?: 'chat' | 'search';
     /** Access control settings */
@@ -142,14 +146,16 @@ export const addSource = async (
     type: 'chat' | 'search',
     name: string,
     url: string,
-    access_control: AccessControl = { public: false, team_ids: [], user_ids: [] }
+    access_control: AccessControl = { public: false, team_ids: [], user_ids: [] },
+    share_id?: string,
+    description?: string
 ): Promise<KnowledgeBaseSource> => {
     const response = await fetch(`${API_BASE_URL}/api/knowledge-base/sources`, {
         method: 'POST',
         headers: {
             'Content-Type': 'application/json',
         },
-        body: JSON.stringify({ type, name, url, access_control }),
+        body: JSON.stringify({ type, name, url, description, access_control, share_id }),
         credentials: 'include',
     });
 
@@ -167,15 +173,16 @@ export const addSource = async (
  * @param {string} name - New name.
  * @param {string} url - New URL.
  * @param {AccessControl} [access_control] - New permissions.
+ * @param {string} [share_id] - New share ID.
  * @returns {Promise<void>}
  */
-export const updateSource = async (id: string, name: string, url: string, access_control?: AccessControl): Promise<void> => {
+export const updateSource = async (id: string, name: string, url: string, access_control?: AccessControl, share_id?: string, description?: string): Promise<void> => {
     const response = await fetch(`${API_BASE_URL}/api/knowledge-base/sources/${id}`, {
         method: 'PUT',
         headers: {
             'Content-Type': 'application/json',
         },
-        body: JSON.stringify({ name, url, access_control }),
+        body: JSON.stringify({ name, url, description, access_control, share_id }),
         credentials: 'include',
     });
 

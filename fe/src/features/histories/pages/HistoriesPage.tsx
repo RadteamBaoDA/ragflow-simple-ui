@@ -29,6 +29,8 @@ interface ChatSessionSummary {
     created_at: string; // Max/Latest timestamp
     /** Total number of messages in the session */
     message_count: string | number;
+    /** Source name if available */
+    source_name?: string;
 }
 
 /**
@@ -45,6 +47,8 @@ interface SearchSessionSummary {
     created_at: string;
     /** Number of related activities/messages */
     message_count: string | number;
+    /** Source name if available */
+    source_name?: string;
 }
 
 /**
@@ -80,6 +84,7 @@ interface FilterState {
     email: string;
     startDate: string;
     endDate: string;
+    sourceName: string;
 }
 
 // ============================================================================
@@ -100,6 +105,7 @@ async function fetchExternalChatHistory(search: string, filters: FilterState, pa
         email: filters.email,
         startDate: filters.startDate,
         endDate: filters.endDate,
+        sourceName: filters.sourceName,
         page: page.toString(),
         limit: '20'
     });
@@ -120,6 +126,7 @@ async function fetchExternalSearchHistory(search: string, filters: FilterState, 
         email: filters.email,
         startDate: filters.startDate,
         endDate: filters.endDate,
+        sourceName: filters.sourceName,
         page: page.toString(),
         limit: '20'
     });
@@ -167,8 +174,8 @@ function HistoriesPage() {
     const [selectedSession, setSelectedSession] = useState<ChatSessionSummary | SearchSessionSummary | null>(null);
     const [searchQuery, setSearchQuery] = useState('');
     const [executedSearchQuery, setExecutedSearchQuery] = useState('');
-    const [filters, setFilters] = useState<FilterState>({ email: '', startDate: '', endDate: '' });
-    const [tempFilters, setTempFilters] = useState<FilterState>({ email: '', startDate: '', endDate: '' });
+    const [filters, setFilters] = useState<FilterState>({ email: '', startDate: '', endDate: '', sourceName: '' });
+    const [tempFilters, setTempFilters] = useState<FilterState>({ email: '', startDate: '', endDate: '', sourceName: '' });
     const [isFilterDialogOpen, setIsFilterDialogOpen] = useState(false);
     const loadMoreRef = useRef<HTMLDivElement>(null);
 
@@ -276,7 +283,7 @@ function HistoriesPage() {
      * Reset filters to default empty state.
      */
     const handleResetFilters = () => {
-        const reseted = { email: '', startDate: '', endDate: '' };
+        const reseted = { email: '', startDate: '', endDate: '', sourceName: '' };
         setTempFilters(reseted);
         setFilters(reseted);
     };
@@ -299,7 +306,7 @@ function HistoriesPage() {
         }
     }, [flattenedData, selectedSession]);
 
-    const isFiltered = filters.email || filters.startDate || filters.endDate;
+    const isFiltered = filters.email || filters.startDate || filters.endDate || filters.sourceName;
 
     return (
         <div className="flex h-full bg-slate-50/50 dark:bg-slate-950/50 border-t border-slate-200 dark:border-slate-800 backdrop-blur-sm">
@@ -416,10 +423,15 @@ function HistoriesPage() {
 
                                             <div className="flex items-center justify-between text-xs">
                                                 <div className="flex items-center gap-2 text-slate-500 dark:text-slate-300">
+                                                    {item.source_name && (
+                                                        <div className="flex items-center gap-1.5 px-2 py-0.5 rounded-full bg-violet-50/50 dark:bg-violet-900/10 border border-violet-100 dark:border-violet-900/30">
+                                                            <span className="truncate max-w-[100px] font-bold text-[10px] text-violet-600 dark:text-violet-400 uppercase tracking-wide">{item.source_name}</span>
+                                                        </div>
+                                                    )}
                                                     {item.user_email ? (
                                                         <div className="flex items-center gap-1.5 px-2 py-0.5 rounded-full bg-blue-50/50 dark:bg-blue-900/10 border border-blue-100 dark:border-blue-900/30">
                                                             <User size={10} className="text-blue-500" />
-                                                            <span className="truncate max-w-[120px] font-medium text-blue-600 dark:text-blue-400">{item.user_email}</span>
+                                                            <span className="truncate max-w-[100px] font-medium text-blue-600 dark:text-blue-400">{item.user_email}</span>
                                                         </div>
                                                     ) : (
                                                         <span className="italic text-slate-400">Anonymous</span>
@@ -659,6 +671,16 @@ function HistoriesPage() {
                             onChange={(e) => setTempFilters({ ...tempFilters, email: e.target.value })}
                             className="w-full px-4 py-2.5 rounded-xl border border-slate-200 dark:border-slate-800 bg-slate-50 dark:bg-slate-900 focus:ring-2 focus:ring-primary/20 outline-none transition-all"
                             placeholder="e.g. user@example.com"
+                        />
+                    </div>
+                    <div>
+                        <label className="block text-sm font-medium text-slate-700 dark:text-slate-300 mb-1.5">Source Name</label>
+                        <input
+                            type="text"
+                            value={tempFilters.sourceName}
+                            onChange={(e) => setTempFilters({ ...tempFilters, sourceName: e.target.value })}
+                            className="w-full px-4 py-2.5 rounded-xl border border-slate-200 dark:border-slate-800 bg-slate-50 dark:bg-slate-900 focus:ring-2 focus:ring-primary/20 outline-none transition-all"
+                            placeholder="e.g. My Knowledge Base"
                         />
                     </div>
                     <div className="grid grid-cols-2 gap-4">

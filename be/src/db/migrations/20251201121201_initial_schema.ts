@@ -98,6 +98,8 @@ export async function up(knex: Knex): Promise<void> {
             table.text('type').notNullable();
             table.text('name').notNullable();
             table.text('url').notNullable();
+            table.text('description'); // Source description
+            table.text('share_id'); // Share ID extracted from URL (shared_id param)
             table.jsonb('access_control').defaultTo('{"public": true}');
             table.timestamp('created_at', { useTz: true }).defaultTo(knex.fn.now());
             table.timestamp('updated_at', { useTz: true }).defaultTo(knex.fn.now());
@@ -192,45 +194,80 @@ export async function up(knex: Knex): Promise<void> {
         });
     }
 
-    // 14. External Chat History
-    if (!(await knex.schema.hasTable('external_chat_history'))) {
-        await knex.schema.createTable('external_chat_history', (table) => {
+    // 14. External Chat Sessions
+    if (!(await knex.schema.hasTable('external_chat_sessions'))) {
+        await knex.schema.createTable('external_chat_sessions', (table) => {
             table.uuid('id').primary().defaultTo(knex.raw('gen_random_uuid()'));
-            table.text('session_id').notNullable();
+            table.text('session_id').unique().notNullable(); // Unique constraint for session upsert
+            table.text('share_id'); // Share ID of the source
             table.text('user_email');
+            table.timestamp('created_at', { useTz: true }).defaultTo(knex.fn.now());
+            table.timestamp('updated_at', { useTz: true }).defaultTo(knex.fn.now());
+
+            table.index('share_id');
+            table.index('user_email');
+        });
+    }
+
+    // 15. External Chat Messages
+    if (!(await knex.schema.hasTable('external_chat_messages'))) {
+        await knex.schema.createTable('external_chat_messages', (table) => {
+            table.uuid('id').primary().defaultTo(knex.raw('gen_random_uuid()'));
+            table.text('session_id').notNullable(); // Reference to session_id (not FK to avoid constraint issues if session created async, but logically linked)
             table.text('user_prompt').notNullable();
             table.text('llm_response').notNullable();
             table.jsonb('citations').defaultTo('[]');
             table.timestamp('created_at', { useTz: true }).defaultTo(knex.fn.now());
+            // Full-text search vector
+            table.specificType('search_vector', "tsvector GENERATED ALWAYS AS (to_tsvector('english', coalesce(user_prompt, '') || ' ' || coalesce(llm_response, ''))) STORED");
 
             table.index('session_id');
-            table.index('user_email');
-            // table.index('created_at'); // Desc via raw
+            table.foreign('session_id').references('external_chat_sessions.session_id').onDelete('CASCADE');
         });
-        await knex.raw('CREATE INDEX IF NOT EXISTS idx_external_chat_history_created_at ON external_chat_history(created_at DESC)');
+        await knex.raw('CREATE INDEX IF NOT EXISTS idx_ext_chat_msg_created_at ON external_chat_messages(created_at DESC)');
+        await knex.raw('CREATE INDEX IF NOT EXISTS idx_ext_chat_msg_search_vector ON external_chat_messages USING GIN(search_vector)');
     }
 
-    // 15. External Search History
-    if (!(await knex.schema.hasTable('external_search_history'))) {
-        await knex.schema.createTable('external_search_history', (table) => {
+    // 16. External Search Sessions
+    if (!(await knex.schema.hasTable('external_search_sessions'))) {
+        await knex.schema.createTable('external_search_sessions', (table) => {
             table.uuid('id').primary().defaultTo(knex.raw('gen_random_uuid()'));
-            table.text('session_id');
+            table.text('session_id').unique().notNullable();
+            table.text('share_id'); // Share ID of the source
             table.text('user_email');
+            table.timestamp('created_at', { useTz: true }).defaultTo(knex.fn.now());
+            table.timestamp('updated_at', { useTz: true }).defaultTo(knex.fn.now());
+
+            table.index('share_id');
+            table.index('user_email');
+        });
+    }
+
+    // 17. External Search Records
+    if (!(await knex.schema.hasTable('external_search_records'))) {
+        await knex.schema.createTable('external_search_records', (table) => {
+            table.uuid('id').primary().defaultTo(knex.raw('gen_random_uuid()'));
+            table.text('session_id').notNullable();
             table.text('search_input').notNullable();
             table.text('ai_summary');
             table.jsonb('file_results').defaultTo('[]');
             table.timestamp('created_at', { useTz: true }).defaultTo(knex.fn.now());
+            // Full-text search vector
+            table.specificType('search_vector', "tsvector GENERATED ALWAYS AS (to_tsvector('english', coalesce(search_input, '') || ' ' || coalesce(ai_summary, ''))) STORED");
 
             table.index('session_id');
-            table.index('user_email');
+            table.foreign('session_id').references('external_search_sessions.session_id').onDelete('CASCADE');
         });
-        await knex.raw('CREATE INDEX IF NOT EXISTS idx_external_search_history_created_at ON external_search_history(created_at DESC)');
+        await knex.raw('CREATE INDEX IF NOT EXISTS idx_ext_search_rec_created_at ON external_search_records(created_at DESC)');
+        await knex.raw('CREATE INDEX IF NOT EXISTS idx_ext_search_rec_search_vector ON external_search_records USING GIN(search_vector)');
     }
 }
 
 export async function down(knex: Knex): Promise<void> {
-    await knex.schema.dropTableIfExists('external_search_history');
-    await knex.schema.dropTableIfExists('external_chat_history');
+    await knex.schema.dropTableIfExists('external_search_records');
+    await knex.schema.dropTableIfExists('external_search_sessions');
+    await knex.schema.dropTableIfExists('external_chat_messages');
+    await knex.schema.dropTableIfExists('external_chat_sessions');
     await knex.schema.dropTableIfExists('user_dismissed_broadcasts');
     await knex.schema.dropTableIfExists('broadcast_messages');
     await knex.schema.dropTableIfExists('document_permissions');

@@ -129,10 +129,15 @@ export class KnowledgeBaseService {
 
         if (existing) {
             // Update existing record
-            await ModelFactory.systemConfig.update(key, { value });
+            await ModelFactory.systemConfig.update(key, { value, updated_by: user?.id || null });
         } else {
             // Create new record
-            await ModelFactory.systemConfig.create({ key, value });
+            await ModelFactory.systemConfig.create({
+                key,
+                value,
+                created_by: user?.id || null,
+                updated_by: user?.id || null
+            });
         }
 
         // Log audit event
@@ -164,7 +169,11 @@ export class KnowledgeBaseService {
                 type: data.type,
                 name: data.name,
                 url: data.url,
-                access_control: JSON.stringify(data.access_control || { public: true })
+                description: data.description || null,
+                share_id: data.share_id || null,
+                access_control: JSON.stringify(data.access_control || { public: true }),
+                created_by: user?.id || null,
+                updated_by: user?.id || null
             });
 
             // Log audit event
@@ -221,7 +230,10 @@ export class KnowledgeBaseService {
             // Gather fields to update
             if (data.name !== undefined) updateData.name = data.name;
             if (data.url !== undefined) updateData.url = data.url;
+            if (data.description !== undefined) updateData.description = data.description;
+            if (data.share_id !== undefined) updateData.share_id = data.share_id;
             if (data.access_control !== undefined) updateData.access_control = JSON.stringify(data.access_control);
+            if (user) updateData.updated_by = user.id;
 
             // Execute update
             const source = await ModelFactory.knowledgeBaseSource.update(id, updateData);

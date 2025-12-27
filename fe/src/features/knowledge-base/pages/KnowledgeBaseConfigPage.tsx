@@ -58,7 +58,30 @@ export default function KnowledgeBaseConfigPage() {
     // --- Source CRUD State ---
     const [isDialogOpen, setIsDialogOpen] = useState(false);
     const [editingSource, setEditingSource] = useState<KnowledgeBaseSource | null>(null);
-    const [formData, setFormData] = useState({ name: '', url: '' });
+    const [formData, setFormData] = useState({ name: '', url: '', description: '', shareId: '' });
+
+    /**
+     * Extract shared_id parameter from a URL.
+     * @param url - The URL string to parse.
+     * @returns The shared_id value or empty string if not found.
+     */
+    const extractShareIdFromUrl = (url: string): string => {
+        try {
+            const urlObj = new URL(url);
+            return urlObj.searchParams.get('shared_id') || '';
+        } catch {
+            return '';
+        }
+    };
+
+    /**
+     * Handle URL input change with auto-extraction of shared_id.
+     * @param url - The new URL value.
+     */
+    const handleUrlChange = (url: string) => {
+        const shareId = extractShareIdFromUrl(url);
+        setFormData(prev => ({ ...prev, url, shareId }));
+    };
 
     // Permissions state for create/edit dialog
     const [isPublic, setIsPublic] = useState(true);
@@ -71,7 +94,7 @@ export default function KnowledgeBaseConfigPage() {
      */
     const openCreateDialog = () => {
         setEditingSource(null);
-        setFormData({ name: '', url: '' });
+        setFormData({ name: '', url: '', description: '', shareId: '' });
         // Reset permissions for new source
         setIsPublic(true); // Default to public? User wanted Private default. Let's make it private default if desired, but code usually defaults to public. 
         // User checklist said "Fix: Default Source Permission to Private".
@@ -89,7 +112,8 @@ export default function KnowledgeBaseConfigPage() {
      */
     const openEditDialog = (source: KnowledgeBaseSource) => {
         setEditingSource(source);
-        setFormData({ name: source.name, url: source.url });
+        setFormData({ name: source.name, url: source.url, description: source.description || '', shareId: source.share_id || '' });
+
 
         // Load existing permissions
         const acl = source.access_control || { public: true, team_ids: [], user_ids: [] };
@@ -135,7 +159,7 @@ export default function KnowledgeBaseConfigPage() {
     // --- Mutations ---
     const createMutation = useMutation({
         mutationKey: ['create', 'source'],
-        mutationFn: (data: { name: string, url: string, access_control: AccessControl }) => addSource(activeTab, data.name, data.url, data.access_control),
+        mutationFn: (data: { name: string, url: string, description: string, shareId: string, access_control: AccessControl }) => addSource(activeTab, data.name, data.url, data.access_control, data.shareId, data.description),
         onSuccess: () => {
             queryClient.invalidateQueries({ queryKey: ['knowledgeBaseConfig'] });
             setIsDialogOpen(false);
@@ -145,7 +169,7 @@ export default function KnowledgeBaseConfigPage() {
 
     const updateMutation = useMutation({
         mutationKey: ['update', 'source'],
-        mutationFn: (data: { id: string, name: string, url: string, access_control?: AccessControl }) => updateSource(data.id, data.name, data.url, data.access_control),
+        mutationFn: (data: { id: string, name: string, url: string, description?: string, shareId?: string, access_control?: AccessControl }) => updateSource(data.id, data.name, data.url, data.access_control, data.shareId, data.description),
         onSuccess: () => {
             queryClient.invalidateQueries({ queryKey: ['knowledgeBaseConfig'] });
             setIsDialogOpen(false);
@@ -206,34 +230,29 @@ export default function KnowledgeBaseConfigPage() {
 
             {/* Default Configuration Section */}
             <div className="bg-white dark:bg-slate-800 p-6 rounded-lg shadow-sm border border-gray-200 dark:border-slate-700 shrink-0">
-                <div className="flex gap-4 items-end">
-                    <div className="flex-1">
-                        <label className="block text-sm font-medium mb-1 text-gray-700 dark:text-gray-300">
-                            {t('knowledgeBaseConfig.defaultUrlLabel', { type: activeTab === 'chat' ? 'Chat' : 'Search' })}
-                        </label>
-                        <select
-                            value={defaultSourceId}
-                            onChange={(e) => setDefaultSourceId(e.target.value)}
-                            className="w-full px-3 py-2 border rounded-md dark:bg-slate-900 dark:border-slate-600 dark:text-white"
-                            disabled={!configQuery.data}
-                        >
-                            <option value="">{t('common.select') || 'Select a source'}</option>
-                            {(activeTab === 'chat' ? configQuery.data?.chatSources : configQuery.data?.searchSources)
-                                ?.filter((source: KnowledgeBaseSource) => source.access_control?.public)
-                                .map((source: KnowledgeBaseSource) => (
-                                    <option key={source.id} value={source.id}>
-                                        {source.name}
-                                    </option>
-                                ))}
-                        </select>
-                        <p className="mt-1 text-xs text-gray-500 dark:text-gray-400">
-                            {t('knowledgeBaseConfig.publicOnlyNote') || 'Only public sources can be set as system defaults.'}
-                        </p>
-                    </div>
+                <label className="block text-sm font-medium mb-2 text-gray-700 dark:text-gray-300">
+                    {t('knowledgeBaseConfig.defaultUrlLabel', { type: activeTab === 'chat' ? 'Chat' : 'Search' })}
+                </label>
+                <div className="flex gap-4 items-center">
+                    <select
+                        value={defaultSourceId}
+                        onChange={(e) => setDefaultSourceId(e.target.value)}
+                        className="flex-1 px-3 py-2 border rounded-md dark:bg-slate-900 dark:border-slate-600 dark:text-white"
+                        disabled={!configQuery.data}
+                    >
+                        <option value="">{t('common.select') || 'Select a source'}</option>
+                        {(activeTab === 'chat' ? configQuery.data?.chatSources : configQuery.data?.searchSources)
+                            ?.filter((source: KnowledgeBaseSource) => source.access_control?.public)
+                            .map((source: KnowledgeBaseSource) => (
+                                <option key={source.id} value={source.id}>
+                                    {source.name}
+                                </option>
+                            ))}
+                    </select>
                     <button
                         onClick={handleSaveDefault}
                         disabled={updateConfigMutation.isPending || !defaultSourceId}
-                        className="flex items-center gap-2 px-4 py-2 bg-primary text-white rounded-md hover:bg-primary-hover disabled:opacity-50"
+                        className="flex items-center gap-2 px-4 py-2 bg-primary text-white rounded-md hover:bg-primary-hover disabled:opacity-50 shrink-0"
                     >
                         <Save size={18} />
                         {t('common.save')}
@@ -245,7 +264,7 @@ export default function KnowledgeBaseConfigPage() {
                             const current = list.find(s => s.id === defaultSourceId);
                             if (current?.url) {
                                 return (
-                                    <a href={current.url} target="_blank" rel="noreferrer" className="p-2 text-gray-400 hover:text-primary border rounded-md hover:bg-gray-50 dark:hover:bg-slate-700">
+                                    <a href={current.url} target="_blank" rel="noreferrer" className="p-2 text-gray-400 hover:text-primary border rounded-md hover:bg-gray-50 dark:hover:bg-slate-700 shrink-0">
                                         <ExternalLink size={20} />
                                     </a>
                                 );
@@ -254,6 +273,9 @@ export default function KnowledgeBaseConfigPage() {
                         })()
                     )}
                 </div>
+                <p className="mt-2 text-xs text-orange-500 dark:text-orange-400">
+                    {t('knowledgeBaseConfig.publicOnlyNote') || 'Only public sources can be set as system defaults.'}
+                </p>
             </div>
 
             {/* Sources Management Section */}
@@ -324,10 +346,11 @@ export default function KnowledgeBaseConfigPage() {
                 onClose={() => setIsDialogOpen(false)}
                 title={editingSource ? t('knowledgeBaseConfig.editSource') : t('knowledgeBaseConfig.addSource')}
                 maxWidth="none"
-                className="w-[70vw] h-[75vh]"
+                className="w-[70vw] h-[85vh]"
             >
                 <div className="h-full flex flex-col gap-6">
-                    <div className="grid grid-cols-2 gap-4 shrink-0">
+                    {/* Form Fields - Row 1: Name & URL */}
+                    <div className="grid grid-cols-3 gap-4 shrink-0">
                         <div>
                             <label className="block text-sm font-medium mb-1 text-gray-700 dark:text-gray-300">{t('common.name')}</label>
                             <input
@@ -335,17 +358,42 @@ export default function KnowledgeBaseConfigPage() {
                                 value={formData.name}
                                 onChange={(e) => setFormData({ ...formData, name: e.target.value })}
                                 className="w-full px-3 py-2 border rounded-md dark:bg-slate-800 dark:border-slate-600 dark:text-white"
-                                placeholder="e.g., Marketing Knowledge Base"
+                                placeholder="e.g., Marketing KB"
                             />
                         </div>
-                        <div>
+                        <div className="col-span-2">
                             <label className="block text-sm font-medium mb-1 text-gray-700 dark:text-gray-300">URL</label>
                             <input
                                 type="text"
                                 value={formData.url}
-                                onChange={(e) => setFormData({ ...formData, url: e.target.value })}
+                                onChange={(e) => handleUrlChange(e.target.value)}
                                 className="w-full px-3 py-2 border rounded-md dark:bg-slate-800 dark:border-slate-600 dark:text-white"
                                 placeholder="https://..."
+                            />
+                        </div>
+                    </div>
+
+                    {/* Form Fields - Row 2: Share ID & Description */}
+                    <div className="grid grid-cols-3 gap-4 shrink-0">
+                        <div>
+                            <label className="block text-sm font-medium mb-1 text-gray-700 dark:text-gray-300">{t('knowledgeBaseConfig.shareId') || 'Share ID'}</label>
+                            <input
+                                type="text"
+                                value={formData.shareId}
+                                onChange={(e) => setFormData({ ...formData, shareId: e.target.value })}
+                                className="w-full px-3 py-2 border rounded-md dark:bg-slate-800 dark:border-slate-600 dark:text-white bg-gray-50 dark:bg-slate-700"
+                                placeholder={t('knowledgeBaseConfig.shareIdPlaceholder') || 'Auto-extracted'}
+                            />
+                            <p className="mt-1 text-xs text-gray-500 dark:text-gray-400">{t('knowledgeBaseConfig.shareIdDesc') || 'Auto-extracted from URL'}</p>
+                        </div>
+                        <div className="col-span-2">
+                            <label className="block text-sm font-medium mb-1 text-gray-700 dark:text-gray-300">{t('common.description') || 'Description'}</label>
+                            <input
+                                type="text"
+                                value={formData.description}
+                                onChange={(e) => setFormData({ ...formData, description: e.target.value })}
+                                className="w-full px-3 py-2 border rounded-md dark:bg-slate-800 dark:border-slate-600 dark:text-white"
+                                placeholder={t('knowledgeBaseConfig.descriptionPlaceholder') || 'Optional description for this source'}
                             />
                         </div>
                     </div>
