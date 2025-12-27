@@ -8,80 +8,12 @@
 import { useState, useEffect, useRef, useMemo } from 'react';
 import { useInfiniteQuery, useQuery } from '@tanstack/react-query';
 import { useTranslation } from 'react-i18next';
-import { apiFetch } from '@/lib/api';
+
 import { Filter, Search, MessageSquare, Clock, ChevronRight, Sparkles, PanelLeftClose, PanelLeft, RefreshCw } from 'lucide-react';
 import { Dialog } from '@/components/Dialog';
 import { MarkdownRenderer } from '@/components/MarkdownRenderer';
 
-// ============================================================================
-// Types
-// ============================================================================
-
-/**
- * Summary of a chat session, used for the list view.
- */
-interface ChatSessionSummary {
-    session_id: string;
-    user_email?: string;
-    user_prompt: string;
-    created_at: string;
-    message_count: string | number;
-    source_name?: string;
-}
-
-/**
- * Detailed chat history record.
- */
-interface ExternalChatHistory {
-    id: string;
-    session_id: string;
-    user_email?: string;
-    user_prompt: string;
-    llm_response: string;
-    citations: any[];
-    created_at: string;
-}
-
-/**
- * Filter state for history queries.
- */
-interface FilterState {
-    startDate: string;
-    endDate: string;
-}
-
-// ============================================================================
-// API Functions
-// ============================================================================
-
-/**
- * Fetch user's chat history with pagination and filtering.
- * 
- * @param {string} search - Search query.
- * @param {FilterState} filters - Date filters.
- * @param {number} page - Page number.
- * @returns {Promise<ChatSessionSummary[]>} List of chat sessions.
- */
-async function fetchChatHistory(search: string, filters: FilterState, page: number): Promise<ChatSessionSummary[]> {
-    const params = new URLSearchParams({
-        q: search,
-        startDate: filters.startDate,
-        endDate: filters.endDate,
-        page: page.toString(),
-        limit: '20'
-    });
-    return apiFetch<ChatSessionSummary[]>(`/api/user/history/chat?${params.toString()}`);
-}
-
-/**
- * Fetch detailed messages for a specific chat session.
- * 
- * @param {string} sessionId - ID of the session.
- * @returns {Promise<ExternalChatHistory[]>} List of messages in the session.
- */
-async function fetchChatSessionDetails(sessionId: string): Promise<ExternalChatHistory[]> {
-    return apiFetch<ExternalChatHistory[]>(`/api/user/history/chat/${sessionId}`);
-}
+import { ChatSessionSummary, ExternalChatHistory, FilterState, fetchChatHistory, fetchChatSessionDetails } from '@/features/history/api/historyService';
 
 // ============================================================================
 // Component

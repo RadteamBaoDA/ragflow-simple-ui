@@ -8,80 +8,12 @@
 import { useState, useEffect, useRef, useMemo } from 'react';
 import { useInfiniteQuery, useQuery } from '@tanstack/react-query';
 import { useTranslation } from 'react-i18next';
-import { apiFetch } from '@/lib/api';
+
 import { Filter, Search, FileText, Clock, ChevronRight, Sparkles, PanelLeftClose, PanelLeft, RefreshCw } from 'lucide-react';
 import { Dialog } from '@/components/Dialog';
 import { MarkdownRenderer } from '@/components/MarkdownRenderer';
 
-// ============================================================================
-// Types
-// ============================================================================
-
-/**
- * Summary of a search session, used for the list view.
- */
-interface SearchSessionSummary {
-    session_id: string;
-    user_email?: string;
-    search_input: string;
-    created_at: string;
-    message_count: string | number;
-    source_name?: string;
-}
-
-/**
- * Detailed search history record.
- */
-interface ExternalSearchHistory {
-    id: string;
-    session_id: string;
-    user_email?: string;
-    search_input: string;
-    ai_summary: string;
-    file_results: any[];
-    created_at: string;
-}
-
-/**
- * Filter state for history queries.
- */
-interface FilterState {
-    startDate: string;
-    endDate: string;
-}
-
-// ============================================================================
-// API Functions
-// ============================================================================
-
-/**
- * Fetch user's search history with pagination and filtering.
- * 
- * @param {string} search - Search query.
- * @param {FilterState} filters - Date filters.
- * @param {number} page - Page number.
- * @returns {Promise<SearchSessionSummary[]>} List of search sessions.
- */
-async function fetchSearchHistory(search: string, filters: FilterState, page: number): Promise<SearchSessionSummary[]> {
-    const params = new URLSearchParams({
-        q: search,
-        startDate: filters.startDate,
-        endDate: filters.endDate,
-        page: page.toString(),
-        limit: '20'
-    });
-    return apiFetch<SearchSessionSummary[]>(`/api/user/history/search?${params.toString()}`);
-}
-
-/**
- * Fetch details for a specific search session.
- * 
- * @param {string} sessionId - ID of the session.
- * @returns {Promise<ExternalSearchHistory[]>} Details of the search session.
- */
-async function fetchSearchSessionDetails(sessionId: string): Promise<ExternalSearchHistory[]> {
-    return apiFetch<ExternalSearchHistory[]>(`/api/user/history/search/${sessionId}`);
-}
+import { SearchSessionSummary, ExternalSearchHistory, FilterState, fetchSearchHistory, fetchSearchSessionDetails } from '@/features/history/api/historyService';
 
 // ============================================================================
 // Component
