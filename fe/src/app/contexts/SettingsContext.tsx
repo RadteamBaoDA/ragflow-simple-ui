@@ -183,7 +183,7 @@ export function SettingsProvider({ children }: SettingsProviderProps) {
   const closeSettings = useCallback(() => setIsSettingsOpen(false), []);
 
   return (
-    <SettingsContext
+    <SettingsContext.Provider
       value={{
         theme,
         setTheme,
@@ -204,7 +204,7 @@ export function SettingsProvider({ children }: SettingsProviderProps) {
       >
         {children as any}
       </ConfigProvider>
-    </SettingsContext>
+    </SettingsContext.Provider>
   );
 }
 

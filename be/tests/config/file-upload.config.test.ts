@@ -23,8 +23,8 @@ describe('File Upload Configuration', () => {
       expect(MAX_FILENAME_LENGTH).toBe(200);
     });
 
-    it('MAX_FILE_SIZE should be 100MB', () => {
-      expect(MAX_FILE_SIZE).toBe(100 * 1024 * 1024);
+    it('MAX_FILE_SIZE should be 500MB', () => {
+      expect(MAX_FILE_SIZE).toBe(500 * 1024 * 1024);
     });
 
     it('MAX_FILES_PER_REQUEST should be 1000', () => {
@@ -106,12 +106,17 @@ describe('File Upload Configuration', () => {
       expect(ALLOWED_DOCUMENT_EXTENSIONS.has('.png')).toBe(true);
       expect(ALLOWED_DOCUMENT_EXTENSIONS.has('.gif')).toBe(true);
       expect(ALLOWED_DOCUMENT_EXTENSIONS.has('.webp')).toBe(true);
+      expect(ALLOWED_DOCUMENT_EXTENSIONS.has('.bmp')).toBe(true);
+      expect(ALLOWED_DOCUMENT_EXTENSIONS.has('.ico')).toBe(true);
+      expect(ALLOWED_DOCUMENT_EXTENSIONS.has('.tiff')).toBe(true);
     });
 
     it('should contain archive extensions', () => {
       expect(ALLOWED_DOCUMENT_EXTENSIONS.has('.zip')).toBe(true);
       expect(ALLOWED_DOCUMENT_EXTENSIONS.has('.rar')).toBe(true);
       expect(ALLOWED_DOCUMENT_EXTENSIONS.has('.7z')).toBe(true);
+      expect(ALLOWED_DOCUMENT_EXTENSIONS.has('.tar')).toBe(true);
+      expect(ALLOWED_DOCUMENT_EXTENSIONS.has('.gz')).toBe(true);
     });
 
     it('should contain text/data extensions', () => {
@@ -119,6 +124,18 @@ describe('File Upload Configuration', () => {
       expect(ALLOWED_DOCUMENT_EXTENSIONS.has('.csv')).toBe(true);
       expect(ALLOWED_DOCUMENT_EXTENSIONS.has('.json')).toBe(true);
       expect(ALLOWED_DOCUMENT_EXTENSIONS.has('.xml')).toBe(true);
+      expect(ALLOWED_DOCUMENT_EXTENSIONS.has('.yaml')).toBe(true);
+    });
+
+    it('should contain audio/video extensions', () => {
+      expect(ALLOWED_DOCUMENT_EXTENSIONS.has('.mp3')).toBe(true);
+      expect(ALLOWED_DOCUMENT_EXTENSIONS.has('.wav')).toBe(true);
+      expect(ALLOWED_DOCUMENT_EXTENSIONS.has('.ogg')).toBe(true);
+      expect(ALLOWED_DOCUMENT_EXTENSIONS.has('.mp4')).toBe(true);
+      expect(ALLOWED_DOCUMENT_EXTENSIONS.has('.webm')).toBe(true);
+      expect(ALLOWED_DOCUMENT_EXTENSIONS.has('.avi')).toBe(true);
+      expect(ALLOWED_DOCUMENT_EXTENSIONS.has('.mov')).toBe(true);
+      expect(ALLOWED_DOCUMENT_EXTENSIONS.has('.mkv')).toBe(true);
     });
 
     it('should NOT contain dangerous extensions', () => {

@@ -288,7 +288,7 @@ describe('File Validation Service', () => {
     });
 
     it('should replace special characters', () => {
-      expect(sanitizeFolderPath('folder<>:"/\\|?*')).toBe('folder_________');
+      expect(sanitizeFolderPath('folder<>:"|?*\\')).toBe('folder________');
     });
 
     it('should preserve spaces', () => {

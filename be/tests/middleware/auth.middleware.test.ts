@@ -10,6 +10,7 @@ import {
   requirePermission,
   requireRole,
   requireOwnership,
+  requireOwnershipCustom,
   requireRecentAuth,
   checkSession,
   getCurrentUser,
@@ -426,6 +427,68 @@ describe('Auth Middleware', () => {
       const next = createMockNext();
 
       const middleware = requireOwnership('userId');
+      middleware(req, res, next);
+
+      expect(res.status).toHaveBeenCalledWith(401);
+    });
+  });
+
+  describe('requireOwnershipCustom', () => {
+    it('allows owner', () => {
+      const user = createMockUser({ id: 'owner-id' });
+      const req = createMockRequest({ session: { user } });
+      req.body = { ownerId: 'owner-id' };
+      const res = createMockResponse();
+      const next = createMockNext();
+
+      const middleware = requireOwnershipCustom(r => r.body.ownerId);
+      middleware(req, res, next);
+
+      expect(next).toHaveBeenCalled();
+    });
+
+    it('allows admin bypass', () => {
+      const user = createMockUser({ id: 'admin-id', role: 'admin' });
+      const req = createMockRequest({ session: { user }, body: { ownerId: 'other' } });
+      const res = createMockResponse();
+      const next = createMockNext();
+
+      const middleware = requireOwnershipCustom(r => r.body.ownerId, { allowAdminBypass: true });
+      middleware(req, res, next);
+
+      expect(next).toHaveBeenCalled();
+    });
+
+    it('denies when owner mismatch and no admin bypass', () => {
+      const user = createMockUser({ id: 'admin-id', role: 'admin' });
+      const req = createMockRequest({ session: { user }, body: { ownerId: 'other' } });
+      const res = createMockResponse();
+      const next = createMockNext();
+
+      const middleware = requireOwnershipCustom(r => r.body.ownerId, { allowAdminBypass: false });
+      middleware(req, res, next);
+
+      expect(res.status).toHaveBeenCalledWith(403);
+    });
+
+    it('returns 400 when identifier missing', () => {
+      const user = createMockUser({ id: 'owner-id' });
+      const req = createMockRequest({ session: { user }, body: {} });
+      const res = createMockResponse();
+      const next = createMockNext();
+
+      const middleware = requireOwnershipCustom(r => r.body.ownerId);
+      middleware(req, res, next);
+
+      expect(res.status).toHaveBeenCalledWith(400);
+    });
+
+    it('returns 401 when unauthenticated', () => {
+      const req = createMockRequest({ session: {}, body: { ownerId: 'x' } });
+      const res = createMockResponse();
+      const next = createMockNext();
+
+      const middleware = requireOwnershipCustom(r => r.body.ownerId);
       middleware(req, res, next);
 
       expect(res.status).toHaveBeenCalledWith(401);
