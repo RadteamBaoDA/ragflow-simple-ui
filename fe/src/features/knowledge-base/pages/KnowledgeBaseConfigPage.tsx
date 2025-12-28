@@ -236,7 +236,7 @@ export default function KnowledgeBaseConfigPage() {
             dataIndex: 'url',
             key: 'url',
             render: (text: string) => (
-                <div className="text-gray-500 dark:text-gray-400 font-mono text-xs truncate max-w-md" title={text}>
+                <div className="text-gray-500 dark:text-gray-400 font-mono text-xs whitespace-normal break-all" title={text}>
                     {text}
                 </div>
             ),

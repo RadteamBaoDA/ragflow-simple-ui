@@ -28,9 +28,9 @@ export class PromptPermissionController {
 
         try {
             await promptPermissionService.setPermission(entityType, entityId, level, {
-                id: user.id,
-                email: user.email,
-                ip: req.ip as string | undefined
+                id: (user as any).id,
+                email: (user as any).email,
+                ...(req.ip ? { ip: req.ip } : {})
             });
             return res.json({ success: true });
         } catch (error) {

@@ -365,6 +365,8 @@ export interface PromptInteraction {
     interaction_type: 'like' | 'dislike' | 'comment';
     /** Comment text if type is 'comment' */
     comment?: string | null;
+    /** Snapshot of the prompt text at the time of interaction */
+    prompt_snapshot?: string | null;
     /** Timestamp of creation */
     created_at: Date;
 }

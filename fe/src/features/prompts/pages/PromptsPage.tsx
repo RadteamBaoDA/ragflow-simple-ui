@@ -10,8 +10,8 @@
 
 import { useState, useEffect } from 'react';
 import { useTranslation } from 'react-i18next';
-import { Plus, Edit2, Trash2, ThumbsUp, ThumbsDown, MessageCircle, Calendar, Search, Shield } from 'lucide-react';
-import { Table, Card, Input, Button, Tag, Space, Select, Modal, Form, Switch, DatePicker, Pagination, Tooltip } from 'antd';
+import { Plus, Edit2, Trash2, ThumbsUp, ThumbsDown, MessageCircle, Calendar, Search, Shield, Tag as TagIcon } from 'lucide-react';
+import { Table, Card, Input, Button, Tag, Space, Select, Modal, Form, DatePicker, Pagination, Tooltip } from 'antd';
 import { promptService } from '../api/promptService';
 import { Prompt } from '../types/prompt';
 import { TagInput } from '../components/TagInput';
@@ -42,6 +42,7 @@ interface FeedbackDetail {
     user_email?: string;
     interaction_type: 'like' | 'dislike' | 'comment';
     comment?: string;
+    prompt_snapshot?: string;
     created_at: string;
 }
 
@@ -53,9 +54,8 @@ export const PromptsPage = () => {
     const { t } = useTranslation();
     const [prompts, setPrompts] = useState<Prompt[]>([]);
     const [loading, setLoading] = useState(false);
-    const [tags, setTags] = useState<string[]>([]);
-    const [permissionLevel, setPermissionLevel] = useState<PermissionLevel | null>(null);
-    const [loadingPermission, setLoadingPermission] = useState(true);
+    const [tags, setTags] = useState<{ name: string, color: string }[]>([]);
+    const [permissionLevel, setPermissionLevel] = useState<PermissionLevel>(PermissionLevel.NONE);
 
     // Feedback counts cache: promptId -> counts
     const [feedbackCountsMap, setFeedbackCountsMap] = useState<Record<string, FeedbackCounts>>({});
@@ -77,6 +77,7 @@ export const PromptsPage = () => {
     const [feedbackDetails, setFeedbackDetails] = useState<FeedbackDetail[]>([]);
     const [loadingFeedback, setLoadingFeedback] = useState(false);
     const [feedbackDateRange, setFeedbackDateRange] = useState<[dayjs.Dayjs | null, dayjs.Dayjs | null] | null>(null);
+    const [feedbackUserFilter, setFeedbackUserFilter] = useState<string | undefined>();
 
     // Pagination state
     const [currentPage, setCurrentPage] = useState(1);
@@ -93,20 +94,18 @@ export const PromptsPage = () => {
     }, [searchFilter, tagFilter]);
 
     const fetchPermission = async () => {
-        setLoadingPermission(true);
+
         try {
             const { level } = await promptService.getMyPermission();
             setPermissionLevel(level);
         } catch (error) {
             console.error('Failed to fetch permission level:', error);
             setPermissionLevel(PermissionLevel.NONE);
-        } finally {
-            setLoadingPermission(false);
         }
     };
 
     /**
-     * Fetch prompts and their feedback counts.
+     * Fetch prompts (feedback counts are now included in the response).
      */
     const fetchPrompts = async () => {
         setLoading(true);
@@ -115,21 +114,17 @@ export const PromptsPage = () => {
             if (searchFilter) filters.search = searchFilter;
             if (tagFilter) filters.tag = tagFilter;
 
-            const data = await promptService.getPrompts(filters);
-            setPrompts(data);
+            const result = await promptService.getPrompts(filters);
+            setPrompts(result.data);
 
-            // Fetch feedback counts for each prompt
+            // Build feedbackCountsMap from the response data (counts are included)
             const countsMap: Record<string, FeedbackCounts> = {};
-            await Promise.all(
-                data.map(async (prompt) => {
-                    try {
-                        const counts = await promptService.getFeedbackCounts(prompt.id);
-                        countsMap[prompt.id] = counts;
-                    } catch (e) {
-                        countsMap[prompt.id] = { like_count: 0, dislike_count: 0 };
-                    }
-                })
-            );
+            result.data.forEach((prompt) => {
+                countsMap[prompt.id] = {
+                    like_count: prompt.like_count ?? 0,
+                    dislike_count: prompt.dislike_count ?? 0
+                };
+            });
             setFeedbackCountsMap(countsMap);
         } catch (error) {
             console.error(error);
@@ -142,8 +137,8 @@ export const PromptsPage = () => {
     const fetchTags = async () => {
         try {
             // Fetch tags from prompt_tags table
-            const tagsData = await promptService.getNewestTags(20);
-            setTags(tagsData.map(t => t.name));
+            const tagsData = await promptService.getNewestTags(100);
+            setTags(tagsData.map(t => ({ name: t.name, color: t.color })));
         } catch (error) {
             console.error(error);
         }
@@ -163,6 +158,11 @@ export const PromptsPage = () => {
         } finally {
             setLoadingFeedback(false);
         }
+    };
+
+    const getTagColor = (tagName: string) => {
+        const tag = tags.find(t => t.name === tagName);
+        return tag ? tag.color : undefined;
     };
 
     // ========================================================================
@@ -257,6 +257,7 @@ export const PromptsPage = () => {
         setSelectedPromptForFeedback(null);
         setFeedbackDetails([]);
         setFeedbackDateRange(null);
+        setFeedbackUserFilter(undefined);
     };
 
     const handleFeedbackDateChange = (dates: [dayjs.Dayjs | null, dayjs.Dayjs | null] | null) => {
@@ -295,12 +296,22 @@ export const PromptsPage = () => {
             title: t('prompts.fields.tags'),
             dataIndex: 'tags',
             key: 'tags',
-            render: (tags: string[]) => (
-                <>
-                    {(tags || []).map(tag => (
-                        <Tag key={tag} color="blue">{tag}</Tag>
-                    ))}
-                </>
+            render: (tagNames: string[]) => (
+                <div className="flex flex-wrap gap-y-2 gap-x-1">
+                    {(tagNames || []).map(tagName => {
+                        const color = getTagColor(tagName);
+                        return (
+                            <Tag
+                                key={tagName}
+                                className="border-none px-2 py-1 inline-flex items-center gap-1.5 rounded-md m-0"
+                                style={color ? { backgroundColor: color, color: '#fff' } : {}}
+                            >
+                                <span className="font-medium">{tagName}</span>
+                                <TagIcon size={12} className="text-white opacity-90" />
+                            </Tag>
+                        );
+                    })}
+                </div>
             )
         },
         {
@@ -380,7 +391,7 @@ export const PromptsPage = () => {
                     size="large"
                     options={[
                         { label: t('prompts.filter.allTags'), value: 'all' },
-                        ...tags.map(tag => ({ label: tag, value: tag }))
+                        ...tags.map(tag => ({ label: tag.name, value: tag.name }))
                     ]}
                 />
 
@@ -473,16 +484,6 @@ export const PromptsPage = () => {
                         <TagInput placeholder={t('prompts.form.searchTags')} />
                     </Form.Item>
 
-                    {editingPrompt && (
-                        <Form.Item
-                            name="is_active"
-                            label={t('prompts.fields.active')}
-                            valuePropName="checked"
-                        >
-                            <Switch />
-                        </Form.Item>
-                    )}
-
                     <div className="flex justify-end gap-2">
                         <Button onClick={handleCancel}>
                             {t('common.cancel')}
@@ -505,7 +506,7 @@ export const PromptsPage = () => {
                 open={isFeedbackModalOpen}
                 onCancel={closeFeedbackModal}
                 footer={null}
-                width={700}
+                width="50%"
             >
                 {selectedPromptForFeedback && (
                     <div className="space-y-4">
@@ -516,14 +517,29 @@ export const PromptsPage = () => {
                             </p>
                         </div>
 
-                        {/* Date Filter */}
-                        <div className="flex items-center gap-2">
-                            <Calendar size={16} className="text-slate-500" />
-                            <DatePicker.RangePicker
-                                value={feedbackDateRange}
-                                onChange={handleFeedbackDateChange}
-                                className="flex-1"
+                        {/* Filters Row */}
+                        <div className="flex items-center gap-3">
+                            {/* Date Filter */}
+                            <div className="flex items-center gap-2 flex-1">
+                                <Calendar size={16} className="text-slate-500" />
+                                <DatePicker.RangePicker
+                                    value={feedbackDateRange}
+                                    onChange={handleFeedbackDateChange}
+                                    className="flex-1"
+                                    allowClear
+                                />
+                            </div>
+                            {/* User Filter */}
+                            <Select
+                                placeholder={t('prompts.feedback.filterByUser', 'Filter by user')}
+                                value={feedbackUserFilter}
+                                onChange={setFeedbackUserFilter}
                                 allowClear
+                                style={{ minWidth: 200 }}
+                                options={[
+                                    ...Array.from(new Set(feedbackDetails.map(fb => fb.user_email).filter(Boolean)))
+                                        .map(email => ({ label: email, value: email }))
+                                ]}
                             />
                         </div>
 
@@ -531,10 +547,10 @@ export const PromptsPage = () => {
                         <div className="max-h-[400px] overflow-y-auto space-y-2 pr-2">
                             {loadingFeedback ? (
                                 <div className="text-center py-8 text-slate-500">{t('common.loading')}</div>
-                            ) : feedbackDetails.length === 0 ? (
+                            ) : feedbackDetails.filter(fb => !feedbackUserFilter || fb.user_email === feedbackUserFilter).length === 0 ? (
                                 <div className="text-center py-8 text-slate-500">{t('common.noData')}</div>
                             ) : (
-                                feedbackDetails.map((fb) => (
+                                feedbackDetails.filter(fb => !feedbackUserFilter || fb.user_email === feedbackUserFilter).map((fb) => (
                                     <div
                                         key={fb.id}
                                         className="p-3 bg-white dark:bg-slate-900 rounded-lg border border-slate-200 dark:border-slate-700 flex items-start gap-3"
@@ -565,6 +581,12 @@ export const PromptsPage = () => {
                                                 <p className="text-sm text-slate-600 dark:text-slate-400 mt-1">
                                                     {fb.comment}
                                                 </p>
+                                            )}
+                                            {fb.prompt_snapshot && (
+                                                <div className="mt-2 p-2 bg-slate-50 dark:bg-slate-800 rounded text-xs text-slate-500 dark:text-slate-400 border border-slate-200 dark:border-slate-700">
+                                                    <span className="font-semibold">{t('prompts.feedback.promptSnapshot', 'Prompt at time of feedback')}:</span>
+                                                    <p className="mt-1 whitespace-pre-wrap">{fb.prompt_snapshot}</p>
+                                                </div>
                                             )}
                                             <Tag className="mt-1" color={
                                                 fb.interaction_type === 'like' ? 'green'

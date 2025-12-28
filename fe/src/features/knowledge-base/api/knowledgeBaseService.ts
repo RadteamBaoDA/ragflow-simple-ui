@@ -83,6 +83,11 @@ export const getKnowledgeBaseConfig = async (): Promise<KnowledgeBaseConfig> => 
         credentials: 'include',
     });
 
+    if (response.status === 401) {
+        window.location.href = '/login?error=session_expired';
+        throw new Error('Unauthorized');
+    }
+
     if (!response.ok) {
         throw new Error('Failed to fetch configuration');
     }
@@ -125,6 +130,11 @@ export const getSources = async (type: 'chat' | 'search', page: number, limit: n
     const response = await fetch(`${API_BASE_URL}/api/knowledge-base/sources?type=${type}&page=${page}&limit=${limit}`, {
         credentials: 'include',
     });
+
+    if (response.status === 401) {
+        window.location.href = '/login?error=session_expired';
+        throw new Error('Unauthorized');
+    }
 
     if (!response.ok) {
         throw new Error('Failed to fetch sources');

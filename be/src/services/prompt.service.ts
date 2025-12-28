@@ -44,13 +44,16 @@ export class PromptService {
     }
 
     /**
-     * Get all prompts with optional filtering.
-     * @param filters - Optional filters for search, tag, and source
-     * @returns Array of prompts with normalized tags
+     * Get all prompts with feedback counts and optional filtering and pagination.
+     * @param filters - Optional filters for search, tag, source, limit, and offset
+     * @returns Paginated response with prompts array and total count
      */
-    async getPrompts(filters: { search?: string; tag?: string; source?: string } = {}): Promise<Prompt[]> {
-        const rows = await ModelFactory.prompt.findActiveWithFilters(filters);
-        return rows.map((r: Prompt) => this.normalizePrompt(r));
+    async getPrompts(filters: { search?: string; tag?: string; source?: string; limit?: number; offset?: number } = {}): Promise<{ data: Prompt[]; total: number }> {
+        const result = await ModelFactory.prompt.findActiveWithFeedbackCounts(filters);
+        return {
+            data: result.data.map((r: Prompt) => this.normalizePrompt(r)),
+            total: result.total
+        };
     }
 
     /**
@@ -94,6 +97,7 @@ export class PromptService {
 
     /**
      * Add an interaction (like, dislike, comment) to a prompt.
+     * Saves the current prompt text as a snapshot for history tracking.
      * @param userId - ID of the user adding the interaction
      * @param data - Interaction data including prompt_id and type
      * @returns Created interaction
@@ -102,9 +106,14 @@ export class PromptService {
         userId: string,
         data: { prompt_id: string; interaction_type: 'like' | 'dislike' | 'comment'; comment?: string }
     ): Promise<PromptInteraction> {
+        // Fetch the current prompt text for history snapshot
+        const prompt = await ModelFactory.prompt.findById(data.prompt_id);
+        const promptSnapshot = prompt?.prompt || null;
+
         const interactionData = {
             ...data,
-            user_id: userId
+            user_id: userId,
+            prompt_snapshot: promptSnapshot
         };
         return ModelFactory.promptInteraction.create(interactionData);
     }

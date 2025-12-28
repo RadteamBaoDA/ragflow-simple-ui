@@ -64,6 +64,7 @@
     "none": "Không có",
     "view": "Xem",
     "all": "Tất cả",
+    "copy": "Sao chép",
     "prompt": "Prompt"
   },
   "dialog": {
@@ -90,7 +91,7 @@
     "tokenizer": "Bộ đếm Token",
     "signOut": "Đăng xuất",
     "knowledgeBase": "Cơ sở tri thức",
-    "prompts": "Prompt",
+    "prompts": "Prompts",
     "broadcastMessages": "Thông báo",
     "histories": "Lịch sử hệ thống",
     "expandMenu": "Mở rộng menu",
@@ -669,7 +670,7 @@
     "applyFilter": "Áp dụng bộ lọc"
   },
   "prompts": {
-    "title": "Quản lý Prompt",
+    "title": "Quản lý Prompts",
     "description": "Quản lý và tổ chức các Prompt của bạn",
     "install": "Thêm Prompt Mới",
     "addNew": "Thêm Prompt Mới",
@@ -709,7 +710,9 @@
       "like": "Thích",
       "dislike": "Không thích",
       "comment": "Bình luận",
-      "title": "Chi tiết Phản hồi"
+      "title": "Chi tiết Phản hồi",
+      "filterByUser": "Lọc theo người dùng",
+      "promptSnapshot": "Prompt tại thời điểm phản hồi"
     },
     "permissions": {
       "title": "Phân quyền Prompt",
@@ -717,6 +720,16 @@
       "leaderNoteTitle": "Quyền của Trưởng nhóm",
       "leaderNote": "Cấp quyền cho một Nhóm sẽ áp dụng các quyền đó cho tất cả các Trưởng nhóm của nhóm đó.",
       "selectEntity": "Chọn Người dùng hoặc Nhóm"
+    },
+    "library": {
+      "title": "Thư viện Prompts",
+      "searchPlaceholder": "Tìm kiếm prompt...",
+      "copied": "Đã sao chép vào bộ nhớ tạm",
+      "clickToCopy": "Nhấp vào prompt để sao chép",
+      "feedback": "Góp ý",
+      "feedbackPlaceholder": "Tại sao bạn không thích prompt này? (Tùy chọn, tối đa 500 ký tự)",
+      "submitFeedback": "Gửi",
+      "feedbackSuccess": "Cảm ơn góp ý của bạn"
     }
   },
   "errors": {

@@ -311,6 +311,7 @@ export async function up(knex: Knex): Promise<void> {
             table.text('user_id'); // nullable if we want to allow anonymous feedback or system feedback, but typically should be linked to user. specific requirements said "info store feedback from user"
             table.text('interaction_type').notNullable().checkIn(['like', 'dislike', 'comment']);
             table.text('comment'); // Only populated if type is 'comment'
+            table.text('prompt_snapshot'); // Snapshot of prompt text at interaction time for history tracking
             table.text('created_by');
             table.text('updated_by');
             table.timestamp('created_at', { useTz: true }).defaultTo(knex.fn.now());

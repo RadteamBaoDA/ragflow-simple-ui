@@ -15,6 +15,8 @@ export interface PromptFilterOptions {
   search?: string;
   /** Filter by tag (JSONB contains) */
   tag?: string;
+  /** Filter by multiple tags (AND logic - prompt must have all tags) */
+  tags?: string[];
   /** Filter by source type */
   source?: string;
 }
@@ -58,6 +60,76 @@ export class PromptModel extends BaseModel<Prompt> {
     }
 
     return query;
+  }
+
+  /**
+   * Find all active prompts with feedback counts included.
+   * Uses LEFT JOIN with subquery to aggregate like/dislike counts efficiently.
+   * @param filters - Optional filters for search, tag, source, limit, and offset
+   * @returns Object with data array and total count for pagination
+   */
+  async findActiveWithFeedbackCounts(filters: PromptFilterOptions & { limit?: number; offset?: number } = {}): Promise<{ data: (Prompt & { like_count: number; dislike_count: number })[]; total: number }> {
+    const { search, tag, tags, source, limit = 25, offset = 0 } = filters;
+
+    // Subquery to aggregate feedback counts per prompt
+    const feedbackSubquery = this.knex('prompt_interactions')
+      .select('prompt_id')
+      .select(this.knex.raw("COUNT(CASE WHEN interaction_type = 'like' THEN 1 END) as like_count"))
+      .select(this.knex.raw("COUNT(CASE WHEN interaction_type = 'dislike' THEN 1 END) as dislike_count"))
+      .groupBy('prompt_id')
+      .as('fb');
+
+    // Build base query conditions
+    let baseQuery = this.knex(this.tableName + ' as p')
+      .leftJoin(feedbackSubquery, 'p.id', 'fb.prompt_id')
+      .where('p.is_active', true);
+
+    // Apply source filter
+    if (source) {
+      baseQuery = baseQuery.where('p.source', source);
+    }
+
+    // Apply single tag filter (JSONB array contains) - skip if 'All'
+    if (tag && tag !== 'All') {
+      baseQuery = baseQuery.whereRaw('p.tags @> ?', [JSON.stringify([tag])]);
+    }
+
+    // Apply multiple tags filter with AND logic (prompt must contain ALL selected tags)
+    if (tags && tags.length > 0) {
+      tags.forEach(t => {
+        baseQuery = baseQuery.whereRaw('p.tags @> ?', [JSON.stringify([t])]);
+      });
+    }
+
+    // Apply full-text search if provided
+    if (search) {
+      baseQuery = baseQuery.whereRaw("p.search_vector @@ plainto_tsquery('english', ?)", [search]);
+    }
+
+    // Get total count first
+    const countResult = await baseQuery.clone().count('p.id as count').first();
+    const total = parseInt(countResult?.count as string || '0', 10);
+
+    // Main query with pagination and ordering
+    let dataQuery = baseQuery.clone()
+      .select(
+        'p.*',
+        this.knex.raw('COALESCE(fb.like_count, 0)::int as like_count'),
+        this.knex.raw('COALESCE(fb.dislike_count, 0)::int as dislike_count')
+      );
+
+    // Apply ordering
+    if (search) {
+      dataQuery = dataQuery.orderByRaw("ts_rank(p.search_vector, plainto_tsquery('english', ?)) DESC", [search]);
+    } else {
+      dataQuery = dataQuery.orderBy('p.created_at', 'desc');
+    }
+
+    // Apply pagination
+    dataQuery = dataQuery.limit(limit).offset(offset);
+
+    const data = await dataQuery;
+    return { data, total };
   }
 
   /**

@@ -6,20 +6,19 @@ const BASE_URL = '/api/prompts';
 const TAGS_URL = '/api/prompt-tags';
 
 export const promptService = {
-    getPrompts: async (params?: { search?: string; tag?: string; source?: string }): Promise<Prompt[]> => {
-        // api.get handles query params? fetch doesn't automatically.
-        // api.ts wrapper doesn't seem to support 'params' object in GET options directly in the types shown?
-        // Let's check api.ts again. FetchOptions extends RequestInit. No 'params'.
-        // I need to build query string.
+    getPrompts: async (params?: { search?: string; tag?: string; tags?: string; source?: string; limit?: number; offset?: number }): Promise<{ data: Prompt[]; total: number }> => {
         const searchParams = new URLSearchParams();
         if (params) {
             if (params.search) searchParams.append('search', params.search);
             if (params.tag) searchParams.append('tag', params.tag);
+            if (params.tags) searchParams.append('tags', params.tags);
             if (params.source) searchParams.append('source', params.source);
+            if (params.limit !== undefined) searchParams.append('limit', params.limit.toString());
+            if (params.offset !== undefined) searchParams.append('offset', params.offset.toString());
         }
         const queryString = searchParams.toString();
         const url = queryString ? `${BASE_URL}?${queryString}` : BASE_URL;
-        return api.get<Prompt[]>(url);
+        return api.get<{ data: Prompt[]; total: number }>(url);
     },
 
     createPrompt: async (data: CreatePromptDto): Promise<Prompt> => {

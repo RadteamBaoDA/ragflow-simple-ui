@@ -64,6 +64,7 @@
     "none": "なし",
     "view": "表示",
     "all": "すべて",
+    "copy": "コピー",
     "prompt": "Prompt"
   },
   "dialog": {
@@ -90,7 +91,7 @@
     "tokenizer": "トークナイザー",
     "signOut": "サインアウト",
     "knowledgeBase": "ナレッジベース",
-    "prompts": "Prompt",
+    "prompts": "Prompts",
     "broadcastMessages": "一斉通知",
     "histories": "履歴一覧",
     "expandMenu": "メニューを展開",
@@ -654,8 +655,8 @@
     "applyFilter": "フィルターを適用"
   },
   "prompts": {
-    "title": "Prompt管理",
-    "description": "Promptを管理・整理する",
+    "title": "Prompts管理",
+    "description": "Promptsを管理・整理する",
     "install": "新規Promptを追加",
     "addNew": "新規Promptを追加",
     "searchPlaceholder": "Promptを検索...",
@@ -694,14 +695,26 @@
       "like": "いいね",
       "dislike": "よくない",
       "comment": "コメント",
-      "title": "フィードバック詳細"
+      "title": "フィードバック詳細",
+      "filterByUser": "ユーザーでフィルタ",
+      "promptSnapshot": "フィードバック時のプロンプト"
     },
     "permissions": {
-      "title": "Prompt権限",
+      "title": "プロンプト権限",
       "manage": "権限管理",
       "leaderNoteTitle": "リーダー権限",
       "leaderNote": "チームに権限を付与すると、そのチームのすべてのリーダーに権限が適用されます。",
       "selectEntity": "ユーザーまたはチームを選択"
+    },
+    "library": {
+      "title": "Promptsライブラリ",
+      "searchPlaceholder": "プロンプトを検索...",
+      "copied": "クリップボードにコピーしました",
+      "clickToCopy": "プロンプトをクリックしてコピー",
+      "feedback": "フィードバック",
+      "feedbackPlaceholder": "このプロンプトが気に入らない理由は何ですか？（任意、最大500文字）",
+      "submitFeedback": "送信",
+      "feedbackSuccess": "フィードバックありがとうございます"
     }
   },
   "errors": {

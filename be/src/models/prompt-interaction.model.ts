@@ -72,6 +72,7 @@ export class PromptInteractionModel extends BaseModel<PromptInteraction> {
                 'u.email as user_email',
                 'pi.interaction_type',
                 'pi.comment',
+                'pi.prompt_snapshot',
                 'pi.created_at'
             )
             .orderBy('pi.created_at', 'desc');

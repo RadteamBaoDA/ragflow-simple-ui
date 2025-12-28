@@ -17,14 +17,17 @@ export class PromptController {
                 return res.status(403).json({ error: 'Permission denied: VIEW required' });
             }
 
-            const { search, tag, source } = req.query;
+            const { search, tag, tags, source, limit, offset } = req.query;
             const filters: any = {};
             if (typeof search === 'string') filters.search = search;
             if (typeof tag === 'string') filters.tag = tag;
+            if (typeof tags === 'string') filters.tags = tags.split(',').map(t => t.trim());
             if (typeof source === 'string') filters.source = source;
+            if (typeof limit === 'string') filters.limit = parseInt(limit, 10);
+            if (typeof offset === 'string') filters.offset = parseInt(offset, 10);
 
-            const prompts = await promptService.getPrompts(filters);
-            return res.json(prompts);
+            const result = await promptService.getPrompts(filters);
+            return res.json(result);
         } catch (error) {
             console.error(error);
             return res.status(500).json({ error: 'Failed to fetch prompts' });

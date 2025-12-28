@@ -11,6 +11,7 @@
 import { useState, useEffect, useRef, useMemo } from 'react';
 import { useTranslation } from 'react-i18next';
 import { Select, Spin } from 'antd';
+import { Tag } from 'lucide-react';
 import { promptService } from '../api/promptService';
 import { PromptTag } from '../types/prompt';
 
@@ -234,7 +235,7 @@ export const TagInput: React.FC<TagInputProps> = ({
     };
 
     /**
-     * Get tag style with color.
+     * Get tag style with color - pill-shaped design with heart icon.
      */
     const tagRender = (props: any) => {
         const { label, value: tagValue, closable, onClose } = props;
@@ -246,21 +247,28 @@ export const TagInput: React.FC<TagInputProps> = ({
                     backgroundColor: color,
                     borderColor: color,
                     color: '#fff',
-                    padding: '0 7px',
-                    borderRadius: '4px',
-                    marginRight: 3,
+                    padding: '6px 14px',
+                    borderRadius: '20px',
+                    marginRight: 8,
+                    marginTop: 3,
+                    marginBottom: 3,
                     display: 'inline-flex',
-                    alignItems: 'center'
+                    alignItems: 'center',
+                    gap: 6,
+                    fontSize: '14px',
+                    fontWeight: 500,
+                    boxShadow: '0 2px 4px rgba(0,0,0,0.2)'
                 }}
             >
                 {label}
                 {closable && (
-                    <span
+                    <Tag
+                        size={14}
                         onClick={onClose}
-                        style={{ marginLeft: 4, cursor: 'pointer' }}
-                    >
-                        ×
-                    </span>
+                        style={{
+                            cursor: 'pointer'
+                        }}
+                    />
                 )}
             </span>
         );
@@ -295,7 +303,7 @@ export const TagInput: React.FC<TagInputProps> = ({
     return (
         <Select
             mode="tags"
-            style={{ width: '100%' }}
+            style={{ width: '100%', minHeight: 44 }}
             placeholder={placeholder || t('prompts.form.searchTags')}
             value={value}
             onChange={handleChange}
@@ -308,6 +316,7 @@ export const TagInput: React.FC<TagInputProps> = ({
             filterOption={false}
             notFoundContent={loading ? <Spin size="small" /> : null}
             tokenSeparators={[',']}
+            size="large"
         />
     );
 };

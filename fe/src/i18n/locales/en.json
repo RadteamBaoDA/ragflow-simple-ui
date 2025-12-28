@@ -64,7 +64,8 @@
     "permission": "Permission",
     "none": "None",
     "view": "View",
-    "all": "All"
+    "all": "All",
+    "copy": "Copy"
   },
   "dialog": {
     "confirm": "Confirm",
@@ -708,7 +709,9 @@
       "like": "Like",
       "dislike": "Dislike",
       "comment": "Comment",
-      "title": "Feedback Details"
+      "title": "Feedback Details",
+      "filterByUser": "Filter by user",
+      "promptSnapshot": "Prompt at time of feedback"
     },
     "permissions": {
       "title": "Prompt Permissions",
@@ -716,6 +719,16 @@
       "leaderNoteTitle": "Leader Permissions",
       "leaderNote": "Granting permissions to a Team will apply those permissions to all Leaders of that team.",
       "selectEntity": "Select User or Team"
+    },
+    "library": {
+      "title": "Prompt Library",
+      "searchPlaceholder": "Search prompts...",
+      "copied": "Copied to clipboard",
+      "clickToCopy": "Click on a prompt to copy it to clipboard",
+      "feedback": "Feedback",
+      "feedbackPlaceholder": "Why did you dislike this prompt? (Optional, max 500 chars)",
+      "submitFeedback": "Submit",
+      "feedbackSuccess": "Thanks for your feedback"
     }
   },
   "errors": {
