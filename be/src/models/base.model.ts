@@ -50,10 +50,14 @@ export abstract class BaseModel<T> implements IBaseModel<T> {
    * Create a new record in the database.
    * @param data - Partial entity data to insert
    * @returns The created entity with all fields populated
+   * @description Inserts data and immediately returns the created record using `returning('*')`.
    */
   async create(data: Partial<T>, trx?: Knex.Transaction): Promise<T> {
     // Insert data and return the created record with all columns
+    // The returning('*') clause is Postgres-specific and efficient for getting auto-generated IDs
     const query = this.knex(this.tableName).insert(data).returning('*');
+
+    // Attach transaction if provided for atomicity
     if (trx) query.transacting(trx);
 
     const [result] = await query;
@@ -64,9 +68,11 @@ export abstract class BaseModel<T> implements IBaseModel<T> {
    * Find a single record by its primary key ID.
    * @param id - Record ID to look up
    * @returns The entity if found, undefined otherwise
+   * @description Simple primary key lookup.
    */
   async findById(id: string | number): Promise<T | undefined> {
     // Query by ID and return first (should be only) result
+    // first() is used instead of direct array access for cleaner Knex syntax
     return this.knex(this.tableName).where({ id }).first();
   }
 
@@ -76,12 +82,14 @@ export abstract class BaseModel<T> implements IBaseModel<T> {
    * @param filter - Optional WHERE clause conditions
    * @param options - Optional query options (orderBy, limit, offset)
    * @returns Array of matching entities
+   * @description flexible query builder supporting filters and pagination.
    */
   async findAll(filter?: any, options?: FindAllOptions): Promise<T[]> {
     // Build base query for the table
     const query = this.knex(this.tableName);
 
     // Apply WHERE filter if provided
+    // Knex handles object-based filtering automatically (e.g., { status: 'active' })
     if (filter) {
       query.where(filter);
     }
@@ -105,6 +113,7 @@ export abstract class BaseModel<T> implements IBaseModel<T> {
         query.limit(options.limit);
       }
       // Apply OFFSET clause for pagination
+      // Used in conjunction with limit for standard page-based navigation
       if (options.offset) {
         query.offset(options.offset);
       }
@@ -120,12 +129,14 @@ export abstract class BaseModel<T> implements IBaseModel<T> {
    * @param id - Record ID or object with filter conditions
    * @param data - Partial entity data to update
    * @returns Updated entity if found, undefined otherwise
+   * @description Performs update and returns the modified record.
    */
   async update(id: string | number | Partial<T>, data: Partial<T>, trx?: Knex.Transaction): Promise<T | undefined> {
     // Build base query for the table
     const query = this.knex(this.tableName);
 
     // Handle both ID-based and object-based WHERE clauses
+    // If id is an object, treat it as a filter (e.g., update where user_id=X and status=Y)
     if (typeof id === 'object') {
       // Object filter - use as WHERE conditions
       query.where(id);
@@ -145,12 +156,14 @@ export abstract class BaseModel<T> implements IBaseModel<T> {
    * Delete a record by ID or filter conditions.
    * Supports both primary key lookup and object-based WHERE clause.
    * @param id - Record ID or object with filter conditions
+   * @description Removes record(s) matching the criteria.
    */
   async delete(id: string | number | Partial<T>, trx?: Knex.Transaction): Promise<void> {
     // Build base query for the table
     const query = this.knex(this.tableName);
 
     // Handle both ID-based and object-based WHERE clauses
+    // Flexibility allows for batch deletions (e.g., delete all logs older than date X)
     if (typeof id === 'object') {
       // Object filter - use as WHERE conditions
       query.where(id);
@@ -169,6 +182,7 @@ export abstract class BaseModel<T> implements IBaseModel<T> {
    * Expose underlying Knex query builder for custom queries.
    * Use sparingly - prefer defined methods for standard operations.
    * @returns Knex QueryBuilder instance scoped to this table
+   * @description Escape hatch for complex joins, aggregations, or raw SQL.
    */
   getKnex(): Knex.QueryBuilder {
     return this.knex(this.tableName);

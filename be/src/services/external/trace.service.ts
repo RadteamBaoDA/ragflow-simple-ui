@@ -57,6 +57,7 @@ export class ExternalTraceService {
             return this.redisClient;
         } catch (error) {
             // Log warning but allow fallthrough to DB mode
+            // We do not want to fail trace collection just because the cache is down
             log.warn('Failed to connect Redis for external trace caching', {
                 error: error instanceof Error ? error.message : String(error)
             });
@@ -102,11 +103,12 @@ export class ExternalTraceService {
             const cached = await redis.get(cacheKey);
             if (cached !== null) {
                 // Return boolean representation
+                // Cache stores 'true' or 'false' strings
                 return cached === 'true';
             }
             return null;
         } catch (error) {
-            // Swallow errors on cache read
+            // Swallow errors on cache read to treat as miss
             return null;
         }
     }
@@ -125,6 +127,7 @@ export class ExternalTraceService {
 
         try {
             // Set value with expiration
+            // TTL is configured via environment to balance load vs freshness
             await redis.setEx(
                 cacheKey,
                 config.externalTrace.cacheTtlSeconds,
@@ -142,16 +145,17 @@ export class ExternalTraceService {
      * @description Tries to set a key with NX flag to acquire lock.
      */
     private async acquireLock(lockKey: string): Promise<boolean> {
-        // Get redis client; fail open if no redis
+        // Get redis client; fail open (return true) if no redis
+        // If Redis is down, we fallback to DB and don't lock
         const redis = await this.getRedisClient();
         if (!redis) return true;
 
         try {
-            // Try to set key only if not exists
+            // Try to set key only if not exists (NX)
             const result = await redis.setNX(lockKey, 'locked');
             const acquired = !!result;
             if (acquired) {
-                // Set expiry on lock to prevent deadlocks
+                // Set expiry on lock to prevent deadlocks if the process crashes
                 await redis.pExpire(lockKey, config.externalTrace.lockTimeoutMs);
             }
             return acquired;
@@ -190,7 +194,7 @@ export class ExternalTraceService {
         if (!redis) return true;
 
         for (let i = 0; i < maxAttempts; i++) {
-            // Exponential backoff delay
+            // Exponential backoff delay (50ms, 100ms, 200ms...)
             const delay = Math.pow(2, i) * 50;
             await new Promise(resolve => setTimeout(resolve, delay));
 
@@ -221,6 +225,7 @@ export class ExternalTraceService {
         }
 
         // Acquire lock for DB lookup
+        // Prevents multiple requests for the same missing key from hitting the DB simultaneously
         const lockAcquired = await this.acquireLock(lockKey);
 
         if (!lockAcquired) {
@@ -244,7 +249,7 @@ export class ExternalTraceService {
 
             return isValid;
         } finally {
-            // Always release lock
+            // Always release lock so others can read
             if (lockAcquired) {
                 await this.releaseLock(lockKey);
             }
@@ -261,12 +266,12 @@ export class ExternalTraceService {
         // Initialize with default tags
         const tags = [...this.DEFAULT_TAGS];
 
-        // Add server environment tag
+        // Add server environment tag (e.g., 'production', 'staging')
         if (config.nodeEnv) {
             tags.push(config.nodeEnv);
         }
 
-        // Add share_id as tag
+        // Add share_id as tag for easy grouping
         if (shareId) {
             tags.push(`share_id:${shareId}`);
         }
@@ -313,6 +318,7 @@ export class ExternalTraceService {
             const langfuse = langfuseClient; // singleton instance
 
             // Determine identifiers and context
+            // Fallback to generating a chatId if none provided
             const chatId = metadata?.chatId ?? metadata?.sessionId ?? `chat-${email}-${Date.now()}`;
             const taskName = metadata?.task ?? (role === 'assistant' ? 'llm_response' : 'user_response');
             const tags = this.buildTags(metadata, params.share_id);
@@ -338,9 +344,10 @@ export class ExternalTraceService {
                     input: message,
                 });
 
+                // Cache trace in memory for subsequent updates
                 this.chatTraces.set(chatId, trace);
             } else {
-                // Update existing trace
+                // Update existing trace with new info
                 trace.update({
                     tags,
                     input: message,
@@ -362,7 +369,7 @@ export class ExternalTraceService {
             const isGeneration = taskName === 'llm_response' || role === 'assistant';
 
             if (isGeneration) {
-                // Check if usage data is available
+                // Check if usage data is available for token counting
                 const hasUsage = metadata?.usage &&
                     (typeof metadata.usage.promptTokens === 'number' ||
                         typeof metadata.usage.completionTokens === 'number');
@@ -397,7 +404,7 @@ export class ExternalTraceService {
                     trace.update({ output: response });
                 }
             } else {
-                // Log generic event (non-generation)
+                // Log generic event (non-generation) for user inputs
                 trace.event({
                     name: `${taskName}:${Date.now()}`,
                     input: message,
@@ -438,11 +445,11 @@ export class ExternalTraceService {
         if (!id) throw new Error('Trace ID required');
 
         const langfuse = langfuseClient;
-        // Submit score
+        // Submit score to Langfuse
         langfuse.score({
             traceId: id,
             name: 'user-feedback',
-            value: value ?? score,
+            value: value ?? score, // support both naming conventions
             comment
         });
 
