@@ -94,7 +94,6 @@ export const PromptsPage = () => {
     }, [searchFilter, tagFilter]);
 
     const fetchPermission = async () => {
-
         try {
             const { level } = await promptService.getMyPermission();
             setPermissionLevel(level);
