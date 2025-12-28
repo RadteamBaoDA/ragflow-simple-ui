@@ -38,8 +38,8 @@ services:
     env_file:
       - .env
     volumes:
-      - ./logs:/app/be/logs          # Persist log files
-      - ./config:/app/config          # External config files
+      - ./logs:/app/be/logs           # Persist log files
+      - ./config:/app/be/src/config   # Config overrides
     depends_on:
       - postgres
       - redis
@@ -120,7 +120,6 @@ PORT=3001
 LOG_LEVEL=info
 
 # Database
-DATABASE_TYPE=postgresql
 DB_HOST=postgres
 DB_PORT=5432
 DB_NAME=knowledge_base
@@ -144,7 +143,7 @@ AZURE_AD_TENANT_ID=your-tenant-id
 AZURE_AD_REDIRECT_URI=https://kb.yourdomain.com/api/auth/callback
 
 # RAGFlow (use config file or env)
-RAGFLOW_CONFIG_PATH=/app/config/ragflow.config.json
+RAGFLOW_CONFIG_PATH=/app/be/src/config/ragflow.config.json
 
 # MinIO
 MINIO_ENDPOINT=minio
@@ -153,8 +152,12 @@ MINIO_ACCESS_KEY=MINIO_ACCESS_KEY
 MINIO_SECRET_KEY=MINIO_SECRET_KEY
 MINIO_USE_SSL=false
 
-# System Tools (optional external config)
-SYSTEM_TOOLS_CONFIG_PATH=/app/config/system-tools.config.json
+# System Tools
+SYSTEM_TOOLS_CONFIG_PATH=/app/be/src/config/system-tools.config.json
+
+# External Trace Integration
+EXTERNAL_TRACE_ENABLED=true
+EXTERNAL_TRACE_API_KEY=YOUR_API_KEY
 
 # Langfuse (optional)
 LANGFUSE_SECRET_KEY=sk-lf-xxx
@@ -231,109 +234,6 @@ docker-compose exec app npm run db:migrate -w be
 
 # View logs
 docker-compose logs -f app
-
-# Check status
-docker-compose ps
-```
-
-## Log Management
-
-### Log File Location
-
-Production logs are stored in `./logs/` directory (mounted from container):
-
-```
-logs/
-├── logs_20251130.log       # All logs for today
-├── logs_20251129.log.gz    # Compressed previous day
-├── error_20251130.log      # Error-only logs
-└── error_20251129.log.gz   # Compressed errors
-```
-
-### Log Retention
-
-- **Retention Period**: 1 year (365 days)
-- **Compression**: Old logs are automatically gzip compressed
-- **Max Size**: 20MB per file before rotation
-
-### Viewing Logs
-
-```bash
-# View today's logs
-docker-compose exec app cat logs/logs_$(date +%Y%m%d).log
-
-# View error logs
-docker-compose exec app cat logs/error_$(date +%Y%m%d).log
-
-# Follow logs in real-time
-docker-compose logs -f app
-
-# View compressed old logs
-zcat logs/logs_20251129.log.gz
-```
-
-## Kubernetes Deployment
-
-### Helm Chart (Basic)
-
-```yaml
-# values.yaml
-replicaCount: 2
-
-image:
-  repository: knowledge-base
-  tag: latest
-
-env:
-  NODE_ENV: production
-  DATABASE_TYPE: postgresql
-
-secrets:
-  sessionSecret: ""
-  dbPassword: ""
-  azureClientSecret: ""
-
-persistence:
-  logs:
-    enabled: true
-    size: 10Gi
-    storageClass: standard
-
-postgresql:
-  enabled: true
-  auth:
-    database: knowledge_base
-
-redis:
-  enabled: true
-  auth:
-    enabled: false
-
-ingress:
-  enabled: true
-  className: nginx
-  hosts:
-    - host: kb.yourdomain.com
-      paths:
-        - path: /
-          pathType: Prefix
-  tls:
-    - secretName: kb-tls
-      hosts:
-        - kb.yourdomain.com
-```
-
-## Health Checks
-
-```bash
-# Application health
-curl https://kb.yourdomain.com/api/health
-
-# Database connection
-docker-compose exec postgres pg_isready
-
-# Redis connection
-docker-compose exec redis redis-cli ping
 ```
 
 ## Backup & Restore
@@ -348,45 +248,6 @@ docker-compose exec postgres pg_dump -U postgres knowledge_base > backup.sql
 docker-compose exec -T postgres psql -U postgres knowledge_base < backup.sql
 ```
 
-### MinIO Backup
-
-```bash
-# Using mc (MinIO Client)
-mc alias set kb http://localhost:9000 MINIO_ACCESS_KEY MINIO_SECRET_KEY
-mc mirror kb/bucket ./backup/
-```
-
-### Log Backup
-
-```bash
-# Backup logs directory
-tar -czvf logs_backup_$(date +%Y%m%d).tar.gz ./logs/
-```
-
-## Monitoring
-
-### Recommended Stack
-
-- **Metrics**: Prometheus + Grafana
-- **Logs**: Loki or ELK Stack
-- **AI Observability**: Langfuse
-
-### Log Aggregation
-
-Configure Promtail or Filebeat to collect logs from `./logs/` directory:
-
-```yaml
-# promtail config example
-scrape_configs:
-  - job_name: knowledge-base
-    static_configs:
-      - targets:
-          - localhost
-        labels:
-          job: knowledge-base
-          __path__: /var/log/knowledge-base/*.log
-```
-
 ## Troubleshooting
 
 | Issue | Solution |
@@ -396,5 +257,3 @@ scrape_configs:
 | Azure AD callback fails | Check redirect URI matches exactly |
 | File upload fails | Increase `client_max_body_size` in Nginx |
 | Database connection refused | Verify DB_HOST and network connectivity |
-| Logs not appearing | Check volume mount and permissions |
-| Old logs not compressed | Verify winston-daily-rotate-file is working |

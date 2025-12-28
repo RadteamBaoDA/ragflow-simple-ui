@@ -40,9 +40,9 @@ graph TD
 ```
 
 **Tech Stack:**
-- **Frontend**: React 18, Vite, Ant Design, Tailwind CSS, React Query, i18next
+- **Frontend**: React 19, Vite, Ant Design, Tailwind CSS, React Query, i18next
 - **Backend**: Express.js, TypeScript, Winston (Daily Rotate), Node-cron
-- **Database**: PostgreSQL (Prisma/Knex-ready migrations)
+- **Database**: PostgreSQL (Knex.js migrations & query builder)
 - **Session**: Redis (Session persistence & rate limiting)
 - **Storage**: MinIO SDK (S3 compatible)
 - **Auth**: Azure Entra ID (OAuth2/OpenID Connect)
@@ -51,20 +51,29 @@ graph TD
 ## 📂 Project Structure
 
 ```bash
-├── be/                 # Backend (Express + TypeScript)
+├── be/                 # Backend Workspace (Express + TypeScript)
 │   ├── src/
-│   │   ├── config/     # RBAC roles, CORS, and env configuration
-│   │   ├── db/         # Migrations and database adapters
+│   │   ├── config/     # App configuration
+│   │   ├── controllers/# Request handlers (MVC pattern)
+│   │   ├── db/         # Knex migrations and seeds
 │   │   ├── middleware/ # Auth, rate-limit, and audit interceptors
-│   │   ├── routes/     # API endpoints
-│   │   └── services/   # Business logic (MinIO, RAGFlow, Audit)
-│   └── scripts/        # Database maintenance & seeding
-├── fe/                 # Frontend (React + Vite)
+│   │   ├── models/     # Data access layer (BaseModel & Factory)
+│   │   ├── routes/     # API route definitions
+│   │   ├── services/   # Business logic (MinIO, RAGFlow, Audit)
+│   │   ├── scripts/    # Database maintenance scripts
+│   │   └── utils/      # Helper utilities
+├── fe/                 # Frontend Workspace (React + Vite)
 │   ├── src/
-│   │   ├── components/ # Atomic UI components & Document Previewer
-│   │   ├── locales/    # i18n translation files (en, vi, ja)
-│   │   ├── pages/      # Feature modules (Chat, Search, Admin)
-│   │   └── services/   # Type-safe API clients
+│   │   ├── assets/     # Static assets
+│   │   ├── components/ # Reusable UI components
+│   │   ├── context/    # React Context providers
+│   │   ├── hooks/      # Custom React hooks
+│   │   ├── i18n/       # Localization files (en, vi, ja)
+│   │   ├── layouts/    # Page layouts
+│   │   ├── lib/        # Core libraries (API client)
+│   │   ├── pages/      # Application views
+│   │   ├── services/   # API service calls
+│   │   └── types/      # TypeScript definitions
 ├── docker/             # Dockerization & deployment configs
 └── docs/               # Detailed technical documentation
 ```
@@ -81,7 +90,7 @@ graph TD
 ### Local Development
 
 ```bash
-# 1. Install dependencies for the workspace
+# 1. Install dependencies for all workspaces
 npm install
 
 # 2. Setup Environment Variables
@@ -100,6 +109,7 @@ npm run dev
 | `npm run build` | Production build for both tiers |
 | `npm run build:prod` | Optimized production build without source maps |
 | `npm run lint` | Run project-wide ESLint checks |
+| `npm run test` | Run tests with Vitest |
 
 ## 📖 Documentation
 
@@ -107,7 +117,8 @@ Explore our detailed guides in the `docs/` folder:
 - [Configuration Guide](docs/configuration.md)
 - [Deployment Strategy](docs/deployment.md)
 - [API Reference](docs/api-reference.md)
-- [RBAC Policy](docs/architecture.md)
+- [Architecture & RBAC](docs/architecture.md)
+- [External Integration](docs/external-trace-integration.md)
 
 ## 📄 License
 
