@@ -32,6 +32,7 @@ export function updateAuthTimestamp(req: Request, isReauth: boolean = false): vo
  * @param req - Express request object
  * @param res - Express response object
  * @param next - Next middleware function
+ * @description Validates session presence; terminates request with 401 if missing.
  */
 export function requireAuth(req: Request, res: Response, next: NextFunction): void {
   // Check if session contains authenticated user
@@ -50,6 +51,7 @@ export function requireAuth(req: Request, res: Response, next: NextFunction): vo
  * Returns REAUTH_REQUIRED error if auth is too old, prompting frontend re-auth flow.
  * @param maxAgeMinutes - Maximum age in minutes for valid auth (default: 15)
  * @returns Express middleware function
+ * @description Enforces strict security for sensitive operations (e.g., changing password).
  */
 export function requireRecentAuth(maxAgeMinutes: number = 15) {
   return (req: Request, res: Response, next: NextFunction) => {
@@ -60,6 +62,7 @@ export function requireRecentAuth(maxAgeMinutes: number = 15) {
     }
 
     // Get most recent auth timestamp (prefer reauth over initial auth)
+    // This allows users to extend their "secure session" by re-entering password
     const lastAuth = req.session.lastReauthAt || req.session.lastAuthAt
 
     // If no auth timestamp exists, require re-authentication
@@ -94,6 +97,7 @@ export function requireRecentAuth(maxAgeMinutes: number = 15) {
  * @param req - Express request object
  * @param _res - Express response object (unused)
  * @param next - Next middleware function
+ * @description Useful for public routes that have optional personalized features.
  */
 export function checkSession(req: Request, _res: Response, next: NextFunction): void {
   // If session has user, attach to request for convenience
@@ -109,6 +113,7 @@ export function checkSession(req: Request, _res: Response, next: NextFunction): 
  * Checks session first, falls back to request.user.
  * @param req - Express request object
  * @returns User object if authenticated, undefined otherwise
+ * @description Unifies user access across different middleware states.
  */
 export function getCurrentUser(req: Request): User | undefined {
   // Prefer session user (source of truth)
@@ -124,6 +129,7 @@ export function getCurrentUser(req: Request): User | undefined {
  * Checks both role-based permissions and explicit user permissions.
  * @param permission - The permission required to access the route
  * @returns Express middleware function
+ * @description Implements granular RBAC/ABAC checks.
  */
 export function requirePermission(permission: Permission) {
   return (req: Request, res: Response, next: NextFunction) => {
@@ -142,12 +148,14 @@ export function requirePermission(permission: Permission) {
     }
 
     // Check if user's role grants the required permission
+    // Roles act as a bundle of permissions
     if (user.role && hasPermission(user.role, permission)) {
       next()
       return
     }
 
     // Check explicit user permissions (may be string or array)
+    // Allows for one-off overrides or custom permission sets
     if (user.permissions) {
       let perms: string[] = []
 
@@ -181,6 +189,7 @@ export function requirePermission(permission: Permission) {
  * Middleware factory that requires one of the specified roles to access route.
  * @param roles - Allowed roles (variadic parameter)
  * @returns Express middleware function
+ * @description Simpler alternative to requirePermission when coarse-grained role check is sufficient.
  */
 export function requireRole(...roles: Role[]) {
   return (req: Request, res: Response, next: NextFunction) => {
@@ -221,6 +230,7 @@ export function requireRole(...roles: Role[]) {
  * @param options - Configuration options
  * @param options.allowAdminBypass - If true, admin roles bypass ownership check (default: true)
  * @returns Express middleware function
+ * @description Prevents IDOR attacks by ensuring users can only access their own data.
  */
 export function requireOwnership(
   userIdParam: string,
@@ -257,6 +267,7 @@ export function requireOwnership(
     }
 
     // Check if admin bypass is enabled and user is admin
+    // Admins usually have global access
     if (options.allowAdminBypass && user.role && ADMIN_ROLES.includes(user.role as Role)) {
       next()
       return
@@ -274,6 +285,7 @@ export function requireOwnership(
  * @param options - Configuration options
  * @param options.allowAdminBypass - If true, admin roles bypass ownership check (default: true)
  * @returns Express middleware function
+ * @description Used when ownership cannot be determined solely from a URL parameter (e.g., complex queries).
  */
 export function requireOwnershipCustom(
   getOwnerId: (req: Request) => string | undefined,

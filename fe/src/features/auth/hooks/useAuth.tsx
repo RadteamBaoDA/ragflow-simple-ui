@@ -114,8 +114,9 @@ export function AuthProvider({ children }: AuthProviderProps) {
       console.log('[Auth] Checking session...');
 
       // Call the backend API to retrieve the current user's session
+      // We use credentials: 'include' to ensure the session cookie is sent
       const response = await fetch(`${API_BASE_URL}/api/auth/me`, {
-        credentials: 'include', // Include session cookie in the request
+        credentials: 'include',
       });
 
       if (response.ok) {
@@ -128,11 +129,13 @@ export function AuthProvider({ children }: AuthProviderProps) {
 
       if (response.status === 401) {
         // 401 Unauthorized means no active session
+        // This is expected if the user is not logged in
         console.log('[Auth] Session not found or expired (401)');
         setUser(null);
         return false;
       }
 
+      // Unexpected status code (e.g., 500)
       throw new Error(`Unexpected response: ${response.status}`);
     } catch (err) {
       // Handle network errors or other exceptions during session check
@@ -156,6 +159,7 @@ export function AuthProvider({ children }: AuthProviderProps) {
     setIsLoading(false);
 
     // Call the logout endpoint using POST method
+    // We don't await the result because we want to redirect immediately
     fetch(`${API_BASE_URL}/api/auth/logout`, { method: 'POST', credentials: 'include' })
       .then(() => {
         // Redirect to login page after successful logout
@@ -177,6 +181,7 @@ export function AuthProvider({ children }: AuthProviderProps) {
     const isPublicPath = publicPaths.some(path => location.pathname.startsWith(path));
 
     // Skip auth check for defined public paths
+    // Prevents redirect loops on login page
     if (isPublicPath) {
       console.log('[Auth] Public path, skipping auth check:', location.pathname);
       setIsLoading(false);
@@ -196,7 +201,9 @@ export function AuthProvider({ children }: AuthProviderProps) {
         // If session is invalid, capture current path for post-login redirect
         const redirectUrl = location.pathname + location.search;
         console.log('[Auth] Not authenticated, redirecting to login. Intended destination:', redirectUrl);
+
         // Redirect to login page with the return URL
+        // Using replace: true to avoid polluting browser history
         navigate(`/login?redirect=${encodeURIComponent(redirectUrl)}`, { replace: true });
       }
     });
