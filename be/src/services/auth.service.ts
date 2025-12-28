@@ -63,6 +63,7 @@ export class AuthService {
    * Exchange one-time auth code for access/refresh tokens.
    * @param code - Authorization code from the callback.
    * @returns Promise<TokenResponse> - The token response containing access and refresh tokens.
+   * @throws Error if the token exchange fails.
    * @description Exchanges the authorization code for tokens via Azure AD token endpoint.
    */
   async exchangeCodeForTokens(code: string): Promise<TokenResponse> {
@@ -107,6 +108,7 @@ export class AuthService {
    * Refresh access token when a refresh token is available.
    * @param refreshToken - The refresh token to use.
    * @returns Promise<TokenResponse> - The new token response.
+   * @throws Error if the token refresh fails.
    * @description Refreshes an expired access token using the refresh token.
    */
   async refreshAccessToken(refreshToken: string): Promise<TokenResponse> {
@@ -184,6 +186,7 @@ export class AuthService {
    * Pull user profile and optional photo from Microsoft Graph.
    * @param accessToken - The access token for Graph API.
    * @returns Promise<AzureAdUser> - The user profile data.
+   * @throws Error if the profile fetch fails.
    * @description Fetches user details and profile photo from Microsoft Graph.
    */
   async getUserProfile(accessToken: string): Promise<AzureAdUser> {
@@ -284,6 +287,7 @@ export class AuthService {
    * @param password - Password.
    * @param ipAddress - Client IP address.
    * @returns Promise<any> - User object if successful.
+   * @throws Error if credentials are invalid.
    * @description Legacy root-user login path for system administration.
    */
   async login(username: string, password: string, ipAddress?: string): Promise<any> {

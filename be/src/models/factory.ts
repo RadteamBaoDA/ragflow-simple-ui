@@ -216,6 +216,7 @@ export class ModelFactory {
 
   /**
    * Get the ExternalChatSession model singleton.
+   * @returns ExternalChatSessionModel instance
    */
   static get externalChatSession() {
     if (!this.externalChatSessionModel) this.externalChatSessionModel = new ExternalChatSessionModel();
@@ -224,6 +225,7 @@ export class ModelFactory {
 
   /**
    * Get the ExternalChatMessage model singleton.
+   * @returns ExternalChatMessageModel instance
    */
   static get externalChatMessage() {
     if (!this.externalChatMessageModel) this.externalChatMessageModel = new ExternalChatMessageModel();
@@ -232,6 +234,7 @@ export class ModelFactory {
 
   /**
    * Get the ExternalSearchSession model singleton.
+   * @returns ExternalSearchSessionModel instance
    */
   static get externalSearchSession() {
     if (!this.externalSearchSessionModel) this.externalSearchSessionModel = new ExternalSearchSessionModel();
@@ -240,6 +243,7 @@ export class ModelFactory {
 
   /**
    * Get the ExternalSearchRecord model singleton.
+   * @returns ExternalSearchRecordModel instance
    */
   static get externalSearchRecord() {
     if (!this.externalSearchRecordModel) this.externalSearchRecordModel = new ExternalSearchRecordModel();
@@ -248,6 +252,7 @@ export class ModelFactory {
 
   /**
    * Get the Prompt model singleton.
+   * @returns PromptModel instance
    */
   static get prompt() {
     if (!this.promptModel) this.promptModel = new PromptModel();
@@ -256,6 +261,7 @@ export class ModelFactory {
 
   /**
    * Get the PromptInteraction model singleton.
+   * @returns PromptInteractionModel instance
    */
   static get promptInteraction() {
     if (!this.promptInteractionModel) this.promptInteractionModel = new PromptInteractionModel();
@@ -274,6 +280,7 @@ export class ModelFactory {
 
   /**
    * Get the PromptPermission model singleton.
+   * @returns PromptPermissionModel instance
    */
   static get promptPermission() {
     if (!this.promptPermissionModel) this.promptPermissionModel = new PromptPermissionModel();
