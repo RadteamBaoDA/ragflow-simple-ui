@@ -36,6 +36,7 @@ export class AuthenticationError extends Error {
  * Redirects to login page with current path for post-login redirect.
  * 
  * @throws AuthenticationError - Always throws after redirect
+ * @description Centralized logic for handling unauthorized access by redirecting the user to the login page.
  */
 function handleUnauthorized(): never {
   // Capture current path for redirect after login
@@ -80,9 +81,10 @@ interface FetchOptions extends RequestInit {
  * @template T - Expected response type
  * @param endpoint - API endpoint (relative or absolute URL)
  * @param options - Fetch options with optional auth skip
- * @returns Parsed JSON response
+ * @returns Promise<T> - Parsed JSON response
  * @throws AuthenticationError on 401 (after redirect)
  * @throws Error on non-OK responses
+ * @description Wraps the native fetch API to provide consistent error handling and authentication management.
  */
 export async function apiFetch<T = unknown>(
   endpoint: string,
@@ -90,14 +92,15 @@ export async function apiFetch<T = unknown>(
 ): Promise<T> {
   const { skipAuthCheck = false, ...fetchOptions } = options;
   
-  // Build full URL (preserve absolute URLs)
+  // Build full URL (preserve absolute URLs if passed)
   const url = endpoint.startsWith('http') 
     ? endpoint 
     : `${API_BASE_URL}${endpoint}`;
   
   const response = await fetch(url, {
     ...fetchOptions,
-    credentials: 'include', // Always include cookies for session auth
+    // Always include cookies for session auth
+    credentials: 'include',
     headers: {
       'Content-Type': 'application/json',
       ...fetchOptions.headers,
@@ -109,8 +112,9 @@ export async function apiFetch<T = unknown>(
     handleUnauthorized();
   }
   
-  // Handle other errors
+  // Handle other errors (non-200 range)
   if (!response.ok) {
+    // Attempt to parse error message from JSON response
     const errorData = await response.json().catch(() => ({}));
     throw new Error(errorData.error || `API error: ${response.status}`);
   }
@@ -131,6 +135,10 @@ export const api = {
   /**
    * Perform a GET request.
    * @template T - Expected response type
+   * @param endpoint - The API endpoint to call.
+   * @param options - Additional fetch options.
+   * @returns Promise<T> - The response data.
+   * @description Helper for GET requests.
    */
   get: <T = unknown>(endpoint: string, options?: FetchOptions) =>
     apiFetch<T>(endpoint, { ...options, method: 'GET' }),
@@ -138,6 +146,11 @@ export const api = {
   /**
    * Perform a POST request with JSON body.
    * @template T - Expected response type
+   * @param endpoint - The API endpoint to call.
+   * @param data - The data to send in the body.
+   * @param options - Additional fetch options.
+   * @returns Promise<T> - The response data.
+   * @description Helper for POST requests, automatically stringifying the body.
    */
   post: <T = unknown>(endpoint: string, data?: unknown, options?: FetchOptions) => {
     const body = data ? JSON.stringify(data) : null;
@@ -151,6 +164,11 @@ export const api = {
   /**
    * Perform a PUT request with JSON body.
    * @template T - Expected response type
+   * @param endpoint - The API endpoint to call.
+   * @param data - The data to send in the body.
+   * @param options - Additional fetch options.
+   * @returns Promise<T> - The response data.
+   * @description Helper for PUT requests, automatically stringifying the body.
    */
   put: <T = unknown>(endpoint: string, data?: unknown, options?: FetchOptions) => {
     const body = data ? JSON.stringify(data) : null;
@@ -164,6 +182,10 @@ export const api = {
   /**
    * Perform a DELETE request.
    * @template T - Expected response type
+   * @param endpoint - The API endpoint to call.
+   * @param options - Additional fetch options.
+   * @returns Promise<T> - The response data.
+   * @description Helper for DELETE requests.
    */
   delete: <T = unknown>(endpoint: string, options?: FetchOptions) =>
     apiFetch<T>(endpoint, { ...options, method: 'DELETE' }),

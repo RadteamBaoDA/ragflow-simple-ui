@@ -25,6 +25,7 @@ export class QueueService {
      * Private constructor to initialize the QueueService singleton.
      * Sets up Redis connection, initializes chat and search history queues,
      * configures event listeners, and starts job processors.
+     * @description Initializes the singleton with optimal concurrency settings and logs startup.
      */
     private constructor() {
         // Calculate optimal concurrency based on system resources
@@ -60,6 +61,7 @@ export class QueueService {
      * This ensures we don't overload CPU or exhaust DB connections.
      * 
      * @returns number - Optimal concurrency per queue (minimum 1)
+     * @description Determines the best parallelism level to maximize throughput without crashing resources.
      */
     private calculateOptimalConcurrency(): number {
         // Check for environment variable override first
@@ -116,6 +118,7 @@ export class QueueService {
      * Get the singleton instance of QueueService.
      * Creates a new instance if one doesn't exist.
      * @returns QueueService - The singleton QueueService instance
+     * @description Implements the Singleton pattern to ensure only one QueueService exists.
      */
     public static getInstance(): QueueService {
         // Check if singleton instance already exists
