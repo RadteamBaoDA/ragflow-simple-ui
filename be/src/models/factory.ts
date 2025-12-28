@@ -19,6 +19,9 @@ import { ExternalChatSessionModel } from '@/models/external/chat-session.model.j
 import { ExternalChatMessageModel } from '@/models/external/chat-message.model.js';
 import { ExternalSearchSessionModel } from '@/models/external/search-session.model.js';
 import { ExternalSearchRecordModel } from '@/models/external/search-record.model.js';
+import { PromptModel } from '@/models/prompt.model.js';
+import { PromptInteractionModel } from '@/models/prompt-interaction.model.js';
+import { PromptTagModel } from '@/models/prompt-tag.model.js';
 
 /**
  * ModelFactory class implementing the Factory Pattern.
@@ -60,6 +63,11 @@ export class ModelFactory {
   private static externalChatMessageModel: ExternalChatMessageModel;
   private static externalSearchSessionModel: ExternalSearchSessionModel;
   private static externalSearchRecordModel: ExternalSearchRecordModel;
+
+  // Prompt Models
+  private static promptModel: PromptModel;
+  private static promptInteractionModel: PromptInteractionModel;
+  private static promptTagModel: PromptTagModel;
 
   /**
    * Get the User model singleton.
@@ -234,5 +242,31 @@ export class ModelFactory {
   static get externalSearchRecord() {
     if (!this.externalSearchRecordModel) this.externalSearchRecordModel = new ExternalSearchRecordModel();
     return this.externalSearchRecordModel;
+  }
+
+  /**
+   * Get the Prompt model singleton.
+   */
+  static get prompt() {
+    if (!this.promptModel) this.promptModel = new PromptModel();
+    return this.promptModel;
+  }
+
+  /**
+   * Get the PromptInteraction model singleton.
+   */
+  static get promptInteraction() {
+    if (!this.promptInteractionModel) this.promptInteractionModel = new PromptInteractionModel();
+    return this.promptInteractionModel;
+  }
+
+  /**
+   * Get the PromptTag model singleton.
+   * Manages reusable tags with colors for prompts.
+   * @returns PromptTagModel instance for tag operations
+   */
+  static get promptTag() {
+    if (!this.promptTagModel) this.promptTagModel = new PromptTagModel();
+    return this.promptTagModel;
   }
 }

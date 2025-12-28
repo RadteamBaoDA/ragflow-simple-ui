@@ -43,6 +43,14 @@ export class TeamService {
      * @description Creates a team record and logs the action.
      */
     async createTeam(data: CreateTeamDTO, user?: { id: string, email: string, ip?: string }): Promise<Team> {
+        // Check for duplicate name
+        const existingTeam = await ModelFactory.team.getKnex()
+            .where('name', data.name)
+            .first();
+        if (existingTeam) {
+            throw new Error(`Team with name "${data.name}" already exists`);
+        }
+
         const id = uuidv4();
 
         // Create team using model factory
@@ -110,6 +118,17 @@ export class TeamService {
 
         // Return existing team if no changes
         if (Object.keys(updateData).length === 0) return this.getTeam(id);
+
+        // Check for duplicate name (if name is being updated)
+        if (data.name !== undefined) {
+            const existingTeam = await ModelFactory.team.getKnex()
+                .where('name', data.name)
+                .whereNot('id', id)
+                .first();
+            if (existingTeam) {
+                throw new Error(`Team with name "${data.name}" already exists`);
+            }
+        }
 
         // Update team using model factory
         const updatedTeam = await ModelFactory.team.update(id, updateData);

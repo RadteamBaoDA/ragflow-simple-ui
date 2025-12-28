@@ -34,6 +34,7 @@
     "searchPlaceholder": "検索...",
     "search": "検索",
     "teams": "チーム",
+    "allProjects": "すべてのプロジェクト",
     "users": "ユーザー",
     "add": "追加",
     "user": "ユーザー",
@@ -55,7 +56,8 @@
     "updateSuccess": "正常に更新されました",
     "deleteSuccess": "正常に削除されました",
     "createSuccess": "正常に作成されました",
-    "description": "説明"
+    "description": "説明",
+    "totalItems": "合計 {{total}} 件"
   },
   "dialog": {
     "confirm": "確認",
@@ -81,6 +83,7 @@
     "tokenizer": "トークナイザー",
     "signOut": "サインアウト",
     "knowledgeBase": "ナレッジベース",
+    "prompts": "プロンプト",
     "broadcastMessages": "一斉通知",
     "histories": "履歴一覧",
     "expandMenu": "メニューを展開",
@@ -349,10 +352,10 @@
     "searchPlaceholder": "ユーザーを検索...",
     "allRoles": "すべての役割",
     "allDepartments": "すべての部署",
-    "title": "ユーザー管理",
-    "description": "ユーザーの役割と権限を管理",
-    "user": "ユーザー",
-    "email": "メール",
+    "title": "プロンプト管理",
+    "description": "プロンプトの管理と整理",
+    "install": "新しいプロンプトを追加",
+    "addNew": "新しいプロンプトを追加",
     "department": "部署",
     "role": "役割",
     "actions": "操作",
@@ -642,6 +645,48 @@
     "fileResults": "取得したファイル",
     "filterTitle": "履歴をフィルター",
     "applyFilter": "フィルターを適用"
+  },
+  "prompts": {
+    "title": "プロンプト管理",
+    "description": "プロンプトを管理・整理する",
+    "install": "新規プロンプトを追加",
+    "addNew": "新規プロンプトを追加",
+    "searchPlaceholder": "プロンプトを検索...",
+    "noPrompts": "プロンプトが見つかりません",
+    "fields": {
+      "prompt": "プロンプト",
+      "description": "説明",
+      "tags": "タグ",
+      "source": "ソース",
+      "actions": "操作",
+      "active": "有効",
+      "inactive": "無効",
+      "feedback": "フィードバック"
+    },
+    "filter": {
+      "allTags": "すべてのタグ",
+      "tag": "タグ",
+      "source": "ソース",
+      "allSources": "すべてのソース"
+    },
+    "form": {
+      "createTitle": "新規プロンプトを追加",
+      "editTitle": "プロンプトを編集",
+      "promptRequired": "プロンプトを入力してください",
+      "save": "追加",
+      "success": "プロンプトを追加しました",
+      "selectTags": "タグを選択",
+      "searchTags": "タグを検索または作成...",
+      "createTag": "タグを作成",
+      "tagNotFound": "タグが見つかりません。クリックして作成",
+      "allTag": "すべて"
+    },
+    "feedback": {
+      "like": "いいね",
+      "dislike": "よくない",
+      "comment": "コメント",
+      "title": "フィードバック詳細"
+    }
   },
   "errors": {
     "REAUTH_REQUIRED": "再認証が必要です"

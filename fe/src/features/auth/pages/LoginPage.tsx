@@ -48,7 +48,7 @@ function LoginPage() {
 
   // Get error and redirect from URL params
   const error = searchParams.get('error');
-  const redirect = searchParams.get('redirect') || '/ai-chat';
+  const redirect = searchParams.get('redirect') || '/chat';
   const { isAuthenticated, isLoading } = useAuth();
 
   // Root login state

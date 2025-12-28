@@ -261,9 +261,45 @@ export async function up(knex: Knex): Promise<void> {
         await knex.raw('CREATE INDEX IF NOT EXISTS idx_ext_search_rec_created_at ON external_search_records(created_at DESC)');
         await knex.raw('CREATE INDEX IF NOT EXISTS idx_ext_search_rec_search_vector ON external_search_records USING GIN(search_vector)');
     }
+
+    // 18. Prompts
+    if (!(await knex.schema.hasTable('prompts'))) {
+        await knex.schema.createTable('prompts', (table) => {
+            table.uuid('id').primary().defaultTo(knex.raw('gen_random_uuid()'));
+            table.text('prompt').notNullable();
+            table.text('description');
+            table.jsonb('tags').defaultTo('[]');
+            table.text('source').defaultTo('chat'); // 'chat' or custom source
+            table.boolean('is_active').defaultTo(true);
+            table.timestamp('created_at', { useTz: true }).defaultTo(knex.fn.now());
+            table.timestamp('updated_at', { useTz: true }).defaultTo(knex.fn.now());
+
+            // Full-text search for prompt and description
+            table.specificType('search_vector', "tsvector GENERATED ALWAYS AS (to_tsvector('english', coalesce(prompt, '') || ' ' || coalesce(description, ''))) STORED");
+            table.index('source');
+        });
+        await knex.raw('CREATE INDEX IF NOT EXISTS idx_prompts_search_vector ON prompts USING GIN(search_vector)');
+    }
+
+    // 19. Prompt Interactions (Likes/Dislikes/Comments)
+    if (!(await knex.schema.hasTable('prompt_interactions'))) {
+        await knex.schema.createTable('prompt_interactions', (table) => {
+            table.uuid('id').primary().defaultTo(knex.raw('gen_random_uuid()'));
+            table.uuid('prompt_id').notNullable();
+            table.text('user_id'); // nullable if we want to allow anonymous feedback or system feedback, but typically should be linked to user. specific requirements said "info store feedback from user"
+            table.text('interaction_type').notNullable().checkIn(['like', 'dislike', 'comment']);
+            table.text('comment'); // Only populated if type is 'comment'
+            table.timestamp('created_at', { useTz: true }).defaultTo(knex.fn.now());
+
+            table.foreign('prompt_id').references('prompts.id').onDelete('CASCADE');
+            table.index(['prompt_id', 'interaction_type']);
+        });
+    }
 }
 
 export async function down(knex: Knex): Promise<void> {
+    await knex.schema.dropTableIfExists('prompt_interactions');
+    await knex.schema.dropTableIfExists('prompts');
     await knex.schema.dropTableIfExists('external_search_records');
     await knex.schema.dropTableIfExists('external_search_sessions');
     await knex.schema.dropTableIfExists('external_chat_messages');

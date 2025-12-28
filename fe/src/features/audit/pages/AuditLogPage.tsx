@@ -16,8 +16,6 @@ import { useTranslation } from 'react-i18next';
 import {
     Search,
     Filter,
-    ChevronLeft,
-    ChevronRight,
     RefreshCw,
     User,
     Clock,
@@ -26,6 +24,7 @@ import {
     X,
     Calendar
 } from 'lucide-react';
+import { Table, Pagination, Card, Space, Avatar } from 'antd';
 
 /** API base URL from environment */
 const API_BASE_URL = import.meta.env.VITE_API_BASE_URL || '';
@@ -240,7 +239,6 @@ export default function AuditLogPage() {
         totalPages: 0,
     });
     const [isLoading, setIsLoading] = useState(true);
-    const [error, setError] = useState<string | null>(null);
 
     // Filter state
     const [filters, setFilters] = useState<Filters>({
@@ -266,15 +264,15 @@ export default function AuditLogPage() {
      *
      * @param {number} [page=1] - The page number to fetch.
      */
-    const fetchLogs = useCallback(async (page: number = 1) => {
+    const fetchLogs = useCallback(async (page: number = 1, limit?: number) => {
         setIsLoading(true);
-        setError(null);
 
         try {
+            const fetchLimit = limit || pagination.limit;
             // Construct query parameters including filters
             const params = new URLSearchParams({
                 page: String(page),
-                limit: String(pagination.limit),
+                limit: String(fetchLimit),
             });
 
             if (filters.search) params.append('search', filters.search);
@@ -296,7 +294,7 @@ export default function AuditLogPage() {
             setLogs(data.data);
             setPagination(data.pagination);
         } catch (err) {
-            setError(err instanceof Error ? err.message : t('auditLog.fetchError'));
+            console.error('Failed to fetch audit logs:', err);
         } finally {
             setIsLoading(false);
         }
@@ -357,9 +355,12 @@ export default function AuditLogPage() {
      * @description Handler for pagination page changes.
      *
      * @param {number} newPage - The new page number requested.
+     * @param {number} [newPageSize] - The new page size requested.
      */
-    const handlePageChange = (newPage: number) => {
-        if (newPage >= 1 && newPage <= pagination.totalPages) {
+    const handlePageChange = (newPage: number, newPageSize?: number) => {
+        if (newPageSize && newPageSize !== pagination.limit) {
+            fetchLogs(1, newPageSize);
+        } else {
             fetchLogs(newPage);
         }
     };
@@ -389,6 +390,92 @@ export default function AuditLogPage() {
 
     /** Check if any filters are currently active */
     const hasActiveFilters = Object.values(filters).some(v => v !== '');
+
+    // ============================================================================
+    // Table Columns
+    // ============================================================================
+
+    const columns = [
+        {
+            title: (
+                <div className="flex items-center gap-1 whitespace-nowrap">
+                    <Clock className="w-3 h-3" />
+                    {t('auditLog.timestamp')}
+                </div>
+            ),
+            dataIndex: 'created_at',
+            key: 'created_at',
+            width: 200,
+            render: (text: string) => <span className="whitespace-nowrap">{formatDateTime(text)}</span>,
+        },
+        {
+            title: (
+                <div className="flex items-center gap-1 whitespace-nowrap">
+                    <User className="w-3 h-3" />
+                    {t('auditLog.user')}
+                </div>
+            ),
+            dataIndex: 'user_email',
+            key: 'user_email',
+            render: (text: string) => (
+                <Space>
+                    <Avatar size="small" className="bg-primary-100 dark:bg-primary-900/30 text-primary-600 dark:text-primary-400">
+                        {text.charAt(0).toUpperCase()}
+                    </Avatar>
+                    <span className="truncate max-w-[200px]" title={text}>
+                        {text}
+                    </span>
+                </Space>
+            ),
+        },
+        {
+            title: <span className="whitespace-nowrap">{t('auditLog.action')}</span>,
+            dataIndex: 'action',
+            width: 160,
+            render: (action: string) => {
+                const actionBadge = getActionBadge(action, t);
+                return (
+                    <span className={`inline-flex items-center px-2 py-0.5 rounded-full text-xs font-medium whitespace-nowrap ${actionBadge.className}`}>
+                        {actionBadge.label}
+                    </span>
+                );
+            },
+        },
+        {
+            title: <span className="whitespace-nowrap">{t('auditLog.resourceType')}</span>,
+            dataIndex: 'resource_type',
+            key: 'resource_type',
+            width: 180,
+            render: (text: string) => <div className="whitespace-nowrap">{formatResourceType(text, t)}</div>,
+        },
+        {
+            title: (
+                <div className="flex items-center gap-1 whitespace-nowrap">
+                    <FileText className="w-3 h-3" />
+                    {t('auditLog.details')}
+                </div>
+            ),
+            dataIndex: 'details',
+            key: 'details',
+            width: 400,
+            render: (details: any) => (
+                <div className="whitespace-nowrap truncate max-w-[400px]" title={formatDetails(details)}>
+                    {formatDetails(details)}
+                </div>
+            ),
+        },
+        {
+            title: (
+                <div className="flex items-center gap-1 whitespace-nowrap">
+                    <Globe className="w-3 h-3" />
+                    {t('auditLog.ipAddress')}
+                </div>
+            ),
+            dataIndex: 'ip_address',
+            key: 'ip_address',
+            render: (text: string) => <span className="font-mono text-slate-500 dark:text-slate-400 whitespace-nowrap">{text || '-'}</span>,
+        },
+    ];
 
     // ============================================================================
     // Render
@@ -539,165 +626,34 @@ export default function AuditLogPage() {
                 )}
             </div>
 
-            {/* Results Summary */}
-            <div className="mb-2 text-sm text-slate-500 dark:text-slate-400">
-                {t('auditLog.showing', {
-                    from: Math.min((pagination.page - 1) * pagination.limit + 1, pagination.total),
-                    to: Math.min(pagination.page * pagination.limit, pagination.total),
-                    total: pagination.total
-                })}
-            </div>
 
             {/* Data Table */}
-            <div className="bg-white dark:bg-slate-800 flex-1 overflow-hidden flex flex-col rounded-lg border border-slate-200 dark:border-slate-700">
-                {error ? (
-                    <div className="flex-1 flex items-center justify-center text-red-500">
-                        {error}
-                    </div>
-                ) : isLoading && logs.length === 0 ? (
-                    <div className="flex-1 flex items-center justify-center">
-                        <div className="animate-spin rounded-full h-8 w-8 border-t-2 border-b-2 border-primary-600"></div>
-                    </div>
-                ) : logs.length === 0 ? (
-                    <div className="flex-1 flex items-center justify-center text-slate-500 dark:text-slate-400">
-                        {t('auditLog.noLogs')}
-                    </div>
-                ) : (
-                    <div className="overflow-x-auto flex-1">
-                        <table className="w-full text-left border-collapse">
-                            <thead className="sticky top-0 z-10">
-                                <tr className="bg-slate-50 dark:bg-slate-700/50 border-b border-slate-200 dark:border-slate-700">
-                                    <th className="p-3 text-xs font-medium text-slate-500 dark:text-slate-400 uppercase tracking-wider">
-                                        <div className="flex items-center gap-1">
-                                            <Clock className="w-3 h-3" />
-                                            {t('auditLog.timestamp')}
-                                        </div>
-                                    </th>
-                                    <th className="p-3 text-xs font-medium text-slate-500 dark:text-slate-400 uppercase tracking-wider">
-                                        <div className="flex items-center gap-1">
-                                            <User className="w-3 h-3" />
-                                            {t('auditLog.user')}
-                                        </div>
-                                    </th>
-                                    <th className="p-3 text-xs font-medium text-slate-500 dark:text-slate-400 uppercase tracking-wider">
-                                        {t('auditLog.action')}
-                                    </th>
-                                    <th className="p-3 text-xs font-medium text-slate-500 dark:text-slate-400 uppercase tracking-wider">
-                                        {t('auditLog.resourceType')}
-                                    </th>
-                                    <th className="p-3 text-xs font-medium text-slate-500 dark:text-slate-400 uppercase tracking-wider">
-                                        <div className="flex items-center gap-1">
-                                            <FileText className="w-3 h-3" />
-                                            {t('auditLog.details')}
-                                        </div>
-                                    </th>
-                                    <th className="p-3 text-xs font-medium text-slate-500 dark:text-slate-400 uppercase tracking-wider">
-                                        <div className="flex items-center gap-1">
-                                            <Globe className="w-3 h-3" />
-                                            {t('auditLog.ipAddress')}
-                                        </div>
-                                    </th>
-                                </tr>
-                            </thead>
-                            <tbody className="divide-y divide-slate-200 dark:divide-slate-700">
-                                {logs.map((log) => {
-                                    const actionBadge = getActionBadge(log.action, t);
-                                    return (
-                                        <tr key={log.id} className="hover:bg-slate-50 dark:hover:bg-slate-700/30 transition-colors">
-                                            <td className="p-3 text-sm text-slate-600 dark:text-slate-300 whitespace-nowrap">
-                                                {formatDateTime(log.created_at)}
-                                            </td>
-                                            <td className="p-3 text-sm text-slate-900 dark:text-white">
-                                                <div className="flex items-center gap-2">
-                                                    <div className="w-6 h-6 rounded-full bg-primary-100 dark:bg-primary-900/30 flex items-center justify-center text-primary-600 dark:text-primary-400 font-medium text-xs">
-                                                        {log.user_email.charAt(0).toUpperCase()}
-                                                    </div>
-                                                    <span className="truncate max-w-[200px]" title={log.user_email}>
-                                                        {log.user_email}
-                                                    </span>
-                                                </div>
-                                            </td>
-                                            <td className="p-3">
-                                                <span className={`inline-flex items-center px-2 py-0.5 rounded-full text-xs font-medium ${actionBadge.className}`}>
-                                                    {actionBadge.label}
-                                                </span>
-                                            </td>
-                                            <td className="p-3 text-sm text-slate-600 dark:text-slate-300">
-                                                {formatResourceType(log.resource_type, t)}
-                                            </td>
-                                            <td className="p-3 text-sm text-slate-500 dark:text-slate-400 max-w-[300px]">
-                                                <span className="truncate block" title={formatDetails(log.details)}>
-                                                    {formatDetails(log.details)}
-                                                </span>
-                                            </td>
-                                            <td className="p-3 text-sm font-mono text-slate-500 dark:text-slate-400">
-                                                {log.ip_address || '-'}
-                                            </td>
-                                        </tr>
-                                    );
-                                })}
-                            </tbody>
-                        </table>
-                    </div>
-                )}
-            </div>
-
-            {/* Pagination Controls */}
-            {pagination.totalPages > 1 && (
-                <div className="mt-4 flex items-center justify-between">
-                    <div className="text-sm text-slate-500 dark:text-slate-400">
-                        {t('auditLog.page', { page: pagination.page, totalPages: pagination.totalPages })}
-                    </div>
-                    <div className="flex items-center gap-2">
-                        <button
-                            onClick={() => handlePageChange(pagination.page - 1)}
-                            disabled={pagination.page <= 1 || isLoading}
-                            className="p-2 rounded-lg border border-slate-200 dark:border-slate-700 text-slate-600 dark:text-slate-400 hover:bg-slate-50 dark:hover:bg-slate-800 transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
-                        >
-                            <ChevronLeft className="w-4 h-4" />
-                        </button>
-
-                        {/* Page Numbers Logic */}
-                        <div className="flex items-center gap-1">
-                            {Array.from({ length: Math.min(5, pagination.totalPages) }, (_, i) => {
-                                let pageNum: number;
-                                // Smart pagination display
-                                if (pagination.totalPages <= 5) {
-                                    pageNum = i + 1;
-                                } else if (pagination.page <= 3) {
-                                    pageNum = i + 1;
-                                } else if (pagination.page >= pagination.totalPages - 2) {
-                                    pageNum = pagination.totalPages - 4 + i;
-                                } else {
-                                    pageNum = pagination.page - 2 + i;
-                                }
-
-                                return (
-                                    <button
-                                        key={pageNum}
-                                        onClick={() => handlePageChange(pageNum)}
-                                        disabled={isLoading}
-                                        className={`w-8 h-8 rounded-lg text-sm font-medium transition-colors ${pageNum === pagination.page
-                                            ? 'bg-primary-600 text-white'
-                                            : 'text-slate-600 dark:text-slate-400 hover:bg-slate-100 dark:hover:bg-slate-800'
-                                            }`}
-                                    >
-                                        {pageNum}
-                                    </button>
-                                );
-                            })}
-                        </div>
-
-                        <button
-                            onClick={() => handlePageChange(pagination.page + 1)}
-                            disabled={pagination.page >= pagination.totalPages || isLoading}
-                            className="p-2 rounded-lg border border-slate-200 dark:border-slate-700 text-slate-600 dark:text-slate-400 hover:bg-slate-50 dark:hover:bg-slate-800 transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
-                        >
-                            <ChevronRight className="w-4 h-4" />
-                        </button>
-                    </div>
+            <Card
+                styles={{ body: { padding: 0, height: '100%', display: 'flex', flexDirection: 'column' } }}
+                className="dark:bg-slate-800 dark:border-slate-700 flex-1 min-h-0 overflow-hidden"
+            >
+                <div className="flex-1 overflow-auto p-4">
+                    <Table
+                        columns={columns}
+                        dataSource={logs}
+                        rowKey="id"
+                        loading={isLoading}
+                        pagination={false}
+                        scroll={{ x: true }}
+                    />
                 </div>
-            )}
+                <div className="flex justify-end p-4 border-t border-slate-200 dark:border-slate-700">
+                    <Pagination
+                        current={pagination.page}
+                        total={pagination.total}
+                        pageSize={pagination.limit}
+                        showSizeChanger={true}
+                        showTotal={(total) => t('common.totalItems', { total })}
+                        pageSizeOptions={['10', '20', '25', '50', '100']}
+                        onChange={handlePageChange}
+                    />
+                </div>
+            </Card>
         </div>
     );
 }

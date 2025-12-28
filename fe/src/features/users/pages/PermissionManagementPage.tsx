@@ -5,6 +5,10 @@
 import { useTranslation } from 'react-i18next';
 import { Check, X, Shield, Users, User, AlertCircle } from 'lucide-react';
 
+import { Table, Card, Typography } from 'antd';
+
+const { Title, Text } = Typography;
+
 /**
  * Defines a permission row in the matrix.
  */
@@ -80,20 +84,83 @@ export default function PermissionManagementPage() {
         }
     ];
 
+    const renderCheckOrX = (value: boolean) => (
+        <div className="flex justify-center">
+            <div className={`w-8 h-8 rounded-full flex items-center justify-center ${value ? 'bg-green-100 dark:bg-green-900/30' : 'bg-slate-100 dark:bg-slate-800'}`}>
+                {value ? (
+                    <Check className="w-5 h-5 text-green-600 dark:text-green-400" />
+                ) : (
+                    <X className="w-5 h-5 text-slate-400 dark:text-slate-500" />
+                )}
+            </div>
+        </div>
+    );
+
+    const columns = [
+        {
+            title: t('iam.permissions.feature', 'Feature / Permission'),
+            key: 'permission',
+            render: (_: any, record: PermissionMatrixItem) => (
+                <div>
+                    <div className="font-medium text-slate-800 dark:text-slate-200">{record.permission}</div>
+                    <div className="text-xs text-slate-500 dark:text-slate-400 mt-0.5">{record.description}</div>
+                </div>
+            ),
+        },
+        {
+            title: (
+                <div className="flex flex-col items-center gap-1">
+                    <User className="w-5 h-5 text-slate-500" />
+                    <span>{t('iam.roles.user', 'Member')}</span>
+                </div>
+            ),
+            dataIndex: 'user',
+            key: 'user',
+            align: 'center' as const,
+            render: (val: boolean) => renderCheckOrX(val),
+        },
+        {
+            title: (
+                <div className="flex flex-col items-center gap-1">
+                    <Users className="w-5 h-5 text-blue-500" />
+                    <span>{t('iam.roles.leader', 'Leader')}</span>
+                </div>
+            ),
+            dataIndex: 'leader',
+            key: 'leader',
+            align: 'center' as const,
+            render: (val: boolean) => renderCheckOrX(val),
+        },
+        {
+            title: (
+                <div className="flex flex-col items-center gap-1">
+                    <Shield className="w-5 h-5 text-purple-500" />
+                    <span>{t('iam.roles.admin', 'Admin')}</span>
+                </div>
+            ),
+            dataIndex: 'admin',
+            key: 'admin',
+            align: 'center' as const,
+            render: (val: boolean) => renderCheckOrX(val),
+        },
+    ];
+
     return (
-        <div className="p-6 max-w-7xl mx-auto">
-            <div className="flex items-center gap-3 mb-6">
+        <div className="p-6 max-w-7xl mx-auto h-full flex flex-col">
+            <div className="flex items-center gap-3 mb-6 shrink-0">
                 <Shield className="w-8 h-8 text-primary dark:text-blue-400" />
-                <h1 className="text-2xl font-bold text-slate-800 dark:text-white">{t('iam.permissions.title', 'Permission Management')}</h1>
+                <Title level={2} className="!mb-0 !text-slate-800 dark:!text-white">
+                    {t('iam.permissions.title', 'Permission Management')}
+                </Title>
             </div>
 
-            <div className="bg-white dark:bg-slate-800 rounded-xl shadow-sm border border-slate-200 dark:border-slate-700 overflow-hidden">
-                <div className="p-6 border-b border-slate-200 dark:border-slate-700">
-                    <p className="text-slate-600 dark:text-slate-400">
+            <Card className="flex-1 min-h-0 overflow-hidden dark:bg-slate-800 dark:border-slate-700" styles={{ body: { padding: 0, height: '100%', display: 'flex', flexDirection: 'column' } }}>
+                <div className="p-6 border-b border-slate-200 dark:border-slate-700 shrink-0">
+                    <Text className="text-slate-600 dark:text-slate-400 block mb-4">
                         {t('iam.permissions.description', 'View and understand the permission levels for different roles in the system. Roles are assigned at the team level.')}
-                    </p>
+                    </Text>
 
-                    <div className="mt-4 flex items-start gap-3 p-4 bg-blue-50 dark:bg-blue-900/20 text-blue-700 dark:text-blue-300 rounded-lg">
+                    <div className="flex items-start gap-3 p-4 bg-blue-50 dark:bg-blue-900/20 text-blue-700 dark:text-blue-300 rounded-lg">
                         <AlertCircle className="w-5 h-5 flex-shrink-0 mt-0.5" />
                         <div className="text-sm">
                             <p className="font-medium">{t('iam.permissions.noteTitle', 'Role Assignment Note')}</p>
@@ -102,91 +169,16 @@ export default function PermissionManagementPage() {
                     </div>
                 </div>
 
-                <div className="overflow-x-auto">
-                    <table className="w-full">
-                        <thead>
-                            <tr className="bg-slate-50 dark:bg-slate-900/50 border-b border-slate-200 dark:border-slate-700">
-                                <th className="px-6 py-4 text-left text-sm font-semibold text-slate-700 dark:text-slate-300 w-1/3">
-                                    {t('iam.permissions.feature', 'Feature / Permission')}
-                                </th>
-                                <th className="px-6 py-4 text-center text-sm font-semibold text-slate-700 dark:text-slate-300 w-1/6">
-                                    <div className="flex flex-col items-center gap-1">
-                                        <User className="w-5 h-5 text-slate-500" />
-                                        <span>{t('iam.roles.user', 'Member')}</span>
-                                    </div>
-                                </th>
-                                <th className="px-6 py-4 text-center text-sm font-semibold text-slate-700 dark:text-slate-300 w-1/6">
-                                    <div className="flex flex-col items-center gap-1">
-                                        <Users className="w-5 h-5 text-blue-500" />
-                                        <span>{t('iam.roles.leader', 'Leader')}</span>
-                                    </div>
-                                </th>
-                                <th className="px-6 py-4 text-center text-sm font-semibold text-slate-700 dark:text-slate-300 w-1/6">
-                                    <div className="flex flex-col items-center gap-1">
-                                        <Shield className="w-5 h-5 text-purple-500" />
-                                        <span>{t('iam.roles.admin', 'Admin')}</span>
-                                    </div>
-                                </th>
-                            </tr>
-                        </thead>
-                        <tbody className="divide-y divide-slate-200 dark:divide-slate-700">
-                            {permissions.map((item, index) => (
-                                <tr key={index} className="hover:bg-slate-50 dark:hover:bg-slate-800/50 transition-colors">
-                                    <td className="px-6 py-4">
-                                        <div className="font-medium text-slate-800 dark:text-slate-200">{item.permission}</div>
-                                        <div className="text-xs text-slate-500 dark:text-slate-400 mt-0.5">{item.description}</div>
-                                    </td>
-                                    <td className="px-6 py-4 text-center">
-                                        {item.user ? (
-                                            <div className="flex justify-center">
-                                                <div className="w-8 h-8 rounded-full bg-green-100 dark:bg-green-900/30 flex items-center justify-center">
-                                                    <Check className="w-5 h-5 text-green-600 dark:text-green-400" />
-                                                </div>
-                                            </div>
-                                        ) : (
-                                            <div className="flex justify-center">
-                                                <div className="w-8 h-8 rounded-full bg-slate-100 dark:bg-slate-800 flex items-center justify-center">
-                                                    <X className="w-5 h-5 text-slate-400 dark:text-slate-500" />
-                                                </div>
-                                            </div>
-                                        )}
-                                    </td>
-                                    <td className="px-6 py-4 text-center">
-                                        {item.leader ? (
-                                            <div className="flex justify-center">
-                                                <div className="w-8 h-8 rounded-full bg-green-100 dark:bg-green-900/30 flex items-center justify-center">
-                                                    <Check className="w-5 h-5 text-green-600 dark:text-green-400" />
-                                                </div>
-                                            </div>
-                                        ) : (
-                                            <div className="flex justify-center">
-                                                <div className="w-8 h-8 rounded-full bg-slate-100 dark:bg-slate-800 flex items-center justify-center">
-                                                    <X className="w-5 h-5 text-slate-400 dark:text-slate-500" />
-                                                </div>
-                                            </div>
-                                        )}
-                                    </td>
-                                    <td className="px-6 py-4 text-center">
-                                        {item.admin ? (
-                                            <div className="flex justify-center">
-                                                <div className="w-8 h-8 rounded-full bg-green-100 dark:bg-green-900/30 flex items-center justify-center">
-                                                    <Check className="w-5 h-5 text-green-600 dark:text-green-400" />
-                                                </div>
-                                            </div>
-                                        ) : (
-                                            <div className="flex justify-center">
-                                                <div className="w-8 h-8 rounded-full bg-slate-100 dark:bg-slate-800 flex items-center justify-center">
-                                                    <X className="w-5 h-5 text-slate-400 dark:text-slate-500" />
-                                                </div>
-                                            </div>
-                                        )}
-                                    </td>
-                                </tr>
-                            ))}
-                        </tbody>
-                    </table>
+                <div className="flex-1 overflow-hidden">
+                    <Table
+                        columns={columns}
+                        dataSource={permissions}
+                        rowKey="permission"
+                        pagination={false}
+                        scroll={{ x: true, y: 'calc(100vh - 400px)' }}
+                    />
                 </div>
-            </div>
+            </Card>
         </div>
     );
 }

@@ -195,6 +195,14 @@ export class UserService {
      * @description Creates user in DB and logs audit event.
      */
     async createUser(data: any, user?: { id: string, email: string, ip?: string }): Promise<User> {
+        // Check for duplicate email
+        if (data.email) {
+            const existingUser = await ModelFactory.user.findByEmail(data.email);
+            if (existingUser) {
+                throw new Error(`User with email "${data.email}" already exists`);
+            }
+        }
+
         // Add audit metadata
         if (user) {
             data.created_by = user.id;
@@ -227,6 +235,14 @@ export class UserService {
      * @description updates user record and audit logs changes.
      */
     async updateUser(id: string, data: any, user?: { id: string, email: string, ip?: string }): Promise<User | undefined> {
+        // Check for duplicate email (if email is being updated)
+        if (data.email !== undefined) {
+            const existingUser = await ModelFactory.user.findByEmail(data.email);
+            if (existingUser && existingUser.id !== id) {
+                throw new Error(`User with email "${data.email}" already exists`);
+            }
+        }
+
         // Add audit metadata
         if (user) {
             data.updated_by = user.id;

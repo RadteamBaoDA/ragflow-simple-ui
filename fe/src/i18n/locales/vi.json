@@ -34,6 +34,7 @@
     "searchPlaceholder": "Tìm kiếm...",
     "search": "Tìm kiếm",
     "teams": "Nhóm",
+    "allProjects": "Tất Cả Dự Án",
     "users": "Người dùng",
     "add": "Thêm",
     "user": "Người dùng",
@@ -55,7 +56,8 @@
     "updateSuccess": "Cập nhật thành công",
     "deleteSuccess": "Xóa thành công",
     "createSuccess": "Tạo thành công",
-    "description": "Mô tả"
+    "description": "Mô tả",
+    "totalItems": "Tổng cộng {{total}} mục"
   },
   "dialog": {
     "confirm": "Xác nhận",
@@ -81,6 +83,7 @@
     "tokenizer": "Bộ đếm Token",
     "signOut": "Đăng xuất",
     "knowledgeBase": "Cơ sở tri thức",
+    "prompts": "Lời nhắc",
     "broadcastMessages": "Thông báo",
     "histories": "Lịch sử hệ thống",
     "expandMenu": "Mở rộng menu",
@@ -349,9 +352,10 @@
     "searchPlaceholder": "Tìm kiếm người dùng...",
     "allRoles": "Tất cả vai trò",
     "allDepartments": "Tất cả phòng ban",
-    "title": "Quản lý Người dùng",
-    "description": "Quản lý vai trò và quyền của người dùng",
-    "user": "Người dùng",
+    "title": "Quản lý Lời nhắc",
+    "description": "Quản lý và tổ chức các lời nhắc của bạn",
+    "install": "Thêm Lời nhắc Mới",
+    "addNew": "Thêm Lời nhắc Mới",
     "email": "Email",
     "department": "Phòng ban",
     "role": "Vai trò",
@@ -656,6 +660,48 @@
     "fileResults": "Các tệp được tìm thấy",
     "filterTitle": "Lọc lịch sử",
     "applyFilter": "Áp dụng bộ lọc"
+  },
+  "prompts": {
+    "title": "Quản lý Lời nhắc",
+    "description": "Quản lý và tổ chức các lời nhắc của bạn",
+    "install": "Thêm Lời nhắc Mới",
+    "addNew": "Thêm Lời nhắc Mới",
+    "searchPlaceholder": "Tìm kiếm lời nhắc...",
+    "noPrompts": "Không tìm thấy lời nhắc",
+    "fields": {
+      "prompt": "Lời nhắc",
+      "description": "Mô tả",
+      "tags": "Thẻ",
+      "source": "Nguồn",
+      "actions": "Thao tác",
+      "active": "Hoạt động",
+      "inactive": "Không hoạt động",
+      "feedback": "Phản hồi"
+    },
+    "filter": {
+      "allTags": "Tất cả Thẻ",
+      "tag": "Thẻ",
+      "source": "Nguồn",
+      "allSources": "Tất cả Nguồn"
+    },
+    "form": {
+      "createTitle": "Thêm Lời nhắc Mới",
+      "editTitle": "Chỉnh sửa Lời nhắc",
+      "promptRequired": "Vui lòng nhập lời nhắc",
+      "save": "Thêm",
+      "success": "Thêm lời nhắc thành công",
+      "selectTags": "Chọn thẻ",
+      "searchTags": "Tìm hoặc tạo thẻ...",
+      "createTag": "Tạo thẻ",
+      "tagNotFound": "Không tìm thấy thẻ, nhấp để tạo",
+      "allTag": "Tất cả"
+    },
+    "feedback": {
+      "like": "Thích",
+      "dislike": "Không thích",
+      "comment": "Bình luận",
+      "title": "Chi tiết Phản hồi"
+    }
   },
   "errors": {
     "REAUTH_REQUIRED": "Yêu cầu xác thực lại"

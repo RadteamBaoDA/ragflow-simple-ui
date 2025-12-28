@@ -8,6 +8,8 @@
  */
 import { useState, useEffect, useRef } from 'react';
 import { useTranslation } from 'react-i18next';
+import { createPortal } from 'react-dom';
+import { Table, Tag, Card, Space, Button, Input, Select, Tooltip, Avatar, Pagination } from 'antd';
 import { Plus, Edit, Trash2, Users, Search } from 'lucide-react';
 import { globalMessage } from '@/app/App';
 import { teamService, Team, TeamMember } from '../api/teamService';
@@ -23,6 +25,19 @@ export default function TeamManagementPage() {
     const [teams, setTeams] = useState<Team[]>([]);
     const [loading, setLoading] = useState(true);
     const [searchTerm, setSearchTerm] = useState('');
+    const [projectFilter, setProjectFilter] = useState('ALL');
+    const [users, setUsers] = useState<User[]>([]);
+
+    const handleSearch = (value: string) => {
+        setSearchTerm(value);
+        setCurrentPage(1);
+    };
+
+    const handleProjectFilter = (value: string) => {
+        setProjectFilter(value);
+        setCurrentPage(1);
+    };
+
     const [selectedTeam, setSelectedTeam] = useState<Team | null>(null);
     const [members, setMembers] = useState<TeamMember[]>([]);
     const [isCreateModalOpen, setIsCreateModalOpen] = useState(false);
@@ -31,9 +46,12 @@ export default function TeamManagementPage() {
 
     const [formData, setFormData] = useState({ name: '', project_name: '', description: '' });
 
-    const [users, setUsers] = useState<User[]>([]);
     const [selectedUserIds, setSelectedUserIds] = useState<string[]>([]);
     const [addMemberError, setAddMemberError] = useState<string | null>(null);
+
+    // Pagination state
+    const [currentPage, setCurrentPage] = useState(1);
+    const [pageSize, setPageSize] = useState(10);
 
     const dataFetchedRef = useRef(false);
 
@@ -41,7 +59,6 @@ export default function TeamManagementPage() {
         if (dataFetchedRef.current) return;
         dataFetchedRef.current = true;
         loadTeams();
-        // loadUsers(); // Optimization: Load users only when needed (opening members modal)
     }, []);
 
     /**
@@ -91,8 +108,6 @@ export default function TeamManagementPage() {
     const closeModals = () => {
         setIsCreateModalOpen(false);
         setIsEditModalOpen(false);
-        setIsCreateModalOpen(false);
-        setIsEditModalOpen(false);
         setIsMembersModalOpen(false);
 
         setFormData({ name: '', project_name: '', description: '' });
@@ -104,14 +119,15 @@ export default function TeamManagementPage() {
     /**
      * Handle team creation.
      */
-    const handleCreate = async (e: React.FormEvent) => {
-        e.preventDefault();
+    const handleCreate = async () => {
         try {
             await teamService.createTeam(formData);
             globalMessage.success(t('common.createSuccess'));
             closeModals();
             loadTeams();
-        } catch (error) {
+        } catch (error: any) {
+            const message = error?.response?.data?.error || error?.message || t('common.error');
+            globalMessage.error(message);
             console.error('Failed to create team:', error);
         }
     };
@@ -119,15 +135,16 @@ export default function TeamManagementPage() {
     /**
      * Handle team update.
      */
-    const handleUpdate = async (e: React.FormEvent) => {
-        e.preventDefault();
+    const handleUpdate = async () => {
         if (!selectedTeam) return;
         try {
             await teamService.updateTeam(selectedTeam.id, formData);
             globalMessage.success(t('common.updateSuccess'));
             closeModals();
             loadTeams();
-        } catch (error) {
+        } catch (error: any) {
+            const message = error?.response?.data?.error || error?.message || t('common.error');
+            globalMessage.error(message);
             console.error('Failed to update team:', error);
         }
     };
@@ -165,8 +182,6 @@ export default function TeamManagementPage() {
         }
     };
 
-
-
     const openEditModal = (team: Team) => {
         setSelectedTeam(team);
         setFormData({
@@ -186,51 +201,89 @@ export default function TeamManagementPage() {
         setIsMembersModalOpen(true);
     };
 
-    const filteredTeams = teams.filter(team =>
-        team.name.toLowerCase().includes(searchTerm.toLowerCase()) ||
-        team.project_name?.toLowerCase().includes(searchTerm.toLowerCase())
-    );
+    const uniqueProjects = Array.from(new Set(teams.map(t => t.project_name).filter(Boolean))) as string[];
+
+    const filteredTeams = teams.filter(team => {
+        const matchesSearch = team.name.toLowerCase().includes(searchTerm.toLowerCase()) ||
+            team.project_name?.toLowerCase().includes(searchTerm.toLowerCase());
+        const matchesProject = projectFilter === 'ALL' || team.project_name === projectFilter;
+        return matchesSearch && matchesProject;
+    });
 
     const availableUsers = users.filter(user =>
         (user.role === 'user' || user.role === 'leader') &&
         !members.some(member => member.id === user.id)
     );
 
-    // Portal Create button to header-actions container
-    useEffect(() => {
-        const headerActions = document.getElementById('header-actions');
-        if (!headerActions) return;
-
-        // Clear existing content
-        headerActions.innerHTML = '';
-
-        // Create button element
-        const button = document.createElement('button');
-        button.className = 'flex items-center gap-2 px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition-colors';
-        button.innerHTML = `<svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><line x1="12" y1="5" x2="12" y2="19"></line><line x1="5" y1="12" x2="19" y2="12"></line></svg>${t('iam.teams.create')}`;
-        button.onclick = () => {
-            setFormData({ name: '', project_name: '', description: '' });
-            setIsCreateModalOpen(true);
-        };
-
-        headerActions.appendChild(button);
-
-        return () => {
-            headerActions.innerHTML = '';
-        };
-    }, [t]);
+    const memberColumns = [
+        {
+            title: t('userManagement.user'),
+            key: 'user',
+            render: (_: any, record: TeamMember) => (
+                <div className="flex items-center gap-3">
+                    <Avatar className="bg-primary-100 text-primary-600 dark:bg-primary-900/30 dark:text-primary-400">
+                        {(record.display_name || record.email || '?').charAt(0).toUpperCase()}
+                    </Avatar>
+                    <div>
+                        <div className="font-medium text-slate-900 dark:text-white">{record.display_name}</div>
+                        <div className="text-xs text-slate-500">{record.email}</div>
+                    </div>
+                </div>
+            ),
+        },
+        {
+            title: t('iam.teams.role'),
+            dataIndex: 'role',
+            key: 'role',
+            render: (role: string) => (
+                <Tag color={role === 'leader' ? 'purple' : 'default'} className="capitalize">
+                    {t(`iam.teams.${role}`)}
+                </Tag>
+            ),
+        },
+        {
+            title: t('common.actions'),
+            key: 'actions',
+            align: 'right' as const,
+            render: (_: any, record: TeamMember) => (
+                <Button
+                    type="text"
+                    danger
+                    onClick={async () => {
+                        const confirmed = await confirm({ message: t('common.confirmDelete'), variant: 'danger' });
+                        if (confirmed && selectedTeam) {
+                            await teamService.removeMember(selectedTeam.id, record.id);
+                            globalMessage.success(t('iam.teams.removeMemberSuccess'));
+                            loadMembers(selectedTeam.id);
+                        }
+                    }}
+                >
+                    {t('common.delete')}
+                </Button>
+            ),
+        },
+    ];
 
     return (
         <div className="h-full flex flex-col p-6 max-w-7xl mx-auto">
-            {/* Search */}
-            <div className="flex-none mb-6 relative">
-                <Search className="absolute left-3 top-1/2 -translate-y-1/2 text-slate-400" size={20} />
-                <input
-                    type="text"
+            {/* Filters Row */}
+            <div className="flex flex-col sm:flex-row gap-4 mb-6 shrink-0">
+                <Input
+                    prefix={<Search className="text-slate-400" size={20} />}
                     placeholder={t('common.searchPlaceholder')}
                     value={searchTerm}
-                    onChange={(e) => setSearchTerm(e.target.value)}
-                    className="w-full pl-10 pr-4 py-2 rounded-lg border border-slate-200 dark:border-slate-700 bg-white dark:bg-slate-800 text-slate-900 dark:text-white focus:ring-2 focus:ring-blue-500 outline-none"
+                    onChange={(e) => handleSearch(e.target.value)}
+                    className="flex-1 dark:bg-slate-800 dark:border-slate-700 dark:text-white"
+                />
+
+                <Select
+                    value={projectFilter}
+                    onChange={handleProjectFilter}
+                    className="sm:w-64"
+                    options={[
+                        { value: 'ALL', label: t('common.allProjects') || 'All Projects' },
+                        ...uniqueProjects.map(project => ({ value: project, label: project }))
+                    ]}
                 />
             </div>
 
@@ -240,113 +293,144 @@ export default function TeamManagementPage() {
                 </div>
             ) : (
                 <div className="flex-1 overflow-y-auto pr-2 -mr-2">
-                    <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
-                        {filteredTeams.map(team => (
-                            <div key={team.id} className="bg-white dark:bg-slate-800 rounded-xl shadow-sm border border-slate-200 dark:border-slate-700 p-6 flex flex-col">
-                                <div className="flex justify-between items-start mb-4">
-                                    <div>
-                                        <h3 className="text-lg font-semibold text-slate-900 dark:text-white">{team.name}</h3>
-                                        {team.project_name && (
-                                            <span className="text-xs font-medium px-2 py-1 bg-blue-100 dark:bg-blue-900/30 text-blue-800 dark:text-blue-300 rounded-full">
-                                                {team.project_name}
-                                            </span>
-                                        )}
-                                    </div>
-                                    <div className="flex gap-2">
-                                        <button
-                                            onClick={() => openEditModal(team)}
-                                            className="p-1 text-slate-400 hover:text-blue-600 transition-colors"
-                                            title={t('iam.teams.edit')}
-                                        >
-                                            <Edit size={18} />
-                                        </button>
-                                        <button
-                                            onClick={() => handleDelete(team.id)}
-                                            className="p-1 text-slate-400 hover:text-red-600 transition-colors"
-                                            title={t('common.delete')}
-                                        >
-                                            <Trash2 size={18} />
-                                        </button>
-
-                                    </div>
-                                </div>
-                                <p className="text-sm text-slate-600 dark:text-slate-400 mb-4 flex-1">
-                                    {team.description || t('common.noDescription')}
-                                </p>
-                                <div className="border-t border-slate-100 dark:border-slate-700 pt-4 mt-auto">
+                    <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6 pb-6">
+                        {filteredTeams.slice((currentPage - 1) * pageSize, currentPage * pageSize).map(team => (
+                            <Card
+                                key={team.id}
+                                className="dark:bg-slate-800 dark:border-slate-700 shadow-sm"
+                                actions={[
                                     <button
+                                        key="members"
                                         onClick={() => openMembersModal(team)}
-                                        className="w-full flex items-center justify-center gap-2 text-sm font-medium text-slate-600 dark:text-slate-400 hover:text-blue-600 dark:hover:text-blue-400 transition-colors"
+                                        className="w-full flex items-center justify-center gap-2 text-sm font-medium text-slate-600 dark:text-slate-400 hover:text-blue-600 dark:hover:text-blue-400 transition-colors py-2"
                                     >
                                         <Users size={16} />
                                         {t('iam.teams.members')}
                                     </button>
-                                </div>
-                            </div>
+                                ]}
+                                title={
+                                    <div className="flex justify-between items-center w-full">
+                                        <div className="flex flex-col">
+                                            <span className="text-lg font-semibold text-slate-900 dark:text-white truncate max-w-[180px]">{team.name}</span>
+                                            {team.project_name && (
+                                                <Tag color="blue" className="w-fit mt-1">
+                                                    {team.project_name}
+                                                </Tag>
+                                            )}
+                                        </div>
+                                        <Space>
+                                            <Tooltip title={t('iam.teams.edit')}>
+                                                <Button
+                                                    type="text"
+                                                    icon={<Edit size={18} className="text-slate-400" />}
+                                                    onClick={() => openEditModal(team)}
+                                                />
+                                            </Tooltip>
+                                            <Tooltip title={t('common.delete')}>
+                                                <Button
+                                                    type="text"
+                                                    danger
+                                                    icon={<Trash2 size={18} />}
+                                                    onClick={() => handleDelete(team.id)}
+                                                />
+                                            </Tooltip>
+                                        </Space>
+                                    </div>
+                                }
+                            >
+                                <p className="text-sm text-slate-600 dark:text-slate-400 min-h-[60px] line-clamp-3">
+                                    {team.description || t('common.noDescription')}
+                                </p>
+                            </Card>
                         ))}
                     </div>
                 </div>
             )}
 
-            {/* Create/Edit Modal */}
+            {/* Pagination for Teams */}
+            {!loading && (
+                <div className="flex justify-end p-4 border-t border-slate-200 dark:border-slate-700">
+                    <Pagination
+                        current={currentPage}
+                        total={filteredTeams.length}
+                        pageSize={pageSize}
+                        showSizeChanger={true}
+                        showTotal={(total: number) => t('common.totalItems', { total })}
+                        pageSizeOptions={['10', '20', '30', '50', '100']}
+                        onChange={(page: number, size: number) => {
+                            setCurrentPage(page);
+                            setPageSize(size);
+                        }}
+                    />
+                </div>
+            )}
+
+            {/* Header Actions Portal */}
+            {document.getElementById('header-actions') && createPortal(
+                <Button
+                    type="primary"
+                    icon={<Plus size={20} />}
+                    onClick={() => {
+                        setFormData({ name: '', project_name: '', description: '' });
+                        setIsCreateModalOpen(true);
+                    }}
+                    className="flex items-center gap-2"
+                >
+                    {t('iam.teams.create')}
+                </Button>,
+                document.getElementById('header-actions')!
+            )}
+
+            {/* Create/Edit Team Dialog */}
             <Dialog
                 open={isCreateModalOpen || isEditModalOpen}
                 onClose={closeModals}
                 title={isCreateModalOpen ? t('iam.teams.create') : t('iam.teams.edit')}
                 maxWidth="xl"
                 footer={
-                    <>
-                        <button
-                            type="button"
-                            onClick={closeModals}
-                            className="px-4 py-2 text-slate-700 dark:text-slate-300 hover:bg-slate-100 dark:hover:bg-slate-700 rounded-lg transition-colors"
-                        >
+                    <Space>
+                        <Button onClick={closeModals}>
                             {t('common.cancel')}
-                        </button>
-                        <button
+                        </Button>
+                        <Button
+                            type="primary"
                             onClick={() => {
-                                const e = { preventDefault: () => { } } as React.FormEvent;
-                                isCreateModalOpen ? handleCreate(e) : handleUpdate(e);
+                                isCreateModalOpen ? handleCreate() : handleUpdate();
                             }}
-                            className="px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition-colors"
                         >
                             {t('common.save')}
-                        </button>
-                    </>
+                        </Button>
+                    </Space>
                 }
             >
-                <div className="space-y-4">
+                <div className="space-y-4 py-4">
                     <div>
                         <label className="block text-sm font-medium text-slate-700 dark:text-slate-300 mb-1">
                             {t('iam.teams.name')}
                         </label>
-                        <input
-                            type="text"
+                        <Input
                             required
                             value={formData.name}
                             onChange={e => setFormData({ ...formData, name: e.target.value })}
-                            className="w-full px-3 py-2 rounded-lg border border-slate-300 dark:border-slate-600 bg-white dark:bg-slate-700 text-slate-900 dark:text-white focus:ring-2 focus:ring-blue-500 outline-none"
                         />
                     </div>
                     <div>
                         <label className="block text-sm font-medium text-slate-700 dark:text-slate-300 mb-1">
                             {t('iam.teams.projectName')}
                         </label>
-                        <input
-                            type="text"
+                        <Input
                             value={formData.project_name}
                             onChange={e => setFormData({ ...formData, project_name: e.target.value })}
-                            className="w-full px-3 py-2 rounded-lg border border-slate-300 dark:border-slate-600 bg-white dark:bg-slate-700 text-slate-900 dark:text-white focus:ring-2 focus:ring-blue-500 outline-none"
                         />
                     </div>
                     <div>
                         <label className="block text-sm font-medium text-slate-700 dark:text-slate-300 mb-1">
                             {t('iam.teams.formDescription')}
                         </label>
-                        <textarea
+                        <Input.TextArea
+                            rows={4}
                             value={formData.description}
                             onChange={e => setFormData({ ...formData, description: e.target.value })}
-                            className="w-full px-3 py-2 rounded-lg border border-slate-300 dark:border-slate-600 bg-white dark:bg-slate-700 text-slate-900 dark:text-white focus:ring-2 focus:ring-blue-500 outline-none h-24 resize-none"
                         />
                     </div>
                 </div>
@@ -358,10 +442,8 @@ export default function TeamManagementPage() {
                 onClose={closeModals}
                 title={`${t('iam.teams.members')} - ${selectedTeam?.name}`}
                 maxWidth="3xl"
-                className="h-[600px]"
             >
-                <div className="h-full flex flex-col">
-                    {/* Add Member Section */}
+                <div className="h-full flex flex-col min-h-[400px]">
                     <div className="mb-6 flex gap-2 items-start shrink-0">
                         <div className="flex-1">
                             <UserMultiSelect
@@ -371,72 +453,36 @@ export default function TeamManagementPage() {
                                 placeholder={t('iam.teams.selectUser')}
                             />
                         </div>
-                        <button
+                        <Button
+                            type="primary"
                             onClick={handleAddMember}
                             disabled={selectedUserIds.length === 0}
-                            className="px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition-colors disabled:opacity-50 disabled:cursor-not-allowed flex items-center gap-2 h-[42px] mt-1"
+                            icon={<Plus size={18} />}
+                            className="h-[42px] mt-1"
                         >
-                            <Plus size={18} />
                             {t('common.add')}
-                        </button>
+                        </Button>
                     </div>
 
-                    {/* Inline Error Message */}
                     {addMemberError && (
                         <div className="mb-4 p-3 bg-red-100 dark:bg-red-900/30 text-red-700 dark:text-red-300 rounded-lg text-sm shrink-0">
                             {addMemberError}
                         </div>
                     )}
 
-                    <div className="flex-1 overflow-auto border dark:border-slate-700 rounded-lg">
-                        <table className="w-full">
-                            <thead className="bg-slate-50 dark:bg-slate-700/50 sticky top-0">
-                                <tr>
-                                    <th className="px-4 py-3 text-left text-xs font-medium text-slate-500 uppercase tracking-wider">{t('userManagement.user')}</th>
-                                    <th className="px-4 py-3 text-left text-xs font-medium text-slate-500 uppercase tracking-wider">{t('iam.teams.role')}</th>
-                                    <th className="px-4 py-3 text-right text-xs font-medium text-slate-500 uppercase tracking-wider">{t('common.actions')}</th>
-                                </tr>
-                            </thead>
-                            <tbody className="divide-y divide-slate-200 dark:divide-slate-700 text-slate-600 dark:text-slate-400">
-                                {members.map(member => (
-                                    <tr key={member.id} className="hover:bg-slate-50 dark:hover:bg-slate-700/50 transition-colors">
-                                        <td className="px-4 py-3 text-sm">
-                                            <div className="font-medium text-slate-900 dark:text-white">{member.display_name}</div>
-                                            <div className="text-xs text-slate-500">{member.email}</div>
-                                        </td>
-                                        <td className="px-4 py-3 text-sm">
-                                            <span className={`px-2 py-1 rounded-full text-xs font-medium ${member.role === 'leader' ? 'bg-purple-100 text-purple-800 dark:bg-purple-900/30 dark:text-purple-300' : 'bg-slate-100 text-slate-800 dark:bg-slate-700 dark:text-slate-300'}`}>
-                                                {t(`iam.teams.${member.role}`)}
-                                            </span>
-                                        </td>
-                                        <td className="px-4 py-3 text-right text-sm">
-                                            <button
-                                                onClick={async () => {
-                                                    const confirmed = await confirm({ message: t('common.confirmDelete'), variant: 'danger' });
-                                                    if (confirmed && selectedTeam) {
-                                                        await teamService.removeMember(selectedTeam.id, member.id);
-                                                        globalMessage.success(t('iam.teams.removeMemberSuccess'));
-                                                        loadMembers(selectedTeam.id);
-                                                    }
-                                                }}
-                                                className="text-red-600 hover:text-red-900 font-medium"
-                                            >
-                                                {t('common.delete')}
-                                            </button>
-                                        </td>
-                                    </tr>
-                                ))}
-                            </tbody>
-                        </table>
-                        {members.length === 0 && (
-                            <div className="text-center py-12 text-slate-500 italic">
-                                {t('common.noData')}
-                            </div>
-                        )}
+                    <div className="flex-1 overflow-auto">
+                        <Table
+                            columns={memberColumns}
+                            dataSource={members}
+                            rowKey="id"
+                            size="small"
+                            pagination={false}
+                            scroll={{ y: 350 }}
+                            locale={{ emptyText: t('common.noData') }}
+                        />
                     </div>
                 </div>
             </Dialog>
-
         </div>
     );
 }

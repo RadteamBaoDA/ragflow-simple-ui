@@ -47,7 +47,9 @@ const TokenizerPage = lazy(() => import('@/features/ai').then(m => ({ default: m
 const StoragePage = lazy(() => import('@/features/storage').then(m => ({ default: m.StoragePage })));
 const KnowledgeBaseConfigPage = lazy(() => import('@/features/knowledge-base').then(m => ({ default: m.KnowledgeBaseConfigPage })));
 const BroadcastMessagePage = lazy(() => import('@/features/broadcast').then(m => ({ default: m.BroadcastMessagePage })));
+
 const HistoriesPage = lazy(() => import('@/features/histories').then(m => ({ default: m.HistoriesPage })));
+const PromptsPage = lazy(() => import('@/features/prompts').then(m => ({ default: m.PromptsPage })));
 
 // ============================================================================
 // Loading Component (for initial app load / login page)
@@ -165,7 +167,13 @@ function App() {
                       <Route path="knowledge-base/storage" element={
                         <AdminRoute>
                           <StoragePage />
+
                         </AdminRoute>
+                      } />
+                      <Route path="knowledge-base/prompts" element={
+                        <RoleRoute allowedRoles={['admin', 'leader']}>
+                          <PromptsPage />
+                        </RoleRoute>
                       } />
 
                       {/* IAM routes */}

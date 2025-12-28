@@ -328,3 +328,64 @@ export enum PermissionLevel {
     /** Full control (including delete) */
     FULL = 3
 }
+
+/**
+ * Prompt interface representing a saved prompt.
+ */
+export interface Prompt {
+    /** Unique UUID for the prompt */
+    id: string;
+    /** The prompt text */
+    prompt: string;
+    /** Description of the prompt */
+    description?: string | null;
+    /** Array of tags */
+    tags: string[]; // Parsed from JSON
+    /** Source of the prompt (e.g., 'chat') */
+    source: string;
+    /** Whether the prompt is active */
+    is_active: boolean;
+    /** Timestamp of record creation */
+    created_at: Date;
+    /** Timestamp of last update */
+    updated_at: Date;
+}
+
+/**
+ * PromptInteraction interface representing user feedback (Like, Dislike, Comment).
+ */
+export interface PromptInteraction {
+    /** Unique UUID for the interaction */
+    id: string;
+    /** UUID of the prompt */
+    prompt_id: string;
+    /** User ID who provided the feedback */
+    user_id?: string | null;
+    /** Type of interaction ('like', 'dislike', 'comment') */
+    interaction_type: 'like' | 'dislike' | 'comment';
+    /** Comment text if type is 'comment' */
+    comment?: string | null;
+    /** Timestamp of creation */
+    created_at: Date;
+}
+
+/**
+ * PromptTag interface representing a reusable tag with color.
+ */
+export interface PromptTag {
+    /** Unique UUID for the tag */
+    id: string;
+    /** Tag name (unique) */
+    name: string;
+    /** Color in hex format (e.g., #FF5733) */
+    color: string;
+    /** User ID who created this record */
+    created_by?: string | null;
+    /** User ID who last updated this record */
+    updated_by?: string | null;
+    /** Timestamp of record creation */
+    created_at: Date;
+    /** Timestamp of last update */
+    updated_at: Date;
+}
+

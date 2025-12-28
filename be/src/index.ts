@@ -11,11 +11,10 @@ import cors from 'cors';
 import cookieParser from 'cookie-parser';
 import * as http from 'http';
 import * as https from 'https';
-import rateLimit from 'express-rate-limit';
 
 import { config } from '@/config/index.js';
 import { log } from '@/services/logger.service.js';
-import { initRedis, getRedisClient, getRedisStatus, shutdownRedis } from '@/services/redis.service.js';
+import { initRedis, getRedisClient, shutdownRedis } from '@/services/redis.service.js';
 import { db, getAdapter, checkConnection, closePool } from '@/db/index.js';
 // import { runMigrations } from '@/db/migrations/runner.js'; // Deprecated/Removed
 import knex from 'knex';
@@ -28,23 +27,7 @@ import { shutdownLangfuse } from '@/services/langfuse.service.js';
 import { externalTraceService } from '@/services/external/trace.service.js';
 import { socketService } from '@/services/socket.service.js';
 
-import authRoutes from '@/routes/auth.routes.js';
-import knowledgeBaseRoutes from '@/routes/knowledge-base.routes.js';
-import adminRoutes from '@/routes/admin.routes.js';
-import userRoutes from '@/routes/user.routes.js';
-import teamRoutes from '@/routes/team.routes.js';
-import systemToolsRoutes from '@/routes/system-tools.routes.js';
-import minioBucketRoutes from '@/routes/minio-bucket.routes.js';
-import minioRawRoutes from '@/routes/minio-raw.routes.js';
-import minioStorageRoutes from '@/routes/minio-storage.routes.js';
-import documentPermissionRoutes from '@/routes/document-permission.routes.js';
-import auditRoutes from '@/routes/audit.routes.js';
-import externalRoutes from '@/routes/external/index.js';
-import previewRoutes from '@/routes/preview.routes.js';
-import broadcastMessageRoutes from '@/routes/broadcast-message.routes.js';
-import adminHistoryRoutes from '@/routes/admin-history.routes.js';
-import chatHistoryRoutes from '@/routes/chat-history.routes.js';
-import userHistoryRoutes from '@/routes/user-history.routes.js';
+import { setupApiRoutes } from '@/routes/index.js';
 
 const app = express();
 
@@ -101,98 +84,8 @@ const sessionConfig: session.SessionOptions = {
 
 app.use(session(sessionConfig));
 
-// Broad API rate limiter to keep abusive clients contained without blocking normal usage
-const generalLimiter = rateLimit({
-  windowMs: 15 * 60 * 1000,
-  max: 1000,
-  standardHeaders: true,
-  legacyHeaders: false,
-  message: { error: 'Too many requests, please try again later.' },
-});
-
-// Stricter rate limit for login flows to reduce credential stuffing/abuse
-const authLimiter = rateLimit({
-  windowMs: 15 * 60 * 1000,
-  max: 20,
-  standardHeaders: true,
-  legacyHeaders: false,
-  message: { error: 'Too many login attempts, please try again later.' },
-});
-
-app.use('/api', generalLimiter);
-
-// Guardrail to avoid unexpected content types that could bypass parsers or middleware assumptions
-const validateContentType = (req: express.Request, res: express.Response, next: express.NextFunction) => {
-  if (['POST', 'PUT', 'PATCH'].includes(req.method)) {
-    const contentType = req.headers['content-type'];
-    if (!contentType) return next();
-
-    if (contentType.includes('application/json') ||
-      contentType.includes('multipart/form-data') ||
-      contentType.includes('application/x-www-form-urlencoded')) {
-      return next();
-    }
-
-    return res.status(415).json({
-      error: 'Unsupported Media Type',
-      message: 'Content-Type must be application/json, multipart/form-data, or application/x-www-form-urlencoded'
-    });
-  }
-  next();
-};
-
-// Lightweight readiness probe consumed by orchestrators; avoids heavy DB queries
-app.get('/health', async (_req, res) => {
-  const timestamp = new Date().toISOString();
-
-  const dbConnected = await checkConnection();
-
-  const redisStatus = getRedisStatus();
-
-  const healthPayload = {
-    status: dbConnected && (redisStatus === 'connected' || redisStatus === 'not_configured') ? 'ok' : 'degraded',
-    timestamp,
-    services: {
-      express: 'running',
-      database: dbConnected ? 'connected' : 'disconnected',
-      redis: redisStatus,
-    },
-  };
-
-  res.status(healthPayload.status === 'ok' ? 200 : 503).json(healthPayload);
-});
-
-app.use('/api', validateContentType);
-
-app.use('/api/auth/login', authLimiter);
-app.use('/api/auth/callback', authLimiter);
-
-app.use('/api/auth', authRoutes);
-app.use('/api/knowledge-base', knowledgeBaseRoutes);
-app.use('/api/admin', adminRoutes);
-app.use('/api/users', userRoutes);
-app.use('/api/teams', teamRoutes);
-app.use('/api/system-tools', systemToolsRoutes);
-app.use('/api/minio/buckets', minioBucketRoutes);
-app.use('/api/minio/raw', minioRawRoutes);
-app.use('/api/minio/documents', minioStorageRoutes);
-app.use('/api/document-permissions', documentPermissionRoutes);
-app.use('/api/audit', auditRoutes);
-app.use('/api/external', externalRoutes);
-app.use('/api/preview', previewRoutes);
-app.use('/api/broadcast-messages', broadcastMessageRoutes);
-app.use('/api/admin/history', adminHistoryRoutes);
-app.use('/api/chat', chatHistoryRoutes);
-app.use('/api/user/history', userHistoryRoutes);
-
-app.use('/api/*', (_req: express.Request, res: express.Response) => {
-  res.status(404).json({ error: 'Not Found', message: 'The requested API endpoint does not exist' });
-});
-
-app.use((err: Error, _req: express.Request, res: express.Response, _next: express.NextFunction) => {
-  log.error('Unhandled error', { error: err.message, stack: err.stack });
-  res.status(500).json({ error: 'Internal server error' });
-});
+// Setup all API routes and middleware
+setupApiRoutes(app);
 
 // Bootstraps HTTP/HTTPS server and initializes background services that require the listener
 const startServer = async (): Promise<http.Server | https.Server> => {
