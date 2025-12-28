@@ -5,6 +5,7 @@ import { log } from '@/services/logger.service.js';
 import { auditService, AuditAction, AuditResourceType } from '@/services/audit.service.js';
 import { KnowledgeBaseSource } from '@/models/types.js';
 import { teamService } from '@/services/team.service.js';
+import { promptPermissionService } from '@/services/prompt-permission.service.js';
 
 export interface AccessControl {
     public: boolean;
@@ -347,12 +348,16 @@ export class KnowledgeBaseService {
         const defaultChatSourceId = await ModelFactory.systemConfig.findById('defaultChatSourceId');
         const defaultSearchSourceId = await ModelFactory.systemConfig.findById('defaultSearchSourceId');
 
+        // Fetch prompt permission for the user
+        const promptPermission = user ? await promptPermissionService.resolveUserPermission(user.id) : 0;
+
         // Construct config payload
         return {
             chatSources: availableSources.filter(s => s.type === 'chat'),
             searchSources: availableSources.filter(s => s.type === 'search'),
             defaultChatSourceId: defaultChatSourceId?.value || '',
-            defaultSearchSourceId: defaultSearchSourceId?.value || ''
+            defaultSearchSourceId: defaultSearchSourceId?.value || '',
+            promptPermission
         };
     }
 

@@ -116,6 +116,22 @@ export const promptService = {
      */
     getTagsByIds: async (ids: string[]): Promise<PromptTag[]> => {
         return api.post<PromptTag[]>(`${TAGS_URL}/by-ids`, { ids });
+    },
+
+    // ========================================================================
+    // Prompt Permissions API
+    // ========================================================================
+
+    getPermissions: async (): Promise<any[]> => {
+        return api.get<any[]>(`${BASE_URL}/permissions`);
+    },
+
+    setPermission: async (entityType: string, entityId: string, level: number): Promise<void> => {
+        return api.post<void>(`${BASE_URL}/permissions`, { entityType, entityId, level });
+    },
+
+    getMyPermission: async (): Promise<{ level: number }> => {
+        return api.get<{ level: number }>(`${BASE_URL}/permissions/my`);
     }
 };
 

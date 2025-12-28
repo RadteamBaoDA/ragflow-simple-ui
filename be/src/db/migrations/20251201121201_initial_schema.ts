@@ -12,6 +12,8 @@ export async function up(knex: Knex): Promise<void> {
             table.text('department');
             table.text('job_title');
             table.text('mobile_phone');
+            table.text('created_by');
+            table.text('updated_by');
             table.timestamp('created_at', { useTz: true }).defaultTo(knex.fn.now());
             table.timestamp('updated_at', { useTz: true }).defaultTo(knex.fn.now());
         });
@@ -24,6 +26,8 @@ export async function up(knex: Knex): Promise<void> {
             table.text('name').notNullable();
             table.text('project_name');
             table.text('description');
+            table.text('created_by');
+            table.text('updated_by');
             table.timestamp('created_at', { useTz: true }).defaultTo(knex.fn.now());
             table.timestamp('updated_at', { useTz: true }).defaultTo(knex.fn.now());
         });
@@ -50,6 +54,8 @@ export async function up(knex: Knex): Promise<void> {
             table.text('id').primary().defaultTo(knex.raw('gen_random_uuid()::TEXT'));
             table.text('user_id').notNullable();
             table.text('title').notNullable();
+            table.text('created_by');
+            table.text('updated_by');
             table.timestamp('created_at', { useTz: true }).defaultTo(knex.fn.now());
             table.timestamp('updated_at', { useTz: true }).defaultTo(knex.fn.now());
             table.foreign('user_id').references('users.id').onDelete('CASCADE');
@@ -63,6 +69,8 @@ export async function up(knex: Knex): Promise<void> {
             table.text('session_id').notNullable();
             table.text('role').notNullable();
             table.text('content').notNullable();
+            table.text('created_by');
+            table.text('updated_by');
             table.timestamp('timestamp', { useTz: true }).defaultTo(knex.fn.now());
             table.foreign('session_id').references('chat_sessions.id').onDelete('CASCADE');
         });
@@ -76,6 +84,7 @@ export async function up(knex: Knex): Promise<void> {
             table.text('display_name').notNullable();
             table.text('description');
             table.text('created_by').notNullable();
+            table.text('updated_by');
             table.timestamp('created_at', { useTz: true }).defaultTo(knex.fn.now());
             table.integer('is_active').defaultTo(1);
             table.foreign('created_by').references('users.id');
@@ -87,6 +96,8 @@ export async function up(knex: Knex): Promise<void> {
         await knex.schema.createTable('system_configs', (table) => {
             table.text('key').primary();
             table.text('value').notNullable();
+            table.text('created_by');
+            table.text('updated_by');
             table.timestamp('updated_at', { useTz: true }).defaultTo(knex.fn.now());
         });
     }
@@ -101,6 +112,8 @@ export async function up(knex: Knex): Promise<void> {
             table.text('description'); // Source description
             table.text('share_id'); // Share ID extracted from URL (shared_id param)
             table.jsonb('access_control').defaultTo('{"public": true}');
+            table.text('created_by');
+            table.text('updated_by');
             table.timestamp('created_at', { useTz: true }).defaultTo(knex.fn.now());
             table.timestamp('updated_at', { useTz: true }).defaultTo(knex.fn.now());
         });
@@ -122,12 +135,8 @@ export async function up(knex: Knex): Promise<void> {
             table.index('user_id');
             table.index('action');
             table.index('resource_type');
-            table.index('created_at'); // Knex doesn't support DESC index directly in createTable easily, usually defaults to ASC. For simple migration we can stick to simple index or use raw.
-            // Optimizing: We'll add the specific compound/desc indexes raw if needed or just simple indexes for now to be safe.
-            // Replicating original Raw:
-            // table.index(['created_at', 'user_id']); 
+            table.index('created_at');
         });
-        // Add complex indexes via raw SQL to ensure exact match
         await knex.raw('CREATE INDEX IF NOT EXISTS idx_audit_logs_created_at ON audit_logs(created_at DESC)');
         await knex.raw('CREATE INDEX IF NOT EXISTS idx_audit_logs_created_user ON audit_logs(created_at DESC, user_id)');
     }
@@ -152,8 +161,9 @@ export async function up(knex: Knex): Promise<void> {
             table.string('entity_type', 10).notNullable().checkIn(['user', 'team']);
             table.text('entity_id').notNullable();
             table.text('bucket_id').notNullable();
-            table.integer('permission_level').notNullable().defaultTo(0); // Check constraint logic handles 0-3 via app or raw check if needed. Knex checkIn usually for strings. Raw check:
-            // table.check('permission_level BETWEEN 0 AND 3'); // not all drivers support check via builder conveniently
+            table.integer('permission_level').notNullable().defaultTo(0);
+            table.text('created_by');
+            table.text('updated_by');
             table.timestamp('created_at', { useTz: true }).defaultTo(knex.fn.now());
             table.timestamp('updated_at', { useTz: true }).defaultTo(knex.fn.now());
             table.unique(['entity_type', 'entity_id', 'bucket_id']);
@@ -175,6 +185,8 @@ export async function up(knex: Knex): Promise<void> {
             table.string('font_color', 50).defaultTo('#FFFFFF');
             table.boolean('is_active').defaultTo(true);
             table.boolean('is_dismissible').defaultTo(true);
+            table.text('created_by');
+            table.text('updated_by');
             table.timestamp('created_at', { useTz: true }).defaultTo(knex.fn.now());
             table.timestamp('updated_at', { useTz: true }).defaultTo(knex.fn.now());
             table.index(['is_active', 'starts_at', 'ends_at']);
@@ -201,6 +213,8 @@ export async function up(knex: Knex): Promise<void> {
             table.text('session_id').unique().notNullable(); // Unique constraint for session upsert
             table.text('share_id'); // Share ID of the source
             table.text('user_email');
+            table.text('created_by');
+            table.text('updated_by');
             table.timestamp('created_at', { useTz: true }).defaultTo(knex.fn.now());
             table.timestamp('updated_at', { useTz: true }).defaultTo(knex.fn.now());
 
@@ -217,6 +231,8 @@ export async function up(knex: Knex): Promise<void> {
             table.text('user_prompt').notNullable();
             table.text('llm_response').notNullable();
             table.jsonb('citations').defaultTo('[]');
+            table.text('created_by');
+            table.text('updated_by');
             table.timestamp('created_at', { useTz: true }).defaultTo(knex.fn.now());
             // Full-text search vector
             table.specificType('search_vector', "tsvector GENERATED ALWAYS AS (to_tsvector('english', coalesce(user_prompt, '') || ' ' || coalesce(llm_response, ''))) STORED");
@@ -235,6 +251,8 @@ export async function up(knex: Knex): Promise<void> {
             table.text('session_id').unique().notNullable();
             table.text('share_id'); // Share ID of the source
             table.text('user_email');
+            table.text('created_by');
+            table.text('updated_by');
             table.timestamp('created_at', { useTz: true }).defaultTo(knex.fn.now());
             table.timestamp('updated_at', { useTz: true }).defaultTo(knex.fn.now());
 
@@ -251,6 +269,8 @@ export async function up(knex: Knex): Promise<void> {
             table.text('search_input').notNullable();
             table.text('ai_summary');
             table.jsonb('file_results').defaultTo('[]');
+            table.text('created_by');
+            table.text('updated_by');
             table.timestamp('created_at', { useTz: true }).defaultTo(knex.fn.now());
             // Full-text search vector
             table.specificType('search_vector', "tsvector GENERATED ALWAYS AS (to_tsvector('english', coalesce(search_input, '') || ' ' || coalesce(ai_summary, ''))) STORED");
@@ -271,6 +291,8 @@ export async function up(knex: Knex): Promise<void> {
             table.jsonb('tags').defaultTo('[]');
             table.text('source').defaultTo('chat'); // 'chat' or custom source
             table.boolean('is_active').defaultTo(true);
+            table.text('created_by');
+            table.text('updated_by');
             table.timestamp('created_at', { useTz: true }).defaultTo(knex.fn.now());
             table.timestamp('updated_at', { useTz: true }).defaultTo(knex.fn.now());
 
@@ -289,15 +311,51 @@ export async function up(knex: Knex): Promise<void> {
             table.text('user_id'); // nullable if we want to allow anonymous feedback or system feedback, but typically should be linked to user. specific requirements said "info store feedback from user"
             table.text('interaction_type').notNullable().checkIn(['like', 'dislike', 'comment']);
             table.text('comment'); // Only populated if type is 'comment'
+            table.text('created_by');
+            table.text('updated_by');
             table.timestamp('created_at', { useTz: true }).defaultTo(knex.fn.now());
 
             table.foreign('prompt_id').references('prompts.id').onDelete('CASCADE');
             table.index(['prompt_id', 'interaction_type']);
         });
     }
+
+    // 20. Prompt Tags
+    if (!(await knex.schema.hasTable('prompt_tags'))) {
+        await knex.schema.createTable('prompt_tags', (table) => {
+            table.uuid('id').primary().defaultTo(knex.raw('gen_random_uuid()'));
+            table.text('name').unique().notNullable();
+            table.text('color').notNullable();
+            table.text('created_by');
+            table.text('updated_by');
+            table.timestamp('created_at', { useTz: true }).defaultTo(knex.fn.now());
+            table.timestamp('updated_at', { useTz: true }).defaultTo(knex.fn.now());
+            table.index('name');
+            table.index('created_at');
+        });
+    }
+
+    // 21. Prompt Permissions
+    if (!(await knex.schema.hasTable('prompt_permissions'))) {
+        await knex.schema.createTable('prompt_permissions', (table) => {
+            table.uuid('id').primary().defaultTo(knex.raw('gen_random_uuid()'));
+            table.string('entity_type', 10).notNullable().checkIn(['user', 'team']);
+            table.text('entity_id').notNullable();
+            table.integer('permission_level').notNullable().defaultTo(0);
+            table.text('created_by');
+            table.text('updated_by');
+            table.timestamp('created_at', { useTz: true }).defaultTo(knex.fn.now());
+            table.timestamp('updated_at', { useTz: true }).defaultTo(knex.fn.now());
+            table.unique(['entity_type', 'entity_id']);
+            table.index(['entity_type', 'entity_id']);
+        });
+        await knex.raw('ALTER TABLE prompt_permissions ADD CONSTRAINT prompt_permissions_permission_level_check CHECK (permission_level BETWEEN 0 AND 3)');
+    }
 }
 
 export async function down(knex: Knex): Promise<void> {
+    await knex.schema.dropTableIfExists('prompt_permissions');
+    await knex.schema.dropTableIfExists('prompt_tags');
     await knex.schema.dropTableIfExists('prompt_interactions');
     await knex.schema.dropTableIfExists('prompts');
     await knex.schema.dropTableIfExists('external_search_records');

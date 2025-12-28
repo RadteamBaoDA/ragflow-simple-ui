@@ -58,7 +58,13 @@
     "deleteSuccess": "Deleted successfully",
     "createSuccess": "Created successfully",
     "description": "Description",
-    "totalItems": "Total {{total}} items"
+    "totalItems": "Total {{total}} items",
+    "noPermission": "You don't have permission to perform this action",
+    "entity": "Entity",
+    "permission": "Permission",
+    "none": "None",
+    "view": "View",
+    "all": "All"
   },
   "dialog": {
     "confirm": "Confirm",
@@ -688,6 +694,8 @@
       "createTitle": "Add New Prompt",
       "editTitle": "Edit Prompt",
       "promptRequired": "Prompt text is required",
+      "promptPlaceholder": "Enter your prompt here...",
+      "descriptionPlaceholder": "Enter description",
       "save": "Add",
       "success": "Prompt added successfully",
       "selectTags": "Select tags",
@@ -701,6 +709,13 @@
       "dislike": "Dislike",
       "comment": "Comment",
       "title": "Feedback Details"
+    },
+    "permissions": {
+      "title": "Prompt Permissions",
+      "manage": "Manage Permissions",
+      "leaderNoteTitle": "Leader Permissions",
+      "leaderNote": "Granting permissions to a Team will apply those permissions to all Leaders of that team.",
+      "selectEntity": "Select User or Team"
     }
   },
   "errors": {

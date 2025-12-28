@@ -30,6 +30,7 @@ import chatHistoryRoutes from '@/routes/chat-history.routes.js';
 import userHistoryRoutes from '@/routes/user-history.routes.js';
 import promptRoutes from '@/routes/prompt.routes.js';
 import promptTagRoutes from '@/routes/prompt-tag.routes.js';
+import promptPermissionRoutes from '@/routes/prompt-permission.routes.js';
 
 // ============================================================================
 // Rate Limiters
@@ -146,6 +147,9 @@ function registerRoutes(apiRouter: Router): void {
 
     // Prompt tags management
     apiRouter.use('/prompt-tags', promptTagRoutes);
+
+    // Prompt permissions management
+    apiRouter.use('/prompts/permissions', promptPermissionRoutes);
 }
 
 // ============================================================================

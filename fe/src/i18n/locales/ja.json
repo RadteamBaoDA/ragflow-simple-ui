@@ -57,7 +57,14 @@
     "deleteSuccess": "正常に削除されました",
     "createSuccess": "正常に作成されました",
     "description": "説明",
-    "totalItems": "合計 {{total}} 件"
+    "totalItems": "合計 {{total}} 件",
+    "noPermission": "この操作を実行する権限がありません",
+    "entity": "対象",
+    "permission": "権限",
+    "none": "なし",
+    "view": "表示",
+    "all": "すべて",
+    "prompt": "Prompt"
   },
   "dialog": {
     "confirm": "確認",
@@ -83,7 +90,7 @@
     "tokenizer": "トークナイザー",
     "signOut": "サインアウト",
     "knowledgeBase": "ナレッジベース",
-    "prompts": "プロンプト",
+    "prompts": "Prompt",
     "broadcastMessages": "一斉通知",
     "histories": "履歴一覧",
     "expandMenu": "メニューを展開",
@@ -647,14 +654,14 @@
     "applyFilter": "フィルターを適用"
   },
   "prompts": {
-    "title": "プロンプト管理",
-    "description": "プロンプトを管理・整理する",
-    "install": "新規プロンプトを追加",
-    "addNew": "新規プロンプトを追加",
-    "searchPlaceholder": "プロンプトを検索...",
-    "noPrompts": "プロンプトが見つかりません",
+    "title": "Prompt管理",
+    "description": "Promptを管理・整理する",
+    "install": "新規Promptを追加",
+    "addNew": "新規Promptを追加",
+    "searchPlaceholder": "Promptを検索...",
+    "noPrompts": "Promptが見つかりません",
     "fields": {
-      "prompt": "プロンプト",
+      "prompt": "Prompt",
       "description": "説明",
       "tags": "タグ",
       "source": "ソース",
@@ -670,11 +677,13 @@
       "allSources": "すべてのソース"
     },
     "form": {
-      "createTitle": "新規プロンプトを追加",
-      "editTitle": "プロンプトを編集",
-      "promptRequired": "プロンプトを入力してください",
+      "createTitle": "新規Promptを追加",
+      "editTitle": "Promptを編集",
+      "promptRequired": "Promptを入力してください",
+      "promptPlaceholder": "ここにPromptを入力してください...",
+      "descriptionPlaceholder": "説明を入力してください",
       "save": "追加",
-      "success": "プロンプトを追加しました",
+      "success": "Promptを追加しました",
       "selectTags": "タグを選択",
       "searchTags": "タグを検索または作成...",
       "createTag": "タグを作成",
@@ -686,6 +695,13 @@
       "dislike": "よくない",
       "comment": "コメント",
       "title": "フィードバック詳細"
+    },
+    "permissions": {
+      "title": "Prompt権限",
+      "manage": "権限管理",
+      "leaderNoteTitle": "リーダー権限",
+      "leaderNote": "チームに権限を付与すると、そのチームのすべてのリーダーに権限が適用されます。",
+      "selectEntity": "ユーザーまたはチームを選択"
     }
   },
   "errors": {

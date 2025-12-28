@@ -22,6 +22,7 @@ import { ExternalSearchRecordModel } from '@/models/external/search-record.model
 import { PromptModel } from '@/models/prompt.model.js';
 import { PromptInteractionModel } from '@/models/prompt-interaction.model.js';
 import { PromptTagModel } from '@/models/prompt-tag.model.js';
+import { PromptPermissionModel } from '@/models/prompt-permission.model.js';
 
 /**
  * ModelFactory class implementing the Factory Pattern.
@@ -68,6 +69,7 @@ export class ModelFactory {
   private static promptModel: PromptModel;
   private static promptInteractionModel: PromptInteractionModel;
   private static promptTagModel: PromptTagModel;
+  private static promptPermissionModel: PromptPermissionModel;
 
   /**
    * Get the User model singleton.
@@ -268,5 +270,13 @@ export class ModelFactory {
   static get promptTag() {
     if (!this.promptTagModel) this.promptTagModel = new PromptTagModel();
     return this.promptTagModel;
+  }
+
+  /**
+   * Get the PromptPermission model singleton.
+   */
+  static get promptPermission() {
+    if (!this.promptPermissionModel) this.promptPermissionModel = new PromptPermissionModel();
+    return this.promptPermissionModel;
   }
 }

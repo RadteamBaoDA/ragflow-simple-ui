@@ -10,17 +10,25 @@
 
 import { useState, useEffect } from 'react';
 import { useTranslation } from 'react-i18next';
-import { Plus, Edit2, Trash2, ThumbsUp, ThumbsDown, MessageCircle, Calendar, Search } from 'lucide-react';
-import { Table, Card, Input, Button, Tag, Space, Select, Modal, Form, Switch, DatePicker, Pagination } from 'antd';
+import { Plus, Edit2, Trash2, ThumbsUp, ThumbsDown, MessageCircle, Calendar, Search, Shield } from 'lucide-react';
+import { Table, Card, Input, Button, Tag, Space, Select, Modal, Form, Switch, DatePicker, Pagination, Tooltip } from 'antd';
 import { promptService } from '../api/promptService';
 import { Prompt } from '../types/prompt';
 import { TagInput } from '../components/TagInput';
+import { PromptPermissionModal } from '../components/PromptPermissionModal';
 import { globalMessage } from '@/app/App';
 import dayjs from 'dayjs';
 
 // ============================================================================
 // Types
 // ============================================================================
+
+enum PermissionLevel {
+    NONE = 0,
+    VIEW = 1,
+    UPLOAD = 2,
+    FULL = 3
+}
 
 interface FeedbackCounts {
     like_count: number;
@@ -46,6 +54,8 @@ export const PromptsPage = () => {
     const [prompts, setPrompts] = useState<Prompt[]>([]);
     const [loading, setLoading] = useState(false);
     const [tags, setTags] = useState<string[]>([]);
+    const [permissionLevel, setPermissionLevel] = useState<PermissionLevel | null>(null);
+    const [loadingPermission, setLoadingPermission] = useState(true);
 
     // Feedback counts cache: promptId -> counts
     const [feedbackCountsMap, setFeedbackCountsMap] = useState<Record<string, FeedbackCounts>>({});
@@ -56,6 +66,7 @@ export const PromptsPage = () => {
 
     // Create/Edit Modal State
     const [isModalOpen, setIsModalOpen] = useState(false);
+    const [isPermissionModalOpen, setIsPermissionModalOpen] = useState(false);
     const [editingPrompt, setEditingPrompt] = useState<Prompt | null>(null);
     const [submitting, setSubmitting] = useState(false);
     const [form] = Form.useForm();
@@ -76,9 +87,23 @@ export const PromptsPage = () => {
     // ========================================================================
 
     useEffect(() => {
+        fetchPermission();
         fetchPrompts();
         fetchTags();
     }, [searchFilter, tagFilter]);
+
+    const fetchPermission = async () => {
+        setLoadingPermission(true);
+        try {
+            const { level } = await promptService.getMyPermission();
+            setPermissionLevel(level);
+        } catch (error) {
+            console.error('Failed to fetch permission level:', error);
+            setPermissionLevel(PermissionLevel.NONE);
+        } finally {
+            setLoadingPermission(false);
+        }
+    };
 
     /**
      * Fetch prompts and their feedback counts.
@@ -306,11 +331,26 @@ export const PromptsPage = () => {
         {
             title: t('prompts.fields.actions'),
             key: 'actions',
-            width: 100,
+            width: 120,
             render: (_: any, record: Prompt) => (
                 <Space>
-                    <Button type="text" icon={<Edit2 size={16} />} onClick={() => showModal(record)} />
-                    <Button type="text" danger icon={<Trash2 size={16} />} onClick={() => handleDelete(record.id)} />
+                    <Tooltip title={permissionLevel < PermissionLevel.UPLOAD ? t('common.noPermission') : ''}>
+                        <Button
+                            type="text"
+                            icon={<Edit2 size={16} />}
+                            onClick={() => showModal(record)}
+                            disabled={permissionLevel < PermissionLevel.UPLOAD}
+                        />
+                    </Tooltip>
+                    <Tooltip title={permissionLevel < PermissionLevel.FULL ? t('common.noPermission') : ''}>
+                        <Button
+                            type="text"
+                            danger
+                            icon={<Trash2 size={16} />}
+                            onClick={() => handleDelete(record.id)}
+                            disabled={permissionLevel < PermissionLevel.FULL}
+                        />
+                    </Tooltip>
                 </Space>
             )
         }
@@ -343,9 +383,28 @@ export const PromptsPage = () => {
                         ...tags.map(tag => ({ label: tag, value: tag }))
                     ]}
                 />
-                <Button type="primary" icon={<Plus size={16} />} onClick={() => showModal()} size="large">
-                    {t('prompts.addNew')}
-                </Button>
+
+                <Space>
+                    <Button
+                        type="default"
+                        icon={<Shield size={16} />}
+                        onClick={() => setIsPermissionModalOpen(true)}
+                        size="large"
+                    >
+                        {t('prompts.permissions.manage')}
+                    </Button>
+                    <Tooltip title={permissionLevel < PermissionLevel.UPLOAD ? t('common.noPermission') : ''}>
+                        <Button
+                            type="primary"
+                            icon={<Plus size={16} />}
+                            onClick={() => showModal()}
+                            size="large"
+                            disabled={permissionLevel < PermissionLevel.UPLOAD}
+                        >
+                            {t('prompts.addNew')}
+                        </Button>
+                    </Tooltip>
+                </Space>
             </div>
 
             {/* Table */}
@@ -397,14 +456,14 @@ export const PromptsPage = () => {
                         label={t('prompts.fields.prompt')}
                         rules={[{ required: true, message: t('prompts.form.promptRequired') }]}
                     >
-                        <Input.TextArea rows={6} placeholder="Enter your prompt here..." />
+                        <Input.TextArea rows={6} placeholder={t('prompts.form.promptPlaceholder')} />
                     </Form.Item>
 
                     <Form.Item
                         name="description"
                         label={t('prompts.fields.description')}
                     >
-                        <Input placeholder="Enter description" />
+                        <Input placeholder={t('prompts.form.descriptionPlaceholder')} />
                     </Form.Item>
 
                     <Form.Item
@@ -522,6 +581,11 @@ export const PromptsPage = () => {
                     </div>
                 )}
             </Modal>
+
+            <PromptPermissionModal
+                open={isPermissionModalOpen}
+                onClose={() => setIsPermissionModalOpen(false)}
+            />
         </div>
     );
 };

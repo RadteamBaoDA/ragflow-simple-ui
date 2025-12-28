@@ -49,6 +49,7 @@ export const AuditResourceType = {
     PERMISSION: 'permission',
     SYSTEM: 'system',
     ROLE: 'role',
+    PROMPT: 'prompt',
 } as const;
 
 export type AuditResourceTypeValue = typeof AuditResourceType[keyof typeof AuditResourceType];

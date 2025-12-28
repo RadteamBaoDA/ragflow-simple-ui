@@ -9,15 +9,15 @@ const router = Router();
 // "Prompt will create default value for selected is All and get source name from chat"
 // We'll apply auth middleware.
 
-router.get('/', PromptController.getPrompts); // List prompts
+router.get('/', requireAuth, PromptController.getPrompts); // List prompts
 router.post('/', requireAuth, PromptController.createPrompt); // Install/Create prompt
-router.get('/tags', PromptController.getTags); // Get tags
-router.get('/sources', PromptController.getSources); // Get sources
-router.get('/chat-sources', PromptController.getChatSources); // Get chat source names for tags
+router.get('/tags', requireAuth, PromptController.getTags); // Get tags
+router.get('/sources', requireAuth, PromptController.getSources); // Get sources
+router.get('/chat-sources', requireAuth, PromptController.getChatSources); // Get chat source names for tags
 router.put('/:id', requireAuth, PromptController.updatePrompt); // Update
 router.delete('/:id', requireAuth, PromptController.deletePrompt); // Delete
 router.post('/interactions', requireAuth, PromptController.addInteraction); // Like/Dislike/Comment
-router.get('/:id/feedback-counts', PromptController.getFeedbackCounts); // Get like/dislike counts
-router.get('/:id/interactions', PromptController.getInteractions); // Get all feedback for a prompt
+router.get('/:id/feedback-counts', requireAuth, PromptController.getFeedbackCounts); // Get like/dislike counts
+router.get('/:id/interactions', requireAuth, PromptController.getInteractions); // Get all feedback for a prompt
 
 export default router;

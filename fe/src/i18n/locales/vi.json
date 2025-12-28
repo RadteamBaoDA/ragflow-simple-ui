@@ -57,7 +57,14 @@
     "deleteSuccess": "Xóa thành công",
     "createSuccess": "Tạo thành công",
     "description": "Mô tả",
-    "totalItems": "Tổng cộng {{total}} mục"
+    "totalItems": "Tổng cộng {{total}} mục",
+    "noPermission": "Bạn không có quyền thực hiện thao tác này",
+    "entity": "Đối tượng",
+    "permission": "Quyền hạn",
+    "none": "Không có",
+    "view": "Xem",
+    "all": "Tất cả",
+    "prompt": "Prompt"
   },
   "dialog": {
     "confirm": "Xác nhận",
@@ -83,7 +90,7 @@
     "tokenizer": "Bộ đếm Token",
     "signOut": "Đăng xuất",
     "knowledgeBase": "Cơ sở tri thức",
-    "prompts": "Lời nhắc",
+    "prompts": "Prompt",
     "broadcastMessages": "Thông báo",
     "histories": "Lịch sử hệ thống",
     "expandMenu": "Mở rộng menu",
@@ -662,14 +669,14 @@
     "applyFilter": "Áp dụng bộ lọc"
   },
   "prompts": {
-    "title": "Quản lý Lời nhắc",
-    "description": "Quản lý và tổ chức các lời nhắc của bạn",
-    "install": "Thêm Lời nhắc Mới",
-    "addNew": "Thêm Lời nhắc Mới",
-    "searchPlaceholder": "Tìm kiếm lời nhắc...",
-    "noPrompts": "Không tìm thấy lời nhắc",
+    "title": "Quản lý Prompt",
+    "description": "Quản lý và tổ chức các Prompt của bạn",
+    "install": "Thêm Prompt Mới",
+    "addNew": "Thêm Prompt Mới",
+    "searchPlaceholder": "Tìm kiếm Prompt...",
+    "noPrompts": "Không tìm thấy Prompt",
     "fields": {
-      "prompt": "Lời nhắc",
+      "prompt": "Prompt",
       "description": "Mô tả",
       "tags": "Thẻ",
       "source": "Nguồn",
@@ -685,11 +692,13 @@
       "allSources": "Tất cả Nguồn"
     },
     "form": {
-      "createTitle": "Thêm Lời nhắc Mới",
-      "editTitle": "Chỉnh sửa Lời nhắc",
-      "promptRequired": "Vui lòng nhập lời nhắc",
+      "createTitle": "Thêm Prompt Mới",
+      "editTitle": "Chỉnh sửa Prompt",
+      "promptRequired": "Vui lòng nhập nội dung Prompt",
+      "promptPlaceholder": "Nhập nội dung Prompt tại đây...",
+      "descriptionPlaceholder": "Nhập mô tả",
       "save": "Thêm",
-      "success": "Thêm lời nhắc thành công",
+      "success": "Thêm Prompt thành công",
       "selectTags": "Chọn thẻ",
       "searchTags": "Tìm hoặc tạo thẻ...",
       "createTag": "Tạo thẻ",
@@ -701,6 +710,13 @@
       "dislike": "Không thích",
       "comment": "Bình luận",
       "title": "Chi tiết Phản hồi"
+    },
+    "permissions": {
+      "title": "Phân quyền Prompt",
+      "manage": "Quản lý Phân quyền",
+      "leaderNoteTitle": "Quyền của Trưởng nhóm",
+      "leaderNote": "Cấp quyền cho một Nhóm sẽ áp dụng các quyền đó cho tất cả các Trưởng nhóm của nhóm đó.",
+      "selectEntity": "Chọn Người dùng hoặc Nhóm"
     }
   },
   "errors": {

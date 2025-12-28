@@ -44,6 +44,8 @@ interface KnowledgeBaseConfig {
     chatSources: KnowledgeBaseSource[];
     /** Available search sources */
     searchSources: KnowledgeBaseSource[];
+    /** Effective prompt permission level */
+    promptPermission: number;
 }
 
 /**

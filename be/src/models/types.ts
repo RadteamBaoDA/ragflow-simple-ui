@@ -388,4 +388,24 @@ export interface PromptTag {
     /** Timestamp of last update */
     updated_at: Date;
 }
-
+/**
+ * PromptPermission interface representing a record in the 'prompt_permissions' table.
+ */
+export interface PromptPermission {
+    /** Unique UUID for the permission record */
+    id: string;
+    /** Type of entity granted permission ('user' or 'team') */
+    entity_type: string;
+    /** UUID of the user or team */
+    entity_id: string;
+    /** Numeric permission level */
+    permission_level: number;
+    /** User ID who created this record */
+    created_by?: string | null;
+    /** User ID who last updated this record */
+    updated_by?: string | null;
+    /** Timestamp of record creation */
+    created_at: Date;
+    /** Timestamp of last update */
+    updated_at: Date;
+}
