@@ -21,6 +21,7 @@ RAGFlow Simple UI is an opensource UI centrailze and manage AI Search and Chat a
         ├── config/             # Environment-specific configuration and secrets management
         ├── db/                 # database providers and migration
         ├── controllers/        # handles incoming requests and calls appropriate services. It is responsible for request/response logic.
+        |──── externals         # handles incoming request for external API using api keys
         ├── middlewares/        # Express middleware (auth, logging, error handling)
         ├── models/             # Defines data schemas and interacts directly with the database(postgres, redis, etc) and external service(langfuse, minio, etc). In this folder apply Factory Pattern to design all data schemas and interfaces.
         ├── routes/             # Express routes (API endpoints)
@@ -34,7 +35,13 @@ RAGFlow Simple UI is an opensource UI centrailze and manage AI Search and Chat a
         ├── assets/             # Static files (images, fonts, global styles)
         ├── components/         # Shared UI components (Atomic design: buttons, inputs)
         ├── constants/          # Global constants, enums, and configuration
-        ├── features/           # Domain-driven modules (the core business logic)
+        ├── features/           # Domain Modules: Independent business units. This is the primary location for app logic.
+        ├──────feature a/b/c    # A specific domain (e.g., 'auth', 'billing', 'users').
+        ├─────────api           # Feature-specific Data Fetching: Hooks and services for interacting with specific endpoints.
+        ├─────────components    # Local Components: UI elements used exclusively within this specific feature.
+        ├─────────pages         # View Layers: Main screens or routes associated with this feature.
+        ├─────────contexts      # State Management: Feature-scoped React Contexts for local state.
+        ├─────────index.ts      # Public API: Exports only what is necessary for other features to consume.
         ├── hooks/              # Global reusable hooks (useAuth, useLocalStorage)
         ├── layouts/            # Page shell wrappers (Admin, Auth, Public)
         ├── lib/                # Config for 3rd party libraries (Axios, React Query)
@@ -50,30 +57,3 @@ RAGFlow Simple UI is an opensource UI centrailze and manage AI Search and Chat a
    npm install
    npm run build
    ```
-
-
-## 4 Coding Standards & Guidelines
-1. General
-- terminal using is git bash(linux command). If change too much need run : npm run build 
-- TypeScript strict mode
-- Single quotes, no semicolons
-- Use functional patterns where possible
-- Add JSDoc headers to every function/class and provide step-by-step inline comments for all logic. 
-- JSDoc: Include @param, @returns, and @description.
-- Inline: Add a comment above every significant line of logic or control flow.
-
-2. FE 
-- when add new page must implement locales for new html string in en, vi, jp.
-- Always check and add theme(dark and light) for new html control or new pages
-- The "Public API" Rule (Barrel Files): Avoid "deep imports" that reach into the internals of another feature.
-- Component Colocation: Keep files as close to their usage as possible.
-- UI Layer: Uses ref as a prop directly.
-- Feature Layer: Implements useActionState and useFormStatus.
-- Service Layer: Optimized for the use hook and Server Actions.
-
-3. BE
-- Nodejs 22+ (ExpressJS)
-- Implement Factory Pattern to design all data schemas and interfaces.
-- Implement Singleton Pattern to design all global services and utils in be.
-- If change or create impact to database, must create migration file in be/db/migrations.
-- Always using knex orm to create new model file in be/src/models and not write raw sql query. If Knex ORM not support, you can use raw sql query.

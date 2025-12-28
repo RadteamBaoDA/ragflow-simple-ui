@@ -28,6 +28,8 @@ interface KnowledgeBaseSource {
     name: string;
     /** Iframe URL for the source */
     url: string;
+    /** Description of the source */
+    description?: string | null;
 }
 
 /**
@@ -42,6 +44,8 @@ interface KnowledgeBaseConfig {
     chatSources: KnowledgeBaseSource[];
     /** Available search sources */
     searchSources: KnowledgeBaseSource[];
+    /** Effective prompt permission level */
+    promptPermission: number;
 }
 
 /**

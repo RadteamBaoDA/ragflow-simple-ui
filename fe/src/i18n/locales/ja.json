@@ -34,6 +34,7 @@
     "searchPlaceholder": "検索...",
     "search": "検索",
     "teams": "チーム",
+    "allProjects": "すべてのプロジェクト",
     "users": "ユーザー",
     "add": "追加",
     "user": "ユーザー",
@@ -54,7 +55,17 @@
     "saveSuccess": "正常に保存されました",
     "updateSuccess": "正常に更新されました",
     "deleteSuccess": "正常に削除されました",
-    "createSuccess": "正常に作成されました"
+    "createSuccess": "正常に作成されました",
+    "description": "説明",
+    "totalItems": "合計 {{total}} 件",
+    "noPermission": "この操作を実行する権限がありません",
+    "entity": "対象",
+    "permission": "権限",
+    "none": "なし",
+    "view": "表示",
+    "all": "すべて",
+    "copy": "コピー",
+    "prompt": "Prompt"
   },
   "dialog": {
     "confirm": "確認",
@@ -80,6 +91,7 @@
     "tokenizer": "トークナイザー",
     "signOut": "サインアウト",
     "knowledgeBase": "ナレッジベース",
+    "prompts": "Prompts",
     "broadcastMessages": "一斉通知",
     "histories": "履歴一覧",
     "expandMenu": "メニューを展開",
@@ -348,10 +360,10 @@
     "searchPlaceholder": "ユーザーを検索...",
     "allRoles": "すべての役割",
     "allDepartments": "すべての部署",
-    "title": "ユーザー管理",
-    "description": "ユーザーの役割と権限を管理",
-    "user": "ユーザー",
-    "email": "メール",
+    "title": "プロンプト管理",
+    "description": "プロンプトの管理と整理",
+    "install": "新しいプロンプトを追加",
+    "addNew": "新しいプロンプトを追加",
     "department": "部署",
     "role": "役割",
     "actions": "操作",
@@ -594,6 +606,10 @@
     "publicAccess": "システム全体へのアクセス",
     "publicAccessDesc": "すべての認証済みユーザーにこのソースへのアクセスを許可します。",
     "publicOnlyNote": "パブリックソースのみをシステムデフォルトとして設定できます。",
+    "shareId": "共有ID",
+    "shareIdPlaceholder": "URLから自動抽出",
+    "shareIdDesc": "URLパラメータshared_idから自動抽出されます",
+    "descriptionPlaceholder": "このソースのオプション説明",
     "addSuccess": "ソースが正常に追加されました",
     "updateSuccess": "ソースが正常に更新されました",
     "deleteSuccess": "ソースが正常に削除されました"
@@ -637,6 +653,69 @@
     "fileResults": "取得したファイル",
     "filterTitle": "履歴をフィルター",
     "applyFilter": "フィルターを適用"
+  },
+  "prompts": {
+    "title": "Prompts管理",
+    "description": "Promptsを管理・整理する",
+    "install": "新規Promptを追加",
+    "addNew": "新規Promptを追加",
+    "searchPlaceholder": "Promptを検索...",
+    "noPrompts": "Promptが見つかりません",
+    "fields": {
+      "prompt": "Prompt",
+      "description": "説明",
+      "tags": "タグ",
+      "source": "ソース",
+      "actions": "操作",
+      "active": "有効",
+      "inactive": "無効",
+      "feedback": "フィードバック"
+    },
+    "filter": {
+      "allTags": "すべてのタグ",
+      "tag": "タグ",
+      "source": "ソース",
+      "allSources": "すべてのソース"
+    },
+    "form": {
+      "createTitle": "新規Promptを追加",
+      "editTitle": "Promptを編集",
+      "promptRequired": "Promptを入力してください",
+      "promptPlaceholder": "ここにPromptを入力してください...",
+      "descriptionPlaceholder": "説明を入力してください",
+      "save": "追加",
+      "success": "Promptを追加しました",
+      "selectTags": "タグを選択",
+      "searchTags": "タグを検索または作成...",
+      "createTag": "タグを作成",
+      "tagNotFound": "タグが見つかりません。クリックして作成",
+      "allTag": "すべて"
+    },
+    "feedback": {
+      "like": "いいね",
+      "dislike": "よくない",
+      "comment": "コメント",
+      "title": "フィードバック詳細",
+      "filterByUser": "ユーザーでフィルタ",
+      "promptSnapshot": "フィードバック時のプロンプト"
+    },
+    "permissions": {
+      "title": "プロンプト権限",
+      "manage": "権限管理",
+      "leaderNoteTitle": "リーダー権限",
+      "leaderNote": "チームに権限を付与すると、そのチームのすべてのリーダーに権限が適用されます。",
+      "selectEntity": "ユーザーまたはチームを選択"
+    },
+    "library": {
+      "title": "Promptsライブラリ",
+      "searchPlaceholder": "プロンプトを検索...",
+      "copied": "クリップボードにコピーしました",
+      "clickToCopy": "プロンプトをクリックしてコピー",
+      "feedback": "フィードバック",
+      "feedbackPlaceholder": "このプロンプトが気に入らない理由は何ですか？（任意、最大500文字）",
+      "submitFeedback": "送信",
+      "feedbackSuccess": "フィードバックありがとうございます"
+    }
   },
   "errors": {
     "REAUTH_REQUIRED": "再認証が必要です"

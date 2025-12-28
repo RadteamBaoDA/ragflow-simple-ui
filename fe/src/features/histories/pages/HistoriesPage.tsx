@@ -615,7 +615,16 @@ function HistoriesPage() {
                         </div>
                     </>
                 ) : (
-                    <div className="flex-1 flex flex-col items-center justify-center bg-slate-50/50 dark:bg-slate-950/50">
+                    <div className="flex-1 flex flex-col items-center justify-center bg-slate-50/50 dark:bg-slate-950/50 relative">
+                        {!isSidebarOpen && (
+                            <button
+                                onClick={() => setIsSidebarOpen(true)}
+                                className="absolute top-4 left-4 p-2 rounded-lg text-slate-500 hover:text-primary hover:bg-slate-100 dark:hover:bg-slate-800 transition-all z-10"
+                                title="Expand sidebar"
+                            >
+                                <PanelLeft size={24} />
+                            </button>
+                        )}
                         <div className="w-32 h-32 bg-gradient-to-tr from-slate-200 to-slate-100 dark:from-slate-800 dark:to-slate-900 rounded-full flex items-center justify-center mb-6 shadow-inner relative overflow-hidden">
                             <div className="absolute inset-0 bg-[radial-gradient(circle_at_50%_120%,rgba(120,119,198,0.3),rgba(255,255,255,0))]" />
                             <MessageSquare size={48} className="text-slate-400 dark:text-slate-500 relative z-10" />

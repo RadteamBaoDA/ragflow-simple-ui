@@ -15,7 +15,7 @@
  * @module components/Layout
  */
 
-import { useState } from 'react';
+import { useState, Suspense } from 'react';
 import { Outlet, NavLink, useLocation, Link } from 'react-router-dom';
 import { useTranslation } from 'react-i18next';
 import { useAuth, User } from '@/features/auth';
@@ -52,6 +52,23 @@ import {
 import logo from '../assets/logo.png';
 import logoDark from '../assets/logo-dark.png';
 import BroadcastBanner from '@/features/broadcast/components/BroadcastBanner';
+
+// ============================================================================
+// Content Loading Component
+// ============================================================================
+
+/**
+ * Loading indicator shown while lazy-loaded page content is loading.
+ * Displayed inside the content area (not full-screen) so sidebar stays visible.
+ */
+const ContentLoader = () => (
+  <div className="flex items-center justify-center h-full bg-gray-50 dark:bg-slate-900">
+    <div className="flex flex-col items-center gap-3">
+      <div className="animate-spin rounded-full h-10 w-10 border-t-2 border-b-2 border-primary-600"></div>
+      <span className="text-sm text-gray-500 dark:text-gray-400">Loading...</span>
+    </div>
+  </div>
+);
 
 // ============================================================================
 // Sub-components
@@ -136,44 +153,50 @@ function Layout() {
    */
   const getPageTitle = () => {
     switch (location.pathname) {
-      case '/ai-chat':
+      case '/chat':
         return t('pages.aiChat.title');
+      case '/chat/history':
+        return t('pages.chatHistory.title');
+      case '/search':
+        return t('pages.aiSearch.title');
+      case '/search/history':
+        return t('pages.searchHistory.title');
       case '/history':
         return t('pages.history.title');
-      case '/chat-history':
-        return t('pages.chatHistory.title');
-      case '/search-history':
-        return t('pages.searchHistory.title');
-      case '/histories':
-        return t('histories.title');
-      case '/system-tools':
-      case '/system-monitor':
-        return t('pages.systemMonitor.title');
-      case '/documents':
+      case '/knowledge-base/documents':
         return t('pages.storage.title');
-      case '/user-management':
-        return t('userManagement.title');
-      case '/audit-log':
-        return t('pages.auditLog.title');
-      case '/tokenizer':
-        return t('pages.tokenizer.title');
-      case '/storage-dashboard':
-        return t('storage.title');
       case '/knowledge-base/config':
         return t('knowledgeBaseConfig.title');
-      case '/broadcast-messages':
+      case '/knowledge-base/storage':
+        return t('storage.title');
+      case '/knowledge-base/prompts':
+        return t('prompts.title');
+      case '/iam/users':
+        return t('userManagement.title');
+      case '/iam/teams':
+        return t('iam.teams.title');
+      case '/admin/audit-log':
+        return t('pages.auditLog.title');
+      case '/admin/system-tools':
+      case '/admin/system-monitor':
+        return t('pages.systemMonitor.title');
+      case '/admin/tokenizer':
+        return t('pages.tokenizer.title');
+      case '/admin/broadcast-messages':
         return t('admin.broadcastMessages');
+      case '/admin/histories':
+        return t('histories.title');
       default:
         return t('common.appName');
     }
   };
 
   // Auto-expand parent menus when their children are active
-  const isKnowledgeBaseActive = ['/documents', '/knowledge-base/config', '/storage-dashboard'].includes(location.pathname);
-  const isIamActive = ['/user-management', '/iam/teams'].includes(location.pathname);
-  const isAdministratorsActive = ['/audit-log', '/system-tools', '/system-monitor', '/tokenizer', '/broadcast-messages'].includes(location.pathname);
-  const isChatActive = ['/ai-chat', '/chat-history'].includes(location.pathname);
-  const isSearchActive = ['/ai-search', '/search-history'].includes(location.pathname);
+  const isKnowledgeBaseActive = ['/knowledge-base/documents', '/knowledge-base/config', '/knowledge-base/storage', '/knowledge-base/prompts'].includes(location.pathname);
+  const isIamActive = ['/iam/users', '/iam/teams'].includes(location.pathname);
+  const isAdministratorsActive = ['/admin/audit-log', '/admin/system-tools', '/admin/system-monitor', '/admin/tokenizer', '/admin/broadcast-messages', '/admin/histories'].includes(location.pathname);
+  const isChatActive = ['/chat', '/chat/history'].includes(location.pathname);
+  const isSearchActive = ['/search', '/search/history'].includes(location.pathname);
 
   // Combine manual toggle with auto-expand logic
   // Chat and Search menus only expand when their routes are active (auto-collapse when navigating away)
@@ -185,8 +208,8 @@ function Layout() {
 
   // Determine if source selection dropdowns should be shown
   // Only show when multiple sources are configured
-  const showChatDropdown = location.pathname === '/ai-chat' && knowledgeBase.config?.chatSources && knowledgeBase.config.chatSources.length > 1;
-  const showSearchDropdown = location.pathname === '/ai-search' && knowledgeBase.config?.searchSources && knowledgeBase.config.searchSources.length > 1;
+  const showChatDropdown = location.pathname === '/chat' && knowledgeBase.config?.chatSources && knowledgeBase.config.chatSources.length > 1;
+  const showSearchDropdown = location.pathname === '/search' && knowledgeBase.config?.searchSources && knowledgeBase.config.searchSources.length > 1;
 
   return (
     <div className="flex h-screen overflow-hidden">
@@ -214,7 +237,7 @@ function Layout() {
           {config.features.enableAiChat && (
             <div className="flex flex-col gap-1">
               <NavLink
-                to="/ai-chat"
+                to="/chat"
                 className={({ isActive }: { isActive: boolean }) => `sidebar-link w-full ${isActive && !location.pathname.includes('history') ? 'active' : ''} ${isCollapsed ? 'justify-center px-2' : ''}`}
                 title={t('nav.aiChat')}
               >
@@ -229,7 +252,7 @@ function Layout() {
 
               {(!isCollapsed && shouldExpandChat) && config.features.enableHistory && (
                 <div className="pl-4 flex flex-col gap-1">
-                  <NavLink to="/chat-history" className={({ isActive }: { isActive: boolean }) => `sidebar-link text-sm ${isActive ? 'active' : ''}`} title={t('nav.chatHistory')}>
+                  <NavLink to="/chat/history" className={({ isActive }: { isActive: boolean }) => `sidebar-link text-sm ${isActive ? 'active' : ''}`} title={t('nav.chatHistory')}>
                     <History size={16} />
                     <span>{t('nav.chatHistory')}</span>
                   </NavLink>
@@ -240,7 +263,7 @@ function Layout() {
           {config.features.enableAiSearch && (
             <div className="flex flex-col gap-1">
               <NavLink
-                to="/ai-search"
+                to="/search"
                 className={({ isActive }: { isActive: boolean }) => `sidebar-link w-full ${isActive && !location.pathname.includes('history') ? 'active' : ''} ${isCollapsed ? 'justify-center px-2' : ''}`}
                 title={t('nav.aiSearch')}
               >
@@ -255,7 +278,7 @@ function Layout() {
 
               {(!isCollapsed && shouldExpandSearch) && config.features.enableHistory && (
                 <div className="pl-4 flex flex-col gap-1">
-                  <NavLink to="/search-history" className={({ isActive }: { isActive: boolean }) => `sidebar-link text-sm ${isActive ? 'active' : ''}`} title={t('nav.searchHistory')}>
+                  <NavLink to="/search/history" className={({ isActive }: { isActive: boolean }) => `sidebar-link text-sm ${isActive ? 'active' : ''}`} title={t('nav.searchHistory')}>
                     <ClipboardList size={16} />
                     <span>{t('nav.searchHistory')}</span>
                   </NavLink>
@@ -263,7 +286,7 @@ function Layout() {
               )}
             </div>
           )}
-          {(user?.role === 'admin' || user?.role === 'leader') && (
+          {(user?.role === 'admin' || user?.role === 'leader' || (knowledgeBase.config?.promptPermission ?? 0) > 0) && (
             <div className="flex flex-col gap-1">
               <button
                 onClick={() => setIsKnowledgeBaseExpanded(!isKnowledgeBaseExpanded)}
@@ -281,7 +304,7 @@ function Layout() {
 
               {(!isCollapsed && shouldExpandKnowledgeBase) && (
                 <div className="pl-4 flex flex-col gap-1">
-                  <NavLink to="/documents" className={({ isActive }: { isActive: boolean }) => `sidebar-link ${isActive ? 'active' : ''}`} title={t('nav.storage')}>
+                  <NavLink to="/knowledge-base/documents" className={({ isActive }: { isActive: boolean }) => `sidebar-link ${isActive ? 'active' : ''}`} title={t('nav.storage')}>
                     <HardDrive size={18} />
                     <span>{t('nav.storage')}</span>
                   </NavLink>
@@ -292,11 +315,16 @@ function Layout() {
                     </NavLink>
                   )}
                   {user?.role === 'admin' && (
-                    <NavLink to="/storage-dashboard" className={({ isActive }: { isActive: boolean }) => `sidebar-link ${isActive ? 'active' : ''}`} title={t('storage.title')}>
+                    <NavLink to="/knowledge-base/storage" className={({ isActive }: { isActive: boolean }) => `sidebar-link ${isActive ? 'active' : ''}`} title={t('storage.title')}>
                       <Database size={18} />
+
                       <span>{t('storage.title')}</span>
                     </NavLink>
                   )}
+                  <NavLink to="/knowledge-base/prompts" className={({ isActive }: { isActive: boolean }) => `sidebar-link ${isActive ? 'active' : ''}`} title={t('nav.prompts')}>
+                    <BookOpen size={18} />
+                    <span>{t('nav.prompts')}</span>
+                  </NavLink>
                 </div>
               )}
             </div>
@@ -325,7 +353,7 @@ function Layout() {
 
               {(!isCollapsed && shouldExpandIam) && (
                 <div className="pl-4 flex flex-col gap-1">
-                  <NavLink to="/user-management" className={({ isActive }: { isActive: boolean }) => `sidebar-link ${isActive ? 'active' : ''}`} title={t('nav.userManagement')}>
+                  <NavLink to="/iam/users" className={({ isActive }: { isActive: boolean }) => `sidebar-link ${isActive ? 'active' : ''}`} title={t('nav.userManagement')}>
                     <UserIcon size={18} />
                     <span>{t('nav.userManagement')}</span>
                   </NavLink>
@@ -355,27 +383,27 @@ function Layout() {
 
               {(!isCollapsed && shouldExpandAdministrators) && (
                 <div className="pl-4 flex flex-col gap-1">
-                  <NavLink to="/audit-log" className={({ isActive }: { isActive: boolean }) => `sidebar-link ${isActive ? 'active' : ''}`} title={t('nav.auditLog')}>
+                  <NavLink to="/admin/audit-log" className={({ isActive }: { isActive: boolean }) => `sidebar-link ${isActive ? 'active' : ''}`} title={t('nav.auditLog')}>
                     <ClipboardList size={18} />
                     <span>{t('nav.auditLog')}</span>
                   </NavLink>
-                  <NavLink to="/system-tools" className={({ isActive }: { isActive: boolean }) => `sidebar-link ${isActive ? 'active' : ''}`} title={t('nav.systemTools')}>
+                  <NavLink to="/admin/system-tools" className={({ isActive }: { isActive: boolean }) => `sidebar-link ${isActive ? 'active' : ''}`} title={t('nav.systemTools')}>
                     <Server size={18} />
                     <span>{t('nav.systemTools')}</span>
                   </NavLink>
-                  <NavLink to="/system-monitor" className={({ isActive }: { isActive: boolean }) => `sidebar-link ${isActive ? 'active' : ''}`} title={t('nav.systemMonitor')}>
+                  <NavLink to="/admin/system-monitor" className={({ isActive }: { isActive: boolean }) => `sidebar-link ${isActive ? 'active' : ''}`} title={t('nav.systemMonitor')}>
                     <Activity size={18} />
                     <span>{t('nav.systemMonitor')}</span>
                   </NavLink>
-                  <NavLink to="/tokenizer" className={({ isActive }: { isActive: boolean }) => `sidebar-link ${isActive ? 'active' : ''}`} title={t('nav.tokenizer')}>
+                  <NavLink to="/admin/tokenizer" className={({ isActive }: { isActive: boolean }) => `sidebar-link ${isActive ? 'active' : ''}`} title={t('nav.tokenizer')}>
                     <FileCode size={18} />
                     <span>{t('nav.tokenizer')}</span>
                   </NavLink>
-                  <NavLink to="/broadcast-messages" className={({ isActive }: { isActive: boolean }) => `sidebar-link ${isActive ? 'active' : ''}`} title={t('nav.broadcastMessages')}>
+                  <NavLink to="/admin/broadcast-messages" className={({ isActive }: { isActive: boolean }) => `sidebar-link ${isActive ? 'active' : ''}`} title={t('nav.broadcastMessages')}>
                     <Megaphone size={18} />
                     <span>{t('nav.broadcastMessages')}</span>
                   </NavLink>
-                  <NavLink to="/histories" className={({ isActive }: { isActive: boolean }) => `sidebar-link ${isActive ? 'active' : ''}`} title={t('nav.histories')}>
+                  <NavLink to="/admin/histories" className={({ isActive }: { isActive: boolean }) => `sidebar-link ${isActive ? 'active' : ''}`} title={t('nav.histories')}>
                     <History size={18} />
                     <span>{t('nav.histories')}</span>
                   </NavLink>
@@ -415,7 +443,7 @@ function Layout() {
 
       <main className="flex-1 flex flex-col bg-slate-50 dark:bg-slate-900 overflow-hidden">
         <BroadcastBanner />
-        {!['/chat-history', '/search-history'].includes(location.pathname) && (
+        {!['/chat/history', '/search/history', '/admin/system-monitor', '/admin/system-tools', '/admin/tokenizer'].includes(location.pathname) && (
           <header className="bg-white dark:bg-slate-800 border-b border-slate-200 dark:border-slate-700 px-8 h-16 flex justify-between items-center">
             <h1 className="text-2xl font-semibold text-slate-800 dark:text-slate-100">{getPageTitle()}</h1>
 
@@ -440,8 +468,10 @@ function Layout() {
             )}
           </header>
         )}
-        <div className={`flex-1 overflow-hidden ${['/ai-chat', '/ai-search', '/documents', '/system-tools', '/storage-dashboard', '/ragflow-config', '/iam/teams', '/histories', '/chat-history', '/search-history'].includes(location.pathname) ? '' : 'p-8 overflow-auto'}`}>
-          <Outlet />
+        <div className={`flex-1 overflow-hidden ${['/chat', '/search', '/knowledge-base/documents', '/admin/system-tools', '/knowledge-base/storage', '/ragflow-config', '/iam/teams', '/admin/histories', '/chat/history', '/search/history'].includes(location.pathname) ? '' : 'p-8 overflow-auto'}`}>
+          <Suspense fallback={<ContentLoader />}>
+            <Outlet />
+          </Suspense>
         </div>
       </main>
     </div>

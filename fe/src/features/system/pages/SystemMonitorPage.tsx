@@ -130,8 +130,8 @@ const ServiceCard = ({
     return (
         <div className="bg-white dark:bg-gray-800 p-5 rounded-lg border border-gray-200 dark:border-gray-700 shadow-sm flex items-start justify-between">
             <div className="flex items-start gap-4">
-                <div className="p-3 bg-primary-50 dark:bg-primary-900/20 rounded-lg">
-                    <Icon className="w-6 h-6 text-primary-600 dark:text-primary-400" />
+                <div className="p-3 bg-primary-50 dark:bg-slate-700 rounded-lg">
+                    <Icon className="w-6 h-6 text-primary-600 dark:text-white" />
                 </div>
                 <div>
                     <h3 className="text-sm font-medium text-gray-500 dark:text-gray-400">{title}</h3>
@@ -378,7 +378,7 @@ const SystemMonitorPage = () => {
                         {/* Services Section */}
                         <section>
                             <h2 className="text-lg font-semibold text-gray-900 dark:text-white mb-4 flex items-center gap-2">
-                                <Box className="w-5 h-5 text-primary-500" />
+                                <Box className="w-5 h-5 text-primary-500 dark:text-primary-400" />
                                 {t('systemMonitor.sections.services')}
                             </h2>
                             <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
@@ -417,7 +417,7 @@ const SystemMonitorPage = () => {
                         {/* System Resources Section */}
                         <section>
                             <h2 className="text-lg font-semibold text-gray-900 dark:text-white mb-4 flex items-center gap-2">
-                                <Server className="w-5 h-5 text-blue-500" />
+                                <Server className="w-5 h-5 text-blue-500 dark:text-blue-400" />
                                 {t('systemMonitor.sections.system')}
                             </h2>
                             <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
@@ -425,35 +425,35 @@ const SystemMonitorPage = () => {
                                     title={t('systemMonitor.metrics.uptime')}
                                     value={formatUptime(health.system.uptime)}
                                     icon={Clock}
-                                    colorClass="text-green-500"
+                                    colorClass="text-green-500 dark:text-green-400"
                                 />
                                 <MetricCard
                                     title="Disk Storage"
                                     value={health.system.disk ? formatBytes(health.system.disk.available) : 'Unknown'}
                                     subValue={health.system.disk ? `Free of ${formatBytes(health.system.disk.total)}` : 'Check Failed'}
                                     icon={HardDrive}
-                                    colorClass="text-orange-500"
+                                    colorClass="text-orange-500 dark:text-orange-400"
                                 />
                                 <MetricCard
                                     title={t('systemMonitor.metrics.memory')}
                                     value={formatBytes(health.system.memory.rss)} // RSS is mostly what we care about (resident set size)
                                     subValue={`Heap: ${formatBytes(health.system.memory.heapUsed)} / ${formatBytes(health.system.memory.heapTotal)}`}
                                     icon={HardDrive}
-                                    colorClass="text-purple-500"
+                                    colorClass="text-purple-500 dark:text-purple-400"
                                 />
                                 <MetricCard
                                     title={t('systemMonitor.metrics.cpuLoad')}
                                     value={health.system.loadAvg?.[0]?.toFixed(2) || '0.00'}
                                     subValue={`1m / 5m / 15m`} // Simplified label
                                     icon={Cpu}
-                                    colorClass="text-red-500"
+                                    colorClass="text-red-500 dark:text-red-400"
                                 />
                                 <MetricCard
                                     title={t('systemMonitor.metrics.serverInfo')}
                                     value={health.system.platform}
                                     subValue={`${health.system.arch} | ${health.system.hostname}`}
                                     icon={Server}
-                                    colorClass="text-blue-500"
+                                    colorClass="text-blue-500 dark:text-blue-400"
                                 />
                             </div>
                         </section>
@@ -461,7 +461,7 @@ const SystemMonitorPage = () => {
                         {/* Backend Specifications Section */}
                         <section>
                             <h2 className="text-lg font-semibold text-gray-900 dark:text-white mb-4 flex items-center gap-2">
-                                <Cpu className="w-5 h-5 text-indigo-500" />
+                                <Cpu className="w-5 h-5 text-indigo-500 dark:text-indigo-400" />
                                 Backend Specifications
                             </h2>
                             <div className="bg-white dark:bg-gray-800 rounded-lg border border-gray-200 dark:border-gray-700 shadow-sm overflow-hidden">

@@ -8,79 +8,12 @@
 import { useState, useEffect, useRef, useMemo } from 'react';
 import { useInfiniteQuery, useQuery } from '@tanstack/react-query';
 import { useTranslation } from 'react-i18next';
-import { apiFetch } from '@/lib/api';
+
 import { Filter, Search, FileText, Clock, ChevronRight, Sparkles, PanelLeftClose, PanelLeft, RefreshCw } from 'lucide-react';
 import { Dialog } from '@/components/Dialog';
 import { MarkdownRenderer } from '@/components/MarkdownRenderer';
 
-// ============================================================================
-// Types
-// ============================================================================
-
-/**
- * Summary of a search session, used for the list view.
- */
-interface SearchSessionSummary {
-    session_id: string;
-    user_email?: string;
-    search_input: string;
-    created_at: string;
-    message_count: string | number;
-}
-
-/**
- * Detailed search history record.
- */
-interface ExternalSearchHistory {
-    id: string;
-    session_id: string;
-    user_email?: string;
-    search_input: string;
-    ai_summary: string;
-    file_results: any[];
-    created_at: string;
-}
-
-/**
- * Filter state for history queries.
- */
-interface FilterState {
-    startDate: string;
-    endDate: string;
-}
-
-// ============================================================================
-// API Functions
-// ============================================================================
-
-/**
- * Fetch user's search history with pagination and filtering.
- * 
- * @param {string} search - Search query.
- * @param {FilterState} filters - Date filters.
- * @param {number} page - Page number.
- * @returns {Promise<SearchSessionSummary[]>} List of search sessions.
- */
-async function fetchSearchHistory(search: string, filters: FilterState, page: number): Promise<SearchSessionSummary[]> {
-    const params = new URLSearchParams({
-        q: search,
-        startDate: filters.startDate,
-        endDate: filters.endDate,
-        page: page.toString(),
-        limit: '20'
-    });
-    return apiFetch<SearchSessionSummary[]>(`/api/user/history/search?${params.toString()}`);
-}
-
-/**
- * Fetch details for a specific search session.
- * 
- * @param {string} sessionId - ID of the session.
- * @returns {Promise<ExternalSearchHistory[]>} Details of the search session.
- */
-async function fetchSearchSessionDetails(sessionId: string): Promise<ExternalSearchHistory[]> {
-    return apiFetch<ExternalSearchHistory[]>(`/api/user/history/search/${sessionId}`);
-}
+import { SearchSessionSummary, ExternalSearchHistory, FilterState, fetchSearchHistory, fetchSearchSessionDetails } from '@/features/history/api/historyService';
 
 // ============================================================================
 // Component
@@ -121,6 +54,8 @@ function SearchHistoryPage() {
         getNextPageParam: (lastPage, allPages) => {
             return lastPage.length === 20 ? allPages.length + 1 : undefined;
         },
+        // Force refetch when navigating back to this page to get latest data
+        refetchOnMount: 'always',
     });
 
     // Fetch session details when a session is selected
@@ -301,10 +236,17 @@ function SearchHistoryPage() {
                                                 </span>
                                             </div>
 
-                                            <div className="flex items-center justify-between text-xs">
-                                                <span className="bg-slate-100 dark:bg-slate-800 px-2 py-0.5 rounded-full font-medium text-[10px] text-slate-400 dark:text-slate-300">
-                                                    {item.message_count} results
-                                                </span>
+                                            <div className="flex items-center justify-between text-xs mt-2">
+                                                <div className="flex items-center gap-2">
+                                                    {item.source_name && (
+                                                        <div className="flex items-center gap-1.5 px-2 py-0.5 rounded-full bg-violet-50/50 dark:bg-violet-900/10 border border-violet-100 dark:border-violet-900/30">
+                                                            <span className="truncate max-w-[100px] font-bold text-[10px] text-violet-600 dark:text-violet-400 uppercase tracking-wide">{item.source_name}</span>
+                                                        </div>
+                                                    )}
+                                                    <span className="bg-slate-100 dark:bg-slate-800 px-2 py-0.5 rounded-full font-medium text-[10px] text-slate-400 dark:text-slate-300">
+                                                        {item.message_count} results
+                                                    </span>
+                                                </div>
                                                 <ChevronRight size={12} className={`transition-transform duration-300 ${isSelected ? 'translate-x-1 text-blue-500' : 'opacity-0 group-hover:opacity-100'}`} />
                                             </div>
                                         </div>

@@ -6,7 +6,6 @@
  * @module services/user-history.service
  */
 
-import { db } from '@/db/knex.js';
 import { ModelFactory } from '@/models/factory.js';
 
 /**
@@ -36,61 +35,14 @@ export class UserHistoryService {
         // Calculate offset for pagination
         const offset = (page - 1) * limit;
 
-        // Base query to select chat sessions grouped by session_id
-        let query = ModelFactory.externalChatHistory.getKnex()
-            .select(
-                'session_id',
-                db.raw('MAX(created_at) as created_at'),
-                db.raw('MAX(user_email) as user_email'),
-                db.raw("(array_agg(user_prompt ORDER BY created_at ASC))[1] as user_prompt"),
-                db.raw('COUNT(*) as message_count')
-            )
-            .from('external_chat_history')
-            // Always filter by user email for data isolation
-            .where('user_email', userEmail)
-            .groupBy('session_id')
-            .orderByRaw('MAX(created_at) DESC')
-            .limit(limit)
-            .offset(offset);
-
-        // Apply search filter if provided
-        if (search) {
-            // Sanitize search input to remove special characters
-            const cleanSearch = search.replace(/[^\w\s]/g, '').trim();
-            // Split search into terms
-            const terms = cleanSearch.split(/\s+/).filter(t => t.length > 0);
-
-            // Construct full-text search query
-            if (terms.length > 0) {
-                // Combine terms for prefix search
-                const prefixQuery = terms.join(' & ') + ':*';
-                // Combine terms for OR search
-                const orQuery = terms.join(' | ');
-
-                // Apply hybrid search logic
-                query = query.where(builder => {
-                    builder.whereRaw("search_vector @@ websearch_to_tsquery('english', ?)", [search])
-                        .orWhereRaw("search_vector @@ to_tsquery('english', ?)", [prefixQuery])
-                        .orWhereRaw("search_vector @@ to_tsquery('english', ?)", [orQuery]);
-                });
-            } else {
-                // Fallback to simple websearch if no valid terms
-                query = query.whereRaw("search_vector @@ websearch_to_tsquery('english', ?)", [search]);
-            }
-        }
-
-        // Apply start date filter if provided
-        if (startDate) {
-            query = query.where('created_at', '>=', startDate);
-        }
-
-        // Apply end date filter if provided
-        if (endDate) {
-            query = query.where('created_at', '<=', `${endDate} 23:59:59`);
-        }
-
-        // Execute query and return results
-        return await query;
+        return await ModelFactory.externalChatSession.findHistoryByUser(
+            userEmail,
+            limit,
+            offset,
+            search,
+            startDate,
+            endDate
+        );
     }
 
     /**
@@ -102,13 +54,7 @@ export class UserHistoryService {
      * @returns {Promise<any[]>} - Array of chat messages in the session.
      */
     async getChatSessionDetails(sessionId: string, userEmail: string) {
-        // Query all messages for the session, filtered by user email
-        return await ModelFactory.externalChatHistory.getKnex()
-            .from('external_chat_history')
-            .select('*')
-            .where('session_id', sessionId)
-            .andWhere('user_email', userEmail)
-            .orderBy('created_at', 'asc');
+        return await ModelFactory.externalChatMessage.findBySessionIdAndUserEmail(sessionId, userEmail);
     }
 
     /**
@@ -130,62 +76,17 @@ export class UserHistoryService {
         startDate: string,
         endDate: string
     ) {
-        // Calculate pagination offset
+        // Calculate offset for pagination
         const offset = (page - 1) * limit;
 
-        // Base query to select search sessions grouped by session_id
-        let query = ModelFactory.externalSearchHistory.getKnex()
-            .select(
-                'session_id',
-                db.raw('MAX(created_at) as created_at'),
-                db.raw('MAX(user_email) as user_email'),
-                db.raw("(array_agg(search_input ORDER BY created_at ASC))[1] as search_input"),
-                db.raw('COUNT(*) as message_count')
-            )
-            .from('external_search_history')
-            // Always filter by user email for data isolation
-            .where('user_email', userEmail)
-            .groupBy('session_id')
-            .orderByRaw('MAX(created_at) DESC')
-            .limit(limit)
-            .offset(offset);
-
-        // Apply search filter if provided
-        if (search) {
-            // Sanitize search string
-            const cleanSearch = search.replace(/[^\w\s]/g, '').trim();
-            // Split into unique terms
-            const terms = cleanSearch.split(/\s+/).filter(t => t.length > 0);
-
-            // Construct search conditions
-            if (terms.length > 0) {
-                const prefixQuery = terms.join(' & ') + ':*';
-                const orQuery = terms.join(' | ');
-
-                // Apply hybrid full-text search
-                query = query.where(builder => {
-                    builder.whereRaw("search_vector @@ websearch_to_tsquery('english', ?)", [search])
-                        .orWhereRaw("search_vector @@ to_tsquery('english', ?)", [prefixQuery])
-                        .orWhereRaw("search_vector @@ to_tsquery('english', ?)", [orQuery]);
-                });
-            } else {
-                // Fallback search
-                query = query.whereRaw("search_vector @@ websearch_to_tsquery('english', ?)", [search]);
-            }
-        }
-
-        // Apply start date filter
-        if (startDate) {
-            query = query.where('created_at', '>=', startDate);
-        }
-
-        // Apply end date filter
-        if (endDate) {
-            query = query.where('created_at', '<=', `${endDate} 23:59:59`);
-        }
-
-        // Execute query and return results
-        return await query;
+        return await ModelFactory.externalSearchSession.findHistoryByUser(
+            userEmail,
+            limit,
+            offset,
+            search,
+            startDate,
+            endDate
+        );
     }
 
     /**
@@ -197,13 +98,7 @@ export class UserHistoryService {
      * @returns {Promise<any[]>} - Array of search records in the session.
      */
     async getSearchSessionDetails(sessionId: string, userEmail: string) {
-        // Query all search entries for the session, filtered by user email
-        return await ModelFactory.externalSearchHistory.getKnex()
-            .from('external_search_history')
-            .select('*')
-            .where('session_id', sessionId)
-            .andWhere('user_email', userEmail)
-            .orderBy('created_at', 'asc');
+        return await ModelFactory.externalSearchRecord.findBySessionIdAndUserEmail(sessionId, userEmail);
     }
 }
 

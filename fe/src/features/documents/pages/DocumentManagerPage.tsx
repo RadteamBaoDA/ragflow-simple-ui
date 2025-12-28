@@ -14,10 +14,43 @@
  * @module pages/DocumentManagerPage
  */
 
-import { useState, useEffect, useRef, useCallback, useMemo } from 'react';
+import { useState, useEffect, useRef, useMemo } from 'react';
 import { createPortal } from 'react-dom';
 import { useTranslation } from 'react-i18next';
-import { HardDrive, Trash2, Upload, Download, AlertCircle, RefreshCw, FolderPlus, Plus, X, ChevronDown, ChevronRight, Home, ArrowLeft, ArrowRight, Search, Eye, FileText, FileImage, FileSpreadsheet, FileCode, File as FileIcon, Filter, ArrowUp, ArrowDown, Shield } from 'lucide-react';
+import {
+    Table,
+    Input,
+    Button,
+    Space,
+    Tooltip,
+    App,
+    Dropdown
+} from 'antd';
+import {
+    HardDrive,
+    Trash2,
+    Upload,
+    Download,
+    AlertCircle,
+    RefreshCw,
+    FolderPlus,
+    Plus,
+    X,
+    ChevronDown,
+    ChevronRight,
+    Home,
+    ArrowLeft,
+    ArrowRight,
+    Search,
+    Eye,
+    FileText,
+    FileImage,
+    FileSpreadsheet,
+    FileCode,
+    File as FileIcon,
+    Filter,
+    Shield
+} from 'lucide-react';
 import { useAuth } from '@/features/auth';
 import { Select } from '@/components/Select';
 import { FilePreviewModal } from '@/features/documents/components/FilePreview/FilePreviewModal';
@@ -50,8 +83,6 @@ import { useConfirm } from '@/components/ConfirmDialog';
 
 const API_BASE_URL = import.meta.env.VITE_API_BASE_URL || '';
 const STORAGE_KEY_SELECTED_BUCKET = 'minio_selected_bucket';
-const ROW_HEIGHT = 52; // Height of each table row in pixels
-const OVERSCAN = 5; // Number of extra rows to render above/below viewport
 
 const FILE_CATEGORIES = {
     doc: { labelKey: 'documents.category.doc', extensions: ['doc', 'docx', 'odt', 'rtf', 'tex', 'wpd'] },
@@ -69,58 +100,20 @@ const FILE_CATEGORIES = {
 type SortKey = 'name' | 'size' | 'lastModified';
 type SortDirection = 'asc' | 'desc';
 
-/**
- * Format date with date before time for all locales
- * @param {Date} date - Date to format
- * @param {string} locale - Locale string (e.g., 'en-US')
- * @returns {string} Formatted date time string
- */
-const formatDateTime = (date: Date, locale: string): string => {
-    const dateStr = date.toLocaleDateString(locale, {
-        year: 'numeric',
-        month: '2-digit',
-        day: '2-digit'
-    });
-    const timeStr = date.toLocaleTimeString(locale, {
-        hour: '2-digit',
-        minute: '2-digit',
-        hour12: false
-    });
-    return `${dateStr}, ${timeStr}`;
-};
-
-// ============================================================================
-// Component
-// ============================================================================
-
-/**
- * Documents storage manager page component.
- * 
- * Features:
- * - Bucket selection dropdown (rendered in header via portal)
- * - File/folder listing in realtime from Documents Storage
- * - Multi-select with checkbox
- * - Upload with progress indicator
- * - Download and delete actions
- * - Responsive table layout
- * 
- * Permissions:
- * - Read: List/Download (all roles)
- * - Write: Upload/Delete (Admin/Leader only)
- * 
- * Admin-only features:
- * - Add and remove bucket configurations (does not affect Documents Storage)
- */
+// Polling ensures permission changes by admin are reflected without page reload (security)
 const DocumentManagerPage = () => {
     const { user } = useAuth();
+    const { t } = useTranslation();
+    const { message: antdMessage } = App.useApp();
+    const confirm = useConfirm();
+
     const [effectivePermission, setEffectivePermission] = useState<number>(PermissionLevel.NONE);
     const [isPermissionsModalOpen, setIsPermissionsModalOpen] = useState(false);
+
     const canWrite = effectivePermission >= PermissionLevel.UPLOAD;
     const canDelete = effectivePermission >= PermissionLevel.FULL;
     const isAdmin = user?.role === 'admin';
     const canManagePermissions = isAdmin;
-    const { t, i18n } = useTranslation();
-    const confirm = useConfirm();
 
     // Bucket and object state
     const [buckets, setBuckets] = useState<MinioBucket[]>([]);
@@ -154,21 +147,14 @@ const DocumentManagerPage = () => {
     const [formData, setFormData] = useState({ bucket_name: '', display_name: '', description: '' });
     const [formErrors, setFormErrors] = useState<Record<string, string>>({});
     const [createError, setCreateError] = useState<string | null>(null);
-    const [showUploadMenu, setShowUploadMenu] = useState(false);
     const [showCreateFolderModal, setShowCreateFolderModal] = useState(false);
     const [newFolderName, setNewFolderName] = useState('');
     const [folderError, setFolderError] = useState<string | null>(null);
     const [creatingFolder, setCreatingFolder] = useState(false);
     const [deleting, setDeleting] = useState(false);
     const [deleteProgress, setDeleteProgress] = useState({ current: 0, total: 0 });
-    const uploadMenuRef = useRef<HTMLDivElement>(null);
     const fileInputRef = useRef<HTMLInputElement>(null);
     const folderInputRef = useRef<HTMLInputElement>(null);
-    const tableContainerRef = useRef<HTMLDivElement>(null);
-
-    // Virtual scroll state
-    const [scrollTop, setScrollTop] = useState(0);
-    const [containerHeight, setContainerHeight] = useState(0);
 
     // Drag and drop state
     const [isDragging, setIsDragging] = useState(false);
@@ -205,7 +191,7 @@ const DocumentManagerPage = () => {
 
                 // If permission changed to NONE (revoked), reload file list and show error
                 if (previousPermission !== PermissionLevel.NONE && permission === PermissionLevel.NONE) {
-                    setError(t('documents.accessDenied'));
+                    antdMessage.error(t('documents.accessDenied'));
                     loadObjects(); // Reload to clear file list or show proper state
                 }
             } catch (err) {
@@ -340,46 +326,6 @@ const DocumentManagerPage = () => {
         return result;
     }, [objects, searchQuery, filterCategory, sortConfig]);
 
-    // Virtual scroll calculations
-    const virtualScrollData = useMemo(() => {
-        const totalHeight = filteredObjects.length * ROW_HEIGHT;
-        const startIndex = Math.max(0, Math.floor(scrollTop / ROW_HEIGHT) - OVERSCAN);
-        const visibleCount = Math.ceil(containerHeight / ROW_HEIGHT) + (OVERSCAN * 2);
-        const endIndex = Math.min(filteredObjects.length, startIndex + visibleCount);
-        const offsetY = startIndex * ROW_HEIGHT;
-        const visibleItems = filteredObjects.slice(startIndex, endIndex);
-
-        return { totalHeight, startIndex, endIndex, offsetY, visibleItems };
-    }, [filteredObjects, scrollTop, containerHeight]);
-
-    /**
-     * Handle scroll event to update virtual scroll state.
-     */
-    const handleScroll = useCallback((e: React.UIEvent<HTMLDivElement>) => {
-        setScrollTop(e.currentTarget.scrollTop);
-    }, []);
-
-    // Update container height on resize
-    useEffect(() => {
-        const updateHeight = () => {
-            if (tableContainerRef.current) {
-                setContainerHeight(tableContainerRef.current.clientHeight);
-            }
-        };
-
-        updateHeight();
-        window.addEventListener('resize', updateHeight);
-        return () => window.removeEventListener('resize', updateHeight);
-    }, []);
-
-    // Reset scroll when changing folder or bucket
-    useEffect(() => {
-        setScrollTop(0);
-        if (tableContainerRef.current) {
-            tableContainerRef.current.scrollTop = 0;
-        }
-    }, [currentPrefix, selectedBucket]);
-
     // Clear search and filter when changing prefix
     useEffect(() => {
         setSearchQuery('');
@@ -387,12 +333,8 @@ const DocumentManagerPage = () => {
         // Usually file type filters are useful to keep while browsing.
     }, [currentPrefix]);
 
-    // Close menus when clicking outside
     useEffect(() => {
         const handleClickOutside = (event: MouseEvent) => {
-            if (uploadMenuRef.current && !uploadMenuRef.current.contains(event.target as Node)) {
-                setShowUploadMenu(false);
-            }
             if (filterMenuRef.current && !filterMenuRef.current.contains(event.target as Node)) {
                 setShowFilterMenu(false);
             }
@@ -736,13 +678,13 @@ const DocumentManagerPage = () => {
         setUploadProgress({ current: 0, total: files.length, transferProgress: 0 });
         try {
             const onProgress = (progress: number) => {
-                setUploadProgress(prev => ({ ...prev, transferProgress: progress }));
+                setUploadProgress((prev: any) => ({ ...prev, transferProgress: progress }));
             };
 
             const result = await uploadFiles(selectedBucket, files, currentPrefix, onProgress, preserveFolderStructure);
 
             // Update progress to show completion
-            setUploadProgress(prev => ({ ...prev, current: files.length, transferProgress: 100 }));
+            setUploadProgress((prev: any) => ({ ...prev, current: files.length, transferProgress: 100 }));
 
             // Check for rejected or failed files
             const rejectedFiles = result.results?.filter((r: any) => r.status === 'rejected' || r.status === 'failed') || [];
@@ -843,7 +785,7 @@ const DocumentManagerPage = () => {
         if (action === 'replace') {
             await processUpload(files, preserveFolderStructure);
         } else if (action === 'skip') {
-            const filesToUpload = files.filter(file => {
+            const filesToUpload = files.filter((file: File) => {
                 const objectPath = preserveFolderStructure && (file as any).webkitRelativePath
                     ? currentPrefix + (file as any).webkitRelativePath
                     : currentPrefix + file.name;
@@ -858,7 +800,7 @@ const DocumentManagerPage = () => {
         } else if (action === 'keepBoth') {
             // Rename duplicates
             // Since File.name is read-only, we create new File objects
-            const filesToUpload = files.map(file => {
+            const filesToUpload = files.map((file: File) => {
                 const objectPath = preserveFolderStructure && (file as any).webkitRelativePath
                     ? currentPrefix + (file as any).webkitRelativePath
                     : currentPrefix + file.name;
@@ -1087,21 +1029,6 @@ const DocumentManagerPage = () => {
     };
 
     /**
-     * Toggle selection of a file/folder.
-     * 
-     * @param {string} name - Name of the item.
-     */
-    const toggleSelection = (name: string) => {
-        const newSelection = new Set(selectedItems);
-        if (newSelection.has(name)) {
-            newSelection.delete(name);
-        } else {
-            newSelection.add(name);
-        }
-        setSelectedItems(newSelection);
-    };
-
-    /**
      * Validate the bucket creation form.
      * @returns {boolean} True if valid.
      */
@@ -1176,13 +1103,119 @@ const DocumentManagerPage = () => {
 
 
 
-    const bucketOptions = buckets.map(b => ({
+    const bucketOptions = buckets.map((b: MinioBucket) => ({
         id: b.id,
         name: b.display_name || b.bucket_name
     }));
 
     // Get selected bucket info for description display
-    const selectedBucketInfo = buckets.find(b => b.id === selectedBucket);
+    const selectedBucketInfo = buckets.find((b: MinioBucket) => b.id === selectedBucket);
+
+    /**
+     * Define columns for Ant Design Table
+     */
+    const columns = useMemo(() => [
+        {
+            title: t('documents.name'),
+            dataIndex: 'name',
+            key: 'name',
+            sorter: true,
+            width: 'auto',
+            minWidth: 200,
+            render: (_text: string, record: FileObject) => (
+                <button
+                    onClick={() => record.isFolder && navigateToFolder(record)}
+                    className={`flex items-center gap-2 text-left truncate max-w-full ${record.isFolder ? 'text-primary dark:text-blue-400 hover:text-primary-hover dark:hover:text-blue-300 font-medium' : 'text-gray-900 dark:text-white'}`}
+                >
+                    {record.isFolder ? <span className="text-xl flex-shrink-0">📁</span> : getFileIcon(record.name)}
+                    <span className="truncate">{record.name}</span>
+                </button>
+            )
+        },
+        {
+            title: t('documents.size'),
+            dataIndex: 'size',
+            key: 'size',
+            width: 120,
+            align: 'right' as const,
+            sorter: true,
+            sortOrder: sortConfig.key === 'size' ? (sortConfig.direction === 'asc' ? 'ascend' : 'descend') as any : null,
+            render: (size: number, record: FileObject) => record.isFolder ? '-' : formatFileSize(size)
+        },
+        {
+            title: t('documents.modified'),
+            dataIndex: 'lastModified',
+            key: 'lastModified',
+            width: 200,
+            sorter: true,
+            sortOrder: sortConfig.key === 'lastModified' ? (sortConfig.direction === 'asc' ? 'ascend' : 'descend') as any : null,
+            render: (date: string) => date ? new Date(date).toLocaleString() : '-'
+        },
+        {
+            title: t('documents.actions'),
+            key: 'actions',
+            width: 120,
+            align: 'right' as const,
+            render: (_: any, record: FileObject) => (
+                <Space size="small">
+                    {!record.isFolder && (
+                        <>
+                            <Tooltip title={t('documents.preview')}>
+                                <Button
+                                    type="text"
+                                    icon={<Eye size={16} />}
+                                    onClick={() => handlePreview(record)}
+                                />
+                            </Tooltip>
+                            <Tooltip title={t('documents.download')}>
+                                <Button
+                                    type="text"
+                                    icon={<Download size={16} />}
+                                    onClick={() => handleDownload(record)}
+                                />
+                            </Tooltip>
+                        </>
+                    )}
+                    {canDelete && (
+                        <Tooltip title={t('documents.delete')}>
+                            <Button
+                                type="text"
+                                danger
+                                icon={<Trash2 size={16} />}
+                                onClick={() => handleDelete(record)}
+                            />
+                        </Tooltip>
+                    )}
+                </Space>
+            )
+        }
+    ], [t, sortConfig, canWrite, handlePreview, handleDownload, handleDelete, navigateToFolder]);
+
+    /**
+     * Handle table change (sorting)
+     */
+    const handleTableChange = (_pagination: any, _filters: any, sorter: any) => {
+        if (sorter.field && sorter.order) {
+            setSortConfig({
+                key: sorter.field as SortKey,
+                direction: sorter.order === 'ascend' ? 'asc' : 'desc'
+            });
+        } else {
+            // Default sort
+            setSortConfig({
+                key: 'name',
+                direction: 'asc'
+            });
+        }
+    };
+
+    const rowSelection = {
+        selectedRowKeys: Array.from(selectedItems) as React.Key[],
+        onChange: (selectedRowKeys: React.Key[]) => {
+            setSelectedItems(new Set(selectedRowKeys as string[]));
+        },
+        columnWidth: 50,
+    };
 
     const headerActions = document.getElementById('header-actions');
 
@@ -1251,7 +1284,7 @@ const DocumentManagerPage = () => {
                             <Home className="w-4 h-4" />
                             <span className="hidden sm:inline">{t('documents.root')}</span>
                         </button>
-                        {currentPrefix && currentPrefix.split('/').filter(Boolean).map((folder, index, arr) => {
+                        {currentPrefix && currentPrefix.split('/').filter(Boolean).map((folder: string, index: number, arr: string[]) => {
                             const path = arr.slice(0, index + 1).join('/') + '/';
                             const isLast = index === arr.length - 1;
                             return (
@@ -1316,25 +1349,14 @@ const DocumentManagerPage = () => {
 
                 {/* Search input */}
                 <div className="flex-1 max-w-md mx-4">
-                    <div className="relative">
-                        <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 w-4 h-4 text-gray-400" />
-                        <input
-                            type="text"
-                            value={searchQuery}
-                            onChange={(e) => setSearchQuery(e.target.value)}
-                            placeholder={t('documents.searchPlaceholder')}
-                            disabled={!selectedBucket}
-                            className="w-full pl-10 pr-4 py-2 border border-gray-300 dark:border-gray-600 rounded-lg bg-white dark:bg-gray-800 text-gray-900 dark:text-white placeholder-gray-400 focus:ring-2 focus:ring-primary focus:border-transparent disabled:opacity-50 disabled:cursor-not-allowed"
-                        />
-                        {searchQuery && (
-                            <button
-                                onClick={() => setSearchQuery('')}
-                                className="absolute right-3 top-1/2 transform -translate-y-1/2 text-gray-400 hover:text-gray-600 dark:hover:text-gray-300"
-                            >
-                                <X className="w-4 h-4" />
-                            </button>
-                        )}
-                    </div>
+                    <Input
+                        prefix={<Search size={16} className="text-gray-400" />}
+                        value={searchQuery}
+                        onChange={(e) => setSearchQuery(e.target.value)}
+                        placeholder={t('documents.searchPlaceholder')}
+                        disabled={!selectedBucket}
+                        allowClear
+                    />
                 </div>
 
                 <div className="flex items-center gap-2">
@@ -1383,85 +1405,52 @@ const DocumentManagerPage = () => {
 
                     <div className="h-6 w-px bg-gray-300 dark:bg-gray-600 mx-1"></div>
 
-                    <button
-                        onClick={() => loadObjects()}
-                        disabled={!selectedBucket}
-                        className="p-2 hover:bg-gray-200 dark:hover:bg-gray-700 rounded-lg transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
-                        title={t('documents.refresh')}
-                    >
-                        <RefreshCw className="w-5 h-5 text-gray-600 dark:text-gray-400" />
-                    </button>
-
-                    {canWrite && (
-                        <button
-                            onClick={() => setShowCreateFolderModal(true)}
+                    <div className="flex items-center gap-2">
+                        <Button
+                            icon={<RefreshCw size={16} />}
+                            onClick={() => loadObjects()}
                             disabled={!selectedBucket}
-                            className="p-2 hover:bg-gray-200 dark:hover:bg-gray-700 rounded-lg transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
-                            title={t('documents.createFolder')}
-                        >
-                            <FolderPlus className="w-5 h-5 text-gray-600 dark:text-gray-400" />
-                        </button>
-                    )}
+                        />
 
-                    {/* Upload dropdown */}
-                    {canWrite && (
-                        <div className="relative" ref={uploadMenuRef}>
-                            <button
-                                onClick={() => setShowUploadMenu(!showUploadMenu)}
+                        {canWrite && (
+                            <Button
+                                icon={<FolderPlus size={16} />}
+                                onClick={() => setShowCreateFolderModal(true)}
                                 disabled={!selectedBucket}
-                                className={`flex items-center gap-2 px-4 py-2 bg-primary dark:bg-blue-600 hover:bg-primary-hover dark:hover:bg-blue-700 text-white rounded-lg transition-colors ${!selectedBucket ? 'opacity-50 cursor-not-allowed' : ''}`}
+                            />
+                        )}
+
+                        {/* Upload dropdown */}
+                        {canWrite && (
+                            <Dropdown
+                                disabled={!selectedBucket}
+                                menu={{
+                                    items: [
+                                        {
+                                            key: 'files',
+                                            label: t('documents.uploadFiles'),
+                                            icon: <Upload size={16} />,
+                                            onClick: () => fileInputRef.current?.click()
+                                        },
+                                        {
+                                            key: 'folder',
+                                            label: t('documents.uploadFolder'),
+                                            icon: <FolderPlus size={16} />,
+                                            onClick: () => folderInputRef.current?.click()
+                                        }
+                                    ]
+                                }}
                             >
-                                <Upload className="w-5 h-5" />
-                                <span className="hidden sm:inline">{t('documents.upload')}</span>
-                                <ChevronDown className={`w-4 h-4 transition-transform ${showUploadMenu ? 'rotate-180' : ''}`} />
-                            </button>
-
-                            {showUploadMenu && (
-                                <div className="absolute right-0 mt-1 w-48 bg-white dark:bg-gray-800 border border-gray-200 dark:border-gray-700 rounded-lg shadow-lg z-50 overflow-hidden">
-                                    <button
-                                        onClick={() => {
-                                            fileInputRef.current?.click();
-                                            setShowUploadMenu(false);
-                                        }}
-                                        className="w-full flex items-center gap-3 px-4 py-3 text-left text-gray-700 dark:text-gray-200 hover:bg-gray-100 dark:hover:bg-gray-700 transition-colors"
-                                    >
-                                        <Upload className="w-5 h-5 text-primary dark:text-blue-400" />
-                                        <span>{t('documents.uploadFiles')}</span>
-                                    </button>
-                                    <button
-                                        onClick={() => {
-                                            folderInputRef.current?.click();
-                                            setShowUploadMenu(false);
-                                        }}
-                                        className="w-full flex items-center gap-3 px-4 py-3 text-left text-gray-700 dark:text-gray-200 hover:bg-gray-100 dark:hover:bg-gray-700 transition-colors border-t border-gray-200 dark:border-gray-700"
-                                    >
-                                        <FolderPlus className="w-5 h-5 text-primary dark:text-blue-400" />
-                                        <span>{t('documents.uploadFolder')}</span>
-                                    </button>
-                                </div>
-                            )}
-
-                            {/* Hidden file inputs */}
-                            <input
-                                ref={fileInputRef}
-                                type="file"
-                                multiple
-                                disabled={!selectedBucket}
-                                onChange={(e) => e.target.files && handleUpload(e.target.files, false)}
-                                className="hidden"
-                            />
-                            <input
-                                ref={folderInputRef}
-                                type="file"
-                                // @ts-ignore - webkitdirectory is not in TypeScript types but is widely supported
-                                webkitdirectory=""
-                                directory=""
-                                disabled={!selectedBucket}
-                                onChange={(e) => e.target.files && handleUpload(e.target.files, true)}
-                                className="hidden"
-                            />
-                        </div>
-                    )}
+                                <Button
+                                    type="primary"
+                                    icon={<Upload size={16} />}
+                                >
+                                    <span className="hidden sm:inline">{t('documents.upload')}</span>
+                                    <ChevronDown size={14} className="ml-1" />
+                                </Button>
+                            </Dropdown>
+                        )}
+                    </div>
                 </div>
             </div>
 
@@ -1504,198 +1493,56 @@ const DocumentManagerPage = () => {
                     </div>
                 ) : (
                     <>
-                        {/* Table Header - Fixed */}
-                        <div className="flex-shrink-0 bg-gray-50 dark:bg-gray-900 border-b border-gray-200 dark:border-gray-700">
-                            <table className="w-full table-fixed">
-                                <thead>
-                                    <tr>
-                                        <th className="w-10 px-3 py-3">
-                                            <input
-                                                type="checkbox"
-                                                className="rounded border-gray-300 text-primary dark:text-blue-500 focus:ring-primary dark:focus:ring-blue-500"
-                                                disabled={!selectedBucket || filteredObjects.length === 0}
-                                                onChange={(e) => {
-                                                    if (e.target.checked) {
-                                                        setSelectedItems(new Set(filteredObjects.map(o => o.name)));
-                                                    } else {
-                                                        setSelectedItems(new Set());
-                                                    }
-                                                }}
-                                                checked={filteredObjects.length > 0 && selectedItems.size === filteredObjects.length}
-                                            />
-                                        </th>
-                                        <th
-                                            className="text-left px-4 py-3 text-sm font-medium text-gray-700 dark:text-gray-300 cursor-pointer hover:bg-gray-100 dark:hover:bg-gray-800 transition-colors select-none group whitespace-nowrap"
-                                            onClick={() => setSortConfig({
-                                                key: 'name',
-                                                direction: sortConfig.key === 'name' && sortConfig.direction === 'asc' ? 'desc' : 'asc'
-                                            })}
-                                        >
-                                            <div className="flex items-center gap-1">
-                                                {t('documents.name')}
-                                                {sortConfig.key === 'name' ? (
-                                                    sortConfig.direction === 'asc' ? <ArrowUp className="w-3 h-3 text-primary dark:text-blue-500" /> : <ArrowDown className="w-3 h-3 text-primary dark:text-blue-500" />
-                                                ) : (
-                                                    <ArrowUp className="w-3 h-3 text-gray-300 opacity-0 group-hover:opacity-100 transition-opacity" />
-                                                )}
-                                            </div>
-                                        </th>
-                                        <th
-                                            className="w-32 text-right px-4 py-3 text-sm font-medium text-gray-700 dark:text-gray-300 cursor-pointer hover:bg-gray-100 dark:hover:bg-gray-800 transition-colors select-none group whitespace-nowrap"
-                                            onClick={() => setSortConfig({
-                                                key: 'size',
-                                                direction: sortConfig.key === 'size' && sortConfig.direction === 'asc' ? 'desc' : 'asc'
-                                            })}
-                                        >
-                                            <div className="flex items-center justify-end gap-1">
-                                                {t('documents.size')}
-                                                {sortConfig.key === 'size' ? (
-                                                    sortConfig.direction === 'asc' ? <ArrowUp className="w-3 h-3 text-primary dark:text-blue-500" /> : <ArrowDown className="w-3 h-3 text-primary dark:text-blue-500" />
-                                                ) : (
-                                                    <ArrowUp className="w-3 h-3 text-gray-300 opacity-0 group-hover:opacity-100 transition-opacity" />
-                                                )}
-                                            </div>
-                                        </th>
-                                        <th
-                                            className="w-52 text-left px-4 py-3 text-sm font-medium text-gray-700 dark:text-gray-300 cursor-pointer hover:bg-gray-100 dark:hover:bg-gray-800 transition-colors select-none group whitespace-nowrap"
-                                            onClick={() => setSortConfig({
-                                                key: 'lastModified',
-                                                direction: sortConfig.key === 'lastModified' && sortConfig.direction === 'asc' ? 'desc' : 'asc'
-                                            })}
-                                        >
-                                            <div className="flex items-center gap-1">
-                                                {t('documents.modified')}
-                                                {sortConfig.key === 'lastModified' ? (
-                                                    sortConfig.direction === 'asc' ? <ArrowUp className="w-3 h-3 text-primary dark:text-blue-500" /> : <ArrowDown className="w-3 h-3 text-primary dark:text-blue-500" />
-                                                ) : (
-                                                    <ArrowUp className="w-3 h-3 text-gray-300 opacity-0 group-hover:opacity-100 transition-opacity" />
-                                                )}
-                                            </div>
-                                        </th>
-                                        <th className="w-28 text-right px-4 py-3 text-sm font-medium text-gray-700 dark:text-gray-300 whitespace-nowrap">{t('documents.actions')}</th>
-                                    </tr>
-                                </thead>
-                            </table>
-                        </div>
-
-                        {/* Scrollable Table Body */}
-                        <div
-                            ref={tableContainerRef}
-                            className="flex-1 overflow-auto"
-                            onScroll={handleScroll}
-                        >
-                            {loading ? (
-                                <div className="flex flex-col items-center justify-center py-12 text-gray-500 dark:text-gray-400">
-                                    <RefreshCw className="w-8 h-8 animate-spin text-primary" />
-                                    <span className="mt-2">{t('documents.loadingFiles')}</span>
-                                </div>
-                            ) : !selectedBucket ? (
-                                <div className="flex flex-col items-center justify-center py-12 text-gray-500 dark:text-gray-400">
-                                    <HardDrive className="w-12 h-12 text-gray-300 dark:text-gray-600" />
-                                    <span className="mt-2 text-lg font-medium">{t('documents.noBucketSelected')}</span>
-                                    <span className="text-sm">{t('documents.selectBucketPrompt')}</span>
-                                </div>
-                            ) : bucketSyncError ? (
-                                <div className="flex flex-col items-center justify-center py-12 text-gray-500 dark:text-gray-400">
-                                    <AlertCircle className="w-12 h-12 text-amber-500" />
-                                    <span className="mt-2 text-lg font-medium text-amber-600 dark:text-amber-400">{t('documents.bucketSyncError')}</span>
-                                    <span className="text-sm text-center max-w-md mt-2">{bucketSyncError}</span>
-                                    {isAdmin && (
-                                        <button
-                                            onClick={() => handleDeleteBucket(selectedBucket)}
-                                            className="mt-4 px-4 py-2 bg-red-600 hover:bg-red-700 text-white rounded-lg transition-colors flex items-center gap-2"
-                                        >
-                                            <Trash2 className="w-4 h-4" />
-                                            {t('documents.removeBucketConfig')}
-                                        </button>
-                                    )}
-                                </div>
-                            ) : objects.length === 0 ? (
-                                <div className="flex flex-col items-center justify-center py-12 text-gray-500 dark:text-gray-400">
-                                    <FolderPlus className="w-12 h-12 text-gray-300 dark:text-gray-600" />
-                                    <span className="mt-2 text-lg font-medium">{t('documents.emptyBucket')}</span>
-                                    <span className="text-sm">{t('documents.uploadPrompt')}</span>
-                                </div>
-                            ) : filteredObjects.length === 0 ? (
-                                <div className="flex flex-col items-center justify-center py-12 text-gray-500 dark:text-gray-400">
-                                    <Search className="w-12 h-12 text-gray-300 dark:text-gray-600" />
-                                    <span className="mt-2 text-lg font-medium">{t('documents.noSearchResults')}</span>
-                                    <span className="text-sm">{t('documents.noSearchResultsHint')}</span>
-                                </div>
-                            ) : (
-                                <div style={{ height: virtualScrollData.totalHeight, position: 'relative' }}>
-                                    <table className="w-full table-fixed" style={{ position: 'absolute', top: virtualScrollData.offsetY }}>
-                                        <tbody className="divide-y divide-gray-200 dark:divide-gray-700">
-                                            {virtualScrollData.visibleItems.map((obj: FileObject) => (
-                                                <tr
-                                                    key={obj.name}
-                                                    className={`hover:bg-gray-50 dark:hover:bg-gray-900/50 transition-colors ${selectedItems.has(obj.name) ? 'bg-blue-50 dark:bg-blue-900/30' : ''}`}
-                                                    style={{ height: ROW_HEIGHT }}
+                        <div className="flex-1 overflow-hidden p-4">
+                            <Table
+                                rowKey="name"
+                                columns={columns}
+                                dataSource={filteredObjects}
+                                rowSelection={rowSelection}
+                                loading={loading}
+                                onChange={handleTableChange}
+                                pagination={false}
+                                size="middle"
+                                scroll={{ y: 'calc(100vh - 350px)' }}
+                                virtual
+                                locale={{
+                                    emptyText: !selectedBucket ? (
+                                        <div className="flex flex-col items-center justify-center py-12 text-gray-500">
+                                            <HardDrive className="w-12 h-12 text-gray-300 mb-2" />
+                                            <span className="text-lg font-medium">{t('documents.noBucketSelected')}</span>
+                                            <span className="text-sm">{t('documents.selectBucketPrompt')}</span>
+                                        </div>
+                                    ) : bucketSyncError ? (
+                                        <div className="flex flex-col items-center justify-center py-12 text-gray-500">
+                                            <AlertCircle className="w-12 h-12 text-amber-500 mb-2" />
+                                            <span className="text-lg font-medium text-amber-600">{t('documents.bucketSyncError')}</span>
+                                            <span className="text-sm text-center max-w-md mt-2">{bucketSyncError}</span>
+                                            {isAdmin && (
+                                                <Button
+                                                    danger
+                                                    icon={<Trash2 size={16} />}
+                                                    onClick={() => handleDeleteBucket(selectedBucket)}
+                                                    className="mt-4"
                                                 >
-                                                    <td className="w-10 px-3 py-3">
-                                                        <input
-                                                            type="checkbox"
-                                                            checked={selectedItems.has(obj.name)}
-                                                            onChange={() => toggleSelection(obj.name)}
-                                                            className="rounded border-gray-300 text-primary dark:text-blue-500 focus:ring-primary dark:focus:ring-blue-500"
-                                                        />
-                                                    </td>
-                                                    <td className="px-4 py-3">
-                                                        <button
-                                                            onClick={() => obj.isFolder && navigateToFolder(obj)}
-                                                            className={`flex items-center gap-2 text-left truncate max-w-full ${obj.isFolder ? 'text-primary dark:text-blue-400 hover:text-primary-hover dark:hover:text-blue-300 font-medium' : 'text-gray-900 dark:text-white'}`}
-                                                        >
-                                                            {obj.isFolder ? <span className="text-xl flex-shrink-0">📁</span> : getFileIcon(obj.name)}
-                                                            <span className="truncate">{obj.name}</span>
-                                                        </button>
-                                                    </td>
-                                                    <td className="w-24 px-4 py-3 text-sm text-gray-600 dark:text-gray-400 text-right">
-                                                        {obj.isFolder ? '-' : formatFileSize(obj.size)}
-                                                    </td>
-                                                    <td className="w-52 px-4 py-3 text-sm text-gray-600 dark:text-gray-400">
-                                                        {formatDateTime(new Date(obj.lastModified), i18n.language)}
-                                                    </td>
-                                                    <td className="w-20 px-4 py-3 text-right">
-                                                        <div className="flex items-center justify-end gap-2">
-                                                            {!obj.isFolder && (
-                                                                <>
-                                                                    <button
-                                                                        onClick={() => handlePreview(obj)}
-                                                                        disabled={!isPreviewSupported(obj.name)}
-                                                                        className={`p-1.5 rounded-lg transition-colors ${isPreviewSupported(obj.name)
-                                                                            ? 'hover:bg-gray-100 dark:hover:bg-gray-700 text-gray-600 dark:text-gray-400 hover:text-primary'
-                                                                            : 'text-gray-300 dark:text-gray-700 cursor-not-allowed'
-                                                                            }`}
-                                                                        title={isPreviewSupported(obj.name) ? t('documents.preview') : t('documents.previewNotSupported')}
-                                                                    >
-                                                                        <Eye className="w-4 h-4" />
-                                                                    </button>
-                                                                    <button
-                                                                        onClick={() => handleDownload(obj)}
-                                                                        className="p-1.5 hover:bg-gray-100 dark:hover:bg-gray-700 rounded-lg text-gray-600 dark:text-gray-400 hover:text-primary transition-colors"
-                                                                        title={t('documents.download')}
-                                                                    >
-                                                                        <Download className="w-4 h-4" />
-                                                                    </button>
-                                                                </>
-                                                            )}
-                                                            {canDelete && (
-                                                                <button
-                                                                    onClick={() => handleDelete(obj)}
-                                                                    className="p-1.5 hover:bg-red-50 dark:hover:bg-red-900/20 rounded-lg text-gray-400 hover:text-red-600 transition-colors"
-                                                                    title={t('common.delete')}
-                                                                >
-                                                                    <Trash2 className="w-4 h-4" />
-                                                                </button>
-                                                            )}
-                                                        </div>
-                                                    </td>
-                                                </tr>
-                                            ))}
-                                        </tbody>
-                                    </table>
-                                </div>
-                            )}
+                                                    {t('documents.removeBucketConfig')}
+                                                </Button>
+                                            )}
+                                        </div>
+                                    ) : objects.length === 0 ? (
+                                        <div className="flex flex-col items-center justify-center py-12 text-gray-500">
+                                            <FolderPlus className="w-12 h-12 text-gray-300 mb-2" />
+                                            <span className="text-lg font-medium">{t('documents.emptyBucket')}</span>
+                                            <span className="text-sm">{t('documents.uploadPrompt')}</span>
+                                        </div>
+                                    ) : (
+                                        <div className="flex flex-col items-center justify-center py-12 text-gray-500">
+                                            <Search className="w-12 h-12 text-gray-300 mb-2" />
+                                            <span className="text-lg font-medium">{t('documents.noSearchResults')}</span>
+                                            <span className="text-sm">{t('documents.noSearchResultsHint')}</span>
+                                        </div>
+                                    )
+                                }}
+                            />
                         </div>
                     </>
                 )}

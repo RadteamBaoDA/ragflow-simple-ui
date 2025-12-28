@@ -18,7 +18,9 @@ import { useSharedUser } from '@/features/users';
 import { useTranslation } from 'react-i18next';
 import { useKnowledgeBase } from '@/features/knowledge-base/context/KnowledgeBaseContext';
 import { useSettings } from '@/app/contexts/SettingsContext';
-import { AlertCircle, RefreshCw, RotateCcw, WifiOff, Lock, FileQuestion, ServerCrash, Maximize2, Minimize2 } from 'lucide-react';
+import { AlertCircle, RefreshCw, RotateCcw, WifiOff, Lock, FileQuestion, ServerCrash, Maximize2, Minimize2, Info, Book } from 'lucide-react';
+import { Tooltip } from 'antd';
+import { PromptLibraryModal } from '@/features/prompts/components/PromptLibraryModal';
 
 // ============================================================================
 // Types
@@ -71,6 +73,7 @@ function RagflowIframe({ path }: RagflowIframeProps) {
   const [urlChecked, setUrlChecked] = useState(false);
   const [isFullScreen, setIsFullScreen] = useState(false);
   const [sessionKey, setSessionKey] = useState<number>(Date.now());
+  const [isPromptLibraryOpen, setIsPromptLibraryOpen] = useState(false);
 
   // Get user and Knowledge Base configuration
   const { user, isLoading: isUserLoading } = useSharedUser();
@@ -78,6 +81,12 @@ function RagflowIframe({ path }: RagflowIframeProps) {
 
   // Get the selected source ID based on path (chat or search)
   const selectedSourceId = path === 'chat' ? knowledgeBase.selectedChatSourceId : knowledgeBase.selectedSearchSourceId;
+
+  // Get the current source's description
+  const currentSource = path === 'chat'
+    ? knowledgeBase.config?.chatSources?.find(s => s.id === selectedSourceId)
+    : knowledgeBase.config?.searchSources?.find(s => s.id === selectedSourceId);
+  const sourceDescription = currentSource?.description;
 
   // ============================================================================
   // Callbacks
@@ -473,32 +482,79 @@ function RagflowIframe({ path }: RagflowIframeProps) {
 
 
         {/* Full Screen Bubble Button */}
-        <button
-          onClick={toggleFullScreen}
-          className="absolute bottom-6 right-6 p-3 bg-white dark:bg-slate-700 text-slate-700 dark:text-slate-200 rounded-full shadow-lg hover:bg-slate-100 dark:hover:bg-slate-600 transition-all duration-200 z-[100] border border-slate-200 dark:border-slate-600 group cursor-pointer"
-          title={isFullScreen ? t('common.exitFullScreen') : t('common.fullScreen')}
-        >
-          {isFullScreen ? (
-            <Minimize2 className="w-6 h-6" />
-          ) : (
-            <Maximize2 className="w-6 h-6" />
-          )}
-          <span className="sr-only">
-            {isFullScreen ? t('common.exitFullScreen') : t('common.fullScreen')}
-          </span>
-        </button>
+        <Tooltip title={isFullScreen ? t('common.exitFullScreen') : t('common.fullScreen')} placement="left">
+          <button
+            onClick={toggleFullScreen}
+            className="absolute bottom-6 right-6 p-3 bg-white dark:bg-slate-700 text-slate-700 dark:text-slate-200 rounded-full shadow-lg hover:bg-slate-100 dark:hover:bg-slate-600 transition-all duration-200 z-[100] border border-slate-200 dark:border-slate-600 group cursor-pointer"
+          >
+            {isFullScreen ? (
+              <Minimize2 className="w-6 h-6" />
+            ) : (
+              <Maximize2 className="w-6 h-6" />
+            )}
+            <span className="sr-only">
+              {isFullScreen ? t('common.exitFullScreen') : t('common.fullScreen')}
+            </span>
+          </button>
+        </Tooltip>
 
         {/* Reset Session Bubble Button - resets unique session key to force reload */}
-        <button
-          onClick={handleResetSession}
-          className="absolute bottom-20 right-6 p-3 bg-white dark:bg-slate-700 text-slate-700 dark:text-slate-200 rounded-full shadow-lg hover:bg-slate-100 dark:hover:bg-slate-600 transition-all duration-200 z-[100] border border-slate-200 dark:border-slate-600 group cursor-pointer"
-          title={t('iframe.resetSession')}
-        >
-          <RotateCcw className="w-6 h-6" />
-          <span className="sr-only">
-            {t('iframe.resetSession')}
-          </span>
-        </button>
+        <Tooltip title={t('iframe.resetSession')} placement="left">
+          <button
+            onClick={handleResetSession}
+            className="absolute bottom-20 right-6 p-3 bg-white dark:bg-slate-700 text-slate-700 dark:text-slate-200 rounded-full shadow-lg hover:bg-slate-100 dark:hover:bg-slate-600 transition-all duration-200 z-[100] border border-slate-200 dark:border-slate-600 group cursor-pointer"
+          >
+            <RotateCcw className="w-6 h-6" />
+            <span className="sr-only">
+              {t('iframe.resetSession')}
+            </span>
+          </button>
+        </Tooltip>
+
+        {/* Prompt Library Button - Chat Mode Only */}
+        {path === 'chat' && (
+          <Tooltip title={t('prompts.library.title', 'Prompt Library')} placement="left">
+            <button
+              onClick={() => setIsPromptLibraryOpen(true)}
+              className="absolute bottom-34 right-6 p-3 bg-white dark:bg-slate-700 text-slate-700 dark:text-slate-200 rounded-full shadow-lg hover:bg-slate-100 dark:hover:bg-slate-600 transition-all duration-200 z-[100] border border-slate-200 dark:border-slate-600 group cursor-pointer"
+              style={{ bottom: '9rem' }}
+            >
+              <Book className="w-6 h-6" />
+              <span className="sr-only">
+                {t('prompts.library.title', 'Prompt Library')}
+              </span>
+            </button>
+          </Tooltip>
+        )}
+
+        {/* Prompt Library Modal */}
+        <PromptLibraryModal
+          open={isPromptLibraryOpen}
+          onClose={() => setIsPromptLibraryOpen(false)}
+          onSelect={(text) => {
+            // Send the selected prompt text to the iframe via postMessage
+            if (iframeRef.current?.contentWindow) {
+              iframeRef.current.contentWindow.postMessage(
+                { type: 'INSERT_PROMPT', payload: text },
+                '*'
+              );
+              console.log('[RagflowIframe] Sent prompt to iframe:', text.substring(0, 50) + '...');
+            }
+          }}
+        />
+
+        {/* Info Icon with Source Description Tooltip */}
+        {sourceDescription && (
+          <div className="absolute top-4 right-6 group z-[100]">
+            <div className="p-2 bg-white dark:bg-slate-700 text-slate-500 dark:text-slate-300 rounded-full shadow-lg border border-slate-200 dark:border-slate-600 cursor-help hover:text-blue-500 transition-colors">
+              <Info className="w-5 h-5" />
+            </div>
+            <div className="absolute right-0 top-full mt-2 w-72 p-3 bg-slate-800 dark:bg-slate-700 text-white text-sm rounded-lg shadow-lg opacity-0 invisible group-hover:opacity-100 group-hover:visible transition-all duration-200">
+              <div className="absolute -top-2 right-4 w-0 h-0 border-l-8 border-r-8 border-b-8 border-transparent border-b-slate-800 dark:border-b-slate-700"></div>
+              {sourceDescription}
+            </div>
+          </div>
+        )}
       </div>
     </div >
   );

@@ -7,9 +7,11 @@ import { createPortal } from 'react-dom';
 import { useTranslation } from 'react-i18next';
 import { broadcastMessageService } from '../api/broadcastMessageService';
 import { BroadcastMessage } from '../types';
-import { Plus, Edit2, Trash2, CheckCircle, XCircle } from 'lucide-react';
+import { Plus, CheckCircle, Trash2, Edit2, XCircle } from 'lucide-react';
 import { Dialog } from '@/components/Dialog';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
+
+import { Table, Tag, Button, Card, Space, Pagination, Tooltip } from 'antd';
 
 /**
  * @description Admin dashboard page for creating, editing, and deleting broadcast messages.
@@ -22,6 +24,10 @@ const BroadcastMessagePage: React.FC = () => {
     const queryClient = useQueryClient();
     const [isDialogOpen, setIsDialogOpen] = useState(false);
     const [editingMessage, setEditingMessage] = useState<Partial<BroadcastMessage> | null>(null);
+
+    // Pagination state
+    const [currentPage, setCurrentPage] = useState(1);
+    const [pageSize, setPageSize] = useState(10);
 
     // Fetch Messages Query
     const { data: messages = [], isLoading } = useQuery({
@@ -85,7 +91,9 @@ const BroadcastMessagePage: React.FC = () => {
         if (!headerActions) return null;
 
         return createPortal(
-            <button
+            <Button
+                type="primary"
+                icon={<Plus className="w-4 h-4" />}
                 onClick={() => {
                     setEditingMessage({
                         message: '',
@@ -98,93 +106,125 @@ const BroadcastMessagePage: React.FC = () => {
                     });
                     setIsDialogOpen(true);
                 }}
-                className="btn btn-primary flex items-center gap-2"
+                className="flex items-center gap-2"
             >
-                <Plus className="w-4 h-4" />
                 {t('common.add')}
-            </button>,
+            </Button>,
             headerActions
         );
     };
 
+    const columns = [
+        {
+            title: t('common.message'),
+            dataIndex: 'message',
+            key: 'message',
+            flex: 2,
+            render: (text: string, record: BroadcastMessage) => (
+                <div className="flex items-start gap-2 max-w-[500px]">
+                    <div
+                        className="w-4 h-4 rounded-full border border-slate-200 mt-1 shrink-0"
+                        style={{ backgroundColor: record.color }}
+                    />
+                    <span className="text-sm text-slate-900 dark:text-white leading-relaxed break-all">
+                        {text}
+                    </span>
+                </div>
+            ),
+        },
+        {
+            title: t('common.period'),
+            key: 'period',
+            width: 380,
+            render: (_: any, record: BroadcastMessage) => (
+                <div className="text-sm text-slate-500 whitespace-nowrap">
+                    {record.starts_at ? new Date(record.starts_at).toLocaleString() : '-'}
+                    <span className="mx-2">-</span>
+                    {record.ends_at ? new Date(record.ends_at).toLocaleString() : '-'}
+                </div>
+            ),
+        },
+        {
+            title: t('common.status'),
+            dataIndex: 'is_active',
+            key: 'is_active',
+            width: 150,
+            render: (isActive: boolean) => (
+                <div className="whitespace-nowrap">
+                    {isActive ? (
+                        <Tag color="success" icon={<CheckCircle className="w-3 h-3" />} className="inline-flex items-center gap-1 px-2 py-0.5">
+                            {t('common.active')}
+                        </Tag>
+                    ) : (
+                        <Tag color="default" icon={<XCircle className="w-3 h-3" />} className="inline-flex items-center gap-1 px-2 py-0.5">
+                            {t('common.inactive')}
+                        </Tag>
+                    )}
+                </div>
+            ),
+        },
+        {
+            title: t('common.actions'),
+            key: 'actions',
+            width: 120,
+            align: 'right' as const,
+            render: (_: any, record: BroadcastMessage) => (
+                <Space>
+                    <Tooltip title={t('common.edit')}>
+                        <Button
+                            type="text"
+                            icon={<Edit2 className="w-4 h-4 text-blue-600" />}
+                            onClick={() => {
+                                setEditingMessage(record);
+                                setIsDialogOpen(true);
+                            }}
+                        />
+                    </Tooltip>
+                    <Tooltip title={t('common.delete')}>
+                        <Button
+                            type="text"
+                            danger
+                            icon={<Trash2 className="w-4 h-4" />}
+                            onClick={() => handleDelete(record.id)}
+                        />
+                    </Tooltip>
+                </Space>
+            ),
+        },
+    ];
+
     return (
-        <div className="p-6">
+        <div className="p-6 h-full flex flex-col">
             {renderHeaderActions()}
-            <div className="bg-white dark:bg-slate-800 rounded-lg shadow overflow-hidden">
-                <table className="w-full divide-y divide-slate-200 dark:divide-slate-700 table-fixed">
-                    <thead className="bg-slate-50 dark:bg-slate-900/50">
-                        <tr>
-                            <th className="w-1/2 px-6 py-3 text-left text-xs font-medium text-slate-500 uppercase tracking-wider">{t('common.message')}</th>
-                            <th className="w-1/4 px-6 py-3 text-left text-xs font-medium text-slate-500 uppercase tracking-wider">{t('common.period')}</th>
-                            <th className="w-40 px-6 py-3 text-left text-xs font-medium text-slate-500 uppercase tracking-wider">{t('common.status')}</th>
-                            <th className="w-32 px-6 py-3 text-right text-xs font-medium text-slate-500 uppercase tracking-wider">{t('common.actions')}</th>
-                        </tr>
-                    </thead>
-                    <tbody className="divide-y divide-slate-200 dark:divide-slate-700">
-                        {isLoading ? (
-                            <tr>
-                                <td colSpan={4} className="px-6 py-4 text-center text-slate-500">{t('common.loading')}...</td>
-                            </tr>
-                        ) : messages.length === 0 ? (
-                            <tr>
-                                <td colSpan={4} className="px-6 py-4 text-center text-slate-500">{t('common.noData')}</td>
-                            </tr>
-                        ) : (
-                            messages.map((msg) => (
-                                <tr key={msg.id}>
-                                    <td className="px-6 py-4 whitespace-normal break-all">
-                                        <div className="flex items-start gap-2">
-                                            <div
-                                                className="w-4 h-4 rounded-full border border-slate-200 mt-1 shrink-0"
-                                                style={{ backgroundColor: msg.color }}
-                                            />
-                                            <span className="text-sm text-slate-900 dark:text-white leading-relaxed">
-                                                {msg.message}
-                                            </span>
-                                        </div>
-                                    </td>
-                                    <td className="px-6 py-4 whitespace-nowrap text-sm text-slate-500">
-                                        <div className="flex flex-col">
-                                            <span>{msg.starts_at ? new Date(msg.starts_at).toLocaleString() : '-'}</span>
-                                            <span>{msg.ends_at ? new Date(msg.ends_at).toLocaleString() : '-'}</span>
-                                        </div>
-                                    </td>
-                                    <td className="px-6 py-4 whitespace-nowrap">
-                                        {msg.is_active ? (
-                                            <span className="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium bg-green-100 text-green-800">
-                                                <CheckCircle className="w-3 h-3 mr-1" />
-                                                {t('common.active')}
-                                            </span>
-                                        ) : (
-                                            <span className="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium bg-slate-100 text-slate-800">
-                                                <XCircle className="w-3 h-3 mr-1" />
-                                                {t('common.inactive')}
-                                            </span>
-                                        )}
-                                    </td>
-                                    <td className="px-6 py-4 whitespace-nowrap text-right text-sm font-medium">
-                                        <button
-                                            onClick={() => {
-                                                setEditingMessage(msg);
-                                                setIsDialogOpen(true);
-                                            }}
-                                            className="text-blue-600 hover:text-blue-900 mr-3"
-                                        >
-                                            <Edit2 className="w-4 h-4" />
-                                        </button>
-                                        <button
-                                            onClick={() => handleDelete(msg.id)}
-                                            className="text-red-600 hover:text-red-900"
-                                        >
-                                            <Trash2 className="w-4 h-4" />
-                                        </button>
-                                    </td>
-                                </tr>
-                            ))
-                        )}
-                    </tbody>
-                </table>
-            </div>
+            <Card
+                styles={{ body: { padding: 0, height: '100%', display: 'flex', flexDirection: 'column' } }}
+                className="dark:bg-slate-800 dark:border-slate-700 flex-1 min-h-0 overflow-hidden"
+            >
+                <div className="flex-1 overflow-auto p-4">
+                    <Table
+                        columns={columns}
+                        dataSource={(messages || []).slice((currentPage - 1) * pageSize, currentPage * pageSize)}
+                        rowKey="id"
+                        loading={isLoading}
+                        pagination={false}
+                        scroll={{ x: true }}
+                    />
+                </div>
+                <div className="flex justify-end p-4 border-t border-slate-200 dark:border-slate-700">
+                    <Pagination
+                        current={currentPage}
+                        total={(messages || []).length}
+                        pageSize={pageSize}
+                        showSizeChanger={true}
+                        showTotal={(total: number) => t('common.totalItems', { total })}
+                        pageSizeOptions={['10', '20', '50', '100']}
+                        onChange={(page: number, size: number) => {
+                            setCurrentPage(page);
+                            setPageSize(size);
+                        }}
+                    />
+                </div>
+            </Card>
 
             <Dialog
                 open={isDialogOpen}
@@ -194,8 +234,8 @@ const BroadcastMessagePage: React.FC = () => {
                 className="w-[60vw]"
                 footer={
                     <div className="flex justify-end gap-2">
-                        <button onClick={() => setIsDialogOpen(false)} className="btn btn-secondary">{t('common.cancel')}</button>
-                        <button onClick={handleSave} className="btn btn-primary">{t('common.save')}</button>
+                        <Button onClick={() => setIsDialogOpen(false)}>{t('common.cancel')}</Button>
+                        <Button type="primary" onClick={handleSave}>{t('common.save')}</Button>
                     </div>
                 }
             >

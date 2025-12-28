@@ -32,6 +32,10 @@ export interface User {
     job_title?: string | null;
     /** Mobile phone number from Azure AD */
     mobile_phone?: string | null;
+    /** User ID who created this record */
+    created_by?: string | null;
+    /** User ID who last updated this record */
+    updated_by?: string | null;
     /** Timestamp of record creation */
     created_at: Date;
     /** Timestamp of last update */
@@ -52,6 +56,10 @@ export interface Team {
     project_name?: string | null;
     /** Description of the team's purpose */
     description?: string | null;
+    /** User ID who created this record */
+    created_by?: string | null;
+    /** User ID who last updated this record */
+    updated_by?: string | null;
     /** Timestamp of record creation */
     created_at: Date;
     /** Timestamp of last update */
@@ -71,6 +79,14 @@ export interface UserTeam {
     role: string;
     /** Timestamp when user joined the team */
     joined_at: Date;
+    /** User ID who created this record */
+    created_by?: string | null;
+    /** User ID who last updated this record */
+    updated_by?: string | null;
+    /** Timestamp of record creation */
+    created_at?: Date;
+    /** Timestamp of last update */
+    updated_at?: Date;
 }
 
 /**
@@ -83,6 +99,10 @@ export interface ChatSession {
     user_id: string;
     /** Title of the chat session, usually generated from first prompt */
     title: string;
+    /** User ID who created this record */
+    created_by?: string | null;
+    /** User ID who last updated this record */
+    updated_by?: string | null;
     /** Timestamp of record creation */
     created_at: Date;
     /** Timestamp of last update */
@@ -103,6 +123,10 @@ export interface ChatMessage {
     content: string;
     /** Timestamp when the message was created */
     timestamp: Date;
+    /** User ID who created this record */
+    created_by?: string | null;
+    /** User ID who last updated this record */
+    updated_by?: string | null;
 }
 
 /**
@@ -119,8 +143,12 @@ export interface MinioBucket {
     description?: string | null;
     /** UUID of the user who created the bucket */
     created_by: string;
+    /** User ID who last updated this record */
+    updated_by?: string | null;
     /** Timestamp of record creation */
     created_at: Date;
+    /** Timestamp of last update */
+    updated_at?: Date;
     /** Flag indicating if the bucket is active (1) or not (0) */
     is_active: number;
 }
@@ -133,6 +161,12 @@ export interface SystemConfig {
     key: string;
     /** Configuration value */
     value: string;
+    /** User ID who created this record */
+    created_by?: string | null;
+    /** User ID who last updated this record */
+    updated_by?: string | null;
+    /** Timestamp of record creation */
+    created_at?: Date;
     /** Timestamp of last update */
     updated_at: Date;
 }
@@ -149,8 +183,16 @@ export interface KnowledgeBaseSource {
     name: string;
     /** URL or path to the source data */
     url: string;
+    /** Description of the source */
+    description?: string | null;
+    /** Share ID extracted from URL (shared_id param) */
+    share_id?: string | null;
     /** Access Control List details in JSON format */
     access_control: any;
+    /** User ID who created this record */
+    created_by?: string | null;
+    /** User ID who last updated this record */
+    updated_by?: string | null;
     /** Timestamp of record creation */
     created_at: Date;
     /** Timestamp of last update */
@@ -179,6 +221,10 @@ export interface AuditLog {
     ip_address?: string | null;
     /** Timestamp when the action occurred */
     created_at: Date;
+    /** User ID who created this record */
+    created_by?: string | null;
+    /** User ID who last updated this record */
+    updated_by?: string | null;
 }
 
 /**
@@ -193,6 +239,10 @@ export interface UserIpHistory {
     ip_address: string;
     /** Timestamp of last access from this IP */
     last_accessed_at: Date;
+    /** User ID who created this record */
+    created_by?: string | null;
+    /** User ID who last updated this record */
+    updated_by?: string | null;
 }
 
 /**
@@ -209,6 +259,10 @@ export interface DocumentPermission {
     bucket_id: string;
     /** Numeric permission level */
     permission_level: number;
+    /** User ID who created this record */
+    created_by?: string | null;
+    /** User ID who last updated this record */
+    updated_by?: string | null;
     /** Timestamp of record creation */
     created_at: Date;
     /** Timestamp of last update */
@@ -235,6 +289,10 @@ export interface BroadcastMessage {
     is_active: boolean;
     /** Whether users can dismiss this message */
     is_dismissible: boolean;
+    /** User ID who created this record */
+    created_by?: string | null;
+    /** User ID who last updated this record */
+    updated_by?: string | null;
     /** Timestamp of record creation */
     created_at: Date;
     /** Timestamp of last update */
@@ -251,6 +309,10 @@ export interface UserDismissedBroadcast {
     broadcast_id: string;
     /** Timestamp when it was dismissed */
     dismissed_at: Date;
+    /** User ID who created this record */
+    created_by?: string | null;
+    /** User ID who last updated this record */
+    updated_by?: string | null;
 }
 
 /**
@@ -265,4 +327,87 @@ export enum PermissionLevel {
     UPLOAD = 2,
     /** Full control (including delete) */
     FULL = 3
+}
+
+/**
+ * Prompt interface representing a saved prompt.
+ */
+export interface Prompt {
+    /** Unique UUID for the prompt */
+    id: string;
+    /** The prompt text */
+    prompt: string;
+    /** Description of the prompt */
+    description?: string | null;
+    /** Array of tags */
+    tags: string[]; // Parsed from JSON
+    /** Source of the prompt (e.g., 'chat') */
+    source: string;
+    /** Whether the prompt is active */
+    is_active: boolean;
+    /** Timestamp of record creation */
+    created_at: Date;
+    /** Timestamp of last update */
+    updated_at: Date;
+}
+
+/**
+ * PromptInteraction interface representing user feedback (Like, Dislike, Comment).
+ */
+export interface PromptInteraction {
+    /** Unique UUID for the interaction */
+    id: string;
+    /** UUID of the prompt */
+    prompt_id: string;
+    /** User ID who provided the feedback */
+    user_id?: string | null;
+    /** Type of interaction ('like', 'dislike', 'comment') */
+    interaction_type: 'like' | 'dislike' | 'comment';
+    /** Comment text if type is 'comment' */
+    comment?: string | null;
+    /** Snapshot of the prompt text at the time of interaction */
+    prompt_snapshot?: string | null;
+    /** Timestamp of creation */
+    created_at: Date;
+}
+
+/**
+ * PromptTag interface representing a reusable tag with color.
+ */
+export interface PromptTag {
+    /** Unique UUID for the tag */
+    id: string;
+    /** Tag name (unique) */
+    name: string;
+    /** Color in hex format (e.g., #FF5733) */
+    color: string;
+    /** User ID who created this record */
+    created_by?: string | null;
+    /** User ID who last updated this record */
+    updated_by?: string | null;
+    /** Timestamp of record creation */
+    created_at: Date;
+    /** Timestamp of last update */
+    updated_at: Date;
+}
+/**
+ * PromptPermission interface representing a record in the 'prompt_permissions' table.
+ */
+export interface PromptPermission {
+    /** Unique UUID for the permission record */
+    id: string;
+    /** Type of entity granted permission ('user' or 'team') */
+    entity_type: string;
+    /** UUID of the user or team */
+    entity_id: string;
+    /** Numeric permission level */
+    permission_level: number;
+    /** User ID who created this record */
+    created_by?: string | null;
+    /** User ID who last updated this record */
+    updated_by?: string | null;
+    /** Timestamp of record creation */
+    created_at: Date;
+    /** Timestamp of last update */
+    updated_at: Date;
 }

@@ -13,13 +13,14 @@
  * @module pages/UserManagementPage
  */
 
+import { Mail, Edit2, Globe, Search, Filter, X, AlertCircle } from 'lucide-react';
+import { userService } from '../api/userService';
 import { useState, useEffect } from 'react';
 import { useAuth, User } from '@/features/auth';
 import { Dialog } from '@/components/Dialog';
 import { useMutation } from '@tanstack/react-query';
-import { userService } from '../api/userService';
-import { Mail, Edit2, Globe, Search, Filter, X, ArrowUp, ArrowDown, AlertCircle } from 'lucide-react';
 import { useTranslation } from 'react-i18next';
+import { Table, Tag, Card, Space, Avatar, Button, Tooltip, Pagination } from 'antd';
 
 /** API base URL from environment */
 const API_BASE_URL = import.meta.env.VITE_API_BASE_URL || '';
@@ -67,14 +68,14 @@ export default function UserManagementPage() {
     const [isIpDialogOpen, setIsIpDialogOpen] = useState(false);
     const [ipDialogUser, setIpDialogUser] = useState<User | null>(null);
 
-    // Filter and Sort state
+    // Filter state
     const [searchQuery, setSearchQuery] = useState('');
     const [roleFilter, setRoleFilter] = useState<'all' | 'admin' | 'leader' | 'user'>('all');
     const [departmentFilter, setDepartmentFilter] = useState<string>('all');
-    const [sortConfig, setSortConfig] = useState<{ key: keyof User | 'email'; direction: 'asc' | 'desc' }>({
-        key: 'displayName',
-        direction: 'asc'
-    });
+
+    // Pagination state
+    const [currentPage, setCurrentPage] = useState(1);
+    const [pageSize, setPageSize] = useState(20);
 
     // ============================================================================
     // Effects & Data Fetching
@@ -177,21 +178,9 @@ export default function UserManagementPage() {
         const matchesDepartment = departmentFilter === 'all' || user.department === departmentFilter;
 
         return matchesSearch && matchesRole && matchesDepartment;
-    }).sort((a, b) => {
-        const aValue = (a[sortConfig.key as keyof User] || '').toString().toLowerCase();
-        const bValue = (b[sortConfig.key as keyof User] || '').toString().toLowerCase();
-
-        if (aValue < bValue) return sortConfig.direction === 'asc' ? -1 : 1;
-        if (aValue > bValue) return sortConfig.direction === 'asc' ? 1 : -1;
-        return 0;
     });
 
-    const handleSort = (key: keyof User | 'email') => {
-        setSortConfig(current => ({
-            key,
-            direction: current.key === key && current.direction === 'asc' ? 'desc' : 'asc'
-        }));
-    };
+
 
     // ============================================================================
     // Mutations
@@ -306,187 +295,189 @@ export default function UserManagementPage() {
         );
     }
 
-    return (
-        <div className="w-full h-full flex flex-col">
-            <div className="bg-white dark:bg-slate-800 flex-1 overflow-hidden flex flex-col">
-                {/* Toolbar */}
-                <div className="p-4 border-b border-slate-200 dark:border-slate-700 flex flex-col sm:flex-row gap-4 justify-between items-center bg-slate-50/50 dark:bg-slate-900/20">
-                    <div className="flex items-center gap-2 w-full sm:w-auto">
-                        <div className="relative w-full sm:w-64">
-                            <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 w-4 h-4 text-slate-400" />
-                            <input
+    // ============================================================================
+    // Table Columns
+    // ============================================================================
+
+    const columns = [
+        {
+            title: t('userManagement.user'),
+            key: 'user',
+            sorter: (a: User, b: User) => (a.displayName || a.email || '').localeCompare(b.displayName || b.email || ''),
+            render: (_: any, record: User) => (
+                <Space>
+                    <Avatar className="bg-primary-100 dark:bg-primary-900/30 text-primary-600 dark:text-primary-400 font-medium text-sm">
+                        {(record.displayName || record.email || '?').charAt(0).toUpperCase()}
+                    </Avatar>
+                    <span className="font-medium text-slate-900 dark:text-white">
+                        {record.displayName || record.email}
+                    </span>
+                </Space>
+            ),
+        },
+        {
+            title: t('userManagement.email'),
+            dataIndex: 'email',
+            key: 'email',
+            sorter: (a: User, b: User) => (a.email || '').localeCompare(b.email || ''),
+            render: (text: string) => (
+                <Space aria-label="email">
+                    <Mail className="w-4 h-4 text-slate-400" />
+                    <span className="text-slate-600 dark:text-slate-300">{text}</span>
+                </Space>
+            ),
+        },
+        {
+            title: t('userManagement.department'),
+            dataIndex: 'department',
+            key: 'department',
+            sorter: (a: User, b: User) => (a.department || '').localeCompare(b.department || ''),
+            render: (text: string) => <span className="text-slate-600 dark:text-slate-300">{text || '-'}</span>,
+        },
+        {
+            title: t('userManagement.role'),
+            dataIndex: 'role',
+            key: 'role',
+            sorter: (a: User, b: User) => (a.role || '').localeCompare(b.role || ''),
+            render: (role: string) => {
+                const labels: Record<string, string> = {
+                    admin: t('userManagement.admin'),
+                    leader: t('userManagement.leader'),
+                    user: t('userManagement.userRole'),
+                };
+                return (
+                    <Tag color={recordRoleColor(role)} className="capitalize">
+                        {labels[role] || role}
+                    </Tag>
+                );
+            },
+        },
+        {
+            title: t('userManagement.actions'),
+            key: 'actions',
+            align: 'right' as const,
+            render: (_: any, record: User) => {
+                const userIpHistory = ipHistoryMap[record.id] || [];
+                const hasIpHistory = userIpHistory.length > 0;
+                return (
+                    <Space>
+                        <Tooltip title={t('userManagement.viewIpHistory')}>
+                            <Button
                                 type="text"
-                                placeholder={t('userManagement.searchPlaceholder', 'Search users...')}
-                                value={searchQuery}
-                                onChange={(e) => setSearchQuery(e.target.value)}
-                                className="w-full pl-10 pr-4 py-2 border border-slate-300 dark:border-slate-600 rounded-lg bg-white dark:bg-slate-800 text-slate-900 dark:text-white focus:ring-2 focus:ring-primary focus:border-transparent placeholder-slate-400"
+                                icon={<Globe className="w-4 h-4" />}
+                                onClick={() => handleViewIpHistory(record)}
+                                disabled={!hasIpHistory}
+                                className={hasIpHistory ? 'text-slate-400 hover:text-primary-600' : ''}
                             />
-                            {searchQuery && (
-                                <button
-                                    onClick={() => setSearchQuery('')}
-                                    className="absolute right-3 top-1/2 transform -translate-y-1/2 text-slate-400 hover:text-slate-600 dark:hover:text-slate-300"
+                        </Tooltip>
+                        <Tooltip title={t('userManagement.editRole')}>
+                            <Button
+                                type="text"
+                                icon={<Edit2 className="w-4 h-4" />}
+                                onClick={() => handleEditClick(record)}
+                                className="text-slate-400 hover:text-primary-600"
+                            />
+                        </Tooltip>
+                    </Space>
+                );
+            },
+        },
+    ];
+
+    function recordRoleColor(role: string) {
+        if (role === 'admin') return 'purple';
+        if (role === 'leader') return 'blue';
+        return 'default';
+    }
+
+    return (
+        <>
+            <div className="w-full h-full flex flex-col p-6">
+                <Card
+                    styles={{ body: { padding: 0, height: '100%', display: 'flex', flexDirection: 'column' } }}
+                    className="dark:bg-slate-800 dark:border-slate-700 flex-1 min-h-0 overflow-hidden"
+                >
+                    {/* Toolbar */}
+                    <div className="p-4 border-b border-slate-200 dark:border-slate-700 flex flex-col sm:flex-row gap-4 justify-between items-center bg-slate-50/50 dark:bg-slate-900/20">
+                        <div className="flex items-center gap-2 w-full sm:w-auto">
+                            <div className="relative w-full sm:w-64">
+                                <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 w-4 h-4 text-slate-400" />
+                                <input
+                                    type="text"
+                                    placeholder={t('userManagement.searchPlaceholder', 'Search users...')}
+                                    value={searchQuery}
+                                    onChange={(e) => setSearchQuery(e.target.value)}
+                                    className="w-full pl-10 pr-4 py-2 border border-slate-300 dark:border-slate-600 rounded-lg bg-white dark:bg-slate-800 text-slate-900 dark:text-white focus:ring-2 focus:ring-primary focus:border-transparent placeholder-slate-400"
+                                />
+                                {searchQuery && (
+                                    <button
+                                        onClick={() => setSearchQuery('')}
+                                        className="absolute right-3 top-1/2 transform -translate-y-1/2 text-slate-400 hover:text-slate-600 dark:hover:text-slate-300"
+                                    >
+                                        <X className="w-4 h-4" />
+                                    </button>
+                                )}
+                            </div>
+                        </div>
+
+                        <div className="flex items-center gap-2 w-full sm:w-auto overflow-x-auto">
+                            {/* Role Filter */}
+                            <div className="relative min-w-[140px]">
+                                <select
+                                    value={roleFilter}
+                                    onChange={(e) => setRoleFilter(e.target.value as any)}
+                                    className="w-full appearance-none pl-3 pr-8 py-2 border border-slate-300 dark:border-slate-600 rounded-lg bg-white dark:bg-slate-800 text-slate-700 dark:text-slate-300 text-sm focus:ring-2 focus:ring-primary focus:border-transparent"
                                 >
-                                    <X className="w-4 h-4" />
-                                </button>
-                            )}
+                                    <option value="all">{t('userManagement.allRoles', 'All Roles')}</option>
+                                    <option value="admin">{t('userManagement.admin')}</option>
+                                    <option value="leader">{t('userManagement.leader')}</option>
+                                    <option value="user">{t('userManagement.userRole')}</option>
+                                </select>
+                                <Filter className="absolute right-2.5 top-1/2 transform -translate-y-1/2 w-4 h-4 text-slate-400 pointer-events-none" />
+                            </div>
+
+                            {/* Department Filter */}
+                            <div className="relative min-w-[160px]">
+                                <select
+                                    value={departmentFilter}
+                                    onChange={(e) => setDepartmentFilter(e.target.value)}
+                                    className="w-full appearance-none pl-3 pr-8 py-2 border border-slate-300 dark:border-slate-600 rounded-lg bg-white dark:bg-slate-800 text-slate-700 dark:text-slate-300 text-sm focus:ring-2 focus:ring-primary focus:border-transparent"
+                                >
+                                    <option value="all">{t('userManagement.allDepartments', 'All Departments')}</option>
+                                    {departments.map(dept => (
+                                        <option key={dept} value={dept}>{dept}</option>
+                                    ))}
+                                </select>
+                                <Filter className="absolute right-2.5 top-1/2 transform -translate-y-1/2 w-4 h-4 text-slate-400 pointer-events-none" />
+                            </div>
                         </div>
                     </div>
 
-                    <div className="flex items-center gap-2 w-full sm:w-auto overflow-x-auto">
-                        {/* Role Filter */}
-                        <div className="relative min-w-[140px]">
-                            <select
-                                value={roleFilter}
-                                onChange={(e) => setRoleFilter(e.target.value as any)}
-                                className="w-full appearance-none pl-3 pr-8 py-2 border border-slate-300 dark:border-slate-600 rounded-lg bg-white dark:bg-slate-800 text-slate-700 dark:text-slate-300 text-sm focus:ring-2 focus:ring-primary focus:border-transparent"
-                            >
-                                <option value="all">{t('userManagement.allRoles', 'All Roles')}</option>
-                                <option value="admin">{t('userManagement.admin')}</option>
-                                <option value="leader">{t('userManagement.leader')}</option>
-                                <option value="user">{t('userManagement.userRole')}</option>
-                            </select>
-                            <Filter className="absolute right-2.5 top-1/2 transform -translate-y-1/2 w-4 h-4 text-slate-400 pointer-events-none" />
-                        </div>
-
-                        {/* Department Filter */}
-                        <div className="relative min-w-[160px]">
-                            <select
-                                value={departmentFilter}
-                                onChange={(e) => setDepartmentFilter(e.target.value)}
-                                className="w-full appearance-none pl-3 pr-8 py-2 border border-slate-300 dark:border-slate-600 rounded-lg bg-white dark:bg-slate-800 text-slate-700 dark:text-slate-300 text-sm focus:ring-2 focus:ring-primary focus:border-transparent"
-                            >
-                                <option value="all">{t('userManagement.allDepartments', 'All Departments')}</option>
-                                {departments.map(dept => (
-                                    <option key={dept} value={dept}>{dept}</option>
-                                ))}
-                            </select>
-                            <Filter className="absolute right-2.5 top-1/2 transform -translate-y-1/2 w-4 h-4 text-slate-400 pointer-events-none" />
-                        </div>
+                    <div className="flex-1 overflow-auto p-4">
+                        <Table
+                            columns={columns}
+                            dataSource={filteredUsers.slice((currentPage - 1) * pageSize, currentPage * pageSize)}
+                            rowKey="id"
+                            loading={isLoading}
+                            pagination={false}
+                            scroll={{ x: true }}
+                        />
                     </div>
-                </div>
-
-                <div className="overflow-x-auto flex-1">
-                    <table className="w-full text-left border-collapse">
-                        <thead className="sticky top-0 z-10">
-                            <tr className="bg-slate-50 dark:bg-slate-700/50 border-b border-slate-200 dark:border-slate-700">
-                                <th
-                                    className="p-4 text-sm font-medium text-slate-500 dark:text-slate-400 cursor-pointer hover:bg-slate-100 dark:hover:bg-slate-700/50 transition-colors select-none group"
-                                    onClick={() => handleSort('displayName')}
-                                >
-                                    <div className="flex items-center gap-1">
-                                        {t('userManagement.user')}
-                                        {sortConfig.key === 'displayName' ? (
-                                            sortConfig.direction === 'asc' ? <ArrowUp className="w-3 h-3 text-primary-600 dark:text-primary-400" /> : <ArrowDown className="w-3 h-3 text-primary-600 dark:text-primary-400" />
-                                        ) : (
-                                            <ArrowUp className="w-3 h-3 text-slate-300 opacity-0 group-hover:opacity-100 transition-opacity" />
-                                        )}
-                                    </div>
-                                </th>
-                                <th
-                                    className="p-4 text-sm font-medium text-slate-500 dark:text-slate-400 cursor-pointer hover:bg-slate-100 dark:hover:bg-slate-700/50 transition-colors select-none group"
-                                    onClick={() => handleSort('email')}
-                                >
-                                    <div className="flex items-center gap-1">
-                                        {t('userManagement.email')}
-                                        {sortConfig.key === 'email' ? (
-                                            sortConfig.direction === 'asc' ? <ArrowUp className="w-3 h-3 text-primary-600 dark:text-primary-400" /> : <ArrowDown className="w-3 h-3 text-primary-600 dark:text-primary-400" />
-                                        ) : (
-                                            <ArrowUp className="w-3 h-3 text-slate-300 opacity-0 group-hover:opacity-100 transition-opacity" />
-                                        )}
-                                    </div>
-                                </th>
-                                <th
-                                    className="p-4 text-sm font-medium text-slate-500 dark:text-slate-400 cursor-pointer hover:bg-slate-100 dark:hover:bg-slate-700/50 transition-colors select-none group"
-                                    onClick={() => handleSort('department')}
-                                >
-                                    <div className="flex items-center gap-1">
-                                        {t('userManagement.department')}
-                                        {sortConfig.key === 'department' ? (
-                                            sortConfig.direction === 'asc' ? <ArrowUp className="w-3 h-3 text-primary-600 dark:text-primary-400" /> : <ArrowDown className="w-3 h-3 text-primary-600 dark:text-primary-400" />
-                                        ) : (
-                                            <ArrowUp className="w-3 h-3 text-slate-300 opacity-0 group-hover:opacity-100 transition-opacity" />
-                                        )}
-                                    </div>
-                                </th>
-                                <th
-                                    className="p-4 text-sm font-medium text-slate-500 dark:text-slate-400 cursor-pointer hover:bg-slate-100 dark:hover:bg-slate-700/50 transition-colors select-none group"
-                                    onClick={() => handleSort('role')}
-                                >
-                                    <div className="flex items-center gap-1">
-                                        {t('userManagement.role')}
-                                        {sortConfig.key === 'role' ? (
-                                            sortConfig.direction === 'asc' ? <ArrowUp className="w-3 h-3 text-primary-600 dark:text-primary-400" /> : <ArrowDown className="w-3 h-3 text-primary-600 dark:text-primary-400" />
-                                        ) : (
-                                            <ArrowUp className="w-3 h-3 text-slate-300 opacity-0 group-hover:opacity-100 transition-opacity" />
-                                        )}
-                                    </div>
-                                </th>
-                                <th className="p-4 text-sm font-medium text-slate-500 dark:text-slate-400 text-right">{t('userManagement.actions')}</th>
-                            </tr>
-                        </thead>
-                        <tbody className="divide-y divide-slate-200 dark:divide-slate-700">
-                            {filteredUsers.map((user) => {
-                                const userIpHistory = ipHistoryMap[user.id] || [];
-                                const hasIpHistory = userIpHistory.length > 0;
-
-                                return (
-                                    <tr key={user.id} className="hover:bg-slate-50 dark:hover:bg-slate-700/30 transition-colors">
-                                        <td className="p-4">
-                                            <div className="flex items-center gap-3">
-                                                <div className="w-8 h-8 rounded-full bg-primary-100 dark:bg-primary-900/30 flex items-center justify-center text-primary-600 dark:text-primary-400 font-medium text-sm">
-                                                    {(user.displayName || user.email || '?').charAt(0).toUpperCase()}
-                                                </div>
-                                                <span className="font-medium text-slate-900 dark:text-white">{user.displayName || user.email}</span>
-                                            </div>
-                                        </td>
-                                        <td className="p-4 text-slate-600 dark:text-slate-300">
-                                            <div className="flex items-center gap-2">
-                                                <Mail className="w-4 h-4 text-slate-400" />
-                                                {user.email}
-                                            </div>
-                                        </td>
-                                        <td className="p-4 text-slate-600 dark:text-slate-300">
-                                            {user.department || '-'}
-                                        </td>
-                                        <td className="p-4">
-                                            <span className={`inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium capitalize
-                      ${user.role === 'admin' ? 'bg-purple-100 text-purple-800 dark:bg-purple-900/30 dark:text-purple-300' :
-                                                    user.role === 'leader' ? 'bg-blue-100 text-blue-800 dark:bg-blue-900/30 dark:text-blue-300' :
-                                                        'bg-slate-100 text-slate-800 dark:bg-slate-700 dark:text-slate-300'}`}>
-                                                {user.role === 'admin' ? t('userManagement.admin') :
-                                                    user.role === 'leader' ? t('userManagement.leader') :
-                                                        t('userManagement.userRole')}
-                                            </span>
-                                        </td>
-                                        <td className="p-4 text-right">
-                                            <div className="flex items-center justify-end gap-1">
-                                                <button
-                                                    onClick={() => handleViewIpHistory(user)}
-                                                    className={`p-2 transition-colors rounded-full hover:bg-slate-100 dark:hover:bg-slate-700 ${hasIpHistory
-                                                        ? 'text-slate-400 hover:text-primary-600 dark:hover:text-primary-400'
-                                                        : 'text-slate-300 dark:text-slate-600 cursor-not-allowed'
-                                                        }`}
-                                                    title={t('userManagement.viewIpHistory')}
-                                                    disabled={!hasIpHistory}
-                                                >
-                                                    <Globe className="w-4 h-4" />
-                                                </button>
-
-                                                <button
-                                                    onClick={() => handleEditClick(user)}
-                                                    className="p-2 text-slate-400 hover:text-primary-600 dark:hover:text-primary-400 transition-colors rounded-full hover:bg-slate-100 dark:hover:bg-slate-700"
-                                                    title={t('userManagement.editRole')}
-                                                >
-                                                    <Edit2 className="w-4 h-4" />
-                                                </button>
-                                            </div>
-                                        </td>
-                                    </tr>
-                                );
-                            })}
-                        </tbody>
-                    </table>
-                </div>
+                    <div className="flex justify-end p-4 border-t border-slate-200 dark:border-slate-700">
+                        <Pagination
+                            current={currentPage}
+                            total={filteredUsers.length}
+                            pageSize={pageSize}
+                            showSizeChanger={true}
+                            showTotal={(total: number) => t('common.totalItems', { total })}
+                            pageSizeOptions={['10', '20', '50', '100']}
+                            onChange={(page: number, size: number) => {
+                                setCurrentPage(page);
+                                setPageSize(size);
+                            }}
+                        />
+                    </div>
+                </Card>
             </div>
 
             {/* IP History Dialog */}
@@ -506,43 +497,41 @@ export default function UserManagementPage() {
             >
                 <div className="py-4">
                     {/* User info header */}
-                    <div className="flex items-center gap-3 p-3 mb-4 bg-slate-50 dark:bg-slate-800 rounded-lg border border-slate-200 dark:border-slate-700">
-                        <div className="w-10 h-10 rounded-full bg-primary-100 dark:bg-primary-900/30 flex items-center justify-center text-primary-600 dark:text-primary-400 font-medium">
-                            {(ipDialogUser?.displayName || ipDialogUser?.email || '?').charAt(0).toUpperCase()}
+                    {ipDialogUser && (
+                        <div className="flex items-center gap-3 p-3 mb-4 bg-slate-50 dark:bg-slate-800 rounded-lg border border-slate-200 dark:border-slate-700">
+                            <div className="w-10 h-10 rounded-full bg-primary-100 dark:bg-primary-900/30 flex items-center justify-center text-primary-600 dark:text-primary-400 font-medium">
+                                {(ipDialogUser.displayName || ipDialogUser.email || '?').charAt(0).toUpperCase()}
+                            </div>
+                            <div>
+                                <div className="font-medium text-slate-900 dark:text-white">{ipDialogUser.displayName || ipDialogUser.email}</div>
+                                <div className="text-sm text-slate-500 dark:text-slate-400">{ipDialogUser.email}</div>
+                            </div>
                         </div>
-                        <div>
-                            <div className="font-medium text-slate-900 dark:text-white">{ipDialogUser?.displayName || ipDialogUser?.email}</div>
-                            <div className="text-sm text-slate-500 dark:text-slate-400">{ipDialogUser?.email}</div>
-                        </div>
-                    </div>
+                    )}
 
                     {/* IP History Table */}
                     {ipDialogUser && (ipHistoryMap[ipDialogUser.id] || []).length > 0 ? (
-                        <div className="bg-white dark:bg-slate-700 rounded-lg border border-slate-200 dark:border-slate-600 overflow-hidden">
-                            <table className="w-full text-sm">
-                                <thead>
-                                    <tr className="bg-slate-100 dark:bg-slate-600">
-                                        <th className="px-4 py-2 text-left text-xs font-medium text-slate-500 dark:text-slate-400">
-                                            {t('userManagement.ipAddress')}
-                                        </th>
-                                        <th className="px-4 py-2 text-left text-xs font-medium text-slate-500 dark:text-slate-400">
-                                            {t('userManagement.lastAccess')}
-                                        </th>
-                                    </tr>
-                                </thead>
-                                <tbody className="divide-y divide-slate-200 dark:divide-slate-600">
-                                    {(ipHistoryMap[ipDialogUser.id] || []).map((record) => (
-                                        <tr key={record.id} className="hover:bg-slate-50 dark:hover:bg-slate-600/50">
-                                            <td className="px-4 py-2 font-mono text-slate-700 dark:text-slate-300">
-                                                {record.ip_address}
-                                            </td>
-                                            <td className="px-4 py-2 text-slate-600 dark:text-slate-400">
-                                                {formatDate(record.last_accessed_at)}
-                                            </td>
-                                        </tr>
-                                    ))}
-                                </tbody>
-                            </table>
+                        <div className="overflow-hidden">
+                            <Table
+                                dataSource={ipHistoryMap[ipDialogUser.id]}
+                                rowKey="id"
+                                pagination={{ pageSize: 10 }}
+                                size="small"
+                                columns={[
+                                    {
+                                        title: t('userManagement.ipAddress'),
+                                        dataIndex: 'ip_address',
+                                        key: 'ip_address',
+                                        render: (text) => <span className="font-mono">{text}</span>
+                                    },
+                                    {
+                                        title: t('userManagement.lastAccess'),
+                                        dataIndex: 'last_accessed_at',
+                                        key: 'last_accessed_at',
+                                        render: (text) => formatDate(text)
+                                    }
+                                ]}
+                            />
                         </div>
                     ) : (
                         <div className="text-center text-slate-500 dark:text-slate-400 py-8">
@@ -574,26 +563,27 @@ export default function UserManagementPage() {
                     </>
                 }
             >
-                {/* ... existing edit role dialog content ... */}
                 <div className="space-y-4 py-4">
-                    <div className="flex items-center gap-3 p-3 bg-slate-50 dark:bg-slate-800 rounded-lg border border-slate-200 dark:border-slate-700">
-                        <div className="w-10 h-10 rounded-full bg-primary-100 dark:bg-primary-900/30 flex items-center justify-center text-primary-600 dark:text-primary-400 font-medium">
-                            {(selectedUser?.displayName || selectedUser?.email || '?').charAt(0).toUpperCase()}
+                    {selectedUser && (
+                        <div className="flex items-center gap-3 p-3 bg-slate-50 dark:bg-slate-800 rounded-lg border border-slate-200 dark:border-slate-700">
+                            <div className="w-10 h-10 rounded-full bg-primary-100 dark:bg-primary-900/30 flex items-center justify-center text-primary-600 dark:text-primary-400 font-medium">
+                                {(selectedUser.displayName || selectedUser.email || '?').charAt(0).toUpperCase()}
+                            </div>
+                            <div>
+                                <div className="font-medium text-slate-900 dark:text-white">{selectedUser.displayName || selectedUser.email}</div>
+                                <div className="text-sm text-slate-500 dark:text-slate-400">{selectedUser.email}</div>
+                                {selectedUser.job_title && (
+                                    <div className="text-xs text-slate-500 dark:text-slate-400 mt-1">{selectedUser.job_title}</div>
+                                )}
+                                {selectedUser.department && (
+                                    <div className="text-xs text-slate-500 dark:text-slate-400">{selectedUser.department}</div>
+                                )}
+                                {selectedUser.mobile_phone && (
+                                    <div className="text-xs text-slate-500 dark:text-slate-400">{selectedUser.mobile_phone}</div>
+                                )}
+                            </div>
                         </div>
-                        <div>
-                            <div className="font-medium text-slate-900 dark:text-white">{selectedUser?.displayName || selectedUser?.email}</div>
-                            <div className="text-sm text-slate-500 dark:text-slate-400">{selectedUser?.email}</div>
-                            {selectedUser?.job_title && (
-                                <div className="text-xs text-slate-500 dark:text-slate-400 mt-1">{selectedUser.job_title}</div>
-                            )}
-                            {selectedUser?.department && (
-                                <div className="text-xs text-slate-500 dark:text-slate-400">{selectedUser.department}</div>
-                            )}
-                            {selectedUser?.mobile_phone && (
-                                <div className="text-xs text-slate-500 dark:text-slate-400">{selectedUser.mobile_phone}</div>
-                            )}
-                        </div>
-                    </div>
+                    )}
 
                     <div>
                         <label className="block text-sm font-medium text-slate-700 dark:text-slate-300 mb-2">
@@ -604,7 +594,7 @@ export default function UserManagementPage() {
                                 <label
                                     key={role}
                                     className={`flex items-center p-3 border rounded-lg cursor-pointer transition-all
-                    ${newRole === role
+                        ${newRole === role
                                             ? 'border-primary-600 bg-primary-50 dark:bg-primary-900/20 ring-1 ring-primary-600'
                                             : 'border-slate-200 dark:border-slate-700 hover:border-slate-300 dark:hover:border-slate-600'}`}
                                 >
@@ -668,15 +658,17 @@ export default function UserManagementPage() {
                 }
             >
                 <div className="py-4 space-y-4">
-                    <div className="flex items-center gap-3 p-3 bg-slate-50 dark:bg-slate-800 rounded-lg border border-slate-200 dark:border-slate-700">
-                        <div className="w-10 h-10 rounded-full bg-primary-100 dark:bg-primary-900/30 flex items-center justify-center text-primary-600 dark:text-primary-400 font-medium">
-                            {(selectedUser?.displayName || selectedUser?.email || '?').charAt(0).toUpperCase()}
+                    {selectedUser && (
+                        <div className="flex items-center gap-3 p-3 bg-slate-50 dark:bg-slate-800 rounded-lg border border-slate-200 dark:border-slate-700">
+                            <div className="w-10 h-10 rounded-full bg-primary-100 dark:bg-primary-900/30 flex items-center justify-center text-primary-600 dark:text-primary-400 font-medium">
+                                {(selectedUser.displayName || selectedUser.email || '?').charAt(0).toUpperCase()}
+                            </div>
+                            <div>
+                                <div className="font-medium text-slate-900 dark:text-white">{selectedUser.displayName || selectedUser.email}</div>
+                                <div className="text-sm text-slate-500 dark:text-slate-400">{selectedUser.email}</div>
+                            </div>
                         </div>
-                        <div>
-                            <div className="font-medium text-slate-900 dark:text-white">{selectedUser?.displayName || selectedUser?.email}</div>
-                            <div className="text-sm text-slate-500 dark:text-slate-400">{selectedUser?.email}</div>
-                        </div>
-                    </div>
+                    )}
 
                     <div className="space-y-3">
                         <label className="block text-sm font-medium text-slate-700 dark:text-slate-300">
@@ -710,7 +702,6 @@ export default function UserManagementPage() {
                     </div>
                 </div>
             </Dialog>
-        </div>
+        </>
     );
-
 }

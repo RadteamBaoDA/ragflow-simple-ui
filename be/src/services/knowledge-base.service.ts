@@ -5,6 +5,7 @@ import { log } from '@/services/logger.service.js';
 import { auditService, AuditAction, AuditResourceType } from '@/services/audit.service.js';
 import { KnowledgeBaseSource } from '@/models/types.js';
 import { teamService } from '@/services/team.service.js';
+import { promptPermissionService } from '@/services/prompt-permission.service.js';
 
 export interface AccessControl {
     public: boolean;
@@ -129,10 +130,15 @@ export class KnowledgeBaseService {
 
         if (existing) {
             // Update existing record
-            await ModelFactory.systemConfig.update(key, { value });
+            await ModelFactory.systemConfig.update(key, { value, updated_by: user?.id || null });
         } else {
             // Create new record
-            await ModelFactory.systemConfig.create({ key, value });
+            await ModelFactory.systemConfig.create({
+                key,
+                value,
+                created_by: user?.id || null,
+                updated_by: user?.id || null
+            });
         }
 
         // Log audit event
@@ -159,12 +165,24 @@ export class KnowledgeBaseService {
      */
     async createSource(data: any, user?: { id: string, email: string, ip?: string }): Promise<KnowledgeBaseSource> {
         try {
+            // Check for duplicate name
+            const existingSource = await ModelFactory.knowledgeBaseSource.getKnex()
+                .where('name', data.name)
+                .first();
+            if (existingSource) {
+                throw new Error(`Knowledge base source with name "${data.name}" already exists`);
+            }
+
             // Create source in database
             const source = await ModelFactory.knowledgeBaseSource.create({
                 type: data.type,
                 name: data.name,
                 url: data.url,
-                access_control: JSON.stringify(data.access_control || { public: true })
+                description: data.description || null,
+                share_id: data.share_id || null,
+                access_control: JSON.stringify(data.access_control || { public: true }),
+                created_by: user?.id || null,
+                updated_by: user?.id || null
             });
 
             // Log audit event
@@ -221,7 +239,26 @@ export class KnowledgeBaseService {
             // Gather fields to update
             if (data.name !== undefined) updateData.name = data.name;
             if (data.url !== undefined) updateData.url = data.url;
+            if (data.description !== undefined) updateData.description = data.description;
+            if (data.share_id !== undefined) updateData.share_id = data.share_id;
             if (data.access_control !== undefined) updateData.access_control = JSON.stringify(data.access_control);
+            if (user) updateData.updated_by = user.id;
+
+            // Check for duplicate name (only if name is being changed to a different value)
+            if (data.name !== undefined) {
+                // Fetch current source to compare names
+                const currentSource = await ModelFactory.knowledgeBaseSource.findById(id);
+                // Only check duplicates if the name is actually changing
+                if (currentSource && data.name !== currentSource.name) {
+                    const existingSource = await ModelFactory.knowledgeBaseSource.getKnex()
+                        .where('name', data.name)
+                        .whereNot('id', id)
+                        .first();
+                    if (existingSource) {
+                        throw new Error(`Knowledge base source with name "${data.name}" already exists`);
+                    }
+                }
+            }
 
             // Execute update
             const source = await ModelFactory.knowledgeBaseSource.update(id, updateData);
@@ -241,13 +278,24 @@ export class KnowledgeBaseService {
 
             return source;
         } catch (error) {
-            // Log error and rethrow
-            log.error('Failed to update knowledge base source in database', {
-                id,
-                error: error instanceof Error ? error.message : String(error),
-                stack: error instanceof Error ? error.stack : undefined,
-                data: data
-            });
+            // Check if this is a duplicate name validation error (expected user input error)
+            const isDuplicateError = error instanceof Error && error.message.includes('already exists');
+
+            if (isDuplicateError) {
+                // Log as warning for validation errors
+                log.warn('Knowledge base source name already exists', {
+                    id,
+                    name: data.name,
+                });
+            } else {
+                // Log as error for unexpected failures
+                log.error('Failed to update knowledge base source in database', {
+                    id,
+                    error: error instanceof Error ? error.message : String(error),
+                    stack: error instanceof Error ? error.stack : undefined,
+                    data: data
+                });
+            }
             throw error;
         }
     }
@@ -300,12 +348,16 @@ export class KnowledgeBaseService {
         const defaultChatSourceId = await ModelFactory.systemConfig.findById('defaultChatSourceId');
         const defaultSearchSourceId = await ModelFactory.systemConfig.findById('defaultSearchSourceId');
 
+        // Fetch prompt permission for the user
+        const promptPermission = user ? await promptPermissionService.resolveUserPermission(user.id) : 0;
+
         // Construct config payload
         return {
             chatSources: availableSources.filter(s => s.type === 'chat'),
             searchSources: availableSources.filter(s => s.type === 'search'),
             defaultChatSourceId: defaultChatSourceId?.value || '',
-            defaultSearchSourceId: defaultSearchSourceId?.value || ''
+            defaultSearchSourceId: defaultSearchSourceId?.value || '',
+            promptPermission
         };
     }
 
