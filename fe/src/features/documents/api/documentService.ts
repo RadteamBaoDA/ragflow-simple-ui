@@ -1,15 +1,15 @@
 /**
- * @fileoverview MinIO storage service for Knowledge Base document operations.
+ * @fileoverview Document storage service for Knowledge Base document operations.
  *
- * Provides API functions for interacting with MinIO object storage:
+ * Provides API functions for interacting with storage:
  * - Bucket management (list, add, remove configurations) - stored in database
- * - File operations (list, upload, download, delete) - directly from MinIO
+ * - File operations (list, upload, download, delete) - directly from storage
  * - Folder management and batch operations
  *
  * All operations require authentication and appropriate permissions.
  * Used by the Knowledge Base Documents page (DocumentManagerPage).
  *
- * @module services/minioService
+ * @module services/documentService
  */
 
 /** Backend API base URL */
@@ -54,12 +54,12 @@ export interface StoragePermission {
 }
 
 /**
- * @description MinIO bucket configuration as stored in the application database.
+ * @description Document bucket configuration as stored in the application database.
  */
-export interface MinioBucket {
+export interface DocumentBucket {
     /** Unique bucket ID (UUID) */
     id: string;
-    /** MinIO bucket name (S3-compatible) */
+    /** Bucket name (S3-compatible) */
     bucket_name: string;
     /** Human-readable display name */
     display_name: string;
@@ -74,7 +74,7 @@ export interface MinioBucket {
 }
 
 /**
- * @description Represents a file or folder object returned from MinIO.
+ * @description Represents a file or folder object returned from storage.
  */
 export interface FileObject {
     /** Object name (file name or folder name) */
@@ -94,8 +94,8 @@ export interface FileObject {
 /**
  * @description Data transfer object for adding a new bucket configuration.
  */
-export interface CreateBucketDto {
-    /** MinIO bucket name (must exist in MinIO, follow S3 naming rules) */
+export interface CreateDocumentBucketDto {
+    /** Bucket name (must exist in storage, follow S3 naming rules) */
     bucket_name: string;
     /** Human-readable display name */
     display_name: string;
@@ -104,10 +104,10 @@ export interface CreateBucketDto {
 }
 
 /**
- * @description Available bucket information directly from MinIO (not yet configured in app).
+ * @description Available bucket information directly from storage (not yet configured in app).
  */
 export interface AvailableBucket {
-    /** MinIO bucket name */
+    /** Bucket name */
     name: string;
     /** Creation timestamp */
     creationDate: string;
@@ -127,10 +127,10 @@ export interface AccessKey {
 
 
 /**
- * @description Custom error class for MinIO service errors.
+ * @description Custom error class for Document service errors.
  * Includes error code for handling specific error types.
  */
-export class MinioServiceError extends Error {
+export class DocumentServiceError extends Error {
     /** Optional error code string */
     code?: string | undefined;
 
@@ -141,7 +141,7 @@ export class MinioServiceError extends Error {
     constructor(message: string, code?: string | undefined) {
         super(message);
         this.code = code;
-        this.name = 'MinioServiceError';
+        this.name = 'DocumentServiceError';
     }
 }
 
@@ -151,11 +151,11 @@ export class MinioServiceError extends Error {
 
 /**
  * @description Fetch all configured buckets from database.
- * @returns {Promise<MinioBucket[]>} Array of bucket configurations.
+ * @returns {Promise<DocumentBucket[]>} Array of bucket configurations.
  * @throws {Error} If fetch fails.
  */
-export const getBuckets = async (): Promise<MinioBucket[]> => {
-    const response = await fetch(`${API_BASE_URL}/api/minio/buckets`, {
+export const getBuckets = async (): Promise<DocumentBucket[]> => {
+    const response = await fetch(`${API_BASE_URL}/api/document/buckets`, {
         credentials: 'include',
     });
 
@@ -168,12 +168,12 @@ export const getBuckets = async (): Promise<MinioBucket[]> => {
 };
 
 /**
- * @description Fetch available buckets from MinIO (not yet configured).
+ * @description Fetch available buckets from storage (not yet configured).
  * @returns {Promise<AvailableBucket[]>} Array of available buckets.
  * @throws {Error} If fetch fails.
  */
 export const getAvailableBuckets = async (): Promise<AvailableBucket[]> => {
-    const response = await fetch(`${API_BASE_URL}/api/minio/buckets/available/list`, {
+    const response = await fetch(`${API_BASE_URL}/api/document/buckets/available`, {
         credentials: 'include',
     });
 
@@ -187,14 +187,14 @@ export const getAvailableBuckets = async (): Promise<AvailableBucket[]> => {
 
 /**
  * @description Add a bucket configuration to database.
- * The bucket must already exist in MinIO.
+ * The bucket must already exist in storage.
  *
- * @param {CreateBucketDto} bucket - Bucket configuration data.
- * @returns {Promise<MinioBucket>} Created bucket configuration.
+ * @param {CreateDocumentBucketDto} bucket - Bucket configuration data.
+ * @returns {Promise<DocumentBucket>} Created bucket configuration.
  * @throws {Error} If creation fails.
  */
-export const createBucket = async (bucket: CreateBucketDto): Promise<MinioBucket> => {
-    const response = await fetch(`${API_BASE_URL}/api/minio/buckets`, {
+export const createBucket = async (bucket: CreateDocumentBucketDto): Promise<DocumentBucket> => {
+    const response = await fetch(`${API_BASE_URL}/api/document/buckets`, {
         method: 'POST',
         headers: {
             'Content-Type': 'application/json',
@@ -214,14 +214,14 @@ export const createBucket = async (bucket: CreateBucketDto): Promise<MinioBucket
 
 /**
  * @description Remove a bucket configuration from database.
- * This does NOT delete the bucket from MinIO.
+ * This does NOT delete the bucket from storage.
  *
  * @param {string} bucketId - Bucket UUID to remove.
  * @returns {Promise<void>}
  * @throws {Error} If removal fails.
  */
 export const deleteBucket = async (bucketId: string): Promise<void> => {
-    const response = await fetch(`${API_BASE_URL}/api/minio/buckets/${bucketId}`, {
+    const response = await fetch(`${API_BASE_URL}/api/document/buckets/${bucketId}`, {
         method: 'DELETE',
         credentials: 'include',
     });
@@ -237,18 +237,18 @@ export const deleteBucket = async (bucketId: string): Promise<void> => {
 // ============================================================================
 
 /**
- * @description List objects in a bucket at the given prefix (realtime from MinIO).
+ * @description List objects in a bucket at the given prefix (realtime from storage).
  *
  * @param {string} bucketId - Bucket UUID.
  * @param {string} [prefix=''] - Path prefix (folder path).
  * @returns {Promise<FileObject[]>} Array of file/folder objects.
- * @throws {MinioServiceError} If listing fails (with error code for specific handling).
+ * @throws {DocumentServiceError} If listing fails (with error code for specific handling).
  */
 export const listObjects = async (
     bucketId: string,
     prefix: string = ''
 ): Promise<FileObject[]> => {
-    let url = `${API_BASE_URL}/api/minio/documents/${bucketId}/list`;
+    let url = `${API_BASE_URL}/api/document/storage/${bucketId}/list`;
     if (prefix) {
         url += `?prefix=${encodeURIComponent(prefix)}`;
     }
@@ -259,7 +259,7 @@ export const listObjects = async (
 
     if (!response.ok) {
         const errorData = await response.json().catch(() => ({}));
-        const error = new MinioServiceError(
+        const error = new DocumentServiceError(
             errorData.message || errorData.error || `Failed to list objects: ${response.statusText}`,
             errorData.code
         );
@@ -305,7 +305,7 @@ export const uploadFiles = async (
     }
 
     // Build URL with prefix as query parameter (backend expects it in query string)
-    let uploadUrl = `${API_BASE_URL}/api/minio/documents/${bucketId}/upload`;
+    let uploadUrl = `${API_BASE_URL}/api/document/storage/${bucketId}/upload`;
     if (prefix) {
         uploadUrl += `?prefix=${encodeURIComponent(prefix)}`;
     }
@@ -341,7 +341,7 @@ export const uploadFiles = async (
 
 /**
  * @description Create a folder in a bucket.
- * Folder creation in MinIO usually means creating a zero-byte object ending in '/'.
+ * Folder creation usually means creating a zero-byte object ending in '/'.
  *
  * @param {string} bucketId - Bucket UUID.
  * @param {string} folderName - Folder name to create.
@@ -354,7 +354,7 @@ export const createFolder = async (
     folderName: string,
     prefix: string = ''
 ): Promise<void> => {
-    const response = await fetch(`${API_BASE_URL}/api/minio/documents/${bucketId}/folder`, {
+    const response = await fetch(`${API_BASE_URL}/api/document/storage/${bucketId}/folder`, {
         method: 'POST',
         headers: {
             'Content-Type': 'application/json',
@@ -386,7 +386,7 @@ export const deleteObject = async (
     objectName: string,
     isFolder: boolean
 ): Promise<void> => {
-    const response = await fetch(`${API_BASE_URL}/api/minio/documents/${bucketId}/delete`, {
+    const response = await fetch(`${API_BASE_URL}/api/document/storage/${bucketId}/delete`, {
         method: 'DELETE',
         headers: {
             'Content-Type': 'application/json',
@@ -416,7 +416,7 @@ export const batchDelete = async (
     bucketId: string,
     objects: Array<{ name: string; isFolder: boolean }>
 ): Promise<void> => {
-    const response = await fetch(`${API_BASE_URL}/api/minio/documents/${bucketId}/batch-delete`, {
+    const response = await fetch(`${API_BASE_URL}/api/document/storage/${bucketId}/batch-delete`, {
         method: 'POST',
         headers: {
             'Content-Type': 'application/json',
@@ -447,7 +447,7 @@ export const batchDelete = async (
  * @throws {Error} If URL generation fails.
  */
 export const getDownloadUrl = async (bucketId: string, objectPath: string, preview: boolean = false): Promise<string> => {
-    let url = `${API_BASE_URL}/api/minio/documents/${bucketId}/download/${objectPath}`;
+    let url = `${API_BASE_URL}/api/document/storage/${bucketId}/download/${objectPath}`;
     if (preview) {
         url += '?preview=true';
     }
@@ -479,7 +479,7 @@ export const checkFilesExistence = async (
     bucketId: string,
     files: string[]
 ): Promise<{ exists: string[] }> => {
-    const response = await fetch(`${API_BASE_URL}/api/minio/documents/${bucketId}/check-existence`, {
+    const response = await fetch(`${API_BASE_URL}/api/document/storage/${bucketId}/check-existence`, {
         method: 'POST',
         headers: {
             'Content-Type': 'application/json',
@@ -497,11 +497,11 @@ export const checkFilesExistence = async (
 };
 
 // ============================================================================
-// Raw MinIO Operations (Admin only)
+// Raw Storage Operations (Admin only)
 // ============================================================================
 
 /**
- * @description List all buckets directly from MinIO (Admin only).
+ * @description List all buckets directly from storage (Admin only).
  * @returns {Promise<any[]>} Array of available buckets.
  * @throws {Error} If fetch fails.
  */
@@ -538,7 +538,7 @@ export const getRawBucketStats = async (bucketName: string): Promise<{ objectCou
 };
 
 /**
- * @description Create a new bucket directly in MinIO (Admin only).
+ * @description Create a new bucket directly in storage (Admin only).
  * @param {string} bucketName - Name of the new bucket.
  * @returns {Promise<void>}
  * @throws {Error} If creation fails.
@@ -560,7 +560,7 @@ export const createRawBucket = async (bucketName: string): Promise<void> => {
 };
 
 /**
- * @description Delete a bucket directly from MinIO (Admin only).
+ * @description Delete a bucket directly from storage (Admin only).
  * @param {string} bucketName - Name of the bucket to delete.
  * @returns {Promise<void>}
  * @throws {Error} If deletion fails.
@@ -577,7 +577,7 @@ export const deleteRawBucket = async (bucketName: string): Promise<void> => {
 };
 
 /**
- * @description Get global MinIO statistics (Admin only).
+ * @description Get global storage statistics (Admin only).
  * @returns {Promise<object>} Object containing global metrics, distribution, and top items.
  * @throws {Error} If fetch fails.
  */

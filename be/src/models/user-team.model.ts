@@ -57,20 +57,17 @@ export class UserTeamModel extends BaseModel<UserTeam> {
    * @returns Promise<void>
    * @description Uses PostgreSQL ON CONFLICT clause to update role if membership exists, otherwise inserts new.
    */
-  async upsert(userId: string, teamId: string, role: 'member' | 'leader' = 'member', actorId?: string): Promise<void> {
-    // Perform upsert
+  async upsert(userId: string, teamId: string, role: 'member' | 'leader' = 'member', _actorId?: string): Promise<void> {
+    // Perform upsert (user_teams table only has: user_id, team_id, role, joined_at)
     await this.knex(this.tableName)
       .insert({
         user_id: userId,
         team_id: teamId,
-        role,
-        created_by: actorId || null,
-        updated_by: actorId || null
+        role
       }) // Try to insert
       .onConflict(['user_id', 'team_id']) // Check for unique constraint violation
       .merge({
-        role,
-        updated_by: actorId || null
+        role
       }) // Update role if conflict occurs
   }
 

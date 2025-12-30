@@ -39,10 +39,13 @@ export class KnowledgeBaseController {
             // Create source via service
             const source = await knowledgeBaseService.createSource(req.body, user);
             res.status(201).json(source);
-        } catch (error) {
-            // Log error and return 500 status
+        } catch (error: any) {
+            // Log error
             log.error('Failed to create knowledge base source', { error: String(error) });
-            res.status(500).json({ error: 'Failed to create knowledge base source' });
+
+            // Return specific error message if available, otherwise generic
+            const status = error.message?.includes('already exists') ? 409 : 500;
+            res.status(status).json({ error: error.message || 'Failed to create knowledge base source' });
         }
     }
 
@@ -71,10 +74,13 @@ export class KnowledgeBaseController {
                 return;
             }
             res.json(source);
-        } catch (error) {
-            // Log error and return 500 status
+        } catch (error: any) {
+            // Log error
             log.error('Failed to update knowledge base source', { error: String(error) });
-            res.status(500).json({ error: 'Failed to update knowledge base source' });
+
+            // Return specific error message if available
+            const status = error.message?.includes('already exists') ? 409 : 500;
+            res.status(status).json({ error: error.message || 'Failed to update knowledge base source' });
         }
     }
 

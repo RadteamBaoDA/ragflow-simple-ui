@@ -20,6 +20,14 @@ export interface Team {
     created_at: string;
     /** ISO timestamp of last update */
     updated_at: string;
+    /** Number of members in the team */
+    member_count?: number;
+    /** Team leader info */
+    leader?: {
+        id: string;
+        display_name: string;
+        email: string;
+    } | null;
 }
 
 /**
@@ -64,7 +72,9 @@ export const teamService = {
     async getTeams(): Promise<Team[]> {
         const response = await fetch(`${config.apiBaseUrl}/api/teams`, {
             headers: {
-                'Authorization': `Bearer ${localStorage.getItem('token')}`
+                'Authorization': `Bearer ${localStorage.getItem('token')}`,
+                'Cache-Control': 'no-cache, no-store, must-revalidate',
+                'Pragma': 'no-cache'
             },
             credentials: 'include'
         });

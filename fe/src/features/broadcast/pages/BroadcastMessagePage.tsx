@@ -11,7 +11,8 @@ import { Plus, CheckCircle, Trash2, Edit2, XCircle } from 'lucide-react';
 import { Dialog } from '@/components/Dialog';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 
-import { Table, Tag, Button, Card, Space, Pagination, Tooltip } from 'antd';
+import { Table, Tag, Button, Card, Space, Pagination, Tooltip, DatePicker, ColorPicker } from 'antd';
+import dayjs from 'dayjs';
 
 /**
  * @description Admin dashboard page for creating, editing, and deleting broadcast messages.
@@ -99,7 +100,7 @@ const BroadcastMessagePage: React.FC = () => {
                         message: '',
                         starts_at: new Date().toISOString().slice(0, 16),
                         ends_at: new Date(Date.now() + 86400000).toISOString().slice(0, 16),
-                        color: '#E75E40',
+                        color: '#4043e7ff',
                         font_color: '#FFFFFF',
                         is_active: true,
                         is_dismissible: true,
@@ -258,40 +259,44 @@ const BroadcastMessagePage: React.FC = () => {
                     <div className="grid grid-cols-2 gap-4">
                         <div>
                             <label className="block text-sm font-medium mb-1">{t('common.startDate')}</label>
-                            <input
-                                type="datetime-local"
-                                className="w-full input"
-                                value={editingMessage?.starts_at?.slice(0, 16) || ''}
-                                onChange={(e) => setEditingMessage({ ...editingMessage, starts_at: e.target.value })}
+                            <DatePicker
+                                showTime
+                                className="w-full"
+                                value={editingMessage?.starts_at ? dayjs(editingMessage.starts_at) : null}
+                                onChange={(date) => setEditingMessage({ ...editingMessage, starts_at: date?.toISOString() || '' })}
+                                placeholder={t('common.selectDateTime')}
+                                disabledDate={(current) => editingMessage?.ends_at ? current > dayjs(editingMessage.ends_at) : false}
                             />
                         </div>
                         <div>
                             <label className="block text-sm font-medium mb-1">{t('common.endDate')}</label>
-                            <input
-                                type="datetime-local"
-                                className="w-full input"
-                                value={editingMessage?.ends_at?.slice(0, 16) || ''}
-                                onChange={(e) => setEditingMessage({ ...editingMessage, ends_at: e.target.value })}
+                            <DatePicker
+                                showTime
+                                className="w-full"
+                                value={editingMessage?.ends_at ? dayjs(editingMessage.ends_at) : null}
+                                onChange={(date) => setEditingMessage({ ...editingMessage, ends_at: date?.toISOString() || '' })}
+                                placeholder={t('common.selectDateTime')}
+                                disabledDate={(current) => editingMessage?.starts_at ? current < dayjs(editingMessage.starts_at) : false}
                             />
                         </div>
                     </div>
                     <div className="grid grid-cols-2 gap-4">
                         <div>
                             <label className="block text-sm font-medium mb-1">{t('common.backgroundColor')}</label>
-                            <input
-                                type="color"
-                                className="w-full h-10 p-1"
-                                value={editingMessage?.color || '#E75E40'}
-                                onChange={(e) => setEditingMessage({ ...editingMessage, color: e.target.value })}
+                            <ColorPicker
+                                value={editingMessage?.color || '#4043e7ff'}
+                                onChange={(color) => setEditingMessage({ ...editingMessage, color: color.toHexString() })}
+                                showText
+                                format="hex"
                             />
                         </div>
                         <div>
                             <label className="block text-sm font-medium mb-1">{t('common.fontColor')}</label>
-                            <input
-                                type="color"
-                                className="w-full h-10 p-1"
+                            <ColorPicker
                                 value={editingMessage?.font_color || '#FFFFFF'}
-                                onChange={(e) => setEditingMessage({ ...editingMessage, font_color: e.target.value })}
+                                onChange={(color) => setEditingMessage({ ...editingMessage, font_color: color.toHexString() })}
+                                showText
+                                format="hex"
                             />
                         </div>
                     </div>

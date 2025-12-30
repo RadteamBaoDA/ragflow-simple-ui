@@ -6,6 +6,8 @@
 import { useState, useEffect, useRef, useMemo } from 'react';
 import { useInfiniteQuery, useQuery } from '@tanstack/react-query';
 import { useTranslation } from 'react-i18next';
+import { DatePicker } from 'antd';
+import dayjs from 'dayjs';
 import { apiFetch } from '@/lib/api';
 import { Filter, Search, MessageSquare, FileText, Clock, User, ChevronRight, Sparkles, PanelLeftClose, PanelLeft, RefreshCw } from 'lucide-react';
 import { Dialog } from '@/components/Dialog';
@@ -29,6 +31,8 @@ interface ChatSessionSummary {
     created_at: string; // Max/Latest timestamp
     /** Total number of messages in the session */
     message_count: string | number;
+    /** Source name */
+    source_name?: string;
 }
 
 /**
@@ -45,6 +49,8 @@ interface SearchSessionSummary {
     created_at: string;
     /** Number of related activities/messages */
     message_count: string | number;
+    /** Source name */
+    source_name?: string;
 }
 
 /**
@@ -80,6 +86,7 @@ interface FilterState {
     email: string;
     startDate: string;
     endDate: string;
+    sourceName?: string;
 }
 
 // ============================================================================
@@ -416,10 +423,15 @@ function HistoriesPage() {
 
                                             <div className="flex items-center justify-between text-xs">
                                                 <div className="flex items-center gap-2 text-slate-500 dark:text-slate-300">
+                                                    {item.source_name && (
+                                                        <div className="flex items-center gap-1.5 px-2 py-0.5 rounded-full bg-violet-50/50 dark:bg-violet-900/10 border border-violet-100 dark:border-violet-900/30">
+                                                            <span className="truncate max-w-[100px] font-bold text-[10px] text-violet-600 dark:text-violet-400 uppercase tracking-wide">{item.source_name}</span>
+                                                        </div>
+                                                    )}
                                                     {item.user_email ? (
                                                         <div className="flex items-center gap-1.5 px-2 py-0.5 rounded-full bg-blue-50/50 dark:bg-blue-900/10 border border-blue-100 dark:border-blue-900/30">
                                                             <User size={10} className="text-blue-500" />
-                                                            <span className="truncate max-w-[120px] font-medium text-blue-600 dark:text-blue-400">{item.user_email}</span>
+                                                            <span className="truncate max-w-[100px] font-medium text-blue-600 dark:text-blue-400">{item.user_email}</span>
                                                         </div>
                                                     ) : (
                                                         <span className="italic text-slate-400">Anonymous</span>
@@ -670,23 +682,35 @@ function HistoriesPage() {
                             placeholder="e.g. user@example.com"
                         />
                     </div>
+                    <div>
+                        <label className="block text-sm font-medium text-slate-700 dark:text-slate-300 mb-1.5">Source Name</label>
+                        <input
+                            type="text"
+                            value={tempFilters.sourceName}
+                            onChange={(e) => setTempFilters({ ...tempFilters, sourceName: e.target.value })}
+                            className="w-full px-4 py-2.5 rounded-xl border border-slate-200 dark:border-slate-800 bg-slate-50 dark:bg-slate-900 focus:ring-2 focus:ring-primary/20 outline-none transition-all"
+                            placeholder="e.g. My Knowledge Base"
+                        />
+                    </div>
                     <div className="grid grid-cols-2 gap-4">
                         <div>
                             <label className="block text-sm font-medium text-slate-700 dark:text-slate-300 mb-1.5">Start Date</label>
-                            <input
-                                type="date"
-                                value={tempFilters.startDate}
-                                onChange={(e) => setTempFilters({ ...tempFilters, startDate: e.target.value })}
-                                className="w-full px-4 py-2.5 rounded-xl border border-slate-200 dark:border-slate-800 bg-slate-50 dark:bg-slate-900 focus:ring-2 focus:ring-primary/20 outline-none transition-all text-sm"
+                            <DatePicker
+                                className="w-full"
+                                value={tempFilters.startDate ? dayjs(tempFilters.startDate) : null}
+                                onChange={(_, dateString) => setTempFilters({ ...tempFilters, startDate: dateString as string })}
+                                placeholder="Start Date"
+                                disabledDate={(current) => tempFilters.endDate ? current > dayjs(tempFilters.endDate) : false}
                             />
                         </div>
                         <div>
                             <label className="block text-sm font-medium text-slate-700 dark:text-slate-300 mb-1.5">End Date</label>
-                            <input
-                                type="date"
-                                value={tempFilters.endDate}
-                                onChange={(e) => setTempFilters({ ...tempFilters, endDate: e.target.value })}
-                                className="w-full px-4 py-2.5 rounded-xl border border-slate-200 dark:border-slate-800 bg-slate-50 dark:bg-slate-900 focus:ring-2 focus:ring-primary/20 outline-none transition-all text-sm"
+                            <DatePicker
+                                className="w-full"
+                                value={tempFilters.endDate ? dayjs(tempFilters.endDate) : null}
+                                onChange={(_, dateString) => setTempFilters({ ...tempFilters, endDate: dateString as string })}
+                                placeholder="End Date"
+                                disabledDate={(current) => tempFilters.startDate ? current < dayjs(tempFilters.startDate) : false}
                             />
                         </div>
                     </div>

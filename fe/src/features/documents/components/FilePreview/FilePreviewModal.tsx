@@ -6,7 +6,7 @@
 import React, { useEffect, useState } from 'react';
 import { X, Download, ExternalLink, AlertCircle } from 'lucide-react';
 import { useTranslation } from 'react-i18next';
-import { FileObject } from '@/features/documents/api/minioService';
+import { FileObject } from '@/features/documents/api/documentService';
 import { ImagePreview } from './PreviewComponents/ImagePreview';
 import { PdfPreview } from './PreviewComponents/PdfPreview';
 import { TextPreview } from './PreviewComponents/TextPreview';

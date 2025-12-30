@@ -29,27 +29,27 @@ import '@/i18n';
 // Lazy-loaded Pages (Code Splitting)
 // ============================================================================
 
-const AiChatPage = lazy(() => import('@/features/ai').then(m => ({ default: m.AiChatPage })));
-const AiSearchPage = lazy(() => import('@/features/ai').then(m => ({ default: m.AiSearchPage })));
-const HistoryPage = lazy(() => import('@/features/history').then(m => ({ default: m.HistoryPage })));
-const ChatHistoryPage = lazy(() => import('@/features/history').then(m => ({ default: m.ChatHistoryPage })));
-const SearchHistoryPage = lazy(() => import('@/features/history').then(m => ({ default: m.SearchHistoryPage })));
-const LoginPage = lazy(() => import('@/features/auth').then(m => ({ default: m.LoginPage })));
-const LogoutPage = lazy(() => import('@/features/auth').then(m => ({ default: m.LogoutPage })));
-const UserManagementPage = lazy(() => import('@/features/users').then(m => ({ default: m.UserManagementPage })));
-const TeamManagementPage = lazy(() => import('@/features/teams').then(m => ({ default: m.TeamManagementPage })));
-const SystemToolsPage = lazy(() => import('@/features/system').then(m => ({ default: m.SystemToolsPage })));
-const SystemMonitorPage = lazy(() => import('@/features/system').then(m => ({ default: m.SystemMonitorPage })));
+const AiChatPage = lazy(() => import('@/features/ai/pages/AiChatPage'));
+const AiSearchPage = lazy(() => import('@/features/ai/pages/AiSearchPage'));
+const HistoryPage = lazy(() => import('@/features/history/pages/HistoryPage'));
+const ChatHistoryPage = lazy(() => import('@/features/history/pages/ChatHistoryPage'));
+const SearchHistoryPage = lazy(() => import('@/features/history/pages/SearchHistoryPage'));
+const LoginPage = lazy(() => import('@/features/auth/pages/LoginPage'));
+const LogoutPage = lazy(() => import('@/features/auth/pages/LogoutPage'));
+const UserManagementPage = lazy(() => import('@/features/users/pages/UserManagementPage'));
+const TeamManagementPage = lazy(() => import('@/features/teams/pages/TeamManagementPage'));
+const SystemToolsPage = lazy(() => import('@/features/system/pages/SystemToolsPage'));
+const SystemMonitorPage = lazy(() => import('@/features/system/pages/SystemMonitorPage'));
 const ErrorPage = lazy(() => import('@/components/ErrorPage'));
-const DocumentManagerPage = lazy(() => import('@/features/documents').then(m => ({ default: m.DocumentManagerPage })));
-const AuditLogPage = lazy(() => import('@/features/audit').then(m => ({ default: m.AuditLogPage })));
-const TokenizerPage = lazy(() => import('@/features/ai').then(m => ({ default: m.TokenizerPage })));
-const StoragePage = lazy(() => import('@/features/storage').then(m => ({ default: m.StoragePage })));
-const KnowledgeBaseConfigPage = lazy(() => import('@/features/knowledge-base').then(m => ({ default: m.KnowledgeBaseConfigPage })));
-const BroadcastMessagePage = lazy(() => import('@/features/broadcast').then(m => ({ default: m.BroadcastMessagePage })));
+const DocumentManagerPage = lazy(() => import('@/features/documents/pages/DocumentManagerPage'));
+const AuditLogPage = lazy(() => import('@/features/audit/pages/AuditLogPage'));
+const TokenizerPage = lazy(() => import('@/features/ai/pages/TokenizerPage'));
+const StoragePage = lazy(() => import('@/features/storage/pages/StoragePage'));
+const KnowledgeBaseConfigPage = lazy(() => import('@/features/knowledge-base/pages/KnowledgeBaseConfigPage'));
+const BroadcastMessagePage = lazy(() => import('@/features/broadcast/pages/BroadcastMessagePage'));
 
-const HistoriesPage = lazy(() => import('@/features/histories').then(m => ({ default: m.HistoriesPage })));
-const PromptsPage = lazy(() => import('@/features/prompts').then(m => ({ default: m.PromptsPage })));
+const HistoriesPage = lazy(() => import('@/features/histories/pages/HistoriesPage'));
+const PromptsPage = lazy(() => import('@/features/prompts/pages/PromptsPage'));
 
 // ============================================================================
 // Loading Component (for initial app load / login page)
@@ -182,6 +182,7 @@ function App() {
                           <UserManagementPage />
                         </AdminRoute>
                       } />
+
                       <Route path="iam/teams" element={
                         <AdminRoute>
                           <TeamManagementPage />

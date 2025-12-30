@@ -65,7 +65,8 @@
     "view": "表示",
     "all": "すべて",
     "copy": "コピー",
-    "prompt": "Prompt"
+    "prompt": "Prompt",
+    "noDescription": "説明なし"
   },
   "dialog": {
     "confirm": "確認",

@@ -65,7 +65,8 @@
     "view": "Xem",
     "all": "Tất cả",
     "copy": "Sao chép",
-    "prompt": "Prompt"
+    "prompt": "Prompt",
+    "noDescription": "Không có mô tả"
   },
   "dialog": {
     "confirm": "Xác nhận",

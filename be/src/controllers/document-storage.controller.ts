@@ -5,9 +5,9 @@
 import { Request, Response } from 'express'
 import { log } from '@/services/logger.service.js'
 import { getClientIp } from '@/utils/ip.js'
-import { minioStorageService } from '@/services/minio-storage.service.js'
+import { documentStorageService } from '@/services/document-storage.service.js';
 
-export class MinioStorageController {
+export class DocumentStorageController {
 
     /**
      * List files in a bucket.
@@ -27,8 +27,8 @@ export class MinioStorageController {
 
         try {
             // List files via service (enforces permissions)
-            const files = await minioStorageService.listFiles(req.user, bucketId, prefix);
-            res.json({ objects: files });
+            const objects = await documentStorageService.listFiles(req.user, bucketId, prefix as string);
+            res.json({ objects: objects });
         } catch (error: any) {
             // Error handling with specific status codes
             const message = String(error.message || error);
@@ -72,7 +72,7 @@ export class MinioStorageController {
 
         try {
             // Upload via service
-            const results = await minioStorageService.uploadFile(req.user, bucketId, files, req.body, getClientIp(req));
+            const results = await documentStorageService.uploadFile(req.user, bucketId, req.files as Express.Multer.File[], req.body, getClientIp(req) || 'unknown');
             res.status(201).json(results);
         } catch (error: any) {
             const message = String(error.message || error);
@@ -106,7 +106,7 @@ export class MinioStorageController {
 
         try {
             // Create folder via service
-            await minioStorageService.createFolder(req.user, bucketId, folderName, prefix, getClientIp(req));
+            await documentStorageService.createFolder(req.user, bucketId, folderName, prefix, getClientIp(req) || 'unknown');
             res.status(201).json({ message: 'Folder created' });
         } catch (error: any) {
             const message = String(error.message || error);
@@ -140,7 +140,7 @@ export class MinioStorageController {
 
         try {
             // Delete object via service
-            await minioStorageService.deleteObject(req.user, bucketId, path, isFolder, getClientIp(req));
+            await documentStorageService.deleteObject(req.user, bucketId, path, isFolder, getClientIp(req) || 'unknown');
             res.status(204).send();
         } catch (error: any) {
             const message = String(error.message || error);
@@ -174,7 +174,7 @@ export class MinioStorageController {
 
         try {
             // Batch delete via service
-            await minioStorageService.batchDelete(req.user, bucketId, items, getClientIp(req));
+            await documentStorageService.batchDelete(req.user, bucketId, items, getClientIp(req) || 'unknown');
             res.status(200).json({ message: 'Batch delete completed' });
         } catch (error: any) {
             const message = String(error.message || error);
@@ -209,7 +209,7 @@ export class MinioStorageController {
 
         try {
             // Generate presigned URL via service
-            const url = await minioStorageService.getDownloadUrl(req.user, bucketId, objectPath, preview, getClientIp(req));
+            const url = await documentStorageService.getDownloadUrl(req.user, bucketId, objectPath as string, preview, getClientIp(req) || 'unknown');
             res.json({ download_url: url });
         } catch (error: any) {
             const message = String(error.message || error);

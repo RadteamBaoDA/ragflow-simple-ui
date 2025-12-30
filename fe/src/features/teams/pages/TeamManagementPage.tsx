@@ -80,10 +80,12 @@ export default function TeamManagementPage() {
     const loadTeams = async () => {
         try {
             setLoading(true);
+            // Add cache-busting timestamp to ensure fresh data
             const data = await teamService.getTeams();
-            setTeams(data);
+            setTeams(data || []);
         } catch (error) {
             console.error('Failed to load teams:', error);
+            setTeams([]);
         } finally {
             setLoading(false);
         }
@@ -176,6 +178,7 @@ export default function TeamManagementPage() {
             globalMessage.success(t('iam.teams.addMemberSuccess'));
             setSelectedUserIds([]);
             loadMembers(selectedTeam.id);
+            loadTeams(); // Refresh team cards to update member count and leader
         } catch (error) {
             console.error('Failed to add member:', error);
             setAddMemberError(error instanceof Error ? error.message : t('iam.teams.addMemberError'));
@@ -255,6 +258,7 @@ export default function TeamManagementPage() {
                             await teamService.removeMember(selectedTeam.id, record.id);
                             globalMessage.success(t('iam.teams.removeMemberSuccess'));
                             loadMembers(selectedTeam.id);
+                            loadTeams(); // Refresh team cards to update member count and leader
                         }
                     }}
                 >
@@ -269,6 +273,7 @@ export default function TeamManagementPage() {
             {/* Filters Row */}
             <div className="flex flex-col sm:flex-row gap-4 mb-6 shrink-0">
                 <Input
+                    size="large"
                     prefix={<Search className="text-slate-400" size={20} />}
                     placeholder={t('common.searchPlaceholder')}
                     value={searchTerm}
@@ -277,6 +282,7 @@ export default function TeamManagementPage() {
                 />
 
                 <Select
+                    size="large"
                     value={projectFilter}
                     onChange={handleProjectFilter}
                     className="sm:w-64"
@@ -305,7 +311,7 @@ export default function TeamManagementPage() {
                                         className="w-full flex items-center justify-center gap-2 text-sm font-medium text-slate-600 dark:text-slate-400 hover:text-blue-600 dark:hover:text-blue-400 transition-colors py-2"
                                     >
                                         <Users size={16} />
-                                        {t('iam.teams.members')}
+                                        {t('iam.teams.members')} ({team.member_count || 0})
                                     </button>
                                 ]}
                                 title={
@@ -338,9 +344,31 @@ export default function TeamManagementPage() {
                                     </div>
                                 }
                             >
-                                <p className="text-sm text-slate-600 dark:text-slate-400 min-h-[60px] line-clamp-3">
+                                <p className="text-sm text-slate-600 dark:text-slate-400 line-clamp-2 mb-3">
                                     {team.description || t('common.noDescription')}
                                 </p>
+
+                                {/* Leader Info */}
+                                {team.leader ? (
+                                    <div className="flex items-center gap-2 mt-2 p-2 bg-purple-50 dark:bg-purple-900/20 rounded-lg">
+                                        <Avatar size="small" className="bg-purple-500 text-white">
+                                            {team.leader.display_name?.charAt(0)?.toUpperCase() || '?'}
+                                        </Avatar>
+                                        <div className="flex-1 min-w-0">
+                                            <div className="text-sm font-medium text-purple-700 dark:text-purple-300 truncate">
+                                                {team.leader.display_name || 'Leader'}
+                                            </div>
+                                            <div className="text-xs text-purple-500 dark:text-purple-400 truncate">
+                                                {team.leader.email}
+                                            </div>
+                                        </div>
+                                        <Tag color="purple" className="text-xs">{t('iam.teams.leader')}</Tag>
+                                    </div>
+                                ) : (
+                                    <div className="text-xs text-slate-400 dark:text-slate-500 mt-2 italic">
+                                        {t('iam.teams.leader')}: -
+                                    </div>
+                                )}
                             </Card>
                         ))}
                     </div>
@@ -412,6 +440,8 @@ export default function TeamManagementPage() {
                             required
                             value={formData.name}
                             onChange={e => setFormData({ ...formData, name: e.target.value })}
+                            className="dark:bg-slate-800 dark:border-slate-600 dark:text-white"
+                            placeholder={t('iam.teams.name')}
                         />
                     </div>
                     <div>
@@ -421,6 +451,8 @@ export default function TeamManagementPage() {
                         <Input
                             value={formData.project_name}
                             onChange={e => setFormData({ ...formData, project_name: e.target.value })}
+                            className="dark:bg-slate-800 dark:border-slate-600 dark:text-white"
+                            placeholder={t('iam.teams.projectName')}
                         />
                     </div>
                     <div>
@@ -431,6 +463,8 @@ export default function TeamManagementPage() {
                             rows={4}
                             value={formData.description}
                             onChange={e => setFormData({ ...formData, description: e.target.value })}
+                            className="dark:bg-slate-800 dark:border-slate-600 dark:text-white"
+                            placeholder={t('iam.teams.formDescription')}
                         />
                     </div>
                 </div>

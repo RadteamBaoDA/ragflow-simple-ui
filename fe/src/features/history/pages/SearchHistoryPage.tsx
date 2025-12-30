@@ -8,6 +8,8 @@
 import { useState, useEffect, useRef, useMemo } from 'react';
 import { useInfiniteQuery, useQuery } from '@tanstack/react-query';
 import { useTranslation } from 'react-i18next';
+import { DatePicker } from 'antd';
+import dayjs from 'dayjs';
 
 import { Filter, Search, FileText, Clock, ChevronRight, Sparkles, PanelLeftClose, PanelLeft, RefreshCw } from 'lucide-react';
 import { Dialog } from '@/components/Dialog';
@@ -416,20 +418,22 @@ function SearchHistoryPage() {
                     <div className="grid grid-cols-2 gap-4">
                         <div>
                             <label className="block text-sm font-medium text-slate-700 dark:text-slate-300 mb-1.5">{t('common.startDate')}</label>
-                            <input
-                                type="date"
-                                value={tempFilters.startDate}
-                                onChange={(e) => setTempFilters({ ...tempFilters, startDate: e.target.value })}
-                                className="w-full px-4 py-2.5 rounded-xl border border-slate-200 dark:border-slate-800 bg-slate-50 dark:bg-slate-900 focus:ring-2 focus:ring-blue-500/20 outline-none transition-all text-sm"
+                            <DatePicker
+                                className="w-full"
+                                value={tempFilters.startDate ? dayjs(tempFilters.startDate) : null}
+                                onChange={(_, dateString) => setTempFilters({ ...tempFilters, startDate: dateString as string })}
+                                placeholder={t('common.startDate')}
+                                disabledDate={(current) => tempFilters.endDate ? current > dayjs(tempFilters.endDate) : false}
                             />
                         </div>
                         <div>
                             <label className="block text-sm font-medium text-slate-700 dark:text-slate-300 mb-1.5">{t('common.endDate')}</label>
-                            <input
-                                type="date"
-                                value={tempFilters.endDate}
-                                onChange={(e) => setTempFilters({ ...tempFilters, endDate: e.target.value })}
-                                className="w-full px-4 py-2.5 rounded-xl border border-slate-200 dark:border-slate-800 bg-slate-50 dark:bg-slate-900 focus:ring-2 focus:ring-blue-500/20 outline-none transition-all text-sm"
+                            <DatePicker
+                                className="w-full"
+                                value={tempFilters.endDate ? dayjs(tempFilters.endDate) : null}
+                                onChange={(_, dateString) => setTempFilters({ ...tempFilters, endDate: dateString as string })}
+                                placeholder={t('common.endDate')}
+                                disabledDate={(current) => tempFilters.startDate ? current < dayjs(tempFilters.startDate) : false}
                             />
                         </div>
                     </div>

@@ -4,8 +4,9 @@ import { ModelFactory } from '@/models/factory.js';
 import { documentPermissionService, PermissionLevel } from '@/services/document-permission.service.js';
 import { auditService, AuditAction, AuditResourceType } from '@/services/audit.service.js';
 import { log } from '@/services/logger.service.js';
+import { isAdminRole } from '@/config/rbac.js';
 
-export class MinioStorageService {
+export class DocumentStorageService {
     /**
      * Resolve bucket name from ID.
      * @param bucketId - The ID of the bucket.
@@ -31,9 +32,16 @@ export class MinioStorageService {
      * @description Checks if the user (or admin) has sufficient permissions on the bucket.
      */
     async verifyAccess(user: any, bucketId: string, requiredLevel: PermissionLevel): Promise<boolean> {
-        if (!user) return false;
+        if (!user) {
+            log.warn('verifyAccess: No user provided');
+            return false;
+        }
+
+        const isSuperUser = user.role === 'admin';
+        log.debug('verifyAccess: Check', { userId: user.id, role: user.role, isSuperUser, bucketId, requiredLevel });
+
         // Admins bypass storage ACLs
-        if (user.role === 'admin') return true;
+        if (isSuperUser) return true;
 
         // Resolve effective permission level for user (direct + team)
         const level = await documentPermissionService.resolveUserPermission(user.id, bucketId);
@@ -58,7 +66,15 @@ export class MinioStorageService {
         if (!bucketName) throw new Error('Bucket not found');
 
         // Delegate to MinIO service
-        return await minioService.listFiles(bucketName, prefix);
+        const objects = await minioService.listFiles(bucketName, prefix);
+
+        // Sanitize names for display (remove prefix from path)
+        return objects.map(obj => {
+            if (prefix && obj.name.startsWith(prefix)) {
+                return { ...obj, name: obj.name.substring(prefix.length) };
+            }
+            return obj;
+        });
     }
 
     /**
@@ -115,7 +131,7 @@ export class MinioStorageService {
             await auditService.log({
                 userId: user?.id,
                 userEmail: user?.email || 'unknown',
-                action: AuditAction.UPLOAD_FILE,
+                action: AuditAction.UPLOAD_DOCUMENT,
                 resourceType: AuditResourceType.FILE,
                 resourceId: file.originalname,
                 details: {
@@ -158,7 +174,7 @@ export class MinioStorageService {
         await auditService.log({
             userId: user?.id,
             userEmail: user?.email || 'unknown',
-            action: AuditAction.CREATE_FOLDER,
+            action: AuditAction.CREATE_DOCUMENT_FOLDER,
             resourceType: AuditResourceType.FILE,
             resourceId: fullPath,
             details: { bucketId, bucketName, folderName: fullPath },
@@ -196,7 +212,7 @@ export class MinioStorageService {
         await auditService.log({
             userId: user?.id,
             userEmail: user?.email || 'unknown',
-            action: isFolder ? AuditAction.DELETE_FOLDER : AuditAction.DELETE_FILE,
+            action: isFolder ? AuditAction.DELETE_DOCUMENT_FOLDER : AuditAction.DELETE_DOCUMENT,
             resourceType: AuditResourceType.FILE,
             resourceId: path,
             details: { bucketId, bucketName, path, isFolder },
@@ -239,7 +255,7 @@ export class MinioStorageService {
         await auditService.log({
             userId: user?.id,
             userEmail: user?.email || 'unknown',
-            action: AuditAction.BATCH_DELETE,
+            action: AuditAction.BATCH_DELETE_DOCUMENTS,
             resourceType: AuditResourceType.FILE,
             resourceId: `batch-${items.length}`,
             details: { bucketId, bucketName, count: items.length, items },
@@ -274,7 +290,7 @@ export class MinioStorageService {
             await auditService.log({
                 userId: user?.id,
                 userEmail: user?.email || 'unknown',
-                action: AuditAction.DOWNLOAD_FILE,
+                action: AuditAction.DOWNLOAD_DOCUMENT,
                 resourceType: AuditResourceType.FILE,
                 resourceId: objectPath,
                 details: { bucketId, bucketName, objectPath },
@@ -285,4 +301,4 @@ export class MinioStorageService {
     }
 }
 
-export const minioStorageService = new MinioStorageService();
+export const documentStorageService = new DocumentStorageService();

@@ -65,7 +65,8 @@
     "none": "None",
     "view": "View",
     "all": "All",
-    "copy": "Copy"
+    "copy": "Copy",
+    "noDescription": "No description"
   },
   "dialog": {
     "confirm": "Confirm",

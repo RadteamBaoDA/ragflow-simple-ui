@@ -3,7 +3,7 @@ import { useTranslation } from 'react-i18next';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { getKnowledgeBaseConfig, updateSystemConfig, addSource, updateSource, deleteSource, KnowledgeBaseSource, AccessControl } from '../api/knowledgeBaseService';
 import { Save, Plus, ExternalLink, Trash2, Search, MessageSquare, Edit2, Shield } from 'lucide-react';
-import { Card, Table, Button, Space, Tabs, Tooltip, Pagination as AntPagination } from 'antd';
+import { Card, Table, Button, Space, Tabs, Tooltip, Pagination as AntPagination, message } from 'antd';
 import { Dialog } from '@/components/Dialog';
 import { SourcePermissionsModal, PermissionsSelector } from '@/features/documents/components/SourcePermissionsModal';
 import { useConfirm } from '@/components/ConfirmDialog';
@@ -172,8 +172,8 @@ export default function KnowledgeBaseConfigPage() {
         },
         onError: (error: any) => {
             // Display error message from backend (e.g., duplicate name)
-            const message = error?.response?.data?.error || error?.message || t('common.error');
-            alert(message);
+            const msg = error?.response?.data?.error || error?.message || t('common.error');
+            message.error(msg);
         },
         meta: { successMessage: t('knowledgeBaseConfig.addSuccess') }
     });
@@ -187,8 +187,8 @@ export default function KnowledgeBaseConfigPage() {
         },
         onError: (error: any) => {
             // Display error message from backend (e.g., duplicate name)
-            const message = error?.response?.data?.error || error?.message || t('common.error');
-            alert(message);
+            const msg = error?.response?.data?.error || error?.message || t('common.error');
+            message.error(msg);
         },
         meta: { successMessage: t('knowledgeBaseConfig.updateSuccess') }
     });
@@ -283,219 +283,221 @@ export default function KnowledgeBaseConfigPage() {
     ];
 
     return (
-        <div className="w-[90%] mx-auto h-full flex flex-col p-6 space-y-6">
-            {/* Tabs */}
-            <Tabs
-                activeKey={activeTab}
-                onChange={handleTabChange}
-                items={[
-                    {
-                        key: 'chat',
-                        label: (
-                            <span className="flex items-center gap-2">
-                                <MessageSquare size={18} />
-                                {t('knowledgeBaseConfig.tabs.chat')}
-                            </span>
-                        ),
-                    },
-                    {
-                        key: 'search',
-                        label: (
-                            <span className="flex items-center gap-2">
-                                <Search size={18} />
-                                {t('knowledgeBaseConfig.tabs.search')}
-                            </span>
-                        ),
-                    },
-                ]}
-                className="mb-6 shrink-0"
-            />
+        <div className="w-full h-full flex flex-col p-8 overflow-hidden">
+            <div className="w-[90%] mx-auto h-full flex flex-col space-y-6 min-h-0">
+                {/* Tabs */}
+                <Tabs
+                    activeKey={activeTab}
+                    onChange={handleTabChange}
+                    items={[
+                        {
+                            key: 'chat',
+                            label: (
+                                <span className="flex items-center gap-2">
+                                    <MessageSquare size={18} />
+                                    {t('knowledgeBaseConfig.tabs.chat')}
+                                </span>
+                            ),
+                        },
+                        {
+                            key: 'search',
+                            label: (
+                                <span className="flex items-center gap-2">
+                                    <Search size={18} />
+                                    {t('knowledgeBaseConfig.tabs.search')}
+                                </span>
+                            ),
+                        },
+                    ]}
+                    className="mb-6 shrink-0"
+                />
 
-            {/* Default Configuration Section */}
-            <div className="bg-white dark:bg-slate-800 p-6 rounded-lg shadow-sm border border-gray-200 dark:border-slate-700 shrink-0">
-                <label className="block text-sm font-medium mb-2 text-gray-700 dark:text-gray-300">
-                    {t('knowledgeBaseConfig.defaultUrlLabel', { type: activeTab === 'chat' ? 'Chat' : 'Search' })}
-                </label>
-                <div className="flex gap-4 items-center">
-                    <select
-                        value={defaultSourceId}
-                        onChange={(e) => setDefaultSourceId(e.target.value)}
-                        className="flex-1 px-3 py-2 border rounded-md dark:bg-slate-900 dark:border-slate-600 dark:text-white"
-                        disabled={!configQuery.data}
-                    >
-                        <option value="">{t('common.select') || 'Select a source'}</option>
-                        {(currentSources || []) // Ensure currentSources is an array for filter and map
-                            .filter((source: KnowledgeBaseSource) => source.access_control?.public)
-                            .map((source: KnowledgeBaseSource) => (
-                                <option key={source.id} value={source.id}>
-                                    {source.name}
-                                </option>
-                            ))}
-                    </select>
-                    <button
-                        onClick={handleSaveDefault}
-                        disabled={updateConfigMutation.isPending || !defaultSourceId}
-                        className="flex items-center gap-2 px-4 py-2 bg-primary text-white rounded-md hover:bg-primary-hover disabled:opacity-50 shrink-0"
-                    >
-                        <Save size={18} />
-                        {t('common.save')}
-                    </button>
-                    {/* Helper link */}
-                    {defaultSourceId && configQuery.data && (
-                        (() => {
-                            const list = activeTab === 'chat' ? configQuery.data.chatSources : configQuery.data.searchSources;
-                            const current = list?.find(s => s.id === defaultSourceId); // Add null check for list
-                            if (current?.url) {
-                                return (
-                                    <a href={current.url} target="_blank" rel="noreferrer" className="p-2 text-gray-400 hover:text-primary border rounded-md hover:bg-gray-50 dark:hover:bg-slate-700 shrink-0">
-                                        <ExternalLink size={20} />
-                                    </a>
-                                );
-                            }
-                            return null;
-                        })()
-                    )}
-                </div>
-                <p className="mt-2 text-xs text-orange-500 dark:text-orange-400">
-                    {t('knowledgeBaseConfig.publicOnlyNote') || 'Only public sources can be set as system defaults.'}
-                </p>
-            </div>
-
-            {/* Sources Management Section */}
-            <Card
-                title={t('knowledgeBaseConfig.sourcesList')}
-                extra={
-                    <Button
-                        type="primary"
-                        icon={<Plus size={16} />}
-                        onClick={openCreateDialog}
-                    >
-                        {t('knowledgeBaseConfig.addSource')}
-                    </Button>
-                }
-                styles={{ body: { padding: 0 } }}
-                className="dark:bg-slate-800 dark:border-slate-700 flex flex-col flex-1 min-h-0 overflow-hidden"
-            >
-                <div className="flex-1 overflow-auto">
-                    <Table
-                        columns={columns}
-                        dataSource={(currentSources || []).slice((currentPage - 1) * pageSize, currentPage * pageSize)} // Ensure currentSources is an array
-                        rowKey="id"
-                        loading={configQuery.isLoading}
-                        pagination={false}
-                        scroll={{ x: true }}
-                    />
-                </div>
-                <div className="flex justify-end p-4 border-t border-slate-200 dark:border-slate-700">
-                    <AntPagination
-                        current={currentPage}
-                        total={currentSources?.length || 0}
-                        pageSize={pageSize}
-                        showSizeChanger={true}
-                        showTotal={(total: number) => t('common.totalItems', { total })}
-                        pageSizeOptions={['10', '20', '50', '100']}
-                        onChange={(page: number, size: number) => {
-                            setCurrentPage(page);
-                            setPageSize(size);
-                        }}
-                    />
-                </div>
-            </Card>
-
-            {/* Add/Edit Dialog (Now Large with Permissions) */}
-            <Dialog
-                open={isDialogOpen}
-                onClose={() => setIsDialogOpen(false)}
-                title={editingSource ? t('knowledgeBaseConfig.editSource') : t('knowledgeBaseConfig.addSource')}
-                maxWidth="none"
-                className="w-[70vw] h-[85vh]"
-            >
-                <div className="h-full flex flex-col gap-6">
-                    {/* Form Fields - Row 1: Name & URL */}
-                    <div className="grid grid-cols-3 gap-4 shrink-0">
-                        <div>
-                            <label className="block text-sm font-medium mb-1 text-gray-700 dark:text-gray-300">{t('common.name')}</label>
-                            <input
-                                type="text"
-                                value={formData.name}
-                                onChange={(e) => setFormData({ ...formData, name: e.target.value })}
-                                className="w-full px-3 py-2 border rounded-md dark:bg-slate-800 dark:border-slate-600 dark:text-white"
-                                placeholder="e.g., Marketing KB"
-                            />
-                        </div>
-                        <div className="col-span-2">
-                            <label className="block text-sm font-medium mb-1 text-gray-700 dark:text-gray-300">URL</label>
-                            <input
-                                type="text"
-                                value={formData.url}
-                                onChange={(e) => handleUrlChange(e.target.value)}
-                                className="w-full px-3 py-2 border rounded-md dark:bg-slate-800 dark:border-slate-600 dark:text-white"
-                                placeholder="https://..."
-                            />
-                        </div>
-                    </div>
-
-                    {/* Form Fields - Row 2: Share ID & Description */}
-                    <div className="grid grid-cols-3 gap-4 shrink-0">
-                        <div>
-                            <label className="block text-sm font-medium mb-1 text-gray-700 dark:text-gray-300">{t('knowledgeBaseConfig.shareId') || 'Share ID'}</label>
-                            <input
-                                type="text"
-                                value={formData.shareId}
-                                onChange={(e) => setFormData({ ...formData, shareId: e.target.value })}
-                                className="w-full px-3 py-2 border rounded-md dark:bg-slate-800 dark:border-slate-600 dark:text-white bg-gray-50 dark:bg-slate-700"
-                                placeholder={t('knowledgeBaseConfig.shareIdPlaceholder') || 'Auto-extracted'}
-                            />
-                            <p className="mt-1 text-xs text-gray-500 dark:text-gray-400">{t('knowledgeBaseConfig.shareIdDesc') || 'Auto-extracted from URL'}</p>
-                        </div>
-                        <div className="col-span-2">
-                            <label className="block text-sm font-medium mb-1 text-gray-700 dark:text-gray-300">{t('common.description') || 'Description'}</label>
-                            <input
-                                type="text"
-                                value={formData.description}
-                                onChange={(e) => setFormData({ ...formData, description: e.target.value })}
-                                className="w-full px-3 py-2 border rounded-md dark:bg-slate-800 dark:border-slate-600 dark:text-white"
-                                placeholder={t('knowledgeBaseConfig.descriptionPlaceholder') || 'Optional description for this source'}
-                            />
-                        </div>
-                    </div>
-
-                    <div className="border-t dark:border-gray-700 my-2"></div>
-
-                    <div className="flex-1 min-h-0">
-                        <PermissionsSelector
-                            isPublic={isPublic}
-                            setIsPublic={setIsPublic}
-                            selectedTeamIds={selectedTeamIds}
-                            setSelectedTeamIds={setSelectedTeamIds}
-                            selectedUserIds={selectedUserIds}
-                            setSelectedUserIds={setSelectedUserIds}
-                        />
-                    </div>
-
-                    <div className="flex justify-end gap-3 pt-4 border-t dark:border-gray-700 shrink-0 mt-auto">
-                        <button
-                            onClick={() => setIsDialogOpen(false)}
-                            className="px-4 py-2 text-gray-600 hover:bg-gray-100 rounded-md dark:text-gray-300 dark:hover:bg-slate-700"
+                {/* Default Configuration Section */}
+                <div className="bg-white dark:bg-slate-800 p-6 rounded-lg shadow-sm border border-gray-200 dark:border-slate-700 shrink-0">
+                    <label className="block text-sm font-medium mb-2 text-gray-700 dark:text-gray-300">
+                        {t('knowledgeBaseConfig.defaultUrlLabel', { type: activeTab === 'chat' ? 'Chat' : 'Search' })}
+                    </label>
+                    <div className="flex gap-4 items-center">
+                        <select
+                            value={defaultSourceId}
+                            onChange={(e) => setDefaultSourceId(e.target.value)}
+                            className="flex-1 px-3 py-2 border rounded-md dark:bg-slate-900 dark:border-slate-600 dark:text-white"
+                            disabled={!configQuery.data}
                         >
-                            {t('common.cancel')}
-                        </button>
+                            <option value="">{t('common.select') || 'Select a source'}</option>
+                            {(currentSources || []) // Ensure currentSources is an array for filter and map
+                                .filter((source: KnowledgeBaseSource) => source.access_control?.public)
+                                .map((source: KnowledgeBaseSource) => (
+                                    <option key={source.id} value={source.id}>
+                                        {source.name}
+                                    </option>
+                                ))}
+                        </select>
                         <button
-                            onClick={handleSubmitSource}
-                            className="px-4 py-2 bg-primary text-white rounded-md hover:bg-primary-hover"
+                            onClick={handleSaveDefault}
+                            disabled={updateConfigMutation.isPending || !defaultSourceId}
+                            className="flex items-center gap-2 px-4 py-2 bg-primary text-white rounded-md hover:bg-primary-hover disabled:opacity-50 shrink-0"
                         >
+                            <Save size={18} />
                             {t('common.save')}
                         </button>
+                        {/* Helper link */}
+                        {defaultSourceId && configQuery.data && (
+                            (() => {
+                                const list = activeTab === 'chat' ? configQuery.data.chatSources : configQuery.data.searchSources;
+                                const current = list?.find(s => s.id === defaultSourceId); // Add null check for list
+                                if (current?.url) {
+                                    return (
+                                        <a href={current.url} target="_blank" rel="noreferrer" className="p-2 text-gray-400 hover:text-primary border rounded-md hover:bg-gray-50 dark:hover:bg-slate-700 shrink-0">
+                                            <ExternalLink size={20} />
+                                        </a>
+                                    );
+                                }
+                                return null;
+                            })()
+                        )}
                     </div>
+                    <p className="mt-2 text-xs text-orange-500 dark:text-orange-400">
+                        {t('knowledgeBaseConfig.publicOnlyNote') || 'Only public sources can be set as system defaults.'}
+                    </p>
                 </div>
-            </Dialog>
 
-            <SourcePermissionsModal
-                open={isPermModalOpen}
-                onClose={() => setIsPermModalOpen(false)}
-                source={permSource}
-                onSave={handleSavePermissions}
-            />
+                {/* Sources Management Section */}
+                <Card
+                    title={t('knowledgeBaseConfig.sourcesList')}
+                    extra={
+                        <Button
+                            type="primary"
+                            icon={<Plus size={16} />}
+                            onClick={openCreateDialog}
+                        >
+                            {t('knowledgeBaseConfig.addSource')}
+                        </Button>
+                    }
+                    styles={{ body: { padding: 0, display: 'flex', flexDirection: 'column', height: '100%', overflow: 'hidden' } }}
+                    className="dark:bg-slate-800 dark:border-slate-700 flex flex-col flex-1 min-h-0 overflow-hidden"
+                >
+                    <div className="flex-1 overflow-hidden">
+                        <Table
+                            columns={columns}
+                            dataSource={(currentSources || []).slice((currentPage - 1) * pageSize, currentPage * pageSize)} // Ensure currentSources is an array
+                            rowKey="id"
+                            loading={configQuery.isLoading}
+                            pagination={false}
+                            scroll={{ y: 'calc(100vh - 600px)' }}
+                        />
+                    </div>
+                    <div className="flex justify-end p-4 border-t border-slate-200 dark:border-slate-700">
+                        <AntPagination
+                            current={currentPage}
+                            total={currentSources?.length || 0}
+                            pageSize={pageSize}
+                            showSizeChanger={true}
+                            showTotal={(total: number) => t('common.totalItems', { total })}
+                            pageSizeOptions={['10', '20', '50', '100']}
+                            onChange={(page: number, size: number) => {
+                                setCurrentPage(page);
+                                setPageSize(size);
+                            }}
+                        />
+                    </div>
+                </Card>
+
+                {/* Add/Edit Dialog (Now Large with Permissions) */}
+                <Dialog
+                    open={isDialogOpen}
+                    onClose={() => setIsDialogOpen(false)}
+                    title={editingSource ? t('knowledgeBaseConfig.editSource') : t('knowledgeBaseConfig.addSource')}
+                    maxWidth="none"
+                    className="w-[70vw] h-[85vh]"
+                >
+                    <div className="h-full flex flex-col gap-6">
+                        {/* Form Fields - Row 1: Name & URL */}
+                        <div className="grid grid-cols-3 gap-4 shrink-0">
+                            <div>
+                                <label className="block text-sm font-medium mb-1 text-gray-700 dark:text-gray-300">{t('common.name')}</label>
+                                <input
+                                    type="text"
+                                    value={formData.name}
+                                    onChange={(e) => setFormData({ ...formData, name: e.target.value })}
+                                    className="w-full px-3 py-2 border rounded-md dark:bg-slate-800 dark:border-slate-600 dark:text-white"
+                                    placeholder="e.g., Marketing KB"
+                                />
+                            </div>
+                            <div className="col-span-2">
+                                <label className="block text-sm font-medium mb-1 text-gray-700 dark:text-gray-300">URL</label>
+                                <input
+                                    type="text"
+                                    value={formData.url}
+                                    onChange={(e) => handleUrlChange(e.target.value)}
+                                    className="w-full px-3 py-2 border rounded-md dark:bg-slate-800 dark:border-slate-600 dark:text-white"
+                                    placeholder="https://..."
+                                />
+                            </div>
+                        </div>
+
+                        {/* Form Fields - Row 2: Share ID & Description */}
+                        <div className="grid grid-cols-3 gap-4 shrink-0">
+                            <div>
+                                <label className="block text-sm font-medium mb-1 text-gray-700 dark:text-gray-300">{t('knowledgeBaseConfig.shareId') || 'Share ID'}</label>
+                                <input
+                                    type="text"
+                                    value={formData.shareId}
+                                    onChange={(e) => setFormData({ ...formData, shareId: e.target.value })}
+                                    className="w-full px-3 py-2 border rounded-md dark:bg-slate-800 dark:border-slate-600 dark:text-white bg-gray-50 dark:bg-slate-700"
+                                    placeholder={t('knowledgeBaseConfig.shareIdPlaceholder') || 'Auto-extracted'}
+                                />
+                                <p className="mt-1 text-xs text-gray-500 dark:text-gray-400">{t('knowledgeBaseConfig.shareIdDesc') || 'Auto-extracted from URL'}</p>
+                            </div>
+                            <div className="col-span-2">
+                                <label className="block text-sm font-medium mb-1 text-gray-700 dark:text-gray-300">{t('common.description') || 'Description'}</label>
+                                <input
+                                    type="text"
+                                    value={formData.description}
+                                    onChange={(e) => setFormData({ ...formData, description: e.target.value })}
+                                    className="w-full px-3 py-2 border rounded-md dark:bg-slate-800 dark:border-slate-600 dark:text-white"
+                                    placeholder={t('knowledgeBaseConfig.descriptionPlaceholder') || 'Optional description for this source'}
+                                />
+                            </div>
+                        </div>
+
+                        <div className="border-t dark:border-gray-700 my-2"></div>
+
+                        <div className="flex-1 min-h-0">
+                            <PermissionsSelector
+                                isPublic={isPublic}
+                                setIsPublic={setIsPublic}
+                                selectedTeamIds={selectedTeamIds}
+                                setSelectedTeamIds={setSelectedTeamIds}
+                                selectedUserIds={selectedUserIds}
+                                setSelectedUserIds={setSelectedUserIds}
+                            />
+                        </div>
+
+                        <div className="flex justify-end gap-3 pt-4 border-t dark:border-gray-700 shrink-0 mt-auto">
+                            <button
+                                onClick={() => setIsDialogOpen(false)}
+                                className="px-4 py-2 text-gray-600 hover:bg-gray-100 rounded-md dark:text-gray-300 dark:hover:bg-slate-700"
+                            >
+                                {t('common.cancel')}
+                            </button>
+                            <button
+                                onClick={handleSubmitSource}
+                                className="px-4 py-2 bg-primary text-white rounded-md hover:bg-primary-hover"
+                            >
+                                {t('common.save')}
+                            </button>
+                        </div>
+                    </div>
+                </Dialog>
+
+                <SourcePermissionsModal
+                    open={isPermModalOpen}
+                    onClose={() => setIsPermModalOpen(false)}
+                    source={permSource}
+                    onSave={handleSavePermissions}
+                />
+            </div>
         </div>
     );
 }

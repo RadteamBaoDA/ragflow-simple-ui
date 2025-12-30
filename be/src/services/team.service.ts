@@ -43,12 +43,13 @@ export class TeamService {
      * @description Creates a team record and logs the action.
      */
     async createTeam(data: CreateTeamDTO, user?: { id: string, email: string, ip?: string }): Promise<Team> {
-        // Check for duplicate name
+        // Check for duplicate name within the same project
         const existingTeam = await ModelFactory.team.getKnex()
             .where('name', data.name)
+            .where('project_name', data.project_name || null)
             .first();
         if (existingTeam) {
-            throw new Error(`Team with name "${data.name}" already exists`);
+            throw new Error(`Team with name "${data.name}" already exists${data.project_name ? ` in project "${data.project_name}"` : ''}`);
         }
 
         const id = uuidv4();
@@ -82,12 +83,34 @@ export class TeamService {
     }
 
     /**
-     * Get all teams ordered by creation date.
-     * @returns Promise<Team[]> - List of all teams.
-     * @description Fetches all teams sorted by created_at desc.
+     * Get all teams ordered by creation date with member stats.
+     * @returns Promise - List of all teams with member count and leader info.
+     * @description Fetches all teams sorted by created_at desc, with member count and leader details.
      */
-    async getAllTeams(): Promise<Team[]> {
-        return ModelFactory.team.findAll({}, { orderBy: { created_at: 'desc' } });
+    async getAllTeams(): Promise<any[]> {
+        const teams = await ModelFactory.team.findAll({}, { orderBy: { created_at: 'desc' } });
+
+        // Enrich each team with member count and leader info
+        const enrichedTeams = await Promise.all(teams.map(async (team) => {
+            const members = await this.getTeamMembers(team.id);
+            // Get leaders sorted by joined_at ascending (oldest first)
+            const leaders = members
+                .filter(m => m.role === 'leader')
+                .sort((a, b) => new Date(a.joined_at).getTime() - new Date(b.joined_at).getTime());
+            const leader = leaders[0]; // Get the oldest leader
+
+            return {
+                ...team,
+                member_count: members.length,
+                leader: leader ? {
+                    id: leader.id,
+                    display_name: leader.display_name,
+                    email: leader.email
+                } : null
+            };
+        }));
+
+        return enrichedTeams;
     }
 
     /**
@@ -119,14 +142,19 @@ export class TeamService {
         // Return existing team if no changes
         if (Object.keys(updateData).length === 0) return this.getTeam(id);
 
-        // Check for duplicate name (if name is being updated)
+        // Check for duplicate name within the same project (if name is being updated)
         if (data.name !== undefined) {
+            // Get the current team to check project scope
+            const currentTeam = await this.getTeam(id);
+            const projectName = data.project_name !== undefined ? data.project_name : (currentTeam?.project_name || null);
+
             const existingTeam = await ModelFactory.team.getKnex()
                 .where('name', data.name)
+                .where('project_name', projectName)
                 .whereNot('id', id)
                 .first();
             if (existingTeam) {
-                throw new Error(`Team with name "${data.name}" already exists`);
+                throw new Error(`Team with name "${data.name}" already exists${projectName ? ` in project "${projectName}"` : ''}`);
             }
         }
 

@@ -5,16 +5,16 @@
 import { Request, Response } from 'express'
 import { log } from '@/services/logger.service.js'
 import { getClientIp } from '@/utils/ip.js'
-import { minioBucketService } from '@/services/minio-bucket.service.js'
+import { documentBucketService } from '@/services/document-bucket.service.js';
 
-export class MinioBucketController {
+export class DocumentBucketController {
     /**
      * Get buckets accessible to the current user.
      * @param req - Express request object.
      * @param res - Express response object.
      * @returns Promise<void>
      */
-    async getBuckets(req: Request, res: Response): Promise<void> {
+    async getAccessibleBuckets(req: Request, res: Response): Promise<void> {
         try {
             // Validate authentication
             const user = req.user;
@@ -24,7 +24,7 @@ export class MinioBucketController {
             }
 
             // Fetch accessible buckets from service
-            const buckets = await minioBucketService.getAccessibleBuckets(user);
+            const buckets = await documentBucketService.getAccessibleBuckets(user);
             res.json({ buckets });
         } catch (error) {
             // Log error and return 500 status
@@ -42,7 +42,7 @@ export class MinioBucketController {
     async getAvailableBuckets(req: Request, res: Response): Promise<void> {
         try {
             // Fetch all available buckets from service
-            const buckets = await minioBucketService.getAvailableBuckets();
+            const buckets = await documentBucketService.getAvailableBuckets();
             res.json({ buckets });
         } catch (error) {
             // Log error and return 500 status
@@ -52,17 +52,17 @@ export class MinioBucketController {
     }
 
     /**
-     * Create a new MinIO bucket.
+     * Create a new metadata existing MinIO bucket to store documents.
      * @param req - Express request object.
      * @param res - Express response object.
      * @returns Promise<void>
      */
-    async createBucket(req: Request, res: Response): Promise<void> {
+    async createDocument(req: Request, res: Response): Promise<void> {
         try {
             // Capture user context or default to system
             const user = req.user ? { id: req.user.id, email: req.user.email, ip: getClientIp(req) } : { id: 'system', email: 'system' };
             // Create bucket via service
-            const bucket = await minioBucketService.createBucket(req.body.bucket_name, req.body.description, user);
+            const bucket = await documentBucketService.createDocument(req.body.bucket_name, req.body.description, user);
             res.status(201).json({ bucket });
         } catch (error) {
             // Log error and return 500 status
@@ -72,15 +72,15 @@ export class MinioBucketController {
     }
 
     /**
-     * Delete a MinIO bucket.
+     * Delete a document bucket.
      * @param req - Express request object.
      * @param res - Express response object.
      * @returns Promise<void>
      */
-    async deleteBucket(req: Request, res: Response): Promise<void> {
-        const { name } = req.params;
+    async deleteDocument(req: Request, res: Response): Promise<void> {
+        const { bucketId } = req.params;
         // Validate bucket name presence
-        if (!name) {
+        if (!bucketId) {
             res.status(400).json({ error: 'Bucket name is required' });
             return;
         }
@@ -88,7 +88,7 @@ export class MinioBucketController {
             // Capture user context or default to system
             const user = req.user ? { id: req.user.id, email: req.user.email, ip: getClientIp(req) } : { id: 'system', email: 'system' };
             // Delete bucket via service
-            await minioBucketService.deleteBucket(name, user);
+            await documentBucketService.deleteDocument(bucketId, user);
             res.status(204).send();
         } catch (error) {
             // Log error and return 500 status

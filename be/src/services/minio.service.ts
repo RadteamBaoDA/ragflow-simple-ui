@@ -140,42 +140,22 @@ class MinioService {
      * @throws Error if bucket already configured or MinIO fail.
      * @description Checks DB config, creates bucket in MinIO, saves to DB, and logs audit.
      */
-    async createBucket(bucketName: string, description: string, user?: { id: string, email: string, ip?: string }): Promise<any> {
+    async createBucket(bucketName: string, description: string, user?: { id: string, email: string, ip?: string }): Promise<void> {
         try {
-            // 1. Check if configured in DB
-            const existingConfig = await ModelFactory.minioBucket.findByName(bucketName);
-            if (existingConfig) {
-                throw new Error(`Bucket '${bucketName}' is already configured in the system.`);
-            }
-
-            // 2. Ensure exists in MinIO
+            // Ensure exists in MinIO
             const exists = await this.client.bucketExists(bucketName);
             if (!exists) {
                 await this.client.makeBucket(bucketName, 'us-east-1');
-            }
-
-            // 3. Register in DB
-            const bucket = await ModelFactory.minioBucket.create({
-                bucket_name: bucketName,
-                display_name: bucketName,
-                description,
-                created_by: user?.id || 'system',
-                updated_by: user?.id || 'system'
-            });
-
-            // 4. Audit Log
-            if (user) {
                 await auditService.log({
-                    userId: user.id,
-                    userEmail: user.email,
+                    userId: user?.id || 'system',
+                    userEmail: user?.email || 'system',
                     action: AuditAction.CREATE_BUCKET,
                     resourceType: AuditResourceType.BUCKET,
-                    resourceId: bucket.id,
+                    resourceId: bucketName,
                     details: { bucketName },
-                    ipAddress: user.ip,
+                    ipAddress: user?.ip,
                 });
             }
-            return bucket;
         } catch (error) {
             log.error('Failed to create bucket', { bucketName, error: String(error) });
             throw error;
@@ -191,14 +171,25 @@ class MinioService {
      */
     async deleteBucket(bucketName: string, user?: { id: string, email: string, ip?: string }): Promise<void> {
         try {
-            // Remove from backend storage
-            await this.client.removeBucket(bucketName);
-
-            // Remove from database
-            const bucket = await ModelFactory.minioBucket.findByName(bucketName);
-            if (bucket) {
-                await ModelFactory.minioBucket.delete(bucket.id);
+            // 1. Empty the bucket first (remove all objects)
+            const objectsToDelete: string[] = [];
+            try {
+                const stream = this.client.listObjects(bucketName, '', true);
+                for await (const obj of stream) {
+                    if (obj.name) {
+                        objectsToDelete.push(obj.name);
+                    }
+                }
+                if (objectsToDelete.length > 0) {
+                    await this.client.removeObjects(bucketName, objectsToDelete);
+                }
+            } catch (err) {
+                log.warn(`Failed to empty bucket ${bucketName} before deletion`, { error: String(err) });
+                // Continue to try deleting bucket, it might be empty or error will be thrown by removeBucket
             }
+
+            // 2. Remove from backend storage
+            await this.client.removeBucket(bucketName);
 
             // Audit log
             if (user) {
@@ -481,27 +472,7 @@ class MinioService {
         };
     }
 
-    /**
-     * Get MinIO buckets not yet tracked in the application database.
-     * @returns Promise<any[]> - Unconfigured buckets.
-     * @description Diff between MinIO buckets and DB bucket records.
-     */
-    async getAvailableBuckets(): Promise<any[]> {
-        // 1. Get all actual buckets from MinIO
-        const minioBuckets = await this.listBuckets();
 
-        // 2. Get all configured buckets from DB
-        const configuredBuckets = await ModelFactory.minioBucket.findAll({});
-        const configuredNames = new Set(configuredBuckets.map(b => b.bucket_name));
-
-        // 3. Filter out buckets that are already configured
-        return minioBuckets
-            .filter(b => b.name && !configuredNames.has(b.name))
-            .map(b => ({
-                name: b.name,
-                creationDate: b.creationDate
-            }));
-    }
 
     /**
      * Get object count and total size for a single bucket.

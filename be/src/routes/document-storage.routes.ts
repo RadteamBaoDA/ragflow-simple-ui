@@ -4,12 +4,12 @@
  * Handles object-level operations: uploading files, listing content, creating folders, and deleting objects.
  */
 import { Router } from 'express'
-import { MinioStorageController } from '@/controllers/minio-storage.controller.js'
+import { DocumentStorageController } from '../controllers/document-storage.controller.js';
 import { requirePermission, requireAuth } from '@/middleware/auth.middleware.js'
 import multer from 'multer'
 
 const router = Router()
-const controller = new MinioStorageController()
+const documentStorageController = new DocumentStorageController();
 // Use memory storage for Multer to keep files in RAM before streaming to MinIO
 const upload = multer({ storage: multer.memoryStorage() })
 
@@ -19,7 +19,7 @@ const upload = multer({ storage: multer.memoryStorage() })
  * @access Private
  */
 // Lists files in the virtual folder structure
-router.get('/:bucketId/list', requireAuth, controller.listFiles.bind(controller))
+router.get('/:bucketId/list', requireAuth, (req, res, next) => documentStorageController.listFiles(req, res).catch(next));
 
 /**
  * @route POST /api/storage/:bucketId/upload
@@ -27,7 +27,7 @@ router.get('/:bucketId/list', requireAuth, controller.listFiles.bind(controller)
  * @access Private
  */
 // Handles multipart file uploads
-router.post('/:bucketId/upload', requireAuth, upload.array('files'), controller.uploadFile.bind(controller))
+router.post('/:bucketId/upload', requireAuth, upload.array('files'), (req, res, next) => documentStorageController.uploadFile(req, res).catch(next));
 
 /**
  * @route POST /api/storage/:bucketId/folder
@@ -35,7 +35,7 @@ router.post('/:bucketId/upload', requireAuth, upload.array('files'), controller.
  * @access Private
  */
 // Creates a zero-byte object ending in '/' to simulate a directory
-router.post('/:bucketId/folder', requireAuth, controller.createFolder.bind(controller))
+router.post('/:bucketId/folder', requireAuth, (req, res, next) => documentStorageController.createFolder(req, res).catch(next));
 
 /**
  * @route DELETE /api/storage/:bucketId/delete
@@ -43,7 +43,7 @@ router.post('/:bucketId/folder', requireAuth, controller.createFolder.bind(contr
  * @access Private
  */
 // Deletes a specific file or folder
-router.delete('/:bucketId/delete', requireAuth, controller.deleteObject.bind(controller))
+router.delete('/:bucketId/delete', requireAuth, (req, res, next) => documentStorageController.deleteObject(req, res).catch(next));
 
 /**
  * @route POST /api/storage/:bucketId/batch-delete
@@ -51,7 +51,7 @@ router.delete('/:bucketId/delete', requireAuth, controller.deleteObject.bind(con
  * @access Private
  */
 // Efficiently removes multiple items
-router.post('/:bucketId/batch-delete', requireAuth, controller.batchDelete.bind(controller))
+router.post('/:bucketId/batch-delete', requireAuth, (req, res, next) => documentStorageController.batchDelete(req, res).catch(next));
 
 /**
  * @route GET /api/storage/:bucketId/download/*
@@ -59,7 +59,7 @@ router.post('/:bucketId/batch-delete', requireAuth, controller.batchDelete.bind(
  * @access Private
  */
 // Generates temporary access URL for downloading files
-router.get('/:bucketId/download/*', requireAuth, controller.getDownloadUrl.bind(controller))
+router.get('/:bucketId/download', requireAuth, (req, res, next) => documentStorageController.getDownloadUrl(req, res).catch(next));
 
 // Check existence (commented out in source)
 // router.post('/:bucketId/check-existence', requirePermission('manage_storage'), controller.checkExistence.bind(controller)); 
