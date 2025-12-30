@@ -24,7 +24,9 @@ import {
     Space,
     Tooltip,
     App,
-    Dropdown
+    Dropdown,
+    Modal,
+    Progress
 } from 'antd';
 import {
     HardDrive,
@@ -54,6 +56,7 @@ import {
 import { useAuth } from '@/features/auth';
 import { Select } from '@/components/Select';
 import { FilePreviewModal } from '@/features/documents/components/FilePreview/FilePreviewModal';
+import { subscribeToNotifications } from '@/lib/socket';
 import {
     MinioBucket,
     FileObject,
@@ -640,6 +643,16 @@ const DocumentManagerPage = () => {
         }
     };
 
+    // Progress state
+    const [progressModalOpen, setProgressModalOpen] = useState(false);
+    const [progressData, setProgressData] = useState({
+        current: 0,
+        total: 100,
+        percent: 0,
+        status: 'active' as 'active' | 'success' | 'exception' | 'normal',
+        message: ''
+    });
+
     /**
      * Remove a bucket configuration from the database.
      * Does not delete the actual MinIO bucket.
@@ -653,14 +666,63 @@ const DocumentManagerPage = () => {
         });
         if (!confirmed) return;
 
+        setProgressModalOpen(true);
+        setProgressData({
+            current: 0,
+            total: 100,
+            percent: 0,
+            status: 'active',
+            message: t('common.initializing')
+        });
+
+        // Listen for progress events
+        const unsubscribe = subscribeToNotifications((notification) => {
+            if (notification.type === 'bucket:delete:progress' && (notification.data as any)?.bucketName === bucketId) {
+                const data = notification.data as any;
+                let percent = 0;
+
+                if (data.total > 0) {
+                    percent = Math.round((data.current / data.total) * 100);
+                } else if (data.status === 'starting') {
+                    percent = 5;
+                } else if (data.status === 'completed') {
+                    percent = 100;
+                }
+
+                setProgressData({
+                    current: data.current,
+                    total: data.total,
+                    percent,
+                    status: data.status === 'error' ? 'exception' : (data.status === 'completed' ? 'success' : 'active'),
+                    message: data.message
+                });
+
+                if (data.status === 'completed' || data.status === 'error') {
+                    // Close modal after a short delay
+                    setTimeout(() => {
+                        setProgressModalOpen(false);
+                        unsubscribe();
+                        if (data.status === 'completed') {
+                            loadBuckets();
+                            if (selectedBucket === bucketId) {
+                                setSelectedBucket('');
+                                setCurrentPrefix('');
+                            }
+                            antdMessage.success(t('documents.deleteSuccess'));
+                        } else {
+                            antdMessage.error(data.error || t('documents.deleteFailed'));
+                        }
+                    }, 1500);
+                }
+            }
+        });
+
         try {
             await deleteBucket(bucketId);
-            await loadBuckets();
-            if (selectedBucket === bucketId) {
-                setSelectedBucket('');
-                setCurrentPrefix('');
-            }
+            // Completion will be handled by websocket event
         } catch (err) {
+            setProgressModalOpen(false);
+            unsubscribe();
             setError(err instanceof Error ? err.message : t('documents.deleteFailed'));
         }
     };
@@ -1865,6 +1927,33 @@ const DocumentManagerPage = () => {
                 bucketId={selectedBucket}
                 bucketName={selectedBucketInfo?.display_name || selectedBucketInfo?.bucket_name || selectedBucket || ''}
             />
+            {/* Delete Progress Modal */}
+            <Modal
+                title={t('documents.deleteProgressTitle')}
+                open={progressModalOpen}
+                footer={null}
+                closable={false}
+                maskClosable={false}
+                centered
+            >
+                <div style={{ textAlign: 'center', padding: '20px 0' }}>
+                    <Progress
+                        type="circle"
+                        percent={progressData.percent}
+                        status={progressData.status}
+                    />
+                    <div style={{ marginTop: 16 }}>
+                        <p style={{ fontWeight: 500, marginBottom: 8 }}>
+                            {progressData.message}
+                        </p>
+                        {progressData.total > 0 && (
+                            <p style={{ color: '#888', fontSize: '12px' }}>
+                                {progressData.current} / {progressData.total}
+                            </p>
+                        )}
+                    </div>
+                </div>
+            </Modal>
         </div>
     );
 };

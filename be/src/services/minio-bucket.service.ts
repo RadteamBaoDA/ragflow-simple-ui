@@ -2,6 +2,8 @@
 import { ModelFactory } from '@/models/factory.js';
 import { minioService } from '@/services/minio.service.js';
 import { auditService, AuditAction, AuditResourceType } from '@/services/audit.service.js';
+import { socketService } from '@/services/socket.service.js';
+import { log } from '@/services/logger.service.js';
 
 export class MinioBucketService {
     /**
@@ -65,9 +67,89 @@ export class MinioBucketService {
      * @param user - User context for audit logging.
      * @returns Promise<void>
      * @description Wrapper for minioService to delete a bucket and its metadata.
+     * Recursively deletes all objects in the bucket before deleting the bucket itself.
+     * Emits progress updates via WebSocket.
      */
     async deleteBucket(bucketName: string, user: { id: string, email: string, ip?: string }) {
-        return await minioService.deleteBucket(bucketName, user);
+        try {
+            // 1. Check if bucket exists in DB and MinIO (handled by minioService somewhat, but good to check)
+            // The minioService.deleteBucket does DB deletion too, but we need to empty it first.
+
+            // Notify start
+            socketService.emitToUser(user.id, 'bucket:delete:progress', {
+                bucketName,
+                status: 'analyzing',
+                current: 0,
+                total: 0,
+                message: 'Analyzing bucket contents...'
+            });
+
+            // 2. List all objects recursively
+            const objects = await minioService.listObjects(bucketName, '', true);
+            const totalObjects = objects.length;
+
+            socketService.emitToUser(user.id, 'bucket:delete:progress', {
+                bucketName,
+                status: 'deleting_objects',
+                current: 0,
+                total: totalObjects,
+                message: `Found ${totalObjects} objects. Starting deletion...`
+            });
+
+            // 3. Delete in batches of 100
+            const BATCH_SIZE = 100;
+            let deletedCount = 0;
+
+            for (let i = 0; i < totalObjects; i += BATCH_SIZE) {
+                const batch = objects.slice(i, i + BATCH_SIZE);
+                const objectNames = batch.map(o => o.name);
+
+                if (objectNames.length > 0) {
+                    await minioService.deleteObjects(bucketName, objectNames);
+                    deletedCount += objectNames.length;
+
+                    // Emit progress
+                    socketService.emitToUser(user.id, 'bucket:delete:progress', {
+                        bucketName,
+                        status: 'deleting_objects',
+                        current: deletedCount,
+                        total: totalObjects,
+                        message: `Deleted ${deletedCount} of ${totalObjects} objects...`
+                    });
+                }
+            }
+
+            // 4. Delete the bucket itself (and DB record)
+            socketService.emitToUser(user.id, 'bucket:delete:progress', {
+                bucketName,
+                status: 'deleting_bucket',
+                current: totalObjects,
+                total: totalObjects,
+                message: 'Deleting bucket...'
+            });
+
+            await minioService.deleteBucket(bucketName, user);
+
+            // 5. Notify completion
+            socketService.emitToUser(user.id, 'bucket:delete:progress', {
+                bucketName,
+                status: 'completed',
+                current: totalObjects,
+                total: totalObjects,
+                message: 'Bucket deleted successfully.'
+            });
+
+        } catch (error) {
+            log.error('Failed to recursively delete bucket', { bucketName, error: String(error) });
+            // Notify error
+            socketService.emitToUser(user.id, 'bucket:delete:progress', {
+                bucketName,
+                status: 'error',
+                error: String(error),
+                message: 'Failed to delete bucket.'
+            });
+            throw error;
+        }
     }
 }
 
