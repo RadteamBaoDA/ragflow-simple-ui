@@ -58,7 +58,7 @@ import { Select } from '@/components/Select';
 import { FilePreviewModal } from '@/features/documents/components/FilePreview/FilePreviewModal';
 import { subscribeToNotifications } from '@/lib/socket';
 import {
-    MinioBucket,
+    DocumentBucket,
     FileObject,
     AvailableBucket,
     getBuckets,
@@ -72,10 +72,10 @@ import {
     batchDelete,
     getDownloadUrl,
     checkFilesExistence,
-    MinioServiceError,
+    DocumentServiceError,
     PermissionLevel,
     getEffectivePermission
-} from '../api/minioService';
+} from '../api/documentService';
 import { DocumentPermissionModal } from '@/features/documents/components/DocumentPermissionModal';
 import { formatFileSize } from '@/utils/format';
 import { useConfirm } from '@/components/ConfirmDialog';
@@ -85,7 +85,7 @@ import { useConfirm } from '@/components/ConfirmDialog';
 // ============================================================================
 
 const API_BASE_URL = import.meta.env.VITE_API_BASE_URL || '';
-const STORAGE_KEY_SELECTED_BUCKET = 'minio_selected_bucket';
+const STORAGE_KEY_SELECTED_BUCKET = 'document_selected_bucket';
 
 const FILE_CATEGORIES = {
     doc: { labelKey: 'documents.category.doc', extensions: ['doc', 'docx', 'odt', 'rtf', 'tex', 'wpd'] },
@@ -119,7 +119,7 @@ const DocumentManagerPage = () => {
     const canManagePermissions = isAdmin;
 
     // Bucket and object state
-    const [buckets, setBuckets] = useState<MinioBucket[]>([]);
+    const [buckets, setBuckets] = useState<DocumentBucket[]>([]);
     const [availableBuckets, setAvailableBuckets] = useState<AvailableBucket[]>([]);
     const [selectedBucket, setSelectedBucket] = useState<string>('');
     const [objects, setObjects] = useState<FileObject[]>([]);
@@ -175,6 +175,27 @@ const DocumentManagerPage = () => {
     const [showConflictModal, setShowConflictModal] = useState(false);
     const [conflictFiles, setConflictFiles] = useState<string[]>([]);
     const [pendingUploadFiles, setPendingUploadFiles] = useState<{ files: File[]; preserveFolderStructure: boolean } | null>(null);
+
+    // Table height calculation using ResizeObserver
+    const tableWrapperRef = useRef<HTMLDivElement>(null);
+    const [tableScrollHeight, setTableScrollHeight] = useState(400);
+
+    useEffect(() => {
+        const updateHeight = () => {
+            if (tableWrapperRef.current) {
+                // Get the wrapper's height minus table header (approx 48px)
+                const height = tableWrapperRef.current.clientHeight - 48;
+                setTableScrollHeight(Math.max(height, 200));
+            }
+        };
+
+        updateHeight();
+        const observer = new ResizeObserver(updateHeight);
+        if (tableWrapperRef.current) {
+            observer.observe(tableWrapperRef.current);
+        }
+        return () => observer.disconnect();
+    }, []);
 
 
 
@@ -629,7 +650,7 @@ const DocumentManagerPage = () => {
             setSelectedItems(new Set());
         } catch (err) {
             // Check if this is a bucket sync error (bucket configured but not in MinIO)
-            if (err instanceof MinioServiceError && err.code === 'BUCKET_NOT_IN_STORAGE') {
+            if (err instanceof DocumentServiceError && err.code === 'BUCKET_NOT_IN_STORAGE') {
                 setBucketSyncError(err.message);
                 setObjects([]);
             } else if (err instanceof Error && (err.message.includes('403') || (err as any).status === 403)) {
@@ -1165,13 +1186,13 @@ const DocumentManagerPage = () => {
 
 
 
-    const bucketOptions = buckets.map((b: MinioBucket) => ({
+    const bucketOptions = buckets.map((b: DocumentBucket) => ({
         id: b.id,
         name: b.display_name || b.bucket_name
     }));
 
     // Get selected bucket info for description display
-    const selectedBucketInfo = buckets.find((b: MinioBucket) => b.id === selectedBucket);
+    const selectedBucketInfo = buckets.find((b: DocumentBucket) => b.id === selectedBucket);
 
     /**
      * Define columns for Ant Design Table
@@ -1518,7 +1539,8 @@ const DocumentManagerPage = () => {
 
             {/* Table with Virtual Scrolling */}
             <div
-                className={`flex-1 flex flex-col min-h-0 bg-white dark:bg-gray-800 relative ${isDragging && selectedBucket ? 'ring-2 ring-primary dark:ring-blue-500 ring-inset' : ''
+                ref={tableWrapperRef}
+                className={`flex-1 flex flex-col min-h-0 relative ${isDragging && selectedBucket ? 'ring-2 ring-primary dark:ring-blue-500 ring-inset' : ''
                     }`}
                 onDrop={handleDrop}
                 onDragEnter={handleDragEnter}
@@ -1555,7 +1577,7 @@ const DocumentManagerPage = () => {
                     </div>
                 ) : (
                     <>
-                        <div className="flex-1 overflow-hidden p-4">
+                        <div className="flex-1 overflow-hidden bg-white dark:bg-gray-800 shadow rounded-lg min-h-0 flex flex-col document-table-container">
                             <Table
                                 rowKey="name"
                                 columns={columns}
@@ -1565,7 +1587,7 @@ const DocumentManagerPage = () => {
                                 onChange={handleTableChange}
                                 pagination={false}
                                 size="middle"
-                                scroll={{ y: 'calc(100vh - 350px)' }}
+                                scroll={{ y: tableScrollHeight }}
                                 virtual
                                 locale={{
                                     emptyText: !selectedBucket ? (

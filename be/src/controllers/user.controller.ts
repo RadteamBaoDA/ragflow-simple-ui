@@ -21,7 +21,12 @@ export class UserController {
       const roles = req.query.roles ? (req.query.roles as string).split(',') : undefined
       // Fetch users via service
       const users = await userService.getAllUsers(roles as any)
-      res.json(users)
+      // Map snake_case to camelCase for frontend compatibility
+      const mappedUsers = users.map(u => ({
+        ...u,
+        displayName: u.display_name,
+      }))
+      res.json(mappedUsers)
     } catch (error) {
       // Log error and return 500 status
       log.error('Failed to fetch users', { error: String(error) })

@@ -84,41 +84,7 @@
     @apply w-full px-3 py-2 rounded-md border border-slate-300 dark:border-slate-600 bg-white dark:bg-slate-700 text-slate-800 dark:text-slate-100 focus:outline-none focus:ring-2 focus:ring-primary focus:border-transparent;
   }
 
-  /* Datetime-local input styling */
-  input[type="datetime-local"] {
-    color-scheme: light;
-  }
 
-  .dark input[type="datetime-local"] {
-    color-scheme: dark;
-  }
-
-  /* Style the native calendar picker icon for light mode */
-  input[type="datetime-local"]::-webkit-calendar-picker-indicator {
-    cursor: pointer;
-    padding: 4px;
-    margin-right: -4px;
-    border-radius: 4px;
-    background-color: transparent;
-    filter: invert(20%) sepia(80%) saturate(2000%) hue-rotate(220deg);
-    opacity: 0.8;
-  }
-
-  input[type="datetime-local"]::-webkit-calendar-picker-indicator:hover {
-    background-color: rgba(13, 38, 207, 0.1);
-    opacity: 1;
-  }
-
-  /* Style the native calendar picker icon for dark mode - bright and visible */
-  .dark input[type="datetime-local"]::-webkit-calendar-picker-indicator {
-    filter: invert(60%) sepia(80%) saturate(1000%) hue-rotate(200deg) brightness(1.2);
-    opacity: 1;
-  }
-
-  .dark input[type="datetime-local"]::-webkit-calendar-picker-indicator:hover {
-    background-color: rgba(61, 84, 230, 0.2);
-    filter: invert(60%) sepia(80%) saturate(1000%) hue-rotate(200deg) brightness(1.4);
-  }
 }
 
 @layer utilities {
@@ -145,4 +111,53 @@
   .scrollbar-hide::-webkit-scrollbar-thumb {
     display: none !important;
   }
+}
+
+/* Document Manager Table - Force fill container height */
+.document-table-container {
+  display: flex;
+  flex-direction: column;
+  height: 100%;
+  min-height: 0;
+}
+
+.document-table-container .ant-table-wrapper {
+  flex: 1;
+  display: flex;
+  flex-direction: column;
+  min-height: 0;
+}
+
+.document-table-container .ant-spin-nested-loading {
+  flex: 1;
+  display: flex;
+  flex-direction: column;
+  min-height: 0;
+}
+
+.document-table-container .ant-spin-container {
+  flex: 1;
+  display: flex;
+  flex-direction: column;
+  min-height: 0;
+}
+
+.document-table-container .ant-table {
+  flex: 1;
+  display: flex;
+  flex-direction: column;
+  min-height: 0;
+}
+
+.document-table-container .ant-table-container {
+  flex: 1;
+  display: flex;
+  flex-direction: column;
+  min-height: 0;
+}
+
+.document-table-container .ant-table-body {
+  flex: 1;
+  min-height: 0;
+  overflow-y: auto !important;
 }

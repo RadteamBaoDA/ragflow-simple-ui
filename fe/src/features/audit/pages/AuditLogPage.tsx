@@ -21,10 +21,10 @@ import {
     Clock,
     Globe,
     FileText,
-    X,
-    Calendar
+    X
 } from 'lucide-react';
-import { Table, Pagination, Card, Space, Avatar } from 'antd';
+import { Table, Pagination, Card, Space, Avatar, DatePicker } from 'antd';
+import dayjs from 'dayjs';
 
 /** API base URL from environment */
 const API_BASE_URL = import.meta.env.VITE_API_BASE_URL || '';
@@ -595,15 +595,14 @@ export default function AuditLogPage() {
                                 <label className="block text-xs text-slate-500 dark:text-slate-400 mb-1">
                                     {t('auditLog.startDate')}
                                 </label>
-                                <div className="relative">
-                                    <Calendar className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-primary-600 dark:text-primary-400 pointer-events-none z-10" />
-                                    <input
-                                        type="datetime-local"
-                                        value={filters.startDate}
-                                        onChange={(e) => handleFilterChange('startDate', e.target.value)}
-                                        className="w-full pl-10 pr-3 py-2 border border-slate-300 dark:border-slate-500 rounded-lg bg-white dark:bg-slate-700 text-slate-900 dark:text-white text-sm focus:ring-2 focus:ring-primary-500 focus:border-primary-500 cursor-pointer"
-                                    />
-                                </div>
+                                <DatePicker
+                                    showTime
+                                    className="w-full"
+                                    value={filters.startDate ? dayjs(filters.startDate) : null}
+                                    onChange={(date) => handleFilterChange('startDate', date?.toISOString() || '')}
+                                    placeholder={t('auditLog.startDate')}
+                                    disabledDate={(current) => filters.endDate ? current > dayjs(filters.endDate) : false}
+                                />
                             </div>
 
                             {/* End Date */}
@@ -611,15 +610,14 @@ export default function AuditLogPage() {
                                 <label className="block text-xs text-slate-500 dark:text-slate-400 mb-1">
                                     {t('auditLog.endDate')}
                                 </label>
-                                <div className="relative">
-                                    <Calendar className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-primary-600 dark:text-primary-400 pointer-events-none z-10" />
-                                    <input
-                                        type="datetime-local"
-                                        value={filters.endDate}
-                                        onChange={(e) => handleFilterChange('endDate', e.target.value)}
-                                        className="w-full pl-10 pr-3 py-2 border border-slate-300 dark:border-slate-500 rounded-lg bg-white dark:bg-slate-700 text-slate-900 dark:text-white text-sm focus:ring-2 focus:ring-primary-500 focus:border-primary-500 cursor-pointer"
-                                    />
-                                </div>
+                                <DatePicker
+                                    showTime
+                                    className="w-full"
+                                    value={filters.endDate ? dayjs(filters.endDate) : null}
+                                    onChange={(date) => handleFilterChange('endDate', date?.toISOString() || '')}
+                                    placeholder={t('auditLog.endDate')}
+                                    disabledDate={(current) => filters.startDate ? current < dayjs(filters.startDate) : false}
+                                />
                             </div>
                         </div>
                     </div>

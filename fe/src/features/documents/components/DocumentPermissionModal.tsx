@@ -4,7 +4,7 @@ import { useQuery, useQueryClient } from '@tanstack/react-query';
 import { Dialog } from '@/components/Dialog';
 import { teamService } from '@/features/teams';
 import { userService } from '@/features/users';
-import { getAllPermissions, setPermission, PermissionLevel } from '../api/minioService';
+import { getAllPermissions, setPermission, PermissionLevel } from '../api/documentService';
 import { Search, Users, User as UserIcon } from 'lucide-react';
 import { Table, Select as AntSelect, Space, Input, Avatar, Tabs, Button } from 'antd';
 

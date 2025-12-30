@@ -7,14 +7,24 @@ async function debug() {
         console.log('--- Starting Debug ---');
 
         // 1. Get the specific prompt
-        const prompts = await promptService.getPrompts({ search: 'Cybersecurity' });
+        const promptsResult = await promptService.getPrompts({ search: 'Cybersecurity' });
+        let prompts = promptsResult.data; // Access .data property
         if (prompts.length === 0) {
             console.log('No prompts found matching "Cybersecurity". Listing first 5 prompts:');
-            const all = await promptService.getPrompts();
-            all.slice(0, 5).forEach(p => console.log(`- ${p.prompt} (${p.id})`));
-            return;
+            const result = await promptService.getPrompts({});
+            prompts = result.data; // Redefine prompts with all prompts' data
+            console.log(`Found ${result.total} prompts`);
+            // List first 5
+            const all = prompts;
+            all.slice(0, 5).forEach((p: any) => console.log(`- ${p.prompt} (${p.id})`));
+
+            if (prompts.length === 0) {
+                console.log('No prompts found, creating test prompt...');
+                return;
+            }
         }
         const prompt = prompts[0];
+        if (!prompt) return;
         console.log(`Found prompt: ${prompt.id} (${prompt.prompt})`);
 
         // Check raw interactions count in DB

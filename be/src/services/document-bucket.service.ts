@@ -5,7 +5,7 @@ import { auditService, AuditAction, AuditResourceType } from '@/services/audit.s
 import { socketService } from '@/services/socket.service.js';
 import { log } from '@/services/logger.service.js';
 
-export class MinioBucketService {
+export class DocumentBucketService {
     /**
      * Get buckets visible to a specific user based on their role and permissions.
      * @param user - Object containing user id, role, and permissions.
@@ -15,10 +15,20 @@ export class MinioBucketService {
     async getAccessibleBuckets(user: { id: string, role: string, permissions?: string[] | any }) {
         // Check global permission
         // Admin or user with 'manage_storage' or 'storage:read'
-        const hasGlobalAccess = user.role === 'admin' ||
-            (Array.isArray(user.permissions) && (
-                user.permissions.includes('manage_storage')
-            ));
+        // Check global permission
+        // Admin or user with 'manage_storage' or 'storage:read'
+        let permissions: string[] = [];
+        if (Array.isArray(user.permissions)) {
+            permissions = user.permissions;
+        } else if (typeof user.permissions === 'string') {
+            try {
+                permissions = JSON.parse(user.permissions);
+            } catch (e) {
+                permissions = [];
+            }
+        }
+
+        const hasGlobalAccess = user.role === 'admin' || permissions.includes('manage_storage');
 
         if (hasGlobalAccess) {
             // Return all buckets for privileged users
@@ -45,24 +55,77 @@ export class MinioBucketService {
      * @returns Promise<any[]> - List of unconfigured buckets.
      * @description Wrapper for minioService to discover new buckets.
      */
+    /**
+     * Get available buckets from MinIO that are not yet configured in DB.
+     * @returns Promise<any[]> - List of unconfigured buckets.
+     * @description Fetches all buckets from MinIO and filters out those already present in the database.
+     */
     async getAvailableBuckets() {
-        return await minioService.getAvailableBuckets();
+        // 1. Get all actual buckets from MinIO
+        const minioBuckets = await minioService.listBuckets();
+
+        // 2. Get all configured buckets from DB
+        const configuredBuckets = await ModelFactory.minioBucket.findAll({});
+        const configuredNames = new Set(configuredBuckets.map(b => b.bucket_name));
+
+        // 3. Filter out buckets that are already configured
+        return minioBuckets
+            .filter(b => b.name && !configuredNames.has(b.name))
+            .map(b => ({
+                name: b.name,
+                creationDate: b.creationDate
+            }));
     }
 
     /**
-     * Create a new bucket.
+     * Create a new document bucket.
      * @param bucketName - Name of the bucket.
      * @param description - Description of the bucket.
      * @param user - User context for audit logging.
      * @returns Promise<any> - The created bucket record.
      * @description Wrapper for minioService with potential for extra business logic.
      */
-    async createBucket(bucketName: string, description: string, user: { id: string, email: string, ip?: string }) {
-        return await minioService.createBucket(bucketName, description, user);
+    async createDocument(bucketName: string, description: string, user: { id: string, email: string, ip?: string }) {
+        try {
+            // 1. Check if configured in DB
+            const existingConfig = await ModelFactory.minioBucket.findByName(bucketName);
+            if (existingConfig) {
+                throw new Error(`Bucket '${bucketName}' is already configured in the system.`);
+            }
+
+            // 2. Ensure exists in MinIO (call wrapper)
+            await minioService.createBucket(bucketName, description, user);
+
+            // 3. Register in DB
+            const bucket = await ModelFactory.minioBucket.create({
+                bucket_name: bucketName,
+                display_name: bucketName,
+                description,
+                created_by: user?.id || 'system',
+                updated_by: user?.id || 'system'
+            });
+
+            // 4. Audit Log
+            if (user) {
+                await auditService.log({
+                    userId: user.id,
+                    userEmail: user.email,
+                    action: AuditAction.CREATE_DOCUMENT_BUCKET,
+                    resourceType: AuditResourceType.BUCKET,
+                    resourceId: bucket.id,
+                    details: { bucketName },
+                    ipAddress: user.ip,
+                });
+            }
+            return bucket;
+        } catch (error) {
+            log.error('Failed to create bucket', { bucketName, error: String(error) });
+            throw error;
+        }
     }
 
     /**
-     * Delete a bucket.
+     * Delete a document bucket.
      * @param bucketName - Name of the bucket to delete.
      * @param user - User context for audit logging.
      * @returns Promise<void>
@@ -70,7 +133,7 @@ export class MinioBucketService {
      * Recursively deletes all objects in the bucket before deleting the bucket itself.
      * Emits progress updates via WebSocket.
      */
-    async deleteBucket(bucketName: string, user: { id: string, email: string, ip?: string }) {
+    async deleteDocument(bucketName: string, user: { id: string, email: string, ip?: string }) {
         try {
             // 1. Check if bucket exists in DB and MinIO (handled by minioService somewhat, but good to check)
             // The minioService.deleteBucket does DB deletion too, but we need to empty it first.
@@ -153,4 +216,4 @@ export class MinioBucketService {
     }
 }
 
-export const minioBucketService = new MinioBucketService();
+export const documentBucketService = new DocumentBucketService();

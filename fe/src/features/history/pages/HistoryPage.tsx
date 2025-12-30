@@ -19,6 +19,8 @@ import { useTranslation } from 'react-i18next';
 import { apiFetch } from '@/lib/api';
 import { Dialog } from '@/components/Dialog';
 import { Checkbox } from '@/components/Checkbox';
+import { DatePicker } from 'antd';
+import dayjs from 'dayjs';
 
 // ============================================================================
 // Types
@@ -295,19 +297,19 @@ function HistoryPage() {
               />
             </div>
             <div className="flex gap-2">
-              <input
-                type="date"
-                value={startDate}
-                onChange={(e) => setStartDate(e.target.value)}
-                className="px-4 py-2 border border-slate-300 dark:border-slate-600 rounded-lg focus:ring-2 focus:ring-primary focus:border-transparent bg-white dark:bg-slate-700 text-slate-900 dark:text-slate-100"
+              <DatePicker
+                value={startDate ? dayjs(startDate) : null}
+                onChange={(_, dateString) => setStartDate(dateString as string)}
+                className="w-40"
                 placeholder={t('history.startDate')}
+                disabledDate={(current) => endDate ? current > dayjs(endDate) : false}
               />
-              <input
-                type="date"
-                value={endDate}
-                onChange={(e) => setEndDate(e.target.value)}
-                className="px-4 py-2 border border-slate-300 dark:border-slate-600 rounded-lg focus:ring-2 focus:ring-primary focus:border-transparent bg-white dark:bg-slate-700 text-slate-900 dark:text-slate-100"
+              <DatePicker
+                value={endDate ? dayjs(endDate) : null}
+                onChange={(_, dateString) => setEndDate(dateString as string)}
+                className="w-40"
                 placeholder={t('history.endDate')}
+                disabledDate={(current) => startDate ? current < dayjs(startDate) : false}
               />
             </div>
           </div>

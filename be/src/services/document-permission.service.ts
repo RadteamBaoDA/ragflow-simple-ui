@@ -4,6 +4,7 @@ import { ModelFactory } from '@/models/factory.js';
 import { log } from '@/services/logger.service.js';
 import { auditService, AuditAction, AuditResourceType } from '@/services/audit.service.js';
 import { DocumentPermission, PermissionLevel } from '@/models/types.js';
+import { isAdminRole } from '@/config/rbac.js';
 
 export { PermissionLevel };
 
@@ -91,7 +92,11 @@ export class DocumentPermissionService {
     async resolveUserPermission(userId: string, bucketId: string): Promise<PermissionLevel> {
         // Superuser bypass: Admins always have FULL access
         const user = await ModelFactory.user.findById(userId);
-        if (user?.role === 'admin') {
+
+        const isSuperUser = user && (user.role === 'admin');
+        log.debug('resolveUserPermission: Check', { userId, bucketId, userFound: !!user, userRole: user?.role, isSuperUser });
+
+        if (isSuperUser) {
             return PermissionLevel.FULL;
         }
 

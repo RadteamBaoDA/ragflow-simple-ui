@@ -97,7 +97,7 @@ export class MinioRawController {
             }
 
             // Create bucket via service
-            await minioService.createBucket(name, '', undefined);
+            await minioService.createBucket(name, '', req.user);
             res.status(201).json({ message: 'Bucket created successfully' });
         } catch (error) {
             // Log error and return 500 status
@@ -124,7 +124,7 @@ export class MinioRawController {
                 return;
             }
             // Delete bucket via service
-            await minioService.deleteBucket(name);
+            await minioService.deleteBucket(name, req.user);
             res.json({ message: 'Bucket deleted successfully' });
         } catch (error) {
             // Log error and return 500 status

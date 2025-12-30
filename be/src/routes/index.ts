@@ -17,9 +17,9 @@ import adminRoutes from '@/routes/admin.routes.js';
 import userRoutes from '@/routes/user.routes.js';
 import teamRoutes from '@/routes/team.routes.js';
 import systemToolsRoutes from '@/routes/system-tools.routes.js';
-import minioBucketRoutes from '@/routes/minio-bucket.routes.js';
+import documentBucketRoutes from '@/routes/document-bucket.routes.js';
 import minioRawRoutes from '@/routes/minio-raw.routes.js';
-import minioStorageRoutes from '@/routes/minio-storage.routes.js';
+import documentStorageRoutes from '@/routes/document-storage.routes.js';
 import documentPermissionRoutes from '@/routes/document-permission.routes.js';
 import auditRoutes from '@/routes/audit.routes.js';
 import externalRoutes from '@/routes/external/index.js';
@@ -119,10 +119,10 @@ function registerRoutes(apiRouter: Router): void {
     // System tools (health checks, diagnostics)
     apiRouter.use('/system-tools', systemToolsRoutes);
 
-    // MinIO storage routes
-    apiRouter.use('/minio/buckets', minioBucketRoutes);
-    apiRouter.use('/minio/raw', minioRawRoutes);
-    apiRouter.use('/minio/documents', minioStorageRoutes);
+    // Document storage routes
+    apiRouter.use('/document/buckets', documentBucketRoutes);
+    apiRouter.use('/minio/raw', minioRawRoutes); // Keep raw minio separate
+    apiRouter.use('/document/storage', documentStorageRoutes);
 
     // Document permissions
     apiRouter.use('/document-permissions', documentPermissionRoutes);
