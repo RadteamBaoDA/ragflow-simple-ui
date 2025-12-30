@@ -182,6 +182,24 @@ function App() {
                           <UserManagementPage />
                         </AdminRoute>
                       } />
+                      <Route path="knowledge-base/storage" element={
+                        <AdminRoute>
+                          <StoragePage />
+
+                        </AdminRoute>
+                      } />
+                      <Route path="knowledge-base/prompts" element={
+                        <RoleRoute allowedRoles={['admin', 'leader']}>
+                          <PromptsPage />
+                        </RoleRoute>
+                      } />
+
+                      {/* IAM routes */}
+                      <Route path="iam/users" element={
+                        <AdminRoute>
+                          <UserManagementPage />
+                        </AdminRoute>
+                      } />
                       <Route path="iam/teams" element={
                         <AdminRoute>
                           <TeamManagementPage />
