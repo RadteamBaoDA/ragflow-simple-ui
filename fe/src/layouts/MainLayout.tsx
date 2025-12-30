@@ -468,7 +468,7 @@ function Layout() {
             )}
           </header>
         )}
-        <div className={`flex-1 overflow-hidden ${['/chat', '/search', '/knowledge-base/documents', '/admin/system-tools', '/knowledge-base/storage', '/ragflow-config', '/iam/teams', '/admin/histories', '/chat/history', '/search/history'].includes(location.pathname) ? '' : 'p-8 overflow-auto'}`}>
+        <div className={`flex-1 overflow-hidden ${['/chat', '/search', '/knowledge-base/documents', '/admin/system-tools', '/knowledge-base/storage', '/ragflow-config', '/iam/teams', '/admin/histories', '/chat/history', '/search/history', '/knowledge-base/config'].includes(location.pathname) ? '' : 'p-8 overflow-auto'}`}>
           <Suspense fallback={<ContentLoader />}>
             <Outlet />
           </Suspense>

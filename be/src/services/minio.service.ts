@@ -191,7 +191,24 @@ class MinioService {
      */
     async deleteBucket(bucketName: string, user?: { id: string, email: string, ip?: string }): Promise<void> {
         try {
-            // Remove from backend storage
+            // 1. Empty the bucket first (remove all objects)
+            const objectsToDelete: string[] = [];
+            try {
+                const stream = this.client.listObjects(bucketName, '', true);
+                for await (const obj of stream) {
+                    if (obj.name) {
+                        objectsToDelete.push(obj.name);
+                    }
+                }
+                if (objectsToDelete.length > 0) {
+                    await this.client.removeObjects(bucketName, objectsToDelete);
+                }
+            } catch (err) {
+                log.warn(`Failed to empty bucket ${bucketName} before deletion`, { error: String(err) });
+                // Continue to try deleting bucket, it might be empty or error will be thrown by removeBucket
+            }
+
+            // 2. Remove from backend storage
             await this.client.removeBucket(bucketName);
 
             // Remove from database
