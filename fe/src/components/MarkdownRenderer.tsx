@@ -69,36 +69,36 @@ export const MarkdownRenderer: React.FC<MarkdownRendererProps> = ({ children, cl
                 components={{
                     // Custom link rendering to open in new tab
                     a: ({ node, ...props }) => (
-                        <a {...props} target="_blank" rel="noopener noreferrer" className="text-blue-500 hover:underline" />
+                        <a {...props as any} target="_blank" rel="noopener noreferrer" className="text-blue-500 hover:underline" />
                     ),
                     // Tables
                     table: ({ node, ...props }) => (
                         <div className="overflow-x-auto my-4 border rounded-lg border-slate-200 dark:border-slate-700">
-                            <table {...props} className="w-full text-sm text-left border-collapse" />
+                            <table {...props as any} className="w-full text-sm text-left border-collapse" />
                         </div>
                     ),
                     thead: ({ node, ...props }) => (
-                        <thead {...props} className="bg-slate-100 dark:bg-slate-800 text-xs uppercase text-slate-700 dark:text-slate-300 font-semibold" />
+                        <thead {...props as any} className="bg-slate-100 dark:bg-slate-800 text-xs uppercase text-slate-700 dark:text-slate-300 font-semibold" />
                     ),
                     tbody: ({ node, ...props }) => (
-                        <tbody {...props} className="divide-y divide-slate-200 dark:divide-slate-700" />
+                        <tbody {...props as any} className="divide-y divide-slate-200 dark:divide-slate-700" />
                     ),
                     tr: ({ node, ...props }) => (
-                        <tr {...props} className="bg-white dark:bg-slate-900 even:bg-slate-50 dark:even:bg-slate-800/50 hover:bg-slate-100 dark:hover:bg-slate-800 transition-colors" />
+                        <tr {...props as any} className="bg-white dark:bg-slate-900 even:bg-slate-50 dark:even:bg-slate-800/50 hover:bg-slate-100 dark:hover:bg-slate-800 transition-colors" />
                     ),
                     th: ({ node, ...props }) => (
-                        <th {...props} className="px-4 py-3 border-b border-slate-200 dark:border-slate-700" />
+                        <th {...props as any} className="px-4 py-3 border-b border-slate-200 dark:border-slate-700" />
                     ),
                     td: ({ node, ...props }) => (
-                        <td {...props} className="px-4 py-3" />
+                        <td {...props as any} className="px-4 py-3" />
                     ),
                     // Headings
-                    h1: ({ node, ...props }) => <h1 {...props} className="text-3xl font-bold mt-8 mb-4 text-slate-900 dark:text-white border-b pb-2 border-slate-200 dark:border-slate-800" />,
-                    h2: ({ node, ...props }) => <h2 {...props} className="text-2xl font-bold mt-6 mb-3 text-slate-900 dark:text-white" />,
-                    h3: ({ node, ...props }) => <h3 {...props} className="text-xl font-bold mt-5 mb-2 text-slate-900 dark:text-white" />,
-                    h4: ({ node, ...props }) => <h4 {...props} className="text-lg font-bold mt-4 mb-2 text-slate-900 dark:text-white" />,
-                    h5: ({ node, ...props }) => <h5 {...props} className="text-base font-bold mt-4 mb-1 text-slate-900 dark:text-white" />,
-                    h6: ({ node, ...props }) => <h6 {...props} className="text-sm font-bold mt-4 mb-1 text-slate-900 dark:text-white uppercase tracking-wide" />,
+                    h1: ({ node, ...props }) => <h1 {...props as any} className="text-3xl font-bold mt-8 mb-4 text-slate-900 dark:text-white border-b pb-2 border-slate-200 dark:border-slate-800" />,
+                    h2: ({ node, ...props }) => <h2 {...props as any} className="text-2xl font-bold mt-6 mb-3 text-slate-900 dark:text-white" />,
+                    h3: ({ node, ...props }) => <h3 {...props as any} className="text-xl font-bold mt-5 mb-2 text-slate-900 dark:text-white" />,
+                    h4: ({ node, ...props }) => <h4 {...props as any} className="text-lg font-bold mt-4 mb-2 text-slate-900 dark:text-white" />,
+                    h5: ({ node, ...props }) => <h5 {...props as any} className="text-base font-bold mt-4 mb-1 text-slate-900 dark:text-white" />,
+                    h6: ({ node, ...props }) => <h6 {...props as any} className="text-sm font-bold mt-4 mb-1 text-slate-900 dark:text-white uppercase tracking-wide" />,
                 }}
             >
                 {content}
