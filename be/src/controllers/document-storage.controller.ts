@@ -72,7 +72,8 @@ export class DocumentStorageController {
 
         try {
             // Upload via service
-            const results = await documentStorageService.uploadFile(req.user, bucketId, req.files as Express.Multer.File[], req.body, getClientIp(req) || 'unknown');
+            const options = { ...req.body, prefix: req.query.prefix || req.body.prefix };
+            const results = await documentStorageService.uploadFile(req.user, bucketId, req.files as Express.Multer.File[], options, getClientIp(req) || 'unknown');
             res.status(201).json(results);
         } catch (error: any) {
             const message = String(error.message || error);
