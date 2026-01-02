@@ -122,3 +122,8 @@ npm run build
 Artifacts will be generated in:
 *   `be/dist/`
 *   `fe/dist/`
+
+## Coding Rules
+
+### Database Migrations
+*   **Knex Imports**: When importing `Knex` for typing in migration files, ALWAYS use `import type { Knex } from 'knex';`. The `knex` package is a CommonJS module and named imports will fail at runtime in the ESM environment. Use type-only imports to avoid this issue.

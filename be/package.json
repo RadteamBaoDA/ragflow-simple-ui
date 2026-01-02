@@ -6,8 +6,8 @@
   "main": "dist/index.js",
   "scripts": {
     "dev": "tsx watch src/index.ts",
-    "build": "tsc && tsc-alias",
-    "build:prod": "tsc --sourceMap false --declarationMap false && tsc-alias",
+    "build": "tsc --sourceMap false --declaration false --declarationMap false && tsc-alias",
+    "build:prod": "tsc --sourceMap false --declaration false --declarationMap false && tsc-alias",
     "start": "node dist/index.js",
     "lint": "eslint src",
     "lint:fix": "eslint src --fix",

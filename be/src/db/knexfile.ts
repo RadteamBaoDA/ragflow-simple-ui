@@ -1,10 +1,11 @@
 // Knex configuration used by CLI and knex-based tooling.
 import { fileURLToPath } from 'url';
-import { dirname, join } from 'path';
+import { dirname, join, extname } from 'path';
 import { config } from '../config/index.js';
 
 const __filename = fileURLToPath(import.meta.url);
 const __dirname = dirname(__filename);
+const ext = extname(__filename).slice(1); // 'ts' or 'js'
 
 // Default Postgres connection with migrations in db/migrations
 const dbConfig = {
@@ -18,11 +19,13 @@ const dbConfig = {
   },
   migrations: {
     directory: join(__dirname, 'migrations'),
-    extension: 'ts',
+    extension: ext,
+    loadExtensions: [`.${ext}`],
   },
   seeds: {
     directory: join(__dirname, 'seeds'),
-    extension: 'ts',
+    extension: ext,
+    loadExtensions: [`.${ext}`],
   },
 };
 

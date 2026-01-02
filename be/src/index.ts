@@ -138,7 +138,11 @@ const startServer = async (): Promise<http.Server | https.Server> => {
         await k.destroy();
         log.info('Knex migrations completed successfully');
       } catch (error) {
-        log.error('Failed to run migrations', { error });
+        log.error('Failed to run migrations', {
+          error: error instanceof Error ? error.message : String(error),
+          stack: error instanceof Error ? error.stack : undefined,
+          details: JSON.stringify(error, Object.getOwnPropertyNames(error))
+        });
         process.exit(1);
       }
 
