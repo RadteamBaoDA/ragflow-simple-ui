@@ -147,45 +147,25 @@ export const PromptLibraryModal = ({ open, onClose, onSelect }: PromptLibraryMod
                     placeholder={t('prompts.filter.tag', 'Filter by tags')}
                     value={selectedTags}
                     onChange={setSelectedTags}
-                    options={availableTags.map(tag => ({ label: tag.name, value: tag.name }))}
+                    options={availableTags.map(tag => ({
+                        label: (
+                            <div className="flex items-center">
+                                <Tag
+                                    className="border-none px-2 py-0.5 inline-flex items-center gap-1.5 rounded-md m-0"
+                                    style={tag.color ? { backgroundColor: tag.color, color: '#fff' } : {}}
+                                >
+                                    <span className="font-medium">{tag.name}</span>
+                                    <TagIcon size={12} className="text-white opacity-90" />
+                                </Tag>
+                            </div>
+                        ),
+                        value: tag.name
+                    }))}
                     className="w-1/3 min-w-[200px]"
                     style={{ minHeight: 44 }}
                     size="large"
                     allowClear
                     maxTagCount="responsive"
-                    tagRender={(props) => {
-                        const { label, value, closable, onClose } = props;
-                        const color = getTagColor(value as string) || '#3b82f6';
-                        return (
-                            <span
-                                style={{
-                                    backgroundColor: color,
-                                    color: '#fff',
-                                    padding: '4px 10px',
-                                    borderRadius: '16px',
-                                    marginRight: 4,
-                                    marginTop: 2,
-                                    marginBottom: 2,
-                                    display: 'inline-flex',
-                                    alignItems: 'center',
-                                    gap: 4,
-                                    fontSize: '13px',
-                                    fontWeight: 500
-                                }}
-                            >
-                                {label}
-                                <TagIcon size={12} style={{ opacity: 0.9 }} />
-                                {closable && (
-                                    <span
-                                        onClick={onClose}
-                                        style={{ cursor: 'pointer', marginLeft: 2, opacity: 0.8 }}
-                                    >
-                                        ×
-                                    </span>
-                                )}
-                            </span>
-                        );
-                    }}
                 />
             </div>
 

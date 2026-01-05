@@ -286,7 +286,7 @@ function Layout() {
               )}
             </div>
           )}
-          {(user?.role === 'admin' || user?.role === 'leader' || (knowledgeBase.config?.promptPermission ?? 0) > 0) && (
+          {(user?.role === 'admin' || user?.role === 'leader') && (
             <div className="flex flex-col gap-1">
               <button
                 onClick={() => setIsKnowledgeBaseExpanded(!isKnowledgeBaseExpanded)}

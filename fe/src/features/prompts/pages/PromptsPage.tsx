@@ -17,6 +17,7 @@ import { Prompt } from '../types/prompt';
 import { TagInput } from '../components/TagInput';
 import { PromptPermissionModal } from '../components/PromptPermissionModal';
 import { globalMessage } from '@/app/App';
+import { useAuth } from '@/features/auth';
 import dayjs from 'dayjs';
 
 // ============================================================================
@@ -52,6 +53,7 @@ interface FeedbackDetail {
 
 export const PromptsPage = () => {
     const { t } = useTranslation();
+    const { user } = useAuth();
     const [prompts, setPrompts] = useState<Prompt[]>([]);
     const [loading, setLoading] = useState(false);
     const [tags, setTags] = useState<{ name: string, color: string }[]>([]);
@@ -62,7 +64,7 @@ export const PromptsPage = () => {
 
     // Filters
     const [searchFilter, setSearchFilter] = useState<string | undefined>();
-    const [tagFilter, setTagFilter] = useState<string | undefined>();
+    const [tagFilter, setTagFilter] = useState<string[]>([]);
 
     // Create/Edit Modal State
     const [isModalOpen, setIsModalOpen] = useState(false);
@@ -111,7 +113,8 @@ export const PromptsPage = () => {
         try {
             const filters: any = {};
             if (searchFilter) filters.search = searchFilter;
-            if (tagFilter) filters.tag = tagFilter;
+            if (searchFilter) filters.search = searchFilter;
+            if (tagFilter && tagFilter.length > 0) filters.tags = tagFilter.join(',');
 
             const result = await promptService.getPrompts(filters);
             setPrompts(result.data);
@@ -173,8 +176,8 @@ export const PromptsPage = () => {
         setCurrentPage(1);
     };
 
-    const handleTagChange = (value: string) => {
-        setTagFilter(value === 'all' ? undefined : value);
+    const handleTagChange = (value: string[]) => {
+        setTagFilter(value);
         setCurrentPage(1);
     };
 
@@ -384,25 +387,42 @@ export const PromptsPage = () => {
                 />
                 <Select
                     placeholder={t('prompts.filter.tag')}
-                    style={{ width: 200 }}
+                    style={{ minWidth: 200, maxWidth: 400 }}
                     allowClear
+                    mode="multiple"
+                    maxTagCount="responsive"
+                    value={tagFilter}
                     onChange={handleTagChange}
                     size="large"
                     options={[
-                        { label: t('prompts.filter.allTags'), value: 'all' },
-                        ...tags.map(tag => ({ label: tag.name, value: tag.name }))
+                        ...tags.map(tag => ({
+                            label: (
+                                <div className="flex items-center">
+                                    <Tag
+                                        className="border-none px-2 py-0.5 inline-flex items-center gap-1.5 rounded-md m-0"
+                                        style={tag.color ? { backgroundColor: tag.color, color: '#fff' } : {}}
+                                    >
+                                        <span className="font-medium">{tag.name}</span>
+                                        <TagIcon size={12} className="text-white opacity-90" />
+                                    </Tag>
+                                </div>
+                            ),
+                            value: tag.name
+                        }))
                     ]}
                 />
 
                 <Space>
-                    <Button
-                        type="default"
-                        icon={<Shield size={16} />}
-                        onClick={() => setIsPermissionModalOpen(true)}
-                        size="large"
-                    >
-                        {t('prompts.permissions.manage')}
-                    </Button>
+                    {user?.role === 'admin' && (
+                        <Button
+                            type="default"
+                            icon={<Shield size={16} />}
+                            onClick={() => setIsPermissionModalOpen(true)}
+                            size="large"
+                        >
+                            {t('prompts.permissions.manage')}
+                        </Button>
+                    )}
                     <Tooltip title={permissionLevel < PermissionLevel.UPLOAD ? t('common.noPermission') : ''}>
                         <Button
                             type="primary"
