@@ -76,7 +76,7 @@ export class PromptPermissionService {
         });
 
         const teamIds = userTeams.map((ut: any) => ut.team_id);
-        if (teamIds.length === 0) return userPerm;
+
 
         let maxPerm = userPerm;
 
@@ -87,7 +87,7 @@ export class PromptPermissionService {
             }
         }
 
-        return maxPerm;
+        return Math.max(maxPerm, PermissionLevel.VIEW);
     }
 
     /**
