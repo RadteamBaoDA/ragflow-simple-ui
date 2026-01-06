@@ -18,6 +18,7 @@ import { TagInput } from '../components/TagInput';
 import { PromptPermissionModal } from '../components/PromptPermissionModal';
 import { globalMessage } from '@/app/App';
 import { useAuth } from '@/features/auth';
+import { useDebounce } from '@/hooks/useDebounce';
 import dayjs from 'dayjs';
 
 // ============================================================================
@@ -64,6 +65,7 @@ export const PromptsPage = () => {
 
     // Filters
     const [searchFilter, setSearchFilter] = useState<string | undefined>();
+    const debouncedSearchFilter = useDebounce(searchFilter, 1000);
     const [tagFilter, setTagFilter] = useState<string[]>([]);
 
     // Create/Edit Modal State
@@ -93,7 +95,7 @@ export const PromptsPage = () => {
         fetchPermission();
         fetchPrompts();
         fetchTags();
-    }, [searchFilter, tagFilter]);
+    }, [debouncedSearchFilter, tagFilter]);
 
     const fetchPermission = async () => {
         try {
@@ -112,7 +114,7 @@ export const PromptsPage = () => {
         setLoading(true);
         try {
             const filters: any = {};
-            if (searchFilter) filters.search = searchFilter;
+            if (debouncedSearchFilter) filters.search = debouncedSearchFilter;
             if (searchFilter) filters.search = searchFilter;
             if (tagFilter && tagFilter.length > 0) filters.tags = tagFilter.join(',');
 

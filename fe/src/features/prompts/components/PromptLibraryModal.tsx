@@ -5,6 +5,7 @@ import { Modal, Input, List, Tag, Button, Empty, Tooltip, message, Select, Popov
 import { Search, Copy, Book, Tag as TagIcon, ThumbsUp, ThumbsDown } from 'lucide-react';
 import { promptService } from '../api/promptService';
 import { Prompt } from '../types/prompt';
+import { useDebounce } from '@/hooks/useDebounce';
 
 interface PromptLibraryModalProps {
     open: boolean;
@@ -19,6 +20,7 @@ export const PromptLibraryModal = ({ open, onClose, onSelect }: PromptLibraryMod
     const [loading, setLoading] = useState(false);
     const [loadingMore, setLoadingMore] = useState(false);
     const [searchText, setSearchText] = useState('');
+    const debouncedSearchText = useDebounce(searchText, 1000);
     const [selectedTags, setSelectedTags] = useState<string[]>([]);
     const [availableTags, setAvailableTags] = useState<{ name: string, color: string }[]>([]);
     const [total, setTotal] = useState(0);
@@ -42,7 +44,7 @@ export const PromptLibraryModal = ({ open, onClose, onSelect }: PromptLibraryMod
             setOffset(0);
             fetchPrompts(0, true);
         }
-    }, [searchText, selectedTags]);
+    }, [debouncedSearchText, selectedTags]);
 
     const fetchInitialData = async () => {
         setLoading(true);
@@ -70,7 +72,7 @@ export const PromptLibraryModal = ({ open, onClose, onSelect }: PromptLibraryMod
             setLoadingMore(true);
         }
         const params: any = { limit: PAGE_SIZE, offset: currentOffset };
-        if (searchText) params.search = searchText;
+        if (debouncedSearchText) params.search = debouncedSearchText;
         if (selectedTags.length > 0) params.tags = selectedTags.join(','); // Send all tags for AND filtering
         try {
             const result = await promptService.getPrompts(params);
@@ -206,7 +208,7 @@ export const PromptLibraryModal = ({ open, onClose, onSelect }: PromptLibraryMod
                             <div className="w-full">
                                 <div className="flex justify-between items-start mb-2">
                                     <div className="flex-1">
-                                        <div className="text-sm text-slate-900 dark:text-slate-100 font-medium line-clamp-3 whitespace-pre-wrap font-mono bg-slate-50 dark:bg-slate-900 p-2 rounded border border-slate-100 dark:border-slate-800">
+                                        <div className="text-sm text-slate-900 dark:text-slate-100 font-medium whitespace-pre-wrap break-all font-mono bg-slate-50 dark:bg-slate-900 p-2 rounded border border-slate-100 dark:border-slate-700">
                                             {item.prompt}
                                         </div>
                                     </div>
