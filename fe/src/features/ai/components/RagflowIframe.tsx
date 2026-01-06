@@ -18,7 +18,7 @@ import { useSharedUser } from '@/features/users';
 import { useTranslation } from 'react-i18next';
 import { useKnowledgeBase } from '@/features/knowledge-base/context/KnowledgeBaseContext';
 import { useSettings } from '@/app/contexts/SettingsContext';
-import { AlertCircle, RefreshCw, RotateCcw, WifiOff, Lock, FileQuestion, ServerCrash, Maximize2, Minimize2, Info, Book } from 'lucide-react';
+import { AlertCircle, RefreshCw, RotateCcw, WifiOff, Lock, FileQuestion, ServerCrash, Maximize2, Minimize2, Book } from 'lucide-react';
 import { Tooltip } from 'antd';
 import { PromptLibraryModal } from '@/features/prompts/components/PromptLibraryModal';
 
@@ -82,11 +82,7 @@ function RagflowIframe({ path }: RagflowIframeProps) {
   // Get the selected source ID based on path (chat or search)
   const selectedSourceId = path === 'chat' ? knowledgeBase.selectedChatSourceId : knowledgeBase.selectedSearchSourceId;
 
-  // Get the current source's description
-  const currentSource = path === 'chat'
-    ? knowledgeBase.config?.chatSources?.find(s => s.id === selectedSourceId)
-    : knowledgeBase.config?.searchSources?.find(s => s.id === selectedSourceId);
-  const sourceDescription = currentSource?.description;
+
 
   // ============================================================================
   // Callbacks
@@ -193,21 +189,31 @@ function RagflowIframe({ path }: RagflowIframeProps) {
       };
 
       // Build final URL with all params (locale, email, theme)
-      const urlWithParams = buildUrl(source.url, {
-        locale: i18n.language,
-        email: user?.email,
-        theme: resolvedTheme,
-        _t: sessionKey.toString(),
-      });
+      try {
+        const urlWithParams = buildUrl(source.url, {
+          locale: i18n.language,
+          email: user?.email,
+          theme: resolvedTheme,
+          _t: sessionKey.toString(),
+        });
 
-      // Only update if URL actually changed
-      setIframeSrc(prev => {
-        if (prev !== urlWithParams) {
-          setUrlChecked(false); // Reset check when URL changes
-          return urlWithParams;
-        }
-        return prev;
-      });
+        // Only update if URL actually changed
+        setIframeSrc(prev => {
+          if (prev !== urlWithParams) {
+            setUrlChecked(false); // Reset check when URL changes
+            return urlWithParams;
+          }
+          return prev;
+        });
+      } catch (error) {
+        console.error('[RagflowIframe] Invalid source URL:', source.url, error);
+        setIframeSrc('');
+        setIframeLoading(false);
+        setIframeError({
+          type: 'unknown',
+          message: t('iframe.invalidSourceUrl', 'Invalid Source URL configuration'),
+        });
+      }
     } else {
       // No source configured
       setIframeSrc('');
@@ -543,18 +549,7 @@ function RagflowIframe({ path }: RagflowIframeProps) {
           }}
         />
 
-        {/* Info Icon with Source Description Tooltip */}
-        {sourceDescription && (
-          <div className="absolute top-4 right-6 group z-[100]">
-            <div className="p-2 bg-white dark:bg-slate-700 text-slate-500 dark:text-slate-300 rounded-full shadow-lg border border-slate-200 dark:border-slate-600 cursor-help hover:text-blue-500 transition-colors">
-              <Info className="w-5 h-5" />
-            </div>
-            <div className="absolute right-0 top-full mt-2 w-72 p-3 bg-slate-800 dark:bg-slate-700 text-white text-sm rounded-lg shadow-lg opacity-0 invisible group-hover:opacity-100 group-hover:visible transition-all duration-200">
-              <div className="absolute -top-2 right-4 w-0 h-0 border-l-8 border-r-8 border-b-8 border-transparent border-b-slate-800 dark:border-b-slate-700"></div>
-              {sourceDescription}
-            </div>
-          </div>
-        )}
+
       </div>
     </div >
   );
