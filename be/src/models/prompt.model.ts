@@ -50,14 +50,15 @@ export class PromptModel extends BaseModel<Prompt> {
       query = query.whereRaw('tags @> ?', [JSON.stringify([tag])]);
     }
 
-    // Apply full-text search if provided
+    // Apply search filter (ILIKE on prompt OR description)
     if (search) {
-      query = query
-        .whereRaw("search_vector @@ plainto_tsquery('english', ?)", [search])
-        .orderByRaw("ts_rank(search_vector, plainto_tsquery('english', ?)) DESC", [search]);
-    } else {
-      query = query.orderBy('created_at', 'desc');
+      query = query.where(builder => {
+        builder.where('prompt', 'ilike', `%${search}%`)
+          .orWhere('description', 'ilike', `%${search}%`);
+      });
     }
+
+    query = query.orderBy('created_at', 'desc');
 
     return query;
   }
@@ -101,9 +102,12 @@ export class PromptModel extends BaseModel<Prompt> {
       });
     }
 
-    // Apply full-text search if provided
+    // Apply search filter (ILIKE on prompt OR description)
     if (search) {
-      baseQuery = baseQuery.whereRaw("p.search_vector @@ plainto_tsquery('english', ?)", [search]);
+      baseQuery = baseQuery.where(builder => {
+        builder.where('p.prompt', 'ilike', `%${search}%`)
+          .orWhere('p.description', 'ilike', `%${search}%`);
+      });
     }
 
     // Get total count first
@@ -116,14 +120,8 @@ export class PromptModel extends BaseModel<Prompt> {
         'p.*',
         this.knex.raw('COALESCE(fb.like_count, 0)::int as like_count'),
         this.knex.raw('COALESCE(fb.dislike_count, 0)::int as dislike_count')
-      );
-
-    // Apply ordering
-    if (search) {
-      dataQuery = dataQuery.orderByRaw("ts_rank(p.search_vector, plainto_tsquery('english', ?)) DESC", [search]);
-    } else {
-      dataQuery = dataQuery.orderBy('p.created_at', 'desc');
-    }
+      )
+      .orderBy('p.created_at', 'desc');
 
     // Apply pagination
     dataQuery = dataQuery.limit(limit).offset(offset);
@@ -133,14 +131,17 @@ export class PromptModel extends BaseModel<Prompt> {
   }
 
   /**
-   * Search prompts using full-text search on prompt and description.
+   * Search prompts using ILIKE on prompt and description.
    * @param searchQuery - Text to search for
-   * @returns Array of matching prompts ordered by relevance
+   * @returns Array of matching prompts ordered by creation date
    */
   async search(searchQuery: string): Promise<Prompt[]> {
     return this.knex(this.tableName)
-      .whereRaw("search_vector @@ plainto_tsquery('english', ?)", [searchQuery])
-      .orderByRaw("ts_rank(search_vector, plainto_tsquery('english', ?)) DESC", [searchQuery]);
+      .where(builder => {
+        builder.where('prompt', 'ilike', `%${searchQuery}%`)
+          .orWhere('description', 'ilike', `%${searchQuery}%`);
+      })
+      .orderBy('created_at', 'desc');
   }
 
   /**
