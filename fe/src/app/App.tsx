@@ -12,7 +12,7 @@
  * @module App
  */
 
-import { Suspense, lazy } from 'react';
+import { Suspense, lazy, useEffect } from 'react';
 import { Routes, Route, Navigate, Outlet } from 'react-router-dom';
 import { App as AntdApp } from 'antd';
 import { AuthProvider, ProtectedRoute, AdminRoute, RoleRoute } from '@/features/auth';
@@ -24,7 +24,7 @@ import Layout from '@/layouts/MainLayout';
 import { config } from '@/config';
 import RouteProgressBar from '@/components/RouteProgressBar';
 import '@/i18n';
-
+import icon from '@/assets/icon.png';
 // ============================================================================
 // Lazy-loaded Pages (Code Splitting)
 // ============================================================================
@@ -103,6 +103,19 @@ const GlobalNotifications = () => {
 // ============================================================================
 
 function App() {
+  /**
+   * Set the icon of the app
+   */
+  useEffect(() => {
+    let link: HTMLLinkElement = document.querySelector('link[rel~="icon"]') as HTMLLinkElement;
+    if (!link) {
+      link = document.createElement('link');
+      link.rel = 'icon';
+      document.head.appendChild(link);
+    }
+    link.href = icon;
+  }, []);
+
   const getDefaultPath = () => {
     if (config.features.enableAiChat) return '/chat';
     if (config.features.enableAiSearch) return '/search';
