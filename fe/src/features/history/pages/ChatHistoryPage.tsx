@@ -347,7 +347,7 @@ function ChatHistoryPage() {
                                                                     {item.citations.map((citation: any, idx: number) => (
                                                                         <span key={idx} className="inline-flex items-center gap-1.5 px-3 py-1 rounded-full bg-slate-100/80 dark:bg-slate-800/80 text-[11px] font-medium text-slate-600 dark:text-slate-400 border border-slate-200 dark:border-slate-700/50 hover:border-primary/30 hover:bg-white dark:hover:bg-slate-800 transition-all cursor-default select-none">
                                                                             <span className="w-4 h-4 rounded-full bg-slate-200 dark:bg-slate-700 flex items-center justify-center text-[9px] font-bold text-slate-500 dark:text-slate-300">{idx + 1}</span>
-                                                                            <span className="truncate max-w-[200px]">{citation}</span>
+                                                                            <span className="truncate max-w-[200px]" title={typeof citation === 'string' ? citation : JSON.stringify(citation)}>{citation}</span>
                                                                         </span>
                                                                     ))}
                                                                 </div>

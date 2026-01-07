@@ -5,6 +5,7 @@
   "type": "module",
   "scripts": {
     "dev": "vite --host",
+    "prebuild": "rimraf dist",
     "build": "tsc -b && vite build",
     "build:prod": "tsc -b && vite build --mode production",
     "preview": "vite preview",
