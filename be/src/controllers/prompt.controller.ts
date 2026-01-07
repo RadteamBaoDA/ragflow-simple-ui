@@ -44,7 +44,13 @@ export class PromptController {
             }
 
             const userId = user.id || 'anonymous';
-            const prompt = await promptService.createPrompt(userId, req.body);
+            // Build user context for audit logging
+            const userContext = {
+                id: user.id,
+                email: user.email,
+                ip: req.ip || req.socket?.remoteAddress
+            };
+            const prompt = await promptService.createPrompt(userId, req.body, userContext);
             return res.status(201).json(prompt);
         } catch (error) {
             console.error(error);
@@ -65,7 +71,13 @@ export class PromptController {
             if (!id) {
                 return res.status(400).json({ error: 'ID is required' });
             }
-            const prompt = await promptService.updatePrompt(id, req.body);
+            // Build user context for audit logging
+            const userContext = {
+                id: user.id,
+                email: user.email,
+                ip: req.ip || req.socket?.remoteAddress
+            };
+            const prompt = await promptService.updatePrompt(id, req.body, userContext);
             return res.json(prompt);
         } catch (error) {
             console.error(error);
@@ -89,7 +101,13 @@ export class PromptController {
             if (!id) {
                 return res.status(400).json({ error: 'ID is required' });
             }
-            await promptService.deletePrompt(id);
+            // Build user context for audit logging
+            const userContext = {
+                id: user.id,
+                email: user.email,
+                ip: req.ip || req.socket?.remoteAddress
+            };
+            await promptService.deletePrompt(id, userContext);
             return res.status(204).send();
         } catch (error) {
             console.error(error);

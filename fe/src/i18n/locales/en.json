@@ -499,7 +499,10 @@
       "create_source": "Create Source",
       "update_source": "Update Source",
       "delete_source": "Delete Source",
-      "batch_delete": "Batch Delete"
+      "batch_delete": "Batch Delete",
+      "create_prompt": "Create Prompt",
+      "update_prompt": "Update Prompt",
+      "delete_prompt": "Delete Prompt"
     },
     "resourceTypes": {
       "user": "User",
@@ -512,7 +515,8 @@
       "role": "Role",
       "broadcast_message": "Broadcast Message",
       "permission": "Permission",
-      "knowledge_base_source": "Knowledge Base Source"
+      "knowledge_base_source": "Knowledge Base Source",
+      "prompt": "Prompt"
     }
   },
   "storage": {

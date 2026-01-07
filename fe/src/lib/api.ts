@@ -41,12 +41,12 @@ function handleUnauthorized(): never {
   // Capture current path for redirect after login
   const currentPath = window.location.pathname + window.location.search;
   const loginUrl = `/login?redirect=${encodeURIComponent(currentPath)}`;
-  
+
   console.log('[API] Unauthorized (401), redirecting to login:', loginUrl);
-  
+
   // Force full page redirect to clear any stale state
   window.location.href = loginUrl;
-  
+
   // Throw to stop further execution
   throw new AuthenticationError();
 }
@@ -89,12 +89,12 @@ export async function apiFetch<T = unknown>(
   options: FetchOptions = {}
 ): Promise<T> {
   const { skipAuthCheck = false, ...fetchOptions } = options;
-  
+
   // Build full URL (preserve absolute URLs)
-  const url = endpoint.startsWith('http') 
-    ? endpoint 
+  const url = endpoint.startsWith('http')
+    ? endpoint
     : `${API_BASE_URL}${endpoint}`;
-  
+
   const response = await fetch(url, {
     ...fetchOptions,
     credentials: 'include', // Always include cookies for session auth
@@ -103,18 +103,23 @@ export async function apiFetch<T = unknown>(
       ...fetchOptions.headers,
     },
   });
-  
+
   // Handle 401 Unauthorized - redirect to login
   if (response.status === 401 && !skipAuthCheck) {
     handleUnauthorized();
   }
-  
+
   // Handle other errors
   if (!response.ok) {
     const errorData = await response.json().catch(() => ({}));
     throw new Error(errorData.error || `API error: ${response.status}`);
   }
-  
+
+  // Handle 204 No Content - return undefined (no body to parse)
+  if (response.status === 204) {
+    return undefined as T;
+  }
+
   // Return parsed JSON response
   return response.json() as Promise<T>;
 }
@@ -134,7 +139,7 @@ export const api = {
    */
   get: <T = unknown>(endpoint: string, options?: FetchOptions) =>
     apiFetch<T>(endpoint, { ...options, method: 'GET' }),
-  
+
   /**
    * Perform a POST request with JSON body.
    * @template T - Expected response type
@@ -147,7 +152,7 @@ export const api = {
       body,
     });
   },
-  
+
   /**
    * Perform a PUT request with JSON body.
    * @template T - Expected response type
@@ -160,7 +165,7 @@ export const api = {
       body,
     });
   },
-  
+
   /**
    * Perform a DELETE request.
    * @template T - Expected response type

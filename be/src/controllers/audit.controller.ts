@@ -28,23 +28,26 @@ export class AuditController {
       // Parse and validate pagination params
       const pageNum = Math.max(1, parseInt(page, 10) || 1);
       const limitNum = Math.min(100, Math.max(1, parseInt(limit, 10) || 50));
+      // Calculate offset from page number
+      const offset = (pageNum - 1) * limitNum;
 
-      // Fetch logs from service with filters
-      const result = await auditService.getLogs({
-        page: pageNum,
-        limit: limitNum,
-        ...(userId && { userId }),
-        ...(action && { action }),
-        ...(resourceType && { resourceType }),
-        ...(startDate && { startDate }),
-        ...(endDate && { endDate }),
-        ...(search && { search }),
-      });
+      // Build filters object (without pagination)
+      const filters: Record<string, string> = {};
+      if (userId) filters.userId = userId;
+      if (action) filters.action = action;
+      if (resourceType) filters.resourceType = resourceType;
+      if (startDate) filters.startDate = startDate;
+      if (endDate) filters.endDate = endDate;
+      if (search) filters.search = search;
+
+      // Fetch logs from service with filters (pass limit and offset as separate params)
+      const result = await auditService.getLogs(filters, limitNum, offset);
 
       // Debug log for audit fetch
       log.debug('Audit logs fetched', {
         page: pageNum,
         limit: limitNum,
+        offset,
         total: result.pagination.total,
         requestedBy: req.session?.user?.email,
       });

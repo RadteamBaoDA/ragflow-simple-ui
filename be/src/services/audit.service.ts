@@ -36,6 +36,11 @@ export const AuditAction = {
     RUN_MIGRATION: 'run_migration',
     SYSTEM_START: 'system_start',
     SYSTEM_STOP: 'system_stop',
+
+    // Prompt actions
+    CREATE_PROMPT: 'create_prompt',
+    UPDATE_PROMPT: 'update_prompt',
+    DELETE_PROMPT: 'delete_prompt',
 } as const;
 
 export type AuditActionType = typeof AuditAction[keyof typeof AuditAction];
@@ -155,20 +160,20 @@ class AuditService {
         if (filters.action) whereClause.action = filters.action;
         if (filters.resourceType) whereClause.resource_type = filters.resourceType;
 
-        // Fetch paginated data from DB
-        const data = await ModelFactory.auditLog.findAll(whereClause, {
-            orderBy: { created_at: 'desc' },
-            limit,
-            offset
-        });
+        // Run data fetch and count in parallel for efficiency
+        const [data, total] = await Promise.all([
+            ModelFactory.auditLog.findAll(whereClause, {
+                orderBy: { created_at: 'desc' },
+                limit,
+                offset
+            }),
+            ModelFactory.auditLog.count(whereClause)
+        ]);
 
-        // Estimate total count for pagination metadata
-        const total = data.length + offset + (data.length === limit ? limit : 0);
-
-        // Calculate total pages
-        const totalPages = Math.ceil(total / limit);
         // Calculate current page number
         const page = Math.floor(offset / limit) + 1;
+        // Calculate total pages
+        const totalPages = Math.ceil(total / limit);
 
         // Parse details JSON string back to object
         const parsedData = data.map(entry => ({

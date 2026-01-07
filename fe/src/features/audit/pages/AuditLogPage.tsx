@@ -146,6 +146,11 @@ function getActionBadge(action: string, t: any): { label: string; className: str
 
         // Storage Batch
         batch_delete: { label: t('auditLog.actions.batch_delete'), className: 'bg-red-100 text-red-800 dark:bg-red-900/30 dark:text-red-300' },
+
+        // Prompt
+        create_prompt: { label: t('auditLog.actions.create_prompt'), className: 'bg-blue-100 text-blue-800 dark:bg-blue-900/30 dark:text-blue-300' },
+        update_prompt: { label: t('auditLog.actions.update_prompt'), className: 'bg-yellow-100 text-yellow-800 dark:bg-yellow-900/30 dark:text-yellow-300' },
+        delete_prompt: { label: t('auditLog.actions.delete_prompt'), className: 'bg-red-100 text-red-800 dark:bg-red-900/30 dark:text-red-300' },
     };
 
     return actionMap[action] || {
@@ -176,6 +181,7 @@ function formatResourceType(type: string, t: any): string {
         broadcast_message: t('auditLog.resourceTypes.broadcast_message'),
         permission: t('auditLog.resourceTypes.permission'),
         knowledge_base_source: t('auditLog.resourceTypes.knowledge_base_source'),
+        prompt: t('auditLog.resourceTypes.prompt'),
     };
     return typeMap[type] || t(`auditLog.resourceTypes.${type}`, { defaultValue: type.replace(/_/g, ' ').replace(/\b\w/g, l => l.toUpperCase()) });
 }
@@ -646,7 +652,6 @@ export default function AuditLogPage() {
                         total={pagination.total}
                         pageSize={pagination.limit}
                         showSizeChanger={true}
-                        showTotal={(total) => t('common.totalItems', { total })}
                         pageSizeOptions={['10', '20', '25', '50', '100']}
                         onChange={handlePageChange}
                     />

@@ -6,6 +6,16 @@
  */
 import { ModelFactory } from '@/models/factory.js';
 import { Prompt, PromptInteraction } from '@/models/types.js';
+import { auditService, AuditAction, AuditResourceType } from '@/services/audit.service.js';
+
+/**
+ * User context for audit logging.
+ */
+export interface PromptUserContext {
+    id: string;
+    email: string;
+    ip?: string | undefined;
+}
 
 /**
  * PromptService class handles all prompt-related business logic.
@@ -29,18 +39,41 @@ export class PromptService {
      * Create a new prompt.
      * @param userId - ID of the user creating the prompt
      * @param data - Partial prompt data
+     * @param user - Optional user context for audit logging
      * @returns Created prompt with normalized tags
      */
-    async createPrompt(userId: string, data: Partial<Prompt>): Promise<Prompt> {
+    async createPrompt(userId: string, data: Partial<Prompt>, user?: PromptUserContext): Promise<Prompt> {
         const promptData = {
             ...data,
             tags: JSON.stringify(data.tags || []),
             source: data.source || 'chat',
-            is_active: true
+            is_active: true,
+            created_by: userId,
+            updated_by: userId
         };
         // Create using model factory
         const prompt = await ModelFactory.prompt.create(promptData as any);
-        return this.normalizePrompt(prompt);
+        const normalizedPrompt = this.normalizePrompt(prompt);
+
+        // Log audit event for prompt creation
+        if (user) {
+            await auditService.log({
+                userId: user.id,
+                userEmail: user.email,
+                action: AuditAction.CREATE_PROMPT,
+                resourceType: AuditResourceType.PROMPT,
+                resourceId: prompt.id,
+                details: {
+                    prompt: normalizedPrompt.prompt?.substring(0, 200),
+                    description: normalizedPrompt.description,
+                    tags: normalizedPrompt.tags,
+                    source: normalizedPrompt.source
+                },
+                ipAddress: user.ip
+            });
+        }
+
+        return normalizedPrompt;
     }
 
     /**
@@ -72,27 +105,74 @@ export class PromptService {
      * Update an existing prompt.
      * @param id - Prompt ID to update
      * @param data - Partial prompt data to update
+     * @param user - Optional user context for audit logging
      * @returns Updated prompt with normalized tags
      * @throws Error if prompt not found
      */
-    async updatePrompt(id: string, data: Partial<Prompt>): Promise<Prompt> {
+    async updatePrompt(id: string, data: Partial<Prompt>, user?: PromptUserContext): Promise<Prompt> {
+        // Get original prompt for audit comparison
+        const originalPrompt = await ModelFactory.prompt.findById(id);
+
         const updateData = { ...data };
         // Stringify tags if provided
         if (updateData.tags) {
             // @ts-ignore - tags need to be stringified for JSON storage
             updateData.tags = JSON.stringify(updateData.tags);
         }
+        // Add audit metadata
+        if (user) {
+            updateData.updated_by = user.id;
+        }
+
         const prompt = await ModelFactory.prompt.update(id, updateData);
         if (!prompt) throw new Error('Prompt not found');
-        return this.normalizePrompt(prompt);
+        const normalizedPrompt = this.normalizePrompt(prompt);
+
+        // Log audit event for prompt update
+        if (user) {
+            await auditService.log({
+                userId: user.id,
+                userEmail: user.email,
+                action: AuditAction.UPDATE_PROMPT,
+                resourceType: AuditResourceType.PROMPT,
+                resourceId: id,
+                details: {
+                    changes: data,
+                    previousPrompt: originalPrompt?.prompt?.substring(0, 200)
+                },
+                ipAddress: user.ip
+            });
+        }
+
+        return normalizedPrompt;
     }
 
     /**
      * Delete a prompt (soft delete by setting is_active = false).
      * @param id - Prompt ID to delete
+     * @param user - Optional user context for audit logging
      */
-    async deletePrompt(id: string): Promise<void> {
-        await ModelFactory.prompt.delete(id);
+    async deletePrompt(id: string, user?: PromptUserContext): Promise<void> {
+        // Fetch prompt details before deletion for audit logging
+        const prompt = await ModelFactory.prompt.findById(id);
+
+        await ModelFactory.prompt.update(id, { is_active: false } as Partial<Prompt>);
+
+        // Log audit event for prompt deletion
+        if (user) {
+            await auditService.log({
+                userId: user.id,
+                userEmail: user.email,
+                action: AuditAction.DELETE_PROMPT,
+                resourceType: AuditResourceType.PROMPT,
+                resourceId: id,
+                details: {
+                    prompt: prompt?.prompt?.substring(0, 200),
+                    description: prompt?.description
+                },
+                ipAddress: user.ip
+            });
+        }
     }
 
     /**
@@ -186,3 +266,4 @@ export class PromptService {
 }
 
 export const promptService = PromptService.getSharedInstance();
+

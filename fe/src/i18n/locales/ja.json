@@ -499,7 +499,10 @@
       "create_source": "ソース作成",
       "update_source": "ソース更新",
       "delete_source": "ソース削除",
-      "batch_delete": "一括削除"
+      "batch_delete": "一括削除",
+      "create_prompt": "プロンプト作成",
+      "update_prompt": "プロンプト更新",
+      "delete_prompt": "プロンプト削除"
     },
     "resourceTypes": {
       "user": "ユーザー",
@@ -512,7 +515,8 @@
       "role": "役割",
       "broadcast_message": "一斉通知",
       "permission": "権限",
-      "knowledge_base_source": "ナレッジベースソース"
+      "knowledge_base_source": "ナレッジベースソース",
+      "prompt": "プロンプト"
     }
   },
   "storage": {

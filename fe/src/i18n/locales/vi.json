@@ -500,7 +500,10 @@
       "create_source": "Tạo Nguồn",
       "update_source": "Cập Nhật Nguồn",
       "delete_source": "Xóa Nguồn",
-      "batch_delete": "Xóa Hàng Loạt"
+      "batch_delete": "Xóa Hàng Loạt",
+      "create_prompt": "Tạo Prompt",
+      "update_prompt": "Cập Nhật Prompt",
+      "delete_prompt": "Xóa Prompt"
     },
     "resourceTypes": {
       "user": "Người dùng",
@@ -513,7 +516,8 @@
       "role": "Vai trò",
       "broadcast_message": "Thông Báo Hệ Thống",
       "permission": "Quyền Hạn",
-      "knowledge_base_source": "Nguồn Kiến Thức"
+      "knowledge_base_source": "Nguồn Kiến Thức",
+      "prompt": "Prompt"
     }
   },
   "storage": {

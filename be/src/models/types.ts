@@ -345,6 +345,10 @@ export interface Prompt {
     source: string;
     /** Whether the prompt is active */
     is_active: boolean;
+    /** User ID who created this record */
+    created_by?: string | null;
+    /** User ID who last updated this record */
+    updated_by?: string | null;
     /** Timestamp of record creation */
     created_at: Date;
     /** Timestamp of last update */
