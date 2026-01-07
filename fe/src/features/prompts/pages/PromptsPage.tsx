@@ -460,7 +460,6 @@ export const PromptsPage = () => {
                         total={prompts.length}
                         pageSize={pageSize}
                         showSizeChanger={true}
-                        showTotal={(total) => t('common.totalItems', { total })}
                         pageSizeOptions={['10', '20', '50', '100']}
                         onChange={(page, size) => {
                             setCurrentPage(page);
