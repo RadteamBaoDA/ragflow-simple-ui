@@ -14,6 +14,7 @@ export class UserController {
    * @param req - Express request object.
    * @param res - Express response object.
    * @returns Promise<void>
+   * @description Fetches all users or filters by comma-separated roles from query params.
    */
   async getUsers(req: Request, res: Response): Promise<void> {
     try {
@@ -39,6 +40,7 @@ export class UserController {
    * @param req - Express request object.
    * @param res - Express response object.
    * @returns Promise<void>
+   * @description Admin-only endpoint to view global access patterns and detect anomalies.
    */
   async getAllIpHistory(req: Request, res: Response): Promise<void> {
     try {
@@ -62,6 +64,7 @@ export class UserController {
    * @param req - Express request object.
    * @param res - Express response object.
    * @returns Promise<void>
+   * @description Fetches login history for a target user. Useful for security auditing.
    */
   async getUserIpHistory(req: Request, res: Response): Promise<void> {
     const { id } = req.params;
@@ -88,6 +91,7 @@ export class UserController {
    * @param req - Express request object.
    * @param res - Express response object.
    * @returns Promise<void>
+   * @description Escalates or de-escalates privileges. Includes strict security checks to prevent abuse.
    */
   async updateUserRole(req: Request, res: Response): Promise<void> {
     const { id } = req.params
@@ -101,6 +105,7 @@ export class UserController {
 
     try {
       // Validate actor (must be authenticated)
+      // We manually construct the actor object to pass strict typing to the service
       const actor = req.session.user ? {
         id: req.session.user.id,
         role: req.session.user.role,
@@ -114,6 +119,7 @@ export class UserController {
       }
 
       // Update role via service
+      // Service handles logic like "cannot change own role" and "only admin can make admin"
       const updatedUser = await userService.updateUserRole(id, role, actor)
 
       if (!updatedUser) {
@@ -125,6 +131,7 @@ export class UserController {
     } catch (error: any) {
       const message = error.message || String(error);
       // Handle business logic errors
+      // specific error strings are thrown by the service layer
       if (message === 'Invalid user ID format' || message === 'Invalid role' || message === 'Cannot modify your own role') {
         res.status(400).json({ error: message });
         return;
@@ -144,6 +151,7 @@ export class UserController {
    * @param req - Express request object.
    * @param res - Express response object.
    * @returns Promise<void>
+   * @description Overwrites the explicit permission list for a user.
    */
   async updateUserPermissions(req: Request, res: Response): Promise<void> {
     const { id } = req.params
@@ -161,8 +169,9 @@ export class UserController {
     }
 
     try {
-      // Capture user context for audit
+      // Capture user context for audit logging
       const user = req.user ? { id: req.user.id, email: req.user.email, ip: getClientIp(req) } : undefined
+
       // Update permissions via service
       await userService.updateUserPermissions(id, permissions, user)
       res.json({ success: true })
@@ -178,11 +187,13 @@ export class UserController {
    * @param req - Express request object.
    * @param res - Express response object.
    * @returns Promise<void>
+   * @description Manually create a user record (e.g., for non-SSO users or pre-provisioning).
    */
   async createUser(req: Request, res: Response): Promise<void> {
     try {
-      // Capture user context for audit
+      // Capture user context for audit logging
       const user = req.user ? { id: req.user.id, email: req.user.email, ip: getClientIp(req) } : undefined
+
       // Create user via service
       const newUser = await userService.createUser(req.body, user)
       res.status(201).json(newUser)
@@ -198,6 +209,7 @@ export class UserController {
    * @param req - Express request object.
    * @param res - Express response object.
    * @returns Promise<void>
+   * @description General purpose update for user profile fields (not role/permissions).
    */
   async updateUser(req: Request, res: Response): Promise<void> {
     const { id } = req.params
@@ -207,8 +219,9 @@ export class UserController {
       return
     }
     try {
-      // Capture user context for audit
+      // Capture user context for audit logging
       const user = req.user ? { id: req.user.id, email: req.user.email, ip: getClientIp(req) } : undefined
+
       // Update user via service
       const updatedUser = await userService.updateUser(id, req.body, user)
       if (!updatedUser) {
@@ -228,6 +241,7 @@ export class UserController {
    * @param req - Express request object.
    * @param res - Express response object.
    * @returns Promise<void>
+   * @description Permanently removes a user and logs the action.
    */
   async deleteUser(req: Request, res: Response): Promise<void> {
     const { id } = req.params
@@ -237,8 +251,9 @@ export class UserController {
       return
     }
     try {
-      // Capture user context for audit
+      // Capture user context for audit logging
       const user = req.user ? { id: req.user.id, email: req.user.email, ip: getClientIp(req) } : undefined
+
       // Delete user via service
       await userService.deleteUser(id, user)
       res.status(204).send()
@@ -254,6 +269,7 @@ export class UserController {
    * @param req - Express request object.
    * @param res - Express response object.
    * @returns Promise<void>
+   * @description Returns the full user record for the session owner.
    */
   async getMe(req: Request, res: Response): Promise<void> {
     try {
@@ -262,7 +278,7 @@ export class UserController {
         res.status(401).json({ error: 'Not authenticated' });
         return;
       }
-      // Fetch user by ID
+      // Fetch user by ID from service
       const user = await userService.getUserById(req.user.id)
       if (!user) {
         res.status(404).json({ error: 'User not found' })

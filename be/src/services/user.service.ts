@@ -66,6 +66,7 @@ export class UserService {
             let existingUser = await ModelFactory.user.findById(adUser.id);
 
             // Fallback: check by email if ID lookup fails
+            // This handles cases where users were created manually before Azure AD integration
             if (!existingUser) {
                 existingUser = await ModelFactory.user.findByEmail(adUser.email);
             }
@@ -130,7 +131,7 @@ export class UserService {
                 id: adUser.id,
                 email: adUser.email,
                 display_name: adUser.displayName,
-                role: 'user',
+                role: 'user', // Default role
                 permissions: JSON.stringify([]),
                 department: adUser.department || null,
                 job_title: adUser.jobTitle || null,
@@ -170,6 +171,7 @@ export class UserService {
      * Get all users, optionally filtered by role.
      * @param roles - Optional array of roles to filter by.
      * @returns Promise<User[]> - Array of User records sorted by creation date (newest first).
+     * @description Fetches entire user list and performs in-memory role filtering (if roles param provided).
      */
     async getAllUsers(roles?: string[]): Promise<User[]> {
         // Initialize empty filter object
@@ -192,6 +194,7 @@ export class UserService {
      * @param data - User data for creation.
      * @param user - Optional actor for audit logging.
      * @returns Promise<User> - The created User record.
+     * @throws Error if email is duplicate.
      * @description Creates user in DB and logs audit event.
      */
     async createUser(data: any, user?: { id: string, email: string, ip?: string }): Promise<User> {
@@ -232,6 +235,7 @@ export class UserService {
      * @param data - Partial user data to update.
      * @param user - Optional actor for audit logging.
      * @returns Promise<User | undefined> - Updated User or undefined if not found.
+     * @throws Error if email is duplicate (and belongs to another user).
      * @description updates user record and audit logs changes.
      */
     async updateUser(id: string, data: any, user?: { id: string, email: string, ip?: string }): Promise<User | undefined> {

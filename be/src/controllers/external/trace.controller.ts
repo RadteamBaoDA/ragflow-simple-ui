@@ -15,10 +15,12 @@ export class ExternalTraceController {
    * @param req - Express request object containing trace data.
    * @param res - Express response object.
    * @returns Promise<void>
+   * @description Processes external traces, forcing server-detected IP address for security/accuracy.
    */
   async submitTrace(req: Request, res: Response): Promise<void> {
     try {
       // Force add server-side IP address for accurate tracking
+      // Prevents client spoofing of IP address in the payload
       const ipAddress = getClientIp(req)
       const traceData = {
         ...req.body,
@@ -42,6 +44,7 @@ export class ExternalTraceController {
    * @param req - Express request object containing feedback data.
    * @param res - Express response object.
    * @returns Promise<void>
+   * @description Records user feedback (score/comment) for a specific trace.
    */
   async submitFeedback(req: Request, res: Response): Promise<void> {
     try {
@@ -68,6 +71,7 @@ export class ExternalTraceController {
    * @param _req - Express request object (unused).
    * @param res - Express response object.
    * @returns Promise<void>
+   * @description Simple health check endpoint for monitoring uptime.
    */
   async getHealth(_req: Request, res: Response): Promise<void> {
     res.status(200).json({

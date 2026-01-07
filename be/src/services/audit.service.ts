@@ -98,6 +98,7 @@ class AuditService {
     async log(params: AuditLogParams): Promise<number | null> {
         try {
             // Destructure params with default values
+            // userId can be null for system actions or unauthenticated attempts
             const {
                 userId = null,
                 userEmail,
@@ -109,6 +110,7 @@ class AuditService {
             } = params;
 
             // Create audit log entry using model factory
+            // We store details as a JSON string to fit the DB schema
             const logEntry = await ModelFactory.auditLog.create({
                 user_id: userId,
                 user_email: userEmail,
@@ -120,6 +122,7 @@ class AuditService {
             });
 
             // Log debug info for successful creation
+            // Useful for tracing the audit flow itself during development
             log.debug('Audit log created', {
                 id: logEntry.id,
                 action,
@@ -131,6 +134,7 @@ class AuditService {
             return logEntry.id;
         } catch (error) {
             // Log error but suppress exception to prevent disrupting main flow
+            // If logging fails (e.g., DB down), we don't want to rollback the actual business transaction
             log.error('Failed to create audit log', {
                 error: error instanceof Error ? error.message : String(error),
                 action: params.action,
@@ -156,6 +160,7 @@ class AuditService {
         if (filters.resourceType) whereClause.resource_type = filters.resourceType;
 
         // Fetch paginated data from DB
+        // Orders by most recent first for immediate visibility of latest actions
         const data = await ModelFactory.auditLog.findAll(whereClause, {
             orderBy: { created_at: 'desc' },
             limit,
@@ -163,6 +168,7 @@ class AuditService {
         });
 
         // Estimate total count for pagination metadata
+        // Note: exact count might be expensive on huge tables, simple addition is a rough approximation for UI
         const total = data.length + offset + (data.length === limit ? limit : 0);
 
         // Calculate total pages
@@ -171,12 +177,13 @@ class AuditService {
         const page = Math.floor(offset / limit) + 1;
 
         // Parse details JSON string back to object
+        // The DB stores it as text/jsonb, but the ModelFactory might return it as string depending on driver
         const parsedData = data.map(entry => ({
             ...entry,
             details: typeof entry.details === 'string' ? JSON.parse(entry.details as string) : entry.details
         }));
 
-        // Return structured response
+        // Return structured response matching frontend pagination component
         return {
             data: parsedData,
             pagination: {
@@ -197,6 +204,7 @@ class AuditService {
      */
     async getResourceHistory(resourceType: string, resourceId: string): Promise<AuditLog[]> {
         // Fetch logs for the specific resource
+        // Useful for "History" tabs on entity detail pages
         const logs = await ModelFactory.auditLog.findAll({
             resource_type: resourceType,
             resource_id: resourceId
@@ -217,6 +225,7 @@ class AuditService {
      */
     async exportLogsToCsv(filters: any): Promise<string> {
         // Fetch a large batch of logs (limit 1,000,000)
+        // Bypasses normal pagination to get "all" relevant data
         const response = await this.getLogs(filters, 1000000, 0);
         const logs = response.data;
 
@@ -228,7 +237,8 @@ class AuditService {
 
         // Map logs to CSV rows
         const rows = logs.map(log => {
-            // Escape double quotes in details JSON
+            // Escape double quotes in details JSON to prevent CSV parsing errors
+            // RFC 4180 requires double quotes to be escaped by another double quote
             const details = JSON.stringify(log.details).replace(/"/g, '""');
             // Construct row string
             return [
@@ -239,7 +249,7 @@ class AuditService {
                 log.resource_id,
                 log.ip_address,
                 log.created_at,
-                `"${details}"`
+                `"${details}"` // Wrap details in quotes
             ].join(',');
         });
 
@@ -275,6 +285,7 @@ class AuditService {
      */
     async deleteOldLogs(olderThanDays: number): Promise<number> {
         // Currently returns 0 as not implemented
+        // Future: DELETE FROM audit_logs WHERE created_at < NOW() - INTERVAL 'X days'
         return 0;
     }
 }
