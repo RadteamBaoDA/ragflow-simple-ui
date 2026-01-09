@@ -7,7 +7,7 @@ A high-performance, enterprise-ready Management UI for RAGFlow, designed to brid
 | Feature | Description |
 | :--- | :--- |
 | 🤖 **AI Chat & Search** | Refined interfaces for RAGFlow, with session history and full-text search. |
-| 📁 **MinIO Storage Manager** | Enterprise document management with PDF, Word, and Excel previews. |
+| 📁 **Unified Storage Manager** | Enterprise document management with Multi-Cloud support (MinIO, S3, Azure). |
 | 🔐 **Azure Entra AD SSO** | Seamless Microsoft enterprise authentication with avatar synchronization. |
 | 👥 **Enterprise RBAC** | Granular multi-tier permissions: Admin, Manager, and User roles. |
 | 🏢 **Team Management** | Multi-tenant team structures for isolated document and flow access. |
@@ -44,7 +44,7 @@ graph TD
 - **Backend**: Express.js, TypeScript, Winston (Daily Rotate), Node-cron
 - **Database**: PostgreSQL (Knex.js migrations & query builder)
 - **Session**: Redis (Session persistence & rate limiting)
-- **Storage**: MinIO SDK (S3 compatible)
+- **Storage**: Multi-Cloud Provider (MinIO, S3, Azure, GCP ready)
 - **Auth**: Azure Entra ID (OAuth2/OpenID Connect)
 - **Monitoring**: Langfuse API integration
 
@@ -59,7 +59,7 @@ graph TD
 │   │   ├── middleware/ # Auth, rate-limit, and audit interceptors
 │   │   ├── models/     # Data access layer (BaseModel & Factory)
 │   │   ├── routes/     # API route definitions
-│   │   ├── services/   # Business logic (MinIO, RAGFlow, Audit)
+│   │   ├── services/   # Business logic (Storage Providers, RAGFlow, Audit)
 │   │   ├── scripts/    # Database maintenance scripts
 │   │   └── utils/      # Helper utilities
 ├── fe/                 # Frontend Workspace (React + Vite)

@@ -4,7 +4,7 @@ import fs from 'fs';
 import fsPromises from 'fs/promises';
 import { constants } from 'fs';
 import path from 'path';
-import { minioService } from '@/services/minio.service.js';
+// MinIO client is imported dynamically where needed
 import { ModelFactory } from '@/models/factory.js';
 import { config } from '@/config/index.js';
 import { log } from '@/services/logger.service.js';

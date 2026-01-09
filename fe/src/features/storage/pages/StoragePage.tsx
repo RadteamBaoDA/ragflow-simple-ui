@@ -14,13 +14,15 @@ import {
     Space, Statistic, Row, Col, Typography, Spin, Tag, Tooltip, Tabs, App
 } from 'antd';
 import {
-    Database, Plus, Trash2, RefreshCw, Server, Search, FileText, HardDrive, LayoutDashboard
+    Database, Plus, Trash2, RefreshCw, Server, Search, FileText, HardDrive, LayoutDashboard, Shield, CheckCircle
 } from 'lucide-react';
 import {
     getRawBuckets, createRawBucket, deleteRawBucket, getRawBucketStats, getRawGlobalStats,
+    getBuckets as getDocumentBuckets, createBucket as activateBucket,
     // getAccessKeys, createAccessKey, deleteAccessKey, AccessKey
 } from '@/features/documents';
 import { formatFileSize } from '@/utils/format';
+import { DocumentPermissionModal } from '@/features/documents/components/DocumentPermissionModal';
 
 const { Title, Text } = Typography;
 
@@ -75,6 +77,14 @@ const StoragePage = () => {
     }>({ totalObjects: 0, totalSize: 0, distribution: {}, topBuckets: [], topFiles: [] });
     const [loadingMetrics, setLoadingMetrics] = useState(false);
 
+    // Document bucket activation state
+    const [activeBuckets, setActiveBuckets] = useState<Set<string>>(new Set());
+    const [activatingBucket, setActivatingBucket] = useState<string | null>(null);
+
+    // Permissions modal state
+    const [permissionsModalOpen, setPermissionsModalOpen] = useState(false);
+    const [selectedBucketForPermissions, setSelectedBucketForPermissions] = useState<{ id: string; name: string } | null>(null);
+
     // Access Keys State
     /*
     const [accessKeys, setAccessKeys] = useState<AccessKey[]>([]);
@@ -90,8 +100,21 @@ const StoragePage = () => {
 
     useEffect(() => {
         loadBuckets();
+        loadActiveBuckets();
         // loadAccessKeys();
     }, []);
+
+    /**
+     * Load active document buckets from database.
+     */
+    const loadActiveBuckets = async () => {
+        try {
+            const docBuckets = await getDocumentBuckets();
+            setActiveBuckets(new Set(docBuckets.map(b => b.bucket_name)));
+        } catch (error) {
+            console.error('Failed to load active buckets:', error);
+        }
+    };
 
     /**
      * Fetch list of all buckets from the backend.
@@ -116,7 +139,7 @@ const StoragePage = () => {
                 // After initializing stats, trigger a stats load for each bucket to populate metrics
                 data.forEach((b: any) => {
                     // fire-and-forget; update uses setState inside
-                    loadBucketStats(b.name).catch(() => {})
+                    loadBucketStats(b.name).catch(() => { })
                 });
                 return newStats;
             });
@@ -288,6 +311,37 @@ const StoragePage = () => {
     };
 
     /**
+     * Open permissions modal for a bucket.
+     * @param name - Name of the bucket.
+     */
+    const openPermissionsModal = (name: string) => {
+        setSelectedBucketForPermissions({ id: name, name });
+        setPermissionsModalOpen(true);
+    };
+
+    /**
+     * Activate a bucket as a document bucket.
+     * Registers the bucket in the database for document management.
+     * @param name - Name of the bucket to activate.
+     */
+    const handleActivateBucket = async (name: string) => {
+        setActivatingBucket(name);
+        try {
+            await activateBucket({
+                bucket_name: name,
+                display_name: name,
+                description: ''
+            });
+            message.success(t('storage.activate.success'));
+            loadActiveBuckets();
+        } catch (error) {
+            message.error(t('storage.activate.error'));
+        } finally {
+            setActivatingBucket(null);
+        }
+    };
+
+    /**
      * Fetch statistics for a specific bucket on demand.
      * Updates local stats state.
      * @param name - Name of the bucket.
@@ -394,20 +448,57 @@ const StoragePage = () => {
             }
         },
         {
+            title: t('storage.bucket.status'),
+            key: 'status',
+            render: (_: any, record: Bucket) => {
+                const isActive = activeBuckets.has(record.name);
+                return isActive ? (
+                    <Tag color="green" icon={<CheckCircle size={12} />}>{t('storage.status.active')}</Tag>
+                ) : (
+                    <Tag color="default">{t('storage.status.inactive')}</Tag>
+                );
+            }
+        },
+        {
             title: t('storage.actions'),
             key: 'actions',
-            render: (_: any, record: Bucket) => (
-                <Space>
-                    <Button
-                        type="text"
-                        danger
-                        icon={<Trash2 size={16} />}
-                        onClick={() => openDeleteModal(record.name)}
-                    >
-                        {t('common.delete')}
-                    </Button>
-                </Space>
-            ),
+            render: (_: any, record: Bucket) => {
+                const isActive = activeBuckets.has(record.name);
+                return (
+                    <Space>
+                        {isActive ? (
+                            <Tooltip title={t('storage.permissions.tooltip')}>
+                                <Button
+                                    type="text"
+                                    icon={<Shield size={16} />}
+                                    onClick={() => openPermissionsModal(record.name)}
+                                >
+                                    {t('storage.permissions.button')}
+                                </Button>
+                            </Tooltip>
+                        ) : (
+                            <Tooltip title={t('storage.activate.tooltip')}>
+                                <Button
+                                    type="text"
+                                    icon={<CheckCircle size={16} />}
+                                    onClick={() => handleActivateBucket(record.name)}
+                                    loading={activatingBucket === record.name}
+                                >
+                                    {t('storage.activate.button')}
+                                </Button>
+                            </Tooltip>
+                        )}
+                        <Button
+                            type="text"
+                            danger
+                            icon={<Trash2 size={16} />}
+                            onClick={() => openDeleteModal(record.name)}
+                        >
+                            {t('common.delete')}
+                        </Button>
+                    </Space>
+                );
+            },
         },
     ];
 
@@ -759,6 +850,17 @@ const StoragePage = () => {
             </div>
 
             <Tabs defaultActiveKey="dashboard" items={items} />
+
+            {/* Document Permissions Modal */}
+            <DocumentPermissionModal
+                isOpen={permissionsModalOpen}
+                onClose={() => {
+                    setPermissionsModalOpen(false);
+                    setSelectedBucketForPermissions(null);
+                }}
+                bucketId={selectedBucketForPermissions?.id || ''}
+                bucketName={selectedBucketForPermissions?.name || ''}
+            />
         </div>
     );
 };

@@ -18,7 +18,7 @@ import userRoutes from '@/routes/user.routes.js';
 import teamRoutes from '@/routes/team.routes.js';
 import systemToolsRoutes from '@/routes/system-tools.routes.js';
 import documentBucketRoutes from '@/routes/document-bucket.routes.js';
-import minioRawRoutes from '@/routes/minio-raw.routes.js';
+import storageRawRoutes from '@/routes/storage-raw.routes.js';
 import documentStorageRoutes from '@/routes/document-storage.routes.js';
 import documentPermissionRoutes from '@/routes/document-permission.routes.js';
 import auditRoutes from '@/routes/audit.routes.js';
@@ -121,7 +121,7 @@ function registerRoutes(apiRouter: Router): void {
 
     // Document storage routes
     apiRouter.use('/document/buckets', documentBucketRoutes);
-    apiRouter.use('/minio/raw', minioRawRoutes); // Keep raw minio separate
+    apiRouter.use('/storage/raw', storageRawRoutes); // Generic storage admin routes
     apiRouter.use('/document/storage', documentStorageRoutes);
 
     // Document permissions

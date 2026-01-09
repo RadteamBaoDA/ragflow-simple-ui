@@ -530,7 +530,22 @@
       "name": "Bucket Name",
       "created": "Created At",
       "objects": "Objects",
-      "size": "Size"
+      "size": "Size",
+      "status": "Status"
+    },
+    "status": {
+      "active": "Active",
+      "inactive": "Not Activated"
+    },
+    "activate": {
+      "button": "Activate",
+      "tooltip": "Activate as Document Bucket",
+      "success": "Bucket activated successfully",
+      "error": "Failed to activate bucket"
+    },
+    "permissions": {
+      "button": "Permissions",
+      "tooltip": "Manage bucket permissions"
     },
     "actions": "Actions",
     "tabs": {

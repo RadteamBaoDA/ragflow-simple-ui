@@ -531,7 +531,22 @@
       "name": "Tên Bucket",
       "created": "Ngày tạo",
       "objects": "Đối tượng",
-      "size": "Kích thước"
+      "size": "Kích thước",
+      "status": "Trạng thái"
+    },
+    "status": {
+      "active": "Đang hoạt động",
+      "inactive": "Chưa kích hoạt"
+    },
+    "activate": {
+      "button": "Kích hoạt",
+      "tooltip": "Kích hoạt làm Bucket Tài liệu",
+      "success": "Kích hoạt bucket thành công",
+      "error": "Không thể kích hoạt bucket"
+    },
+    "permissions": {
+      "button": "Phân quyền",
+      "tooltip": "Quản lý quyền truy cập bucket"
     },
     "actions": "Hành động",
     "tabs": {

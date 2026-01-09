@@ -1,6 +1,6 @@
 
 import { ModelFactory } from '@/models/factory.js';
-import { minioService } from '@/services/minio.service.js';
+import { storageService } from '@/services/storage/index.js';
 import { auditService, AuditAction, AuditResourceType } from '@/services/audit.service.js';
 import { socketService } from '@/services/socket.service.js';
 import { log } from '@/services/logger.service.js';
@@ -62,7 +62,7 @@ export class DocumentBucketService {
      */
     async getAvailableBuckets() {
         // 1. Get all actual buckets from MinIO
-        const minioBuckets = await minioService.listBuckets();
+        const minioBuckets = await storageService.listBuckets();
 
         // 2. Get all configured buckets from DB
         const configuredBuckets = await ModelFactory.minioBucket.findAll({});
@@ -83,7 +83,7 @@ export class DocumentBucketService {
      * @param description - Description of the bucket.
      * @param user - User context for audit logging.
      * @returns Promise<any> - The created bucket record.
-     * @description Wrapper for minioService with potential for extra business logic.
+     * @description Wrapper for storageService with potential for extra business logic.
      */
     async createDocument(bucketName: string, description: string, user: { id: string, email: string, ip?: string }) {
         try {
@@ -94,7 +94,7 @@ export class DocumentBucketService {
             }
 
             // 2. Ensure exists in MinIO (call wrapper)
-            await minioService.createBucket(bucketName, description, user);
+            await storageService.createBucket(bucketName, user);
 
             // 3. Register in DB
             const bucket = await ModelFactory.minioBucket.create({
@@ -129,14 +129,14 @@ export class DocumentBucketService {
      * @param bucketName - Name of the bucket to delete.
      * @param user - User context for audit logging.
      * @returns Promise<void>
-     * @description Wrapper for minioService to delete a bucket and its metadata.
+     * @description Wrapper for storageService to delete a bucket and its metadata.
      * Recursively deletes all objects in the bucket before deleting the bucket itself.
      * Emits progress updates via WebSocket.
      */
     async deleteDocument(bucketName: string, user: { id: string, email: string, ip?: string }) {
         try {
-            // 1. Check if bucket exists in DB and MinIO (handled by minioService somewhat, but good to check)
-            // The minioService.deleteBucket does DB deletion too, but we need to empty it first.
+            // 1. Check if bucket exists in DB and MinIO (handled by storageService somewhat, but good to check)
+            // The storageService.deleteBucket does DB deletion too, but we need to empty it first.
 
             // Notify start
             socketService.emitToUser(user.id, 'bucket:delete:progress', {
@@ -148,7 +148,7 @@ export class DocumentBucketService {
             });
 
             // 2. List all objects recursively
-            const objects = await minioService.listObjects(bucketName, '', true);
+            const objects = await storageService.listObjects(bucketName, '', true);
             const totalObjects = objects.length;
 
             socketService.emitToUser(user.id, 'bucket:delete:progress', {
@@ -168,7 +168,7 @@ export class DocumentBucketService {
                 const objectNames = batch.map(o => o.name);
 
                 if (objectNames.length > 0) {
-                    await minioService.deleteObjects(bucketName, objectNames);
+                    await storageService.deleteObjects(bucketName, objectNames);
                     deletedCount += objectNames.length;
 
                     // Emit progress
@@ -191,7 +191,7 @@ export class DocumentBucketService {
                 message: 'Deleting bucket...'
             });
 
-            await minioService.deleteBucket(bucketName, user);
+            await storageService.deleteBucket(bucketName, user);
 
             // 5. Notify completion
             socketService.emitToUser(user.id, 'bucket:delete:progress', {

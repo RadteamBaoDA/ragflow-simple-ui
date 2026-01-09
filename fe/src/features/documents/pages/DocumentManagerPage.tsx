@@ -24,9 +24,7 @@ import {
     Space,
     Tooltip,
     App,
-    Dropdown,
-    Modal,
-    Progress
+    Dropdown
 } from 'antd';
 import {
     HardDrive,
@@ -36,7 +34,6 @@ import {
     AlertCircle,
     RefreshCw,
     FolderPlus,
-    Plus,
     X,
     ChevronDown,
     ChevronRight,
@@ -50,21 +47,15 @@ import {
     FileSpreadsheet,
     FileCode,
     File as FileIcon,
-    Filter,
-    Shield
+    Filter
 } from 'lucide-react';
 import { useAuth } from '@/features/auth';
 import { Select } from '@/components/Select';
 import { FilePreviewModal } from '@/features/documents/components/FilePreview/FilePreviewModal';
-import { subscribeToNotifications } from '@/lib/socket';
 import {
     DocumentBucket,
     FileObject,
-    AvailableBucket,
     getBuckets,
-    getAvailableBuckets,
-    createBucket,
-    deleteBucket,
     listObjects,
     uploadFiles,
     createFolder,
@@ -76,7 +67,6 @@ import {
     PermissionLevel,
     getEffectivePermission
 } from '../api/documentService';
-import { DocumentPermissionModal } from '@/features/documents/components/DocumentPermissionModal';
 import { formatFileSize } from '@/utils/format';
 import { useConfirm } from '@/components/ConfirmDialog';
 
@@ -111,16 +101,14 @@ const DocumentManagerPage = () => {
     const confirm = useConfirm();
 
     const [effectivePermission, setEffectivePermission] = useState<number>(PermissionLevel.NONE);
-    const [isPermissionsModalOpen, setIsPermissionsModalOpen] = useState(false);
-
-    const canWrite = effectivePermission >= PermissionLevel.UPLOAD;
-    const canDelete = effectivePermission >= PermissionLevel.FULL;
     const isAdmin = user?.role === 'admin';
-    const canManagePermissions = isAdmin;
+
+    // Admin role has full access to all document buckets
+    const canWrite = isAdmin || effectivePermission >= PermissionLevel.UPLOAD;
+    const canDelete = isAdmin || effectivePermission >= PermissionLevel.FULL;
 
     // Bucket and object state
     const [buckets, setBuckets] = useState<DocumentBucket[]>([]);
-    const [availableBuckets, setAvailableBuckets] = useState<AvailableBucket[]>([]);
     const [selectedBucket, setSelectedBucket] = useState<string>('');
     const [objects, setObjects] = useState<FileObject[]>([]);
     const [currentPrefix, setCurrentPrefix] = useState('');
@@ -145,11 +133,6 @@ const DocumentManagerPage = () => {
     const [uploading, setUploading] = useState(false);
     const [uploadProgress, setUploadProgress] = useState({ current: 0, total: 0, transferProgress: 0 });
     const [error, setError] = useState<string | null>(null);
-    const [showCreateModal, setShowCreateModal] = useState(false);
-    const [creating, setCreating] = useState(false);
-    const [formData, setFormData] = useState({ bucket_name: '', display_name: '', description: '' });
-    const [formErrors, setFormErrors] = useState<Record<string, string>>({});
-    const [createError, setCreateError] = useState<string | null>(null);
     const [showCreateFolderModal, setShowCreateFolderModal] = useState(false);
     const [newFolderName, setNewFolderName] = useState('');
     const [folderError, setFolderError] = useState<string | null>(null);
@@ -623,18 +606,6 @@ const DocumentManagerPage = () => {
     };
 
     /**
-     * Load available MinIO buckets that haven't been configured yet.
-     */
-    const loadAvailableBuckets = async () => {
-        try {
-            const data = await getAvailableBuckets();
-            setAvailableBuckets(data);
-        } catch (err) {
-            console.error('Failed to load available buckets:', err);
-        }
-    };
-
-    /**
      * Fetch files and folders for the current bucket and prefix.
      * Handles sync errors if the bucket doesn't exist in MinIO.
      */
@@ -661,90 +632,6 @@ const DocumentManagerPage = () => {
             }
         } finally {
             setLoading(false);
-        }
-    };
-
-    // Progress state
-    const [progressModalOpen, setProgressModalOpen] = useState(false);
-    const [progressData, setProgressData] = useState({
-        current: 0,
-        total: 100,
-        percent: 0,
-        status: 'active' as 'active' | 'success' | 'exception' | 'normal',
-        message: ''
-    });
-
-    /**
-     * Remove a bucket configuration from the database.
-     * Does not delete the actual MinIO bucket.
-     * 
-     * @param {string} bucketId - ID of the bucket to remove.
-     */
-    const handleDeleteBucket = async (bucketId: string) => {
-        const confirmed = await confirm({
-            message: t('documents.deleteBucketConfirm'),
-            variant: 'danger'
-        });
-        if (!confirmed) return;
-
-        setProgressModalOpen(true);
-        setProgressData({
-            current: 0,
-            total: 100,
-            percent: 0,
-            status: 'active',
-            message: t('common.initializing')
-        });
-
-        // Listen for progress events
-        const unsubscribe = subscribeToNotifications((notification) => {
-            if (notification.type === 'bucket:delete:progress' && (notification.data as any)?.bucketName === bucketId) {
-                const data = notification.data as any;
-                let percent = 0;
-
-                if (data.total > 0) {
-                    percent = Math.round((data.current / data.total) * 100);
-                } else if (data.status === 'starting') {
-                    percent = 5;
-                } else if (data.status === 'completed') {
-                    percent = 100;
-                }
-
-                setProgressData({
-                    current: data.current,
-                    total: data.total,
-                    percent,
-                    status: data.status === 'error' ? 'exception' : (data.status === 'completed' ? 'success' : 'active'),
-                    message: data.message
-                });
-
-                if (data.status === 'completed' || data.status === 'error') {
-                    // Close modal after a short delay
-                    setTimeout(() => {
-                        setProgressModalOpen(false);
-                        unsubscribe();
-                        if (data.status === 'completed') {
-                            loadBuckets();
-                            if (selectedBucket === bucketId) {
-                                setSelectedBucket('');
-                                setCurrentPrefix('');
-                            }
-                            antdMessage.success(t('documents.deleteSuccess'));
-                        } else {
-                            antdMessage.error(data.error || t('documents.deleteFailed'));
-                        }
-                    }, 1500);
-                }
-            }
-        });
-
-        try {
-            await deleteBucket(bucketId);
-            // Completion will be handled by websocket event
-        } catch (err) {
-            setProgressModalOpen(false);
-            unsubscribe();
-            setError(err instanceof Error ? err.message : t('documents.deleteFailed'));
         }
     };
 
@@ -1112,55 +999,6 @@ const DocumentManagerPage = () => {
     };
 
     /**
-     * Validate the bucket creation form.
-     * @returns {boolean} True if valid.
-     */
-    const validateForm = () => {
-        const errors: Record<string, string> = {};
-        if (!formData.bucket_name) {
-            errors.bucket_name = t('documents.bucketNameRequired');
-        }
-        if (!formData.display_name) {
-            errors.display_name = t('documents.displayNameRequired');
-        }
-        setFormErrors(errors);
-        return Object.keys(errors).length === 0;
-    };
-
-    /**
-     * Create a new bucket configuration.
-     */
-    const handleCreateBucket = async () => {
-        if (!validateForm()) return;
-        setCreating(true);
-        setCreateError(null);
-        try {
-            const newBucket = await createBucket(formData);
-            await loadBuckets();
-            setSelectedBucket(newBucket.id);
-            setCurrentPrefix('');
-            setShowCreateModal(false);
-            setFormData({ bucket_name: '', display_name: '', description: '' });
-            setFormErrors({});
-        } catch (err) {
-            setCreateError(err instanceof Error ? err.message : t('documents.createFailed'));
-        } finally {
-            setCreating(false);
-        }
-    };
-
-    /**
-     * Open the create bucket modal after resetting form.
-     */
-    const handleOpenCreateModal = () => {
-        setFormData({ bucket_name: '', display_name: '', description: '' });
-        setFormErrors({});
-        setCreateError(null);
-        loadAvailableBuckets();
-        setShowCreateModal(true);
-    };
-
-    /**
      * Create a new folder in the current directory.
      */
     const handleCreateFolder = async () => {
@@ -1319,37 +1157,6 @@ const DocumentManagerPage = () => {
                         disabled={buckets.length === 0}
                         className="w-64"
                     />
-
-                    {canManagePermissions && (
-                        <button
-                            onClick={() => setIsPermissionsModalOpen(true)}
-                            disabled={!selectedBucket}
-                            className={`p-2.5 bg-white dark:bg-gray-700 hover:bg-gray-100 dark:hover:bg-gray-600 text-gray-700 dark:text-gray-200 border border-gray-200 dark:border-gray-600 rounded-lg transition-colors shadow-sm ${!selectedBucket ? 'opacity-50 cursor-not-allowed' : ''}`}
-                            title={t('documents.configPermissions')}
-                        >
-                            <Shield className="w-5 h-5" />
-                        </button>
-                    )}
-
-                    {isAdmin && (
-                        <button
-                            onClick={handleOpenCreateModal}
-                            className="p-2.5 bg-primary dark:bg-blue-600 hover:bg-primary-hover dark:hover:bg-blue-700 text-white rounded-lg transition-colors shadow-sm"
-                            title={t('documents.createBucket')}
-                        >
-                            <Plus className="w-5 h-5" />
-                        </button>
-                    )}
-
-                    {isAdmin && selectedBucket && (
-                        <button
-                            onClick={() => handleDeleteBucket(selectedBucket)}
-                            className="p-2.5 bg-red-600 hover:bg-red-700 text-white rounded-lg transition-colors shadow-sm"
-                            title={t('documents.deleteBucket')}
-                        >
-                            <Trash2 className="w-5 h-5" />
-                        </button>
-                    )}
                 </div>,
                 headerActions
             )}
@@ -1601,16 +1408,7 @@ const DocumentManagerPage = () => {
                                             <AlertCircle className="w-12 h-12 text-amber-500 mb-2" />
                                             <span className="text-lg font-medium text-amber-600">{t('documents.bucketSyncError')}</span>
                                             <span className="text-sm text-center max-w-md mt-2">{bucketSyncError}</span>
-                                            {isAdmin && (
-                                                <Button
-                                                    danger
-                                                    icon={<Trash2 size={16} />}
-                                                    onClick={() => handleDeleteBucket(selectedBucket)}
-                                                    className="mt-4"
-                                                >
-                                                    {t('documents.removeBucketConfig')}
-                                                </Button>
-                                            )}
+                                            <span className="text-sm mt-2">{t('documents.contactAdmin')}</span>
                                         </div>
                                     ) : objects.length === 0 ? (
                                         <div className="flex flex-col items-center justify-center py-12 text-gray-500">
@@ -1723,106 +1521,6 @@ const DocumentManagerPage = () => {
                                     style={{ width: `${uploadProgress.transferProgress}%` }}
                                 />
                             </div>
-                        </div>
-                    </div>
-                </div>
-            )}
-
-            {/* Create Bucket Modal */}
-            {showCreateModal && (
-                <div className="fixed inset-0 bg-black/50 flex items-center justify-center z-50 p-4">
-                    <div className="bg-white dark:bg-gray-800 rounded-lg shadow-xl max-w-md w-full">
-                        <div className="flex items-center justify-between p-4 border-b border-gray-200 dark:border-gray-700">
-                            <h2 className="text-lg font-semibold text-gray-900 dark:text-white">{t('documents.createBucket')}</h2>
-                            <button
-                                onClick={() => setShowCreateModal(false)}
-                                className="p-1 hover:bg-gray-100 dark:hover:bg-gray-700 rounded"
-                            >
-                                <X className="w-5 h-5" />
-                            </button>
-                        </div>
-
-                        <div className="p-4 space-y-4">
-                            {createError && (
-                                <div className="p-3 bg-red-100 dark:bg-red-900/30 text-red-700 dark:text-red-300 text-sm rounded-lg border border-red-200 dark:border-red-800 flex items-center gap-2">
-                                    <AlertCircle className="w-4 h-4 flex-shrink-0" />
-                                    <span>{createError}</span>
-                                </div>
-                            )}
-                            <div>
-                                <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">
-                                    {t('documents.bucketName')} <span className="text-red-500">*</span>
-                                </label>
-                                <select
-                                    value={formData.bucket_name}
-                                    onChange={(e) => setFormData({ ...formData, bucket_name: e.target.value })}
-                                    className={`w-full px-3 py-2 border rounded-lg bg-white dark:bg-gray-900 text-gray-900 dark:text-white ${formErrors.bucket_name ? 'border-red-500' : 'border-gray-300 dark:border-gray-600'
-                                        }`}
-                                >
-                                    <option value="">{t('documents.selectBucketPlaceholder')}</option>
-                                    {availableBuckets.map((bucket) => (
-                                        <option key={bucket.name} value={bucket.name}>
-                                            {bucket.name}
-                                        </option>
-                                    ))}
-                                </select>
-                                {formErrors.bucket_name && (
-                                    <p className="mt-1 text-sm text-red-600 dark:text-red-400">{formErrors.bucket_name}</p>
-                                )}
-                                <p className="mt-1 text-xs text-gray-500 dark:text-gray-400">{t('documents.bucketNameHelper')}</p>
-                            </div>
-                            <div>
-                                <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">
-                                    {t('documents.displayName')} <span className="text-red-500">*</span>
-                                </label>
-                                <input
-                                    type="text"
-                                    value={formData.display_name}
-                                    onChange={(e) => setFormData({ ...formData, display_name: e.target.value })}
-                                    placeholder={t('documents.displayNamePlaceholder')}
-                                    className={`w-full px-3 py-2 border rounded-lg bg-white dark:bg-gray-900 text-gray-900 dark:text-white ${formErrors.display_name ? 'border-red-500' : 'border-gray-300 dark:border-gray-600'
-                                        }`}
-                                />
-                                {formErrors.display_name && (
-                                    <p className="mt-1 text-sm text-red-600 dark:text-red-400">{formErrors.display_name}</p>
-                                )}
-                            </div>
-                            <div>
-                                <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">
-                                    {t('documents.description')}
-                                </label>
-                                <textarea
-                                    value={formData.description}
-                                    onChange={(e) => setFormData({ ...formData, description: e.target.value })}
-                                    placeholder={t('documents.descriptionPlaceholder')}
-                                    rows={3}
-                                    className="w-full px-3 py-2 border rounded-lg bg-white dark:bg-gray-900 text-gray-900 dark:text-white border-gray-300 dark:border-gray-600"
-                                />
-                            </div>
-                        </div>
-
-                        <div className="flex items-center justify-end gap-2 p-4 border-t border-gray-200 dark:border-gray-700">
-                            <button
-                                onClick={() => setShowCreateModal(false)}
-                                disabled={creating}
-                                className="px-4 py-2 text-gray-700 dark:text-gray-300 hover:bg-gray-100 dark:hover:bg-gray-700 rounded-lg transition-colors disabled:opacity-50"
-                            >
-                                {t('common.cancel')}
-                            </button>
-                            <button
-                                onClick={handleCreateBucket}
-                                disabled={creating}
-                                className="px-4 py-2 bg-primary dark:bg-blue-600 hover:bg-primary-hover dark:hover:bg-blue-700 text-white rounded-lg transition-colors disabled:opacity-50 flex items-center gap-2"
-                            >
-                                {creating ? (
-                                    <>
-                                        <RefreshCw className="w-4 h-4 animate-spin" />
-                                        {t('documents.creating')}
-                                    </>
-                                ) : (
-                                    t('documents.createBucket')
-                                )}
-                            </button>
                         </div>
                     </div>
                 </div>
@@ -1941,41 +1639,6 @@ const DocumentManagerPage = () => {
                     onDownload={() => handleDownload(previewFile)}
                 />
             )}
-
-            {/* Storage Permissions Modal */}
-            <DocumentPermissionModal
-                isOpen={isPermissionsModalOpen}
-                onClose={() => setIsPermissionsModalOpen(false)}
-                bucketId={selectedBucket}
-                bucketName={selectedBucketInfo?.display_name || selectedBucketInfo?.bucket_name || selectedBucket || ''}
-            />
-            {/* Delete Progress Modal */}
-            <Modal
-                title={t('documents.deleteProgressTitle')}
-                open={progressModalOpen}
-                footer={null}
-                closable={false}
-                maskClosable={false}
-                centered
-            >
-                <div style={{ textAlign: 'center', padding: '20px 0' }}>
-                    <Progress
-                        type="circle"
-                        percent={progressData.percent}
-                        status={progressData.status}
-                    />
-                    <div style={{ marginTop: 16 }}>
-                        <p style={{ fontWeight: 500, marginBottom: 8 }}>
-                            {progressData.message}
-                        </p>
-                        {progressData.total > 0 && (
-                            <p style={{ color: '#888', fontSize: '12px' }}>
-                                {progressData.current} / {progressData.total}
-                            </p>
-                        )}
-                    </div>
-                </div>
-            </Modal>
         </div>
     );
 };
