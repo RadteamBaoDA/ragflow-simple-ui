@@ -9,6 +9,7 @@
     "close": "Close",
     "hide": "Hide",
     "delete": "Delete",
+    "destroy": "Destroy",
     "settings": "Settings",
     "checkingSession": "Checking session...",
     "signingOut": "Signing out...",
@@ -530,7 +531,28 @@
       "name": "Bucket Name",
       "created": "Created At",
       "objects": "Objects",
-      "size": "Size"
+      "size": "Size",
+      "status": "Status"
+    },
+    "status": {
+      "active": "Active",
+      "inactive": "Not Activated"
+    },
+    "activate": {
+      "button": "Activate",
+      "tooltip": "Activate as Document Bucket",
+      "success": "Bucket activated successfully",
+      "error": "Failed to activate bucket"
+    },
+    "permissions": {
+      "button": "Permissions",
+      "tooltip": "Manage bucket permissions"
+    },
+    "disable": {
+      "button": "Disable",
+      "tooltip": "Disable this bucket",
+      "success": "Bucket disabled successfully",
+      "error": "Failed to disable bucket"
     },
     "actions": "Actions",
     "tabs": {

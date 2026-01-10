@@ -236,4 +236,37 @@ export class DocumentStorageController {
     async downloadFile(req: Request, res: Response): Promise<void> {
         res.status(404).json({ error: "Use getDownloadUrl" });
     }
+
+    /**
+     * Check if files exist in the bucket.
+     * @param req - Express request object.
+     * @param res - Express response object.
+     * @returns Promise<void>
+     */
+    async checkFilesExistence(req: Request, res: Response): Promise<void> {
+        const { bucketId } = req.params;
+        const { files } = req.body;
+
+        if (!bucketId || !Array.isArray(files)) {
+            res.status(400).json({ error: 'Bucket ID and files array are required' });
+            return;
+        }
+
+        try {
+            const result = await documentStorageService.checkFilesExistence(req.user, bucketId, files);
+            res.json(result);
+        } catch (error: any) {
+            const message = String(error.message || error);
+            if (message.includes('Access Denied')) {
+                res.status(403).json({ error: 'Access Denied' });
+                return;
+            }
+            if (message.includes('Bucket not found')) {
+                res.status(404).json({ error: 'Bucket not found' });
+                return;
+            }
+            log.error('Failed to check file existence', { error: message });
+            res.status(500).json({ error: 'Failed to check file existence' });
+        }
+    }
 }

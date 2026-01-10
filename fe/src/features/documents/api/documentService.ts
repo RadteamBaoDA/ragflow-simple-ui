@@ -213,14 +213,14 @@ export const createBucket = async (bucket: CreateDocumentBucketDto): Promise<Doc
 };
 
 /**
- * @description Remove a bucket configuration from database.
- * This does NOT delete the bucket from storage.
+ * @description Remove a bucket configuration from database (permanent deletion).
+ * This will also delete the bucket from storage.
  *
  * @param {string} bucketId - Bucket UUID to remove.
  * @returns {Promise<void>}
  * @throws {Error} If removal fails.
  */
-export const deleteBucket = async (bucketId: string): Promise<void> => {
+export const destroyBucket = async (bucketId: string): Promise<void> => {
     const response = await fetch(`${API_BASE_URL}/api/document/buckets/${bucketId}`, {
         method: 'DELETE',
         credentials: 'include',
@@ -228,7 +228,27 @@ export const deleteBucket = async (bucketId: string): Promise<void> => {
 
     if (!response.ok) {
         const error = await response.json();
-        throw new Error(error.error || 'Failed to remove bucket configuration');
+        throw new Error(error.error || 'Failed to destroy bucket');
+    }
+};
+
+/**
+ * @description Disable a bucket configuration (soft delete/deactivate).
+ * This sets is_active to 0 but keeps the bucket and data.
+ *
+ * @param {string} bucketId - Bucket UUID to disable.
+ * @returns {Promise<void>}
+ * @throws {Error} If disable fails.
+ */
+export const disableBucket = async (bucketId: string): Promise<void> => {
+    const response = await fetch(`${API_BASE_URL}/api/document/buckets/${bucketId}/disable`, {
+        method: 'PUT',
+        credentials: 'include',
+    });
+
+    if (!response.ok) {
+        const error = await response.json();
+        throw new Error(error.error || 'Failed to disable bucket');
     }
 };
 
@@ -506,7 +526,7 @@ export const checkFilesExistence = async (
  * @throws {Error} If fetch fails.
  */
 export const getRawBuckets = async (): Promise<any[]> => {
-    const response = await fetch(`${API_BASE_URL}/api/minio/raw`, {
+    const response = await fetch(`${API_BASE_URL}/api/storage/raw`, {
         credentials: 'include',
     });
 
@@ -525,7 +545,7 @@ export const getRawBuckets = async (): Promise<any[]> => {
  * @throws {Error} If fetch fails.
  */
 export const getRawBucketStats = async (bucketName: string): Promise<{ objectCount: number; totalSize: number }> => {
-    const response = await fetch(`${API_BASE_URL}/api/minio/raw/${bucketName}/stats`, {
+    const response = await fetch(`${API_BASE_URL}/api/storage/raw/${bucketName}/stats`, {
         credentials: 'include',
     });
 
@@ -544,7 +564,7 @@ export const getRawBucketStats = async (bucketName: string): Promise<{ objectCou
  * @throws {Error} If creation fails.
  */
 export const createRawBucket = async (bucketName: string): Promise<void> => {
-    const response = await fetch(`${API_BASE_URL}/api/minio/raw`, {
+    const response = await fetch(`${API_BASE_URL}/api/storage/raw`, {
         method: 'POST',
         headers: {
             'Content-Type': 'application/json',
@@ -566,7 +586,7 @@ export const createRawBucket = async (bucketName: string): Promise<void> => {
  * @throws {Error} If deletion fails.
  */
 export const deleteRawBucket = async (bucketName: string): Promise<void> => {
-    const response = await fetch(`${API_BASE_URL}/api/minio/raw/${bucketName}`, {
+    const response = await fetch(`${API_BASE_URL}/api/storage/raw/${bucketName}`, {
         method: 'DELETE',
         credentials: 'include',
     });
@@ -589,7 +609,7 @@ export const getRawGlobalStats = async (): Promise<{
     topBuckets: { name: string; size: number; objectCount: number }[];
     topFiles: { name: string; size: number; lastModified: Date; bucketName: string }[];
 }> => {
-    const response = await fetch(`${API_BASE_URL}/api/minio/raw/metrics`, {
+    const response = await fetch(`${API_BASE_URL}/api/storage/raw/metrics`, {
         credentials: 'include',
     });
     if (!response.ok) {
@@ -604,7 +624,7 @@ export const getRawGlobalStats = async (): Promise<{
  * @throws {Error} If fetch fails.
  */
 export const getAccessKeys = async (): Promise<AccessKey[]> => {
-    const response = await fetch(`${API_BASE_URL}/api/minio/raw/keys`, {
+    const response = await fetch(`${API_BASE_URL}/api/storage/raw/keys`, {
         credentials: 'include',
     });
     if (!response.ok) {
@@ -623,7 +643,7 @@ export const getAccessKeys = async (): Promise<AccessKey[]> => {
  * @throws {Error} If creation fails.
  */
 export const createAccessKey = async (policy: string, name?: string, description?: string): Promise<any> => {
-    const response = await fetch(`${API_BASE_URL}/api/minio/raw/keys`, {
+    const response = await fetch(`${API_BASE_URL}/api/storage/raw/keys`, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         credentials: 'include',
@@ -642,7 +662,7 @@ export const createAccessKey = async (policy: string, name?: string, description
  * @throws {Error} If deletion fails.
  */
 export const deleteAccessKey = async (accessKey: string): Promise<void> => {
-    const response = await fetch(`${API_BASE_URL}/api/minio/raw/keys/${accessKey}`, {
+    const response = await fetch(`${API_BASE_URL}/api/storage/raw/keys/${accessKey}`, {
         method: 'DELETE',
         credentials: 'include',
     });

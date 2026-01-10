@@ -27,14 +27,11 @@ vi.mock('../../../src/features/documents/api/minioService', () => ({
 }))
 
 vi.mock('../../../src/features/auth', () => ({ useAuth: () => ({ user: { id: '1', role: 'admin' }, isAuthenticated: true, isLoading: false }) }))
-vi.mock('react-i18next', () => ({ useTranslation: () => ({ t: (k: string) => k, i18n: { language: 'en' } }), initReactI18next: { type: '3rdParty', init: () => {} } }))
+vi.mock('react-i18next', () => ({ useTranslation: () => ({ t: (k: string) => k, i18n: { language: 'en' } }), initReactI18next: { type: '3rdParty', init: () => { } } }))
 vi.mock('@/components/Select', () => ({ Select: ({ options, onChange }: any) => <select onChange={(e) => onChange(e.target.value)}>{options.map((o: any) => <option key={o} value={o}>{o}</option>)}</select> }))
 vi.mock('@/components/ConfirmDialog', () => ({ useConfirm: () => ({ confirm: vi.fn(() => Promise.resolve(true)) }) }))
 vi.mock('../../../src/features/documents/components/FilePreview/FilePreviewModal', () => ({
   FilePreviewModal: ({ isOpen }: any) => isOpen ? <div data-testid="preview-modal" /> : null
-}))
-vi.mock('../../../src/features/documents/components/DocumentPermissionModal', () => ({
-  DocumentPermissionModal: ({ isOpen }: any) => isOpen ? <div data-testid="perms-modal" /> : null
 }))
 vi.mock('@/utils/format', () => ({ formatFileSize: (bytes: number) => `${bytes}B` }))
 vi.mock('lucide-react', () => ({

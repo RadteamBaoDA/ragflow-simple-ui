@@ -176,12 +176,12 @@ class SystemToolsService {
         }
 
         // Check MinIO
-        const { minioService } = await import('@/services/minio.service.js');
+        const { storageService } = await import('@/services/storage/index.js');
         const minioEnabled = !!(process.env.MINIO_ACCESS_KEY && process.env.MINIO_SECRET_KEY);
         let minioStatus = 'disconnected';
         if (minioEnabled) {
             try {
-                await minioService.listBuckets();
+                await storageService.listBuckets();
                 minioStatus = 'connected';
             } catch (e) {
                 minioStatus = 'disconnected';

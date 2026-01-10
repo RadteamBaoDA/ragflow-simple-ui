@@ -1,5 +1,5 @@
 
-import { minioService } from '@/services/minio.service.js';
+import { storageService } from '@/services/storage/index.js';
 import { ModelFactory } from '@/models/factory.js';
 import { documentPermissionService, PermissionLevel } from '@/services/document-permission.service.js';
 import { auditService, AuditAction, AuditResourceType } from '@/services/audit.service.js';
@@ -66,7 +66,7 @@ export class DocumentStorageService {
         if (!bucketName) throw new Error('Bucket not found');
 
         // Delegate to MinIO service
-        const objects = await minioService.listFiles(bucketName, prefix);
+        const objects = await storageService.listFiles(bucketName, prefix);
 
         // Sanitize names for display (remove prefix from path)
         return objects.map(obj => {
@@ -124,7 +124,7 @@ export class DocumentStorageService {
             }
 
             // Perform upload
-            await minioService.uploadFile(bucketName, file, user?.id);
+            await storageService.uploadFile(bucketName, file);
             results.push({ name: file.originalname, status: 'uploaded' });
 
             // Audit log
@@ -168,7 +168,7 @@ export class DocumentStorageService {
 
         const fullPath = prefix ? `${prefix}${folderName}` : folderName;
         // Create folder in MinIO
-        await minioService.createFolder(bucketName, fullPath);
+        await storageService.createFolder(bucketName, fullPath);
 
         // Audit log
         await auditService.log({
@@ -203,9 +203,9 @@ export class DocumentStorageService {
 
         // Execute deletion
         if (isFolder) {
-            await minioService.deleteFolder(bucketName, path);
+            await storageService.deleteFolder(bucketName, path);
         } else {
-            await minioService.deleteFile(bucketName, path, user?.id);
+            await storageService.deleteFile(bucketName, path, user?.id);
         }
 
         // Audit log
@@ -243,12 +243,12 @@ export class DocumentStorageService {
 
         // Batch delete files
         if (files.length > 0) {
-            await minioService.deleteObjects(bucketName, files);
+            await storageService.deleteObjects(bucketName, files);
         }
 
         // Delete folders individually (recursive operation)
         for (const folder of folders) {
-            await minioService.deleteFolder(bucketName, folder);
+            await storageService.deleteFolder(bucketName, folder);
         }
 
         // Audit log summary
@@ -283,7 +283,7 @@ export class DocumentStorageService {
         if (!bucketName) throw new Error('Bucket not found');
 
         const disposition = preview ? 'inline' : 'attachment';
-        const url = await minioService.getDownloadUrl(bucketName, objectPath, 3600, disposition);
+        const url = await storageService.getDownloadUrl(bucketName, objectPath, 3600, disposition);
 
         // Only audit log downloads, not previews to reduce noise
         if (!preview) {
@@ -298,6 +298,33 @@ export class DocumentStorageService {
             });
         }
         return url;
+    }
+
+    /**
+     * Check if files exist in the bucket.
+     * @param user - The user making the request.
+     * @param bucketId - The ID of the bucket.
+     * @param files - List of file paths to check.
+     * @returns Promise<{ exists: string[] }> - List of existing files.
+     * @throws Error if access denied.
+     */
+    async checkFilesExistence(user: any, bucketId: string, files: string[]): Promise<{ exists: string[] }> {
+        // Enforce VIEW permission (uploaders usually have VIEW too, or specifically check UPLOAD?)
+        // Generally checking existence implies intent to upload or view, UPLOAD permission is safer if used for dedup
+        const hasAccess = await this.verifyAccess(user, bucketId, PermissionLevel.UPLOAD);
+        if (!hasAccess) throw new Error('Access Denied');
+
+        const bucketName = await this.getBucketName(bucketId);
+        if (!bucketName) throw new Error('Bucket not found');
+
+        const existingFiles: string[] = [];
+        for (const file of files) {
+            const exists = await storageService.checkFileExists(bucketName, file);
+            if (exists) {
+                existingFiles.push(file);
+            }
+        }
+        return { exists: existingFiles };
     }
 }
 

@@ -13,6 +13,7 @@ export const AuditAction = {
     UPDATE_TEAM: 'update_team',
     DELETE_TEAM: 'delete_team',
     CREATE_DOCUMENT_BUCKET: 'create_document_bucket',
+    DISABLE_DOCUMENT_BUCKET: 'disable_document_bucket',
     DELETE_DOCUMENT_BUCKET: 'delete_document_bucket',
     CREATE_BUCKET: 'create_bucket',
     DELETE_BUCKET: 'delete_bucket',

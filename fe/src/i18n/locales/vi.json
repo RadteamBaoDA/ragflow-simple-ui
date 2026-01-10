@@ -9,6 +9,7 @@
     "close": "Đóng",
     "hide": "Ẩn",
     "delete": "Xóa",
+    "destroy": "Hủy bỏ",
     "settings": "Cài đặt",
     "checkingSession": "Đang kiểm tra phiên...",
     "signingOut": "Đang đăng xuất...",
@@ -531,7 +532,28 @@
       "name": "Tên Bucket",
       "created": "Ngày tạo",
       "objects": "Đối tượng",
-      "size": "Kích thước"
+      "size": "Kích thước",
+      "status": "Trạng thái"
+    },
+    "status": {
+      "active": "Đang hoạt động",
+      "inactive": "Chưa kích hoạt"
+    },
+    "activate": {
+      "button": "Kích hoạt",
+      "tooltip": "Kích hoạt làm Bucket Tài liệu",
+      "success": "Kích hoạt bucket thành công",
+      "error": "Không thể kích hoạt bucket"
+    },
+    "permissions": {
+      "button": "Phân quyền",
+      "tooltip": "Quản lý quyền truy cập bucket"
+    },
+    "disable": {
+      "button": "Vô hiệu hóa",
+      "tooltip": "Vô hiệu hóa bucket này",
+      "success": "Đã vô hiệu hóa bucket",
+      "error": "Vô hiệu hóa thất bại"
     },
     "actions": "Hành động",
     "tabs": {

@@ -1,5 +1,6 @@
 import { describe, it, expect, vi, beforeEach } from 'vitest'
 import { render, screen, fireEvent, waitFor, within } from '@testing-library/react'
+import { QueryClient, QueryClientProvider } from '@tanstack/react-query'
 
 const vi_mockStorageService = vi.hoisted(() => ({
   getRawBuckets: vi.fn(),
@@ -16,9 +17,12 @@ vi.mock('../../../src/features/documents', () => ({
   createRawBucket: vi_mockStorageService.createRawBucket,
   deleteRawBucket: vi_mockStorageService.deleteRawBucket,
   getRawBucketStats: vi_mockStorageService.getRawBucketStats,
-  getRawGlobalStats: vi_mockStorageService.getRawGlobalStats
+  getRawGlobalStats: vi_mockStorageService.getRawGlobalStats,
+  getBuckets: vi.fn().mockResolvedValue([]),
+  createBucket: vi.fn()
 }))
-vi.mock('react-i18next', () => ({ useTranslation: () => ({ t: (k: string) => k }), initReactI18next: { type: '3rdParty', init: () => {} } }))
+
+vi.mock('react-i18next', () => ({ useTranslation: () => ({ t: (k: string) => k }), initReactI18next: { type: '3rdParty', init: () => { } } }))
 vi.mock('@/utils/format', () => ({ formatFileSize: (bytes: number) => `${bytes}B` }))
 vi.mock('antd', () => ({
   Table: ({ columns, dataSource }: any) => (
@@ -56,10 +60,31 @@ vi.mock('lucide-react', () => ({
   Search: () => <div />,
   FileText: () => <div />,
   HardDrive: () => <div />,
-  LayoutDashboard: () => <div />
+  LayoutDashboard: () => <div />,
+  User: () => <div />,
+  Users: () => <div />,
+  Shield: () => <div />,
+  CheckCircle: () => <div />,
+  X: () => <div />
 }))
 
+
+
+
 import StoragePage from '../../../src/features/storage/pages/StoragePage'
+
+const createWrapper = () => {
+  const queryClient = new QueryClient({
+    defaultOptions: {
+      queries: {
+        retry: false,
+      },
+    },
+  })
+  return ({ children }: { children: React.ReactNode }) => (
+    <QueryClientProvider client={queryClient}>{children}</QueryClientProvider>
+  )
+}
 
 describe('StoragePage', () => {
   beforeEach(() => {
@@ -78,12 +103,12 @@ describe('StoragePage', () => {
   })
 
   it('renders storage page', async () => {
-    render(<StoragePage />)
+    render(<StoragePage />, { wrapper: createWrapper() })
     await waitFor(() => expect(screen.getAllByTestId('table').length).toBeGreaterThan(0))
   })
 
   it('loads buckets on mount', async () => {
-    render(<StoragePage />)
+    render(<StoragePage />, { wrapper: createWrapper() })
     await waitFor(() => expect(vi_mockStorageService.getRawBuckets).toHaveBeenCalled())
   })
 
@@ -91,7 +116,7 @@ describe('StoragePage', () => {
     vi_mockStorageService.getRawBuckets.mockResolvedValue([
       { name: 'test-bucket', creationDate: '2025-01-01T00:00:00Z' }
     ])
-    render(<StoragePage />)
+    render(<StoragePage />, { wrapper: createWrapper() })
     await waitFor(() => expect(vi_mockStorageService.getRawBuckets).toHaveBeenCalled())
     await waitFor(() => expect(screen.getByText('test-bucket')).toBeInTheDocument())
   })
@@ -101,7 +126,7 @@ describe('StoragePage', () => {
       totalObjects: 500,
       totalSize: 5242880
     })
-    render(<StoragePage />)
+    render(<StoragePage />, { wrapper: createWrapper() })
     const syncBtn = screen.getByText('storage.sync.button').closest('button')
     if (syncBtn) {
       fireEvent.click(syncBtn)
@@ -112,7 +137,7 @@ describe('StoragePage', () => {
 
   it('creates new bucket', async () => {
     vi_mockStorageService.createRawBucket.mockResolvedValue({ name: 'new-bucket' })
-    render(<StoragePage />)
+    render(<StoragePage />, { wrapper: createWrapper() })
     await waitFor(() => expect(vi_mockStorageService.getRawBuckets).toHaveBeenCalled())
     const addBtn = screen.getByTestId('plus').closest('button')
     if (addBtn) {
@@ -123,7 +148,7 @@ describe('StoragePage', () => {
 
   it('deletes bucket with confirmation', async () => {
     vi_mockStorageService.deleteRawBucket.mockResolvedValue(undefined)
-    render(<StoragePage />)
+    render(<StoragePage />, { wrapper: createWrapper() })
     await waitFor(() => expect(vi_mockStorageService.getRawBuckets).toHaveBeenCalled())
     const deleteBtn = screen.getByTestId('trash').closest('button')
     if (deleteBtn) {
@@ -133,7 +158,7 @@ describe('StoragePage', () => {
   })
 
   it('refreshes bucket list', async () => {
-    render(<StoragePage />)
+    render(<StoragePage />, { wrapper: createWrapper() })
     await waitFor(() => expect(vi_mockStorageService.getRawBuckets).toHaveBeenCalled())
     const tables = screen.getAllByTestId('table')
     const table = tables[tables.length - 1]
@@ -150,7 +175,7 @@ describe('StoragePage', () => {
       { name: 'test-bucket', creationDate: '2025-01-01T00:00:00Z' },
       { name: 'other-bucket', creationDate: '2025-01-02T00:00:00Z' }
     ])
-    render(<StoragePage />)
+    render(<StoragePage />, { wrapper: createWrapper() })
     const searchInput = screen.getByRole('textbox')
     fireEvent.change(searchInput, { target: { value: 'test' } })
     await waitFor(() => expect(screen.getByText('test-bucket')).toBeInTheDocument())
@@ -161,22 +186,22 @@ describe('StoragePage', () => {
       objectCount: 50,
       totalSize: 512000
     })
-    render(<StoragePage />)
+    render(<StoragePage />, { wrapper: createWrapper() })
     await waitFor(() => expect(vi_mockStorageService.getRawBuckets).toHaveBeenCalled())
     await waitFor(() => expect(vi_mockStorageService.getRawBucketStats).toHaveBeenCalled())
   })
 
   it('shows loading state', async () => {
-    vi_mockStorageService.getRawBuckets.mockImplementation(() => new Promise(() => {}))
-    render(<StoragePage />)
+    vi_mockStorageService.getRawBuckets.mockImplementation(() => new Promise(() => { }))
+    render(<StoragePage />, { wrapper: createWrapper() })
     await waitFor(() => expect(screen.queryAllByTestId('spinner').length).toBeGreaterThan(0))
   })
 
   it('handles 403 errors gracefully', async () => {
     const err = new Error('Access Denied')
-    ;(err as any).status = 403
+      ; (err as any).status = 403
     vi_mockStorageService.getRawBuckets.mockRejectedValueOnce(err)
-    render(<StoragePage />)
+    render(<StoragePage />, { wrapper: createWrapper() })
     await waitFor(() => expect(vi_mockStorageService.getRawBuckets).toHaveBeenCalled())
   })
 })

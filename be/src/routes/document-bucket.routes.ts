@@ -34,11 +34,18 @@ router.get('/available', requirePermission('manage_storage'), (req, res, next) =
 router.post('/', requirePermission('manage_storage'), (req, res, next) => documentBucketController.createDocument(req, res).catch(next));
 
 /**
- * @route DELETE /api/document-buckets/:name
- * @description Delete a managed bucket (and optionally MinIO bucket, handled in controller).
+ * @route PUT /api/document-buckets/:bucketId/disable
+ * @description Disable a managed bucket (soft delete).
+ * @access Private (Manage Storage)
+ */
+router.put('/:bucketId/disable', requirePermission('manage_storage'), (req, res, next) => documentBucketController.disableDocument(req, res).catch(next));
+
+/**
+ * @route DELETE /api/document-buckets/:bucketId
+ * @description Destroy a managed bucket (permanent deletion).
  * @access Private (Manage Storage)
  */
 // Removes DB record and potentially the actual MinIO bucket
-router.delete('/:bucketId', requirePermission('manage_storage'), (req, res, next) => documentBucketController.deleteDocument(req, res).catch(next));
+router.delete('/:bucketId', requirePermission('manage_storage'), (req, res, next) => documentBucketController.destroyDocument(req, res).catch(next));
 
 export default router

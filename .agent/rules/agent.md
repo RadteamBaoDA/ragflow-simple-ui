@@ -27,6 +27,10 @@ RAGFlow Simple UI is an opensource UI centrailze and manage AI Search and Chat a
         ├── routes/             # Express routes (API endpoints)
         ├── scripts/            # scripts for one time tasks
         ├── services/           # Business logic, the core application code
+        │   ├── storage/        # Storage module (Multi-cloud provider pattern)
+        │   │   ├── providers/  # Implementation of specific storage providers (MinIO, S3, etc.)
+        │   │   ├── types.ts    # Shared storage types
+        │   │   └── index.ts    # Main storage service export
         ├── types/              # Global/shared TypeScript definitions
         └── utils/              # General utility functions (helpers, formatters)
 - `fe/`: Frontend application (React + Vite).
