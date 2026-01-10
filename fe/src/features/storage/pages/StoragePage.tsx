@@ -14,11 +14,11 @@ import {
     Space, Statistic, Row, Col, Typography, Spin, Tag, Tooltip, Tabs, App
 } from 'antd';
 import {
-    Database, Plus, Trash2, RefreshCw, Server, Search, FileText, HardDrive, LayoutDashboard, Shield, CheckCircle
+    Database, Plus, Trash2, RefreshCw, Server, Search, FileText, HardDrive, LayoutDashboard, Shield, CheckCircle, Ban
 } from 'lucide-react';
 import {
     getRawBuckets, createRawBucket, deleteRawBucket, getRawBucketStats, getRawGlobalStats,
-    getBuckets as getDocumentBuckets, createBucket as activateBucket,
+    getBuckets as getDocumentBuckets, createBucket as activateBucket, disableBucket,
     // getAccessKeys, createAccessKey, deleteAccessKey, AccessKey
 } from '@/features/documents';
 import { formatFileSize } from '@/utils/format';
@@ -78,8 +78,9 @@ const StoragePage = () => {
     const [loadingMetrics, setLoadingMetrics] = useState(false);
 
     // Document bucket activation state
-    const [activeBuckets, setActiveBuckets] = useState<Set<string>>(new Set());
+    const [activeBuckets, setActiveBuckets] = useState<Map<string, string>>(new Map());
     const [activatingBucket, setActivatingBucket] = useState<string | null>(null);
+    const [disablingBucket, setDisablingBucket] = useState<string | null>(null);
 
     // Permissions modal state
     const [permissionsModalOpen, setPermissionsModalOpen] = useState(false);
@@ -110,7 +111,14 @@ const StoragePage = () => {
     const loadActiveBuckets = async () => {
         try {
             const docBuckets = await getDocumentBuckets();
-            setActiveBuckets(new Set(docBuckets.map(b => b.bucket_name)));
+            // Filter only active buckets and map name -> id
+            const activeMap = new Map<string, string>();
+            docBuckets.forEach(b => {
+                if (b.is_active) {
+                    activeMap.set(b.bucket_name, b.id);
+                }
+            });
+            setActiveBuckets(activeMap);
         } catch (error) {
             console.error('Failed to load active buckets:', error);
         }
@@ -315,8 +323,32 @@ const StoragePage = () => {
      * @param name - Name of the bucket.
      */
     const openPermissionsModal = (name: string) => {
-        setSelectedBucketForPermissions({ id: name, name });
-        setPermissionsModalOpen(true);
+        const bucketId = activeBuckets.get(name);
+        if (bucketId) {
+            setSelectedBucketForPermissions({ id: bucketId, name });
+            setPermissionsModalOpen(true);
+        }
+    };
+
+    /**
+     * Disable a document bucket.
+     * Sets is_active to false in the database.
+     * @param name - Name of the bucket to disable.
+     */
+    const handleDisableBucket = async (name: string) => {
+        const bucketId = activeBuckets.get(name);
+        if (!bucketId) return;
+
+        setDisablingBucket(name);
+        try {
+            await disableBucket(bucketId);
+            message.success(t('storage.disable.success'));
+            loadActiveBuckets();
+        } catch (error) {
+            message.error(t('storage.disable.error'));
+        } finally {
+            setDisablingBucket(null);
+        }
     };
 
     /**
@@ -426,9 +458,7 @@ const StoragePage = () => {
                             size="small"
                             onClick={() => loadBucketStats(record.name)}
                             icon={<RefreshCw size={14} />}
-                        >
-                            {t('storage.stats.load')}
-                        </Button>
+                        />
                     );
                 }
                 if (isLoading) return <Spin size="small" />;
@@ -472,9 +502,7 @@ const StoragePage = () => {
                                     type="text"
                                     icon={<Shield size={16} />}
                                     onClick={() => openPermissionsModal(record.name)}
-                                >
-                                    {t('storage.permissions.button')}
-                                </Button>
+                                />
                             </Tooltip>
                         ) : (
                             <Tooltip title={t('storage.activate.tooltip')}>
@@ -483,19 +511,28 @@ const StoragePage = () => {
                                     icon={<CheckCircle size={16} />}
                                     onClick={() => handleActivateBucket(record.name)}
                                     loading={activatingBucket === record.name}
-                                >
-                                    {t('storage.activate.button')}
-                                </Button>
+                                />
                             </Tooltip>
                         )}
-                        <Button
-                            type="text"
-                            danger
-                            icon={<Trash2 size={16} />}
-                            onClick={() => openDeleteModal(record.name)}
-                        >
-                            {t('common.delete')}
-                        </Button>
+                        {isActive && (
+                            <Tooltip title={t('storage.disable.tooltip')}>
+                                <Button
+                                    type="text"
+                                    danger
+                                    icon={<Ban size={16} />}
+                                    onClick={() => handleDisableBucket(record.name)}
+                                    loading={disablingBucket === record.name}
+                                />
+                            </Tooltip>
+                        )}
+                        <Tooltip title={t('common.destroy')}>
+                            <Button
+                                type="text"
+                                danger
+                                icon={<Trash2 size={16} />}
+                                onClick={() => openDeleteModal(record.name)}
+                            />
+                        </Tooltip>
                     </Space>
                 );
             },

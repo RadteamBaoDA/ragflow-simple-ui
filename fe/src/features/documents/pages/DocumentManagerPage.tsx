@@ -24,7 +24,8 @@ import {
     Space,
     Tooltip,
     App,
-    Dropdown
+    Dropdown,
+    Spin
 } from 'antd';
 import {
     HardDrive,
@@ -577,6 +578,7 @@ const DocumentManagerPage = () => {
      * Tries to restore the last selected bucket from localStorage.
      */
     const loadBuckets = async () => {
+        setLoading(true);
         try {
             const data = await getBuckets();
             setBuckets(data);
@@ -599,9 +601,21 @@ const DocumentManagerPage = () => {
                         localStorage.setItem(STORAGE_KEY_SELECTED_BUCKET, firstBucketId);
                     }
                 }
+            } else if (data.length === 0) {
+                // If no buckets, ensure loading is turned off so the empty state/no permission state works
+                setLoading(false);
             }
         } catch (err) {
             setError(err instanceof Error ? err.message : t('documents.loadFailed'));
+        } finally {
+            // Only set loading to false if we didn't select a bucket (which would trigger loadObjects -> loading=true)
+            // Actually, loadObjects effect runs on selectedBucket change.
+            // If we set selectedBucket, the effect fires.
+            // But we should probably clear loading here anyway, and let loadObjects set it to true again?
+            // Or better:
+            // If we selected a bucket, 'loading' might flicker if we set it false here then true in loadObjects.
+            // However, usually it's cleaner to just finish this async action.
+            setLoading(false);
         }
     };
 
@@ -1385,46 +1399,48 @@ const DocumentManagerPage = () => {
                 ) : (
                     <>
                         <div className="flex-1 overflow-hidden bg-white dark:bg-gray-800 shadow rounded-lg min-h-0 flex flex-col document-table-container">
-                            <Table
-                                rowKey="name"
-                                columns={columns}
-                                dataSource={filteredObjects}
-                                rowSelection={rowSelection}
-                                loading={loading}
-                                onChange={handleTableChange}
-                                pagination={false}
-                                size="middle"
-                                scroll={{ y: tableScrollHeight }}
-                                virtual
-                                locale={{
-                                    emptyText: !selectedBucket ? (
-                                        <div className="flex flex-col items-center justify-center py-12 text-gray-500">
-                                            <HardDrive className="w-12 h-12 text-gray-300 mb-2" />
-                                            <span className="text-lg font-medium">{t('documents.noBucketSelected')}</span>
-                                            <span className="text-sm">{t('documents.selectBucketPrompt')}</span>
-                                        </div>
-                                    ) : bucketSyncError ? (
-                                        <div className="flex flex-col items-center justify-center py-12 text-gray-500">
-                                            <AlertCircle className="w-12 h-12 text-amber-500 mb-2" />
-                                            <span className="text-lg font-medium text-amber-600">{t('documents.bucketSyncError')}</span>
-                                            <span className="text-sm text-center max-w-md mt-2">{bucketSyncError}</span>
-                                            <span className="text-sm mt-2">{t('documents.contactAdmin')}</span>
-                                        </div>
-                                    ) : objects.length === 0 ? (
-                                        <div className="flex flex-col items-center justify-center py-12 text-gray-500">
-                                            <FolderPlus className="w-12 h-12 text-gray-300 mb-2" />
-                                            <span className="text-lg font-medium">{t('documents.emptyBucket')}</span>
-                                            <span className="text-sm">{t('documents.uploadPrompt')}</span>
-                                        </div>
-                                    ) : (
-                                        <div className="flex flex-col items-center justify-center py-12 text-gray-500">
-                                            <Search className="w-12 h-12 text-gray-300 mb-2" />
-                                            <span className="text-lg font-medium">{t('documents.noSearchResults')}</span>
-                                            <span className="text-sm">{t('documents.noSearchResultsHint')}</span>
-                                        </div>
-                                    )
-                                }}
-                            />
+                            <Spin spinning={loading}>
+                                <Table
+                                    rowKey="name"
+                                    columns={columns}
+                                    dataSource={filteredObjects}
+                                    rowSelection={rowSelection}
+                                    loading={loading}
+                                    onChange={handleTableChange}
+                                    pagination={false}
+                                    size="middle"
+                                    scroll={{ y: tableScrollHeight }}
+                                    virtual
+                                    locale={{
+                                        emptyText: !selectedBucket ? (
+                                            <div className="flex flex-col items-center justify-center py-12 text-gray-500">
+                                                <HardDrive className="w-12 h-12 text-gray-300 mb-2" />
+                                                <span className="text-lg font-medium">{t('documents.noBucketSelected')}</span>
+                                                <span className="text-sm">{t('documents.selectBucketPrompt')}</span>
+                                            </div>
+                                        ) : bucketSyncError ? (
+                                            <div className="flex flex-col items-center justify-center py-12 text-gray-500">
+                                                <AlertCircle className="w-12 h-12 text-amber-500 mb-2" />
+                                                <span className="text-lg font-medium text-amber-600">{t('documents.bucketSyncError')}</span>
+                                                <span className="text-sm text-center max-w-md mt-2">{bucketSyncError}</span>
+                                                <span className="text-sm mt-2">{t('documents.contactAdmin')}</span>
+                                            </div>
+                                        ) : objects.length === 0 ? (
+                                            <div className="flex flex-col items-center justify-center py-12 text-gray-500">
+                                                <FolderPlus className="w-12 h-12 text-gray-300 mb-2" />
+                                                <span className="text-lg font-medium">{t('documents.emptyBucket')}</span>
+                                                <span className="text-sm">{t('documents.uploadPrompt')}</span>
+                                            </div>
+                                        ) : (
+                                            <div className="flex flex-col items-center justify-center py-12 text-gray-500">
+                                                <Search className="w-12 h-12 text-gray-300 mb-2" />
+                                                <span className="text-lg font-medium">{t('documents.noSearchResults')}</span>
+                                                <span className="text-sm">{t('documents.noSearchResultsHint')}</span>
+                                            </div>
+                                        )
+                                    }}
+                                />
+                            </Spin>
                         </div>
                     </>
                 )}

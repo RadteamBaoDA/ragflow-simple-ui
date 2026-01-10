@@ -72,12 +72,12 @@ export class DocumentBucketController {
     }
 
     /**
-     * Delete a document bucket.
+     * Destroy a document bucket.
      * @param req - Express request object.
      * @param res - Express response object.
      * @returns Promise<void>
      */
-    async deleteDocument(req: Request, res: Response): Promise<void> {
+    async destroyDocument(req: Request, res: Response): Promise<void> {
         const { bucketId } = req.params;
         // Validate bucket name presence
         if (!bucketId) {
@@ -88,12 +88,38 @@ export class DocumentBucketController {
             // Capture user context or default to system
             const user = req.user ? { id: req.user.id, email: req.user.email, ip: getClientIp(req) } : { id: 'system', email: 'system' };
             // Delete bucket via service
-            await documentBucketService.deleteDocument(bucketId, user);
+            await documentBucketService.destroyDocument(bucketId, user);
             res.status(204).send();
         } catch (error) {
             // Log error and return 500 status
             log.error('Failed to delete bucket', { error: String(error) });
             res.status(500).json({ error: 'Failed to delete bucket' });
+        }
+    }
+
+    /**
+     * Disable a document bucket.
+     * @param req - Express request object.
+     * @param res - Express response object.
+     * @returns Promise<void>
+     */
+    async disableDocument(req: Request, res: Response): Promise<void> {
+        const { bucketId } = req.params;
+        // Validate bucket name presence
+        if (!bucketId) {
+            res.status(400).json({ error: 'Bucket ID is required' });
+            return;
+        }
+        try {
+            // Capture user context or default to system
+            const user = req.user ? { id: req.user.id, email: req.user.email, ip: getClientIp(req) } : { id: 'system', email: 'system' };
+            // Disable bucket via service
+            await documentBucketService.disableDocument(bucketId, user);
+            res.status(204).send();
+        } catch (error) {
+            // Log error and return 500 status
+            log.error('Failed to disable bucket', { error: String(error) });
+            res.status(500).json({ error: 'Failed to disable bucket' });
         }
     }
 }

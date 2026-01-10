@@ -9,6 +9,7 @@
     "close": "閉じる",
     "hide": "非表示",
     "delete": "削除",
+    "destroy": "破棄",
     "settings": "設定",
     "checkingSession": "セッションを確認中...",
     "signingOut": "サインアウト中...",
@@ -551,6 +552,12 @@
     "permissions": {
       "button": "権限",
       "tooltip": "バケット権限を管理"
+    },
+    "disable": {
+      "button": "無効化",
+      "tooltip": "このバケットを無効にする",
+      "success": "バケットが無効化されました",
+      "error": "バケットの無効化に失敗しました"
     },
     "actions": "操作",
     "tabs": {

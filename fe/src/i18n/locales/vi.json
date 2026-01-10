@@ -9,6 +9,7 @@
     "close": "Đóng",
     "hide": "Ẩn",
     "delete": "Xóa",
+    "destroy": "Hủy bỏ",
     "settings": "Cài đặt",
     "checkingSession": "Đang kiểm tra phiên...",
     "signingOut": "Đang đăng xuất...",
@@ -547,6 +548,12 @@
     "permissions": {
       "button": "Phân quyền",
       "tooltip": "Quản lý quyền truy cập bucket"
+    },
+    "disable": {
+      "button": "Vô hiệu hóa",
+      "tooltip": "Vô hiệu hóa bucket này",
+      "success": "Đã vô hiệu hóa bucket",
+      "error": "Vô hiệu hóa thất bại"
     },
     "actions": "Hành động",
     "tabs": {

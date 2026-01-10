@@ -13,7 +13,12 @@ export class PreviewController {
    * @returns Promise<void>
    */
   async getPreview(req: Request, res: Response): Promise<void> {
-    const { bucketName, fileName } = req.params;
+    const { bucketName } = req.params;
+    const fileName = req.params[0];
+
+    // Log request for debugging
+    log.debug('Preview request', { bucketName, fileName });
+
     // Validate parameters
     if (!bucketName || !fileName) {
       res.status(400).json({ error: 'Bucket name and file name are required' });

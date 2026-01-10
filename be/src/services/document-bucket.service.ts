@@ -90,7 +90,32 @@ export class DocumentBucketService {
             // 1. Check if configured in DB
             const existingConfig = await ModelFactory.minioBucket.findByName(bucketName);
             if (existingConfig) {
-                throw new Error(`Bucket '${bucketName}' is already configured in the system.`);
+                if (existingConfig.is_active) {
+                    throw new Error(`Bucket '${bucketName}' is already configured in the system.`);
+                } else {
+                    // Re-activate bucket if it exists but is disabled
+                    await ModelFactory.minioBucket.update(existingConfig.id, {
+                        is_active: 1,
+                        updated_by: user?.id || 'system'
+                    });
+
+                    // Ensure it exists in MinIO (idempotent)
+                    await storageService.createBucket(bucketName, user);
+
+                    // Audit Log for re-activation
+                    if (user) {
+                        await auditService.log({
+                            userId: user.id,
+                            userEmail: user.email,
+                            action: AuditAction.CREATE_DOCUMENT_BUCKET, // Treating re-activation as creation/adding to active list
+                            resourceType: AuditResourceType.BUCKET,
+                            resourceId: existingConfig.id,
+                            details: { bucketName, status: 'reactivated' },
+                            ipAddress: user.ip,
+                        });
+                    }
+                    return { ...existingConfig, is_active: 1 };
+                }
             }
 
             // 2. Ensure exists in MinIO (call wrapper)
@@ -102,7 +127,8 @@ export class DocumentBucketService {
                 display_name: bucketName,
                 description,
                 created_by: user?.id || 'system',
-                updated_by: user?.id || 'system'
+                updated_by: user?.id || 'system',
+                is_active: 1
             });
 
             // 4. Audit Log
@@ -125,7 +151,7 @@ export class DocumentBucketService {
     }
 
     /**
-     * Delete a document bucket.
+     * Destroy a document bucket (permanent deletion).
      * @param bucketName - Name of the bucket to delete.
      * @param user - User context for audit logging.
      * @returns Promise<void>
@@ -133,7 +159,7 @@ export class DocumentBucketService {
      * Recursively deletes all objects in the bucket before deleting the bucket itself.
      * Emits progress updates via WebSocket.
      */
-    async deleteDocument(bucketName: string, user: { id: string, email: string, ip?: string }) {
+    async destroyDocument(bucketName: string, user: { id: string, email: string, ip?: string }) {
         try {
             // 1. Check if bucket exists in DB and MinIO (handled by storageService somewhat, but good to check)
             // The storageService.deleteBucket does DB deletion too, but we need to empty it first.
@@ -211,6 +237,41 @@ export class DocumentBucketService {
                 error: String(error),
                 message: 'Failed to delete bucket.'
             });
+            throw error;
+        }
+    }
+
+    /**
+     * Disable a document bucket (soft delete/deactivate).
+     * @param bucketId - UUID of the bucket to disable.
+     * @param user - User context for audit logging.
+     * @returns Promise<void>
+     */
+    async disableDocument(bucketId: string, user: { id: string, email: string, ip?: string }) {
+        try {
+            // 1. Check if bucket exists
+            const bucket = await ModelFactory.minioBucket.findById(bucketId);
+            if (!bucket) {
+                throw new Error('Bucket not found');
+            }
+
+            // 2. Update is_active to 0
+            await ModelFactory.minioBucket.update(bucketId, { is_active: 0 });
+
+            // 3. Audit Log
+            if (user) {
+                await auditService.log({
+                    userId: user.id,
+                    userEmail: user.email,
+                    action: AuditAction.DISABLE_DOCUMENT_BUCKET,
+                    resourceType: AuditResourceType.BUCKET,
+                    resourceId: bucketId,
+                    details: { bucketName: bucket.bucket_name },
+                    ipAddress: user.ip,
+                });
+            }
+        } catch (error) {
+            log.error('Failed to disable bucket', { bucketId, error: String(error) });
             throw error;
         }
     }

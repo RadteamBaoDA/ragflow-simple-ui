@@ -59,9 +59,9 @@ router.post('/:bucketId/batch-delete', requireAuth, (req, res, next) => document
  * @access Private
  */
 // Generates temporary access URL for downloading files
-router.get('/:bucketId/download', requireAuth, (req, res, next) => documentStorageController.getDownloadUrl(req, res).catch(next));
+router.get('/:bucketId/download/*', requireAuth, (req, res, next) => documentStorageController.getDownloadUrl(req, res).catch(next));
 
-// Check existence (commented out in source)
-// router.post('/:bucketId/check-existence', requirePermission('manage_storage'), controller.checkExistence.bind(controller)); 
+// Check existence
+router.post('/:bucketId/check-existence', requireAuth, (req, res, next) => documentStorageController.checkFilesExistence(req, res).catch(next));
 
 export default router

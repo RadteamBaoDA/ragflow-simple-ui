@@ -299,6 +299,33 @@ export class DocumentStorageService {
         }
         return url;
     }
+
+    /**
+     * Check if files exist in the bucket.
+     * @param user - The user making the request.
+     * @param bucketId - The ID of the bucket.
+     * @param files - List of file paths to check.
+     * @returns Promise<{ exists: string[] }> - List of existing files.
+     * @throws Error if access denied.
+     */
+    async checkFilesExistence(user: any, bucketId: string, files: string[]): Promise<{ exists: string[] }> {
+        // Enforce VIEW permission (uploaders usually have VIEW too, or specifically check UPLOAD?)
+        // Generally checking existence implies intent to upload or view, UPLOAD permission is safer if used for dedup
+        const hasAccess = await this.verifyAccess(user, bucketId, PermissionLevel.UPLOAD);
+        if (!hasAccess) throw new Error('Access Denied');
+
+        const bucketName = await this.getBucketName(bucketId);
+        if (!bucketName) throw new Error('Bucket not found');
+
+        const existingFiles: string[] = [];
+        for (const file of files) {
+            const exists = await storageService.checkFileExists(bucketName, file);
+            if (exists) {
+                existingFiles.push(file);
+            }
+        }
+        return { exists: existingFiles };
+    }
 }
 
 export const documentStorageService = new DocumentStorageService();

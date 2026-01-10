@@ -1,9 +1,9 @@
 /**
- * @fileoverview Tests for MinioRawController.
+ * @fileoverview Tests for StorageRawController.
  */
 
 import { describe, it, expect, vi, beforeEach } from 'vitest'
-import { MinioRawController } from '../../src/controllers/minio-raw.controller.js'
+import { StorageRawController } from '../../src/controllers/storage-raw.controller.js'
 
 const mockService = vi.hoisted(() => ({
   getGlobalStats: vi.fn(),
@@ -11,15 +11,17 @@ const mockService = vi.hoisted(() => ({
   getBucketStats: vi.fn(),
   createBucket: vi.fn(),
   deleteBucket: vi.fn(),
-  listServiceAccounts: vi.fn(),
+  listAccessKeys: vi.fn(),
+  createAccessKey: vi.fn(),
+  deleteAccessKey: vi.fn(),
 }))
 
 const mockLog = vi.hoisted(() => ({
   error: vi.fn(),
 }))
 
-vi.mock('../../src/services/minio.service.js', () => ({
-  minioService: mockService,
+vi.mock('../../src/services/storage/index.js', () => ({
+  storageService: mockService,
 }))
 
 vi.mock('../../src/services/logger.service.js', () => ({
@@ -33,12 +35,14 @@ const makeRes = () => {
   return res
 }
 
-describe('MinioRawController', () => {
-  const controller = new MinioRawController()
+describe('StorageRawController', () => {
+  const controller = new StorageRawController()
 
   beforeEach(() => {
     vi.clearAllMocks()
   })
+
+  // --- Metrics & Buckets (Existing logic adapted) ---
 
   it('getMetrics returns global stats', async () => {
     const res = makeRes()
@@ -123,9 +127,9 @@ describe('MinioRawController', () => {
   it('createBucket creates and returns 201', async () => {
     const res = makeRes()
 
-    await controller.createBucket({ body: { name: 'valid-bucket' } } as any, res)
+    await controller.createBucket({ body: { name: 'valid-bucket' }, user: { id: 'u1' } } as any, res)
 
-    expect(mockService.createBucket).toHaveBeenCalledWith('valid-bucket', '', undefined)
+    expect(mockService.createBucket).toHaveBeenCalledWith('valid-bucket', { id: 'u1' })
     expect(res.status).toHaveBeenCalledWith(201)
   })
 
@@ -149,9 +153,9 @@ describe('MinioRawController', () => {
   it('deleteBucket deletes and returns success', async () => {
     const res = makeRes()
 
-    await controller.deleteBucket({ params: { name: 'bucket' } } as any, res)
+    await controller.deleteBucket({ params: { name: 'bucket' }, user: { id: 'u1' } } as any, res)
 
-    expect(mockService.deleteBucket).toHaveBeenCalledWith('bucket')
+    expect(mockService.deleteBucket).toHaveBeenCalledWith('bucket', { id: 'u1' })
     expect(res.json).toHaveBeenCalledWith({ message: 'Bucket deleted successfully' })
   })
 
@@ -164,20 +168,70 @@ describe('MinioRawController', () => {
     expect(res.status).toHaveBeenCalledWith(500)
   })
 
-  it('listKeys returns service accounts', async () => {
+  // --- Access Keys (New Logic) ---
+
+  it('listKeys returns access keys', async () => {
     const res = makeRes()
-    mockService.listServiceAccounts.mockResolvedValueOnce([{ id: 'key1' }])
+    mockService.listAccessKeys.mockResolvedValueOnce([{ accessKey: 'key1' }])
 
     await controller.listKeys({} as any, res)
 
-    expect(res.json).toHaveBeenCalledWith({ keys: [{ id: 'key1' }] })
+    expect(res.json).toHaveBeenCalledWith({ keys: [{ accessKey: 'key1' }] })
   })
 
   it('listKeys handles errors', async () => {
     const res = makeRes()
-    mockService.listServiceAccounts.mockRejectedValueOnce(new Error('fail'))
+    mockService.listAccessKeys.mockRejectedValueOnce(new Error('fail'))
 
     await controller.listKeys({} as any, res)
+
+    expect(mockLog.error).toHaveBeenCalled()
+    expect(res.status).toHaveBeenCalledWith(500)
+  })
+
+  it('createKey creates and returns key info', async () => {
+    const res = makeRes()
+    const mockResult = { accessKey: 'ak', secretKey: 'sk' }
+    mockService.createAccessKey.mockResolvedValueOnce(mockResult)
+
+    await controller.createKey({ body: { policy: 'read', name: 'my-key' } } as any, res)
+
+    expect(mockService.createAccessKey).toHaveBeenCalledWith('read', 'my-key', undefined)
+    expect(res.json).toHaveBeenCalledWith(mockResult)
+  })
+
+  it('createKey handles errors', async () => {
+    const res = makeRes()
+    mockService.createAccessKey.mockRejectedValueOnce(new Error('fail'))
+
+    await controller.createKey({ body: {} } as any, res)
+
+    expect(mockLog.error).toHaveBeenCalled()
+    expect(res.status).toHaveBeenCalledWith(500)
+  })
+
+  it('deleteKey validates missing accessKey', async () => {
+    const res = makeRes()
+
+    await controller.deleteKey({ params: {} } as any, res)
+
+    expect(res.status).toHaveBeenCalledWith(400)
+  })
+
+  it('deleteKey deletes and returns success', async () => {
+    const res = makeRes()
+
+    await controller.deleteKey({ params: { accessKey: 'ak1' } } as any, res)
+
+    expect(mockService.deleteAccessKey).toHaveBeenCalledWith('ak1')
+    expect(res.json).toHaveBeenCalledWith({ message: 'Access key deleted successfully' })
+  })
+
+  it('deleteKey handles errors', async () => {
+    const res = makeRes()
+    mockService.deleteAccessKey.mockRejectedValueOnce(new Error('fail'))
+
+    await controller.deleteKey({ params: { accessKey: 'ak1' } } as any, res)
 
     expect(mockLog.error).toHaveBeenCalled()
     expect(res.status).toHaveBeenCalledWith(500)

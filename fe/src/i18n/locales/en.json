@@ -9,6 +9,7 @@
     "close": "Close",
     "hide": "Hide",
     "delete": "Delete",
+    "destroy": "Destroy",
     "settings": "Settings",
     "checkingSession": "Checking session...",
     "signingOut": "Signing out...",
@@ -546,6 +547,12 @@
     "permissions": {
       "button": "Permissions",
       "tooltip": "Manage bucket permissions"
+    },
+    "disable": {
+      "button": "Disable",
+      "tooltip": "Disable this bucket",
+      "success": "Bucket disabled successfully",
+      "error": "Failed to disable bucket"
     },
     "actions": "Actions",
     "tabs": {

@@ -213,14 +213,14 @@ export const createBucket = async (bucket: CreateDocumentBucketDto): Promise<Doc
 };
 
 /**
- * @description Remove a bucket configuration from database.
- * This does NOT delete the bucket from storage.
+ * @description Remove a bucket configuration from database (permanent deletion).
+ * This will also delete the bucket from storage.
  *
  * @param {string} bucketId - Bucket UUID to remove.
  * @returns {Promise<void>}
  * @throws {Error} If removal fails.
  */
-export const deleteBucket = async (bucketId: string): Promise<void> => {
+export const destroyBucket = async (bucketId: string): Promise<void> => {
     const response = await fetch(`${API_BASE_URL}/api/document/buckets/${bucketId}`, {
         method: 'DELETE',
         credentials: 'include',
@@ -228,7 +228,27 @@ export const deleteBucket = async (bucketId: string): Promise<void> => {
 
     if (!response.ok) {
         const error = await response.json();
-        throw new Error(error.error || 'Failed to remove bucket configuration');
+        throw new Error(error.error || 'Failed to destroy bucket');
+    }
+};
+
+/**
+ * @description Disable a bucket configuration (soft delete/deactivate).
+ * This sets is_active to 0 but keeps the bucket and data.
+ *
+ * @param {string} bucketId - Bucket UUID to disable.
+ * @returns {Promise<void>}
+ * @throws {Error} If disable fails.
+ */
+export const disableBucket = async (bucketId: string): Promise<void> => {
+    const response = await fetch(`${API_BASE_URL}/api/document/buckets/${bucketId}/disable`, {
+        method: 'PUT',
+        credentials: 'include',
+    });
+
+    if (!response.ok) {
+        const error = await response.json();
+        throw new Error(error.error || 'Failed to disable bucket');
     }
 };
 
