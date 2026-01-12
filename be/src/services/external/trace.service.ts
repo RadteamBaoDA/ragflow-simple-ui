@@ -440,6 +440,7 @@ export class ExternalTraceService {
         const langfuse = langfuseClient;
         // Submit score
         langfuse.score({
+            id: `${id}-user-feedback`, // deterministic id to allow updates
             traceId: id,
             name: 'user-feedback',
             value: value ?? score,
