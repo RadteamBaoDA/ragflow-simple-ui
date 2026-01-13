@@ -5,7 +5,7 @@ vi.mock('react-i18next', () => ({ useTranslation: () => ({ t: (k: string, d?: st
 
 const enc = { encode: vi.fn((t: string) => t.split('').map((_, i) => i)), decode: vi.fn((n: number[]) => n.map(x => String.fromCharCode(x + 97)).join('')) }
 vi.mock('js-tiktoken', () => ({ encodingForModel: vi.fn(() => enc), getEncoding: vi.fn(() => enc) }))
-vi.mock('lucide-react', () => ({ Eraser: () => null, Copy: () => null, Check: () => null }))
+vi.mock('lucide-react', () => ({ Eraser: () => null, Copy: () => null, Check: () => null, FileCode: () => null }))
 
 Object.assign(navigator, { clipboard: { writeText: vi.fn(() => Promise.resolve()) } })
 
@@ -18,13 +18,17 @@ describe('TokenizerPage', () => {
     enc.decode.mockImplementation((n: number[]) => n.map(x => String.fromCharCode(x + 97)).join(''))
   })
 
-  it('renders empty state', () => {
+  it('renders empty state', async () => {
     render(<TokenizerPage />)
+    // Wait for tokenizer to finish loading
+    await screen.findByText('Tokens will appear here...')
     expect(screen.getByText('Tokens will appear here...')).toBeInTheDocument()
   })
 
   it('encodes text on change', async () => {
     render(<TokenizerPage />)
+    // Wait for tokenizer to be ready before interacting
+    await screen.findByText('Tokens will appear here...')
     const ta = screen.getByPlaceholderText('Enter text here to see token count...') as HTMLTextAreaElement
     fireEvent.change(ta, { target: { value: 'abc' } })
     expect(ta.value).toBe('abc')

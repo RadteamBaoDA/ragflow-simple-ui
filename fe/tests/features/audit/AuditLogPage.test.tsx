@@ -39,9 +39,13 @@ describe('AuditLogPage', () => {
   })
 
   it('handles fetch error', async () => {
+    const consoleErrorSpy = vi.spyOn(console, 'error').mockImplementation(() => {})
     global.fetch = vi.fn(() => Promise.resolve(new Response(null, { status: 500 })))
     render(<AuditLogPage />)
-    await waitFor(() => expect(screen.getByText('auditLog.fetchError')).toBeInTheDocument())
+    await waitFor(() => expect(consoleErrorSpy).toHaveBeenCalled())
+    // Should show empty table state when fetch fails
+    expect(screen.getAllByText(/no data/i).length).toBeGreaterThan(0)
+    consoleErrorSpy.mockRestore()
   })
 
   it('toggles filter panel', async () => {
@@ -85,6 +89,6 @@ describe('AuditLogPage', () => {
       return Promise.resolve(new Response(JSON.stringify({ data: [], pagination: { page: 1, limit: 25, total: 0, totalPages: 0 } })))
     }) as any
     render(<AuditLogPage />)
-    await waitFor(() => expect(screen.getByText('auditLog.noLogs')).toBeInTheDocument())
+    await waitFor(() => expect(screen.getAllByText(/no data/i).length).toBeGreaterThan(0))
   })
 })

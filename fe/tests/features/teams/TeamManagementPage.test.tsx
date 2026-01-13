@@ -42,6 +42,11 @@ import TeamManagementPage from '../../../src/features/teams/pages/TeamManagement
 describe('TeamManagementPage', () => {
   beforeEach(() => {
     vi.clearAllMocks()
+    if (!document.getElementById('header-actions')) {
+      const d = document.createElement('div')
+      d.id = 'header-actions'
+      document.body.appendChild(d)
+    }
     vi_mockTeamService.getTeams.mockResolvedValue([])
     mockUserService.getUsers.mockResolvedValue([])
     global.fetch = vi.fn(() => Promise.resolve(new Response(JSON.stringify([])))) as any
@@ -105,8 +110,8 @@ describe('TeamManagementPage', () => {
     vi_mockTeamService.getTeamMembers.mockResolvedValue([])
     vi_mockTeamService.deleteTeam.mockResolvedValue(undefined)
     render(<TeamManagementPage />)
-    await waitFor(() => expect(screen.getByText('iam.teams.members')).toBeInTheDocument())
-    const membersBtn = screen.getByText('iam.teams.members').closest('button')
+    await waitFor(() => expect(screen.getByText((content) => content.includes('iam.teams.members'))).toBeInTheDocument())
+    const membersBtn = screen.getByText((content) => content.includes('iam.teams.members')).closest('button')
     if (membersBtn) {
       fireEvent.click(membersBtn)
       await waitFor(() => expect(vi_mockTeamService.getTeamMembers).toHaveBeenCalled())
@@ -133,8 +138,8 @@ describe('TeamManagementPage', () => {
     ])
     render(<TeamManagementPage />)
     // Click members button to trigger loading of members
-    await waitFor(() => expect(screen.getByText('iam.teams.members')).toBeInTheDocument())
-    const membersBtn = screen.getByText('iam.teams.members').closest('button')
+    await waitFor(() => expect(screen.getByText((content) => content.includes('iam.teams.members'))).toBeInTheDocument())
+    const membersBtn = screen.getByText((content) => content.includes('iam.teams.members')).closest('button')
     if (membersBtn) {
       fireEvent.click(membersBtn)
       await waitFor(() => expect(vi_mockTeamService.getTeamMembers).toHaveBeenCalled())
@@ -149,7 +154,8 @@ describe('TeamManagementPage', () => {
 
   it('closes modals on cancel', async () => {
     render(<TeamManagementPage />)
-    const addBtn = screen.getByTestId('plus').closest('button')
+    const addBtn = screen.queryByTestId('plus')?.closest('button')
+    expect(addBtn).toBeTruthy()
     if (addBtn) {
       fireEvent.click(addBtn)
       await waitFor(() => {

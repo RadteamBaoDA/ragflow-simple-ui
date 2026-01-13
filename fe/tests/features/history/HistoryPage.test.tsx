@@ -42,7 +42,7 @@ describe('HistoryPage', () => {
 
   it('renders history page', () => {
     render(<HistoryPage />)
-    expect(screen.getByRole('textbox')).toBeInTheDocument()
+    expect(screen.getByPlaceholderText('history.searchPlaceholder')).toBeInTheDocument()
   })
 
   it('searches sessions', async () => {
@@ -50,7 +50,7 @@ describe('HistoryPage', () => {
     // keep sentinel in sync so the component can render results when needed
     __mockQueryData.chatSessions = { sessions: [{ id: '1', title: 'Test', createdAt: '2025-01-01', updatedAt: '2025-01-01', messages: [] }], total: 1 }
     render(<HistoryPage />)
-    const searchInput = screen.getByRole('textbox')
+    const searchInput = screen.getByPlaceholderText('history.searchPlaceholder')
     fireEvent.change(searchInput, { target: { value: 'test' } })
     const searchBtn = screen.getByRole('button', { name: /history.search/i })
     if (searchBtn) fireEvent.click(searchBtn)
@@ -128,7 +128,7 @@ describe('HistoryPage', () => {
     const clearBtn = screen.getByText(/clear/i, { selector: 'button' })
     if (clearBtn) {
       fireEvent.click(clearBtn)
-      const input = screen.getByRole('textbox') as HTMLInputElement
+      const input = screen.getByPlaceholderText('history.searchPlaceholder') as HTMLInputElement
       expect(input.value).toBe('')
     }
   })

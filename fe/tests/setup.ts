@@ -224,6 +224,19 @@ vi.mock('react-i18next', () => ({
 // React Router Mock
 // ============================================================================
 
+// Provide a default mock for `lucide-react` icons to avoid missing export errors in tests.
+// The mock uses a Proxy to return a no-op component for any requested icon name.
+vi.mock('lucide-react', () => {
+  const NullIcon = () => null;
+  const factory = { default: NullIcon } as Record<string | symbol, any>;
+  return new Proxy(factory, {
+    get: (target, prop) => {
+      if (prop in target) return (target as any)[prop];
+      return NullIcon;
+    }
+  });
+});
+
 const mockNavigate = vi.fn();
 const mockLocation = { pathname: '/', search: '', hash: '', state: null };
 const mockSearchParams = new URLSearchParams();
@@ -236,6 +249,17 @@ vi.mock('react-router-dom', async () => {
     useLocation: () => mockLocation,
     useSearchParams: () => [mockSearchParams, vi.fn()],
   };
+});
+
+// Mock Headless UI to avoid animation/transition delays in tests
+vi.mock('@headlessui/react', () => {
+  const React = require('react') as typeof import('react')
+  function Dialog(props: any) { return React.createElement(React.Fragment, null, props.children) }
+  function DialogPanel(props: any) { return React.createElement('div', { className: props.className }, props.children) }
+  function DialogTitle(props: any) { return React.createElement('div', null, props.children) }
+  const Transition = (props: any) => props.children
+  const TransitionChild = (props: any) => props.children
+  return { Dialog, DialogPanel, DialogTitle, Transition, TransitionChild } as any
 });
 
 // ============================================================================
