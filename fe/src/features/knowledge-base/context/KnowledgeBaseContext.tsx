@@ -30,6 +30,8 @@ interface KnowledgeBaseSource {
     url: string;
     /** Description of the source */
     description?: string | null;
+    /** URL for embedded chat widget on search page */
+    chat_widget_url?: string | null;
 }
 
 /**

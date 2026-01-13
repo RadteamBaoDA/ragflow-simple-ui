@@ -26,6 +26,8 @@ export interface KnowledgeBaseSource {
     description?: string | null;
     /** Share ID extracted from URL (shared_id param) */
     share_id?: string | null;
+    /** URL for embedded chat widget on search page */
+    chat_widget_url?: string | null;
     /** Type of source: chat or search */
     type?: 'chat' | 'search';
     /** Access control settings */
@@ -158,14 +160,15 @@ export const addSource = async (
     url: string,
     access_control: AccessControl = { public: false, team_ids: [], user_ids: [] },
     share_id?: string,
-    description?: string
+    description?: string,
+    chat_widget_url?: string
 ): Promise<KnowledgeBaseSource> => {
     const response = await fetch(`${API_BASE_URL}/api/knowledge-base/sources`, {
         method: 'POST',
         headers: {
             'Content-Type': 'application/json',
         },
-        body: JSON.stringify({ type, name, url, description, access_control, share_id }),
+        body: JSON.stringify({ type, name, url, description, access_control, share_id, chat_widget_url }),
         credentials: 'include',
     });
 
@@ -186,13 +189,13 @@ export const addSource = async (
  * @param {string} [share_id] - New share ID.
  * @returns {Promise<void>}
  */
-export const updateSource = async (id: string, name: string, url: string, access_control?: AccessControl, share_id?: string, description?: string): Promise<void> => {
+export const updateSource = async (id: string, name: string, url: string, access_control?: AccessControl, share_id?: string, description?: string, chat_widget_url?: string): Promise<void> => {
     const response = await fetch(`${API_BASE_URL}/api/knowledge-base/sources/${id}`, {
         method: 'PUT',
         headers: {
             'Content-Type': 'application/json',
         },
-        body: JSON.stringify({ name, url, description, access_control, share_id }),
+        body: JSON.stringify({ name, url, description, access_control, share_id, chat_widget_url }),
         credentials: 'include',
     });
 

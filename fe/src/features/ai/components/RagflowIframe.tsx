@@ -21,6 +21,7 @@ import { useSettings } from '@/app/contexts/SettingsContext';
 import { AlertCircle, RefreshCw, RotateCcw, WifiOff, Lock, FileQuestion, ServerCrash, Maximize2, Minimize2, Book } from 'lucide-react';
 import { Tooltip } from 'antd';
 import { PromptLibraryModal } from '@/features/prompts/components/PromptLibraryModal';
+import { ChatWidgetEmbed } from './ChatWidgetEmbed';
 
 // ============================================================================
 // Types
@@ -82,8 +83,10 @@ function RagflowIframe({ path }: RagflowIframeProps) {
   // Get the selected source ID based on path (chat or search)
   const selectedSourceId = path === 'chat' ? knowledgeBase.selectedChatSourceId : knowledgeBase.selectedSearchSourceId;
 
-
-
+  // Get chat widget URL for search sources
+  const chatWidgetUrl = path === 'search' && knowledgeBase.config
+    ? knowledgeBase.config.searchSources.find(s => s.id === selectedSourceId)?.chat_widget_url
+    : null;
   // ============================================================================
   // Callbacks
   // ============================================================================
@@ -491,7 +494,8 @@ function RagflowIframe({ path }: RagflowIframeProps) {
         <Tooltip title={isFullScreen ? t('common.exitFullScreen') : t('common.fullScreen')} placement="left">
           <button
             onClick={toggleFullScreen}
-            className="absolute bottom-6 right-6 p-3 bg-white dark:bg-slate-700 text-slate-700 dark:text-slate-200 rounded-full shadow-lg hover:bg-slate-100 dark:hover:bg-slate-600 transition-all duration-200 z-[100] border border-slate-200 dark:border-slate-600 group cursor-pointer"
+            className="absolute right-6 p-3 bg-white dark:bg-slate-700 text-slate-700 dark:text-slate-200 rounded-full shadow-lg hover:bg-slate-100 dark:hover:bg-slate-600 transition-all duration-200 z-[100] border border-slate-200 dark:border-slate-600 group cursor-pointer"
+            style={{ bottom: '9rem' }}
           >
             {isFullScreen ? (
               <Minimize2 className="w-6 h-6" />
@@ -508,7 +512,8 @@ function RagflowIframe({ path }: RagflowIframeProps) {
         <Tooltip title={t('iframe.resetSession')} placement="left">
           <button
             onClick={handleResetSession}
-            className="absolute bottom-20 right-6 p-3 bg-white dark:bg-slate-700 text-slate-700 dark:text-slate-200 rounded-full shadow-lg hover:bg-slate-100 dark:hover:bg-slate-600 transition-all duration-200 z-[100] border border-slate-200 dark:border-slate-600 group cursor-pointer"
+            className="absolute right-6 p-3 bg-white dark:bg-slate-700 text-slate-700 dark:text-slate-200 rounded-full shadow-lg hover:bg-slate-100 dark:hover:bg-slate-600 transition-all duration-200 z-[100] border border-slate-200 dark:border-slate-600 group cursor-pointer"
+            style={{ bottom: '12.5rem' }}
           >
             <RotateCcw className="w-6 h-6" />
             <span className="sr-only">
@@ -531,6 +536,11 @@ function RagflowIframe({ path }: RagflowIframeProps) {
               </span>
             </button>
           </Tooltip>
+        )}
+
+        {/* Chat Widget for Search Mode */}
+        {path === 'search' && chatWidgetUrl && (
+          <ChatWidgetEmbed widgetUrl={chatWidgetUrl} />
         )}
 
         {/* Prompt Library Modal */}
