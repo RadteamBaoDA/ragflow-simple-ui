@@ -33,7 +33,7 @@ describe('UserDismissedBroadcastModel', () => {
     await model.upsertDismissal('u1', 'b1')
 
     expect(mockKnex).toHaveBeenCalledWith('user_dismissed_broadcasts')
-    expect(builder.insert).toHaveBeenCalledWith({ user_id: 'u1', broadcast_id: 'b1' })
+    expect(builder.insert).toHaveBeenCalledWith({ user_id: 'u1', broadcast_id: 'b1', created_by: 'u1', updated_by: 'u1' })
     expect(builder.onConflict).toHaveBeenCalledWith(['user_id', 'broadcast_id'])
   })
 })

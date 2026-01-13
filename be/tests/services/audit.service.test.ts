@@ -13,6 +13,7 @@ import {
 const mockAuditLogModel = vi.hoisted(() => ({
   create: vi.fn(),
   findAll: vi.fn(),
+  count: vi.fn(),
 }));
 
 const mockLog = vi.hoisted(() => ({
@@ -47,12 +48,10 @@ describe('Audit Service', () => {
       expect(AuditAction.UPDATE_ROLE).toBe('update_role');
     });
 
-    it('should have storage actions', () => {
-      expect(AuditAction.CREATE_BUCKET).toBe('create_bucket');
-      expect(AuditAction.DELETE_BUCKET).toBe('delete_bucket');
-      expect(AuditAction.UPLOAD_FILE).toBe('upload_file');
-      expect(AuditAction.DELETE_FILE).toBe('delete_file');
-      expect(AuditAction.DOWNLOAD_FILE).toBe('download_file');
+    it('should have document actions', () => {
+      expect(AuditAction.UPLOAD_DOCUMENT).toBe('upload_document');
+      expect(AuditAction.DELETE_DOCUMENT).toBe('delete_document');
+      expect(AuditAction.DOWNLOAD_DOCUMENT).toBe('download_document');
     });
 
     it('should have system actions', () => {
@@ -92,7 +91,7 @@ describe('Audit Service', () => {
       const result = await auditService.log({
         userId: 'user-1',
         userEmail: 'test@example.com',
-        action: AuditAction.UPLOAD_FILE,
+        action: AuditAction.UPLOAD_DOCUMENT,
         resourceType: AuditResourceType.FILE,
         resourceId: 'file-1',
         details: { size: 100 },
@@ -102,7 +101,7 @@ describe('Audit Service', () => {
       expect(mockAuditLogModel.create).toHaveBeenCalledWith({
         user_id: 'user-1',
         user_email: 'test@example.com',
-        action: 'upload_file',
+        action: 'upload_document',
         resource_type: 'file',
         resource_id: 'file-1',
         details: '{"size":100}',
@@ -138,7 +137,7 @@ describe('Audit Service', () => {
 
       const result = await auditService.log({
         userEmail: 'test@example.com',
-        action: AuditAction.UPLOAD_FILE,
+        action: AuditAction.UPLOAD_DOCUMENT,
         resourceType: AuditResourceType.FILE,
       });
 
@@ -147,7 +146,7 @@ describe('Audit Service', () => {
         'Failed to create audit log',
         expect.objectContaining({
           error: 'Database error',
-          action: 'upload_file',
+          action: 'upload_document',
           resourceType: 'file',
         })
       );
@@ -271,7 +270,7 @@ describe('Audit Service', () => {
       const types = await auditService.getActionTypes();
 
       expect(types).toContain('create_user');
-      expect(types).toContain('upload_file');
+      expect(types).toContain('upload_document');
       expect(types).toContain('system_start');
       expect(types.length).toBeGreaterThan(10);
     });

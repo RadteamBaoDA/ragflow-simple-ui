@@ -47,7 +47,7 @@ describe('AuditController', () => {
 
     await controller.getLogs({ query: {}, session: {} } as any, res)
 
-    expect(mockService.getLogs).toHaveBeenCalledWith(expect.objectContaining({ page: 1, limit: 50 }))
+    expect(mockService.getLogs).toHaveBeenCalledWith({}, 50, 0)
     expect(res.json).toHaveBeenCalledWith({ logs: [{ id: '1' }], pagination: { total: 1 } })
   })
 
@@ -57,7 +57,7 @@ describe('AuditController', () => {
 
     await controller.getLogs({ query: { page: '2', limit: '25', userId: 'u1', action: 'create' }, session: {} } as any, res)
 
-    expect(mockService.getLogs).toHaveBeenCalledWith(expect.objectContaining({ page: 2, limit: 25, userId: 'u1', action: 'create' }))
+    expect(mockService.getLogs).toHaveBeenCalledWith({ userId: 'u1', action: 'create' }, 25, 25)
     expect(res.json).toHaveBeenCalled()
   })
 
@@ -67,7 +67,7 @@ describe('AuditController', () => {
 
     await controller.getLogs({ query: { limit: '500' }, session: {} } as any, res)
 
-    expect(mockService.getLogs).toHaveBeenCalledWith(expect.objectContaining({ limit: 100 }))
+    expect(mockService.getLogs).toHaveBeenCalledWith({}, 100, 0)
   })
 
   it('getLogs handles errors', async () => {
