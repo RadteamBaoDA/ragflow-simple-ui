@@ -16,6 +16,7 @@ const mockLog = vi.hoisted(() => ({
   warn: vi.fn(),
   error: vi.fn(),
   debug: vi.fn(),
+  info: vi.fn(),
 }));
 
 const mockConfig = {
@@ -55,6 +56,14 @@ vi.mock('../../src/services/minio.service.js', () => ({
   minioService: {
     listBuckets: vi.fn(),
   },
+}));
+
+const mockStorageService = vi.hoisted(() => ({
+  listBuckets: vi.fn(),
+}));
+
+vi.mock('../../src/services/storage/index.js', () => ({
+  storageService: mockStorageService,
 }));
 
 const mockRedisClient = vi.hoisted(() => ({
@@ -116,8 +125,6 @@ describe('System Tools Service', () => {
     // Import mocked modules
     const dbModule = await import('../../src/db/knex.js');
     mockDb = dbModule.db;
-    const minioModule = await import('../../src/services/minio.service.js');
-    mockMinioService = minioModule.minioService;
 
     const module = await import('../../src/services/system-tools.service.js');
     service = module.systemToolsService;
@@ -357,8 +364,7 @@ describe('System Tools Service', () => {
     it('should show minio as connected when listBuckets succeeds', async () => {
       process.env.MINIO_ACCESS_KEY = 'test-key';
       process.env.MINIO_SECRET_KEY = 'test-secret';
-      const { minioService } = await import('../../src/services/minio.service.js');
-      (minioService.listBuckets as any).mockResolvedValue([]);
+      mockStorageService.listBuckets.mockResolvedValueOnce([]);
 
       const health = await service.getSystemHealth();
 
@@ -369,8 +375,7 @@ describe('System Tools Service', () => {
     it('should show minio as disconnected when listBuckets fails', async () => {
       process.env.MINIO_ACCESS_KEY = 'test-key';
       process.env.MINIO_SECRET_KEY = 'test-secret';
-      const { minioService } = await import('../../src/services/minio.service.js');
-      (minioService.listBuckets as any).mockRejectedValue(new Error('Connection failed'));
+      mockStorageService.listBuckets.mockRejectedValueOnce(new Error('Connection failed'));
 
       const health = await service.getSystemHealth();
 

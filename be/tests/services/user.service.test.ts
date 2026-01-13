@@ -229,7 +229,7 @@ describe('UserService', () => {
     it('updates permissions and audits', async () => {
       await service.updateUserPermissions('u1', ['p1', 'p2'], { id: 'admin', email: 'a@a.com' })
 
-      expect(mockUserModel.update).toHaveBeenCalledWith('u1', { permissions: JSON.stringify(['p1', 'p2']) })
+      expect(mockUserModel.update).toHaveBeenCalledWith('u1', { permissions: JSON.stringify(['p1', 'p2']), updated_by: 'admin' })
       expect(mockAudit.log).toHaveBeenCalled()
     })
   })
@@ -284,6 +284,46 @@ describe('UserService', () => {
 
       expect(map.get('a')?.length).toBe(2)
       expect(map.get('b')?.length).toBe(1)
+    })
+  })
+
+  describe('duplicate email and role update validations', () => {
+    it('createUser throws when email exists', async () => {
+      mockUserModel.findByEmail.mockResolvedValueOnce({ id: 'u1' })
+      await expect(service.createUser({ email: 'x' })).rejects.toThrow(/already exists/)
+    })
+
+    it('updateUser throws when email exists on another user', async () => {
+      mockUserModel.findByEmail.mockResolvedValueOnce({ id: 'u2' })
+      await expect(service.updateUser('u1', { email: 'x' })).rejects.toThrow(/already exists/)
+    })
+
+    it('updateUserRole rejects invalid id and role and prevents self-modification and unauthorized promotion', async () => {
+      // invalid id
+      await expect(service.updateUserRole('not-uuid', 'user', { id: 'a', role: 'admin', email: 'a@a' })).rejects.toThrow('Invalid user ID format')
+
+      // invalid role
+      await expect(service.updateUserRole('11111111-2222-3333-4444-555555555555', 'bogus' as any, { id: 'a', role: 'admin', email: 'a@a' })).rejects.toThrow('Invalid role')
+
+      // self modification should be tested with valid uuid
+      const actor = { id: '11111111-2222-3333-4444-555555555555', role: 'admin', email: 'a@a' }
+      await expect(service.updateUserRole('11111111-2222-3333-4444-555555555555', 'admin', actor as any)).rejects.toThrow('Cannot modify your own role')
+      expect(mockLog.warn).toHaveBeenCalled()
+
+      // non-admin promoting to admin
+      const actor2 = { id: 'id2', role: 'leader', email: 'b@b' }
+      await expect(service.updateUserRole('11111111-2222-3333-4444-555555555555', 'admin', actor2 as any)).rejects.toThrow('Only administrators can grant admin role')
+      expect(mockLog.warn).toHaveBeenCalled()
+    })
+
+    it('updateUserRole succeeds and logs when valid', async () => {
+      const uid = '11111111-2222-3333-4444-555555555555'
+      const actor = { id: 'admin1', role: 'admin', email: 'a@a', ip: '1.2.3.4' }
+      mockUserModel.update.mockResolvedValueOnce({ id: uid, email: 't@e' })
+
+      const res = await service.updateUserRole(uid, 'leader', actor as any)
+      expect(res).toEqual({ id: uid, email: 't@e' })
+      expect(mockAudit.log).toHaveBeenCalled()
     })
   })
 })

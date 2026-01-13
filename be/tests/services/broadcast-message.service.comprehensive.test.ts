@@ -127,6 +127,8 @@ describe('BroadcastMessageService - Comprehensive', () => {
                 font_color: '#FFFFFF',
                 is_active: true,
                 is_dismissible: false,
+                created_by: null,
+                updated_by: null
             });
             expect(result).toEqual(createdMessage);
         });

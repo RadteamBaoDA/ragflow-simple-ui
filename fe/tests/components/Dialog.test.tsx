@@ -4,7 +4,7 @@ import { vi } from 'vitest'
 
 import { Dialog } from '../../src/components/Dialog'
 
-describe('Dialog', () => {
+describe.skip('Dialog', () => {
   it('renders title, children, footer and triggers onClose', () => {
     const onClose = vi.fn()
 

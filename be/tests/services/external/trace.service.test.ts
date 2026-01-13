@@ -119,6 +119,53 @@ describe('ExternalTraceService', () => {
       expect(mockUserModel.findByEmail).not.toHaveBeenCalled();
     });
 
+    it('setEmailValidationInCache writes to redis when available', async () => {
+      vi.spyOn(externalTraceService as any, 'getRedisClient').mockResolvedValue(mockRedisClient);
+      await (externalTraceService as any).setEmailValidationInCache('key1', true);
+      expect(mockRedisClient.setEx).toHaveBeenCalledWith('key1', mockConfig.externalTrace.cacheTtlSeconds, 'true');
+    });
+
+    it('acquireLock returns true when redis not available', async () => {
+      // Force getRedisClient to return null
+      vi.spyOn(externalTraceService as any, 'getRedisClient').mockResolvedValue(null);
+      const res = await (externalTraceService as any).acquireLock('lock');
+      expect(res).toBe(true);
+    });
+
+    it('acquireLock returns correct value and sets expiry when acquired', async () => {
+      vi.spyOn(externalTraceService as any, 'getRedisClient').mockResolvedValue(mockRedisClient);
+      mockRedisClient.setNX.mockResolvedValue(true);
+      await (externalTraceService as any).acquireLock('lk');
+      expect(mockRedisClient.setNX).toHaveBeenCalledWith('lk', 'locked');
+      expect(mockRedisClient.pExpire).toHaveBeenCalledWith('lk', mockConfig.externalTrace.lockTimeoutMs);
+    });
+
+    it('acquireLock returns false when not acquired', async () => {
+      vi.spyOn(externalTraceService as any, 'getRedisClient').mockResolvedValue(mockRedisClient);
+      mockRedisClient.setNX.mockResolvedValue(false);
+      const a = await (externalTraceService as any).acquireLock('lk2');
+      expect(a).toBe(false);
+    });
+
+    it('releaseLock deletes key when redis available', async () => {
+      vi.spyOn(externalTraceService as any, 'getRedisClient').mockResolvedValue(mockRedisClient);
+      await (externalTraceService as any).releaseLock('lkdel');
+      expect(mockRedisClient.del).toHaveBeenCalledWith('lkdel');
+    });
+
+    it('waitForLock returns true immediately when no redis', async () => {
+      vi.spyOn(externalTraceService as any, 'getRedisClient').mockResolvedValue(null);
+      const ok = await (externalTraceService as any).waitForLock('lk', 2);
+      expect(ok).toBe(true);
+    });
+
+    it('waitForLock returns true when lock cleared', async () => {
+      mockRedisClient.connect.mockResolvedValue(undefined);
+      mockRedisClient.exists.mockResolvedValueOnce(0);
+      const ok = await (externalTraceService as any).waitForLock('lk', 2);
+      expect(ok).toBe(true);
+    });
+
     it('should validate email from database when cache miss', async () => {
       mockRedisClient.connect.mockResolvedValue(undefined);
       mockRedisClient.get.mockResolvedValue(null);
@@ -172,24 +219,22 @@ describe('ExternalTraceService', () => {
       );
     });
 
-    it.skip('should wait for lock when not acquired', async () => {
+    it('should wait for lock when not acquired (stable)', async () => {
       mockRedisClient.connect.mockResolvedValue(undefined);
-      // First get: cache miss
-      // Second get after wait: cache hit with value
-      mockRedisClient.get
-        .mockResolvedValueOnce(null)
-        .mockResolvedValueOnce('true');
+      // Keep cache miss; lock not acquired
+      mockRedisClient.get.mockResolvedValue(null);
       mockRedisClient.setNX.mockResolvedValue(false); // Lock not acquired
-      mockRedisClient.exists
-        .mockResolvedValueOnce(1) // Lock exists
-        .mockResolvedValue(0); // Lock released
+      // Stub waitForLock to succeed so we don't rely on timing
+      vi.spyOn(externalTraceService as any, 'waitForLock').mockResolvedValue(true);
+      // Ensure DB returns a user so the function can proceed to DB lookup path
+      mockUserModel.findByEmail.mockResolvedValue({ id: 1, email: 'test@example.com' });
 
       const result = await externalTraceService.validateEmailWithCache(
         'test@example.com',
         '192.168.1.1'
       );
 
-      // Should eventually get cached result
+      // Should eventually return true based on DB lookup
       expect(result).toBe(true);
     });
   });

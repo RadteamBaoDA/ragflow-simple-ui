@@ -214,6 +214,8 @@ describe('BroadcastMessageService', () => {
         font_color: '#FFFFFF',
         is_active: true,
         is_dismissible: false,
+        created_by: user.id,
+        updated_by: user.id
       });
       expect(mockAuditService.log).toHaveBeenCalledWith({
         userId: user.id,
@@ -296,7 +298,7 @@ describe('BroadcastMessageService', () => {
       const service = new BroadcastMessageService();
       const result = await service.updateMessage(id, updateData, user);
 
-      expect(mockBroadcastMessageModel.update).toHaveBeenCalledWith(id, { message: 'Updated text', is_active: false });
+      expect(mockBroadcastMessageModel.update).toHaveBeenCalledWith(id, { message: 'Updated text', is_active: false, updated_by: user.id });
       expect(mockAuditService.log).toHaveBeenCalledWith({
         userId: user.id,
         userEmail: user.email,

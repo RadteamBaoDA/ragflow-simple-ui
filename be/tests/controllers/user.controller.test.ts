@@ -27,6 +27,8 @@ const mockLog = vi.hoisted(() => ({
   debug: vi.fn(),
 }))
 
+const mockGetClientIp = vi.hoisted(() => vi.fn().mockReturnValue('127.0.0.1'))
+
 vi.mock('../../src/services/user.service.js', () => ({
   userService: mockUserService,
 }))
@@ -39,6 +41,10 @@ vi.mock('../../src/services/audit.service.js', () => ({
 
 vi.mock('../../src/services/logger.service.js', () => ({
   log: mockLog,
+}))
+
+vi.mock('../../src/utils/ip.js', () => ({
+  getClientIp: mockGetClientIp,
 }))
 
 const makeRes = () => {
@@ -67,6 +73,26 @@ describe('UserController', () => {
 
     expect(mockUserService.getAllUsers).toHaveBeenCalledWith(['admin', 'user'])
     expect(res.json).toHaveBeenCalledWith([{ id: 'u1' }])
+  })
+
+  it('getUsers handles service errors', async () => {
+    const res = makeRes()
+    mockUserService.getAllUsers.mockRejectedValueOnce(new Error('boom'))
+
+    await controller.getUsers({} as any, res)
+
+    expect(mockLog.error).toHaveBeenCalled()
+    expect(res.status).toHaveBeenCalledWith(500)
+  })
+
+  it('getAllIpHistory handles service errors', async () => {
+    const res = makeRes()
+    mockUserService.getAllUsersIpHistory.mockRejectedValueOnce(new Error('boom'))
+
+    await controller.getAllIpHistory({} as any, res)
+
+    expect(mockLog.error).toHaveBeenCalled()
+    expect(res.status).toHaveBeenCalledWith(500)
   })
 
   it('getAllIpHistory converts map', async () => {
@@ -105,16 +131,18 @@ describe('UserController', () => {
 
   it('updateUserRole blocks self change', async () => {
     const res = makeRes()
+    mockUserService.updateUserRole.mockRejectedValueOnce(new Error('Cannot modify your own role'))
 
-    await controller.updateUserRole({ params: { id: 'self' }, body: { role: 'leader' }, session: { user: { id: 'self' } } } as any, res)
+    await controller.updateUserRole({ params: { id: 'self' }, body: { role: 'leader' }, session: { user: { id: 'self', email: 'u@a.com' } } } as any, res)
 
     expect(res.status).toHaveBeenCalledWith(400)
   })
 
   it('updateUserRole blocks non-admin promoting admin', async () => {
     const res = makeRes()
+    mockUserService.updateUserRole.mockRejectedValueOnce(new Error('Only administrators can grant admin role'))
 
-    await controller.updateUserRole(makeReq({ params: { id: '00000000-0000-0000-0000-000000000000' }, body: { role: 'admin' }, session: { user: { id: 'mgr', role: 'leader' } } }) as any, res)
+    await controller.updateUserRole(makeReq({ params: { id: '00000000-0000-0000-0000-000000000000' }, body: { role: 'admin' }, session: { user: { id: 'mgr', role: 'leader', email: 'm@a.com' } } }) as any, res)
 
     expect(res.status).toHaveBeenCalledWith(403)
   })
@@ -123,7 +151,7 @@ describe('UserController', () => {
     const res = makeRes()
     mockUserService.updateUserRole.mockResolvedValueOnce(undefined)
 
-    await controller.updateUserRole({ params: { id: 'root-user' }, body: { role: 'user' }, session: { user: { id: 'admin', role: 'admin', email: 'a' } } } as any, res)
+    await controller.updateUserRole({ params: { id: 'root-user' }, body: { role: 'user' }, session: { user: { id: 'admin', role: 'admin', email: 'a@a.com' } } } as any, res)
 
     expect(res.status).toHaveBeenCalledWith(404)
   })
@@ -132,13 +160,13 @@ describe('UserController', () => {
     const res = makeRes()
     mockUserService.updateUserRole.mockResolvedValueOnce({ id: 'u1', email: 'e' })
 
-    await controller.updateUserRole(makeReq({ params: { id: 'root-user' }, body: { role: 'leader', oldRole: 'user' }, session: { user: { id: 'admin', role: 'admin', email: 'a' } } }) as any, res)
+    await controller.updateUserRole(makeReq({ params: { id: 'root-user' }, body: { role: 'leader', oldRole: 'user' }, session: { user: { id: 'admin', role: 'admin', email: 'a@a.com' } } }) as any, res)
 
     expect(res.json).toHaveBeenCalledWith({ id: 'u1', email: 'e' })
-    expect(mockAudit.log).toHaveBeenCalledWith(expect.objectContaining({
-      action: 'update_role',
-      resourceId: 'root-user',
-      userEmail: 'a',
+    expect(mockUserService.updateUserRole).toHaveBeenCalledWith('root-user', 'leader', expect.objectContaining({
+      id: 'admin',
+      role: 'admin',
+      email: 'a@a.com'
     }))
   })
 

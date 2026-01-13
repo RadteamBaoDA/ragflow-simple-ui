@@ -6,8 +6,18 @@
 import { describe, it, expect, vi, beforeEach } from 'vitest'
 import { KnowledgeBaseService } from '../../src/services/knowledge-base.service.js'
 
+// Define createQueryBuilder outside hoisted so it's available for mocking
+function createKBQueryBuilder() {
+    const qb = {} as any;
+    // Set methods after creating the object to avoid "qb not initialized" error
+    qb.where = vi.fn().mockReturnValue(qb);
+    qb.first = vi.fn().mockResolvedValue(undefined);
+    return qb;
+}
+
 const mockLog = vi.hoisted(() => ({
     error: vi.fn(),
+    warn: vi.fn(),
 }))
 
 vi.mock('../../src/services/logger.service.js', () => ({
@@ -40,20 +50,34 @@ vi.mock('../../src/services/team.service.js', () => ({
     teamService: mockTeamService,
 }))
 
-const mockModels = vi.hoisted(() => ({
-    knowledgeBaseSource: {
-        findAll: vi.fn(),
-        findById: vi.fn(),
-        create: vi.fn(),
-        update: vi.fn(),
-        delete: vi.fn(),
-    },
-    systemConfig: {
-        findById: vi.fn(),
-        create: vi.fn(),
-        update: vi.fn(),
-    },
+const mockPromptPermissionService = vi.hoisted(() => ({
+    resolveUserPermission: vi.fn(),
 }))
+
+vi.mock('../../src/services/prompt-permission.service.js', () => ({
+    promptPermissionService: mockPromptPermissionService,
+}))
+
+const mockModels = vi.hoisted(() => {
+    return {
+        knowledgeBaseSource: {
+            findAll: vi.fn(),
+            findById: vi.fn(),
+            create: vi.fn(),
+            update: vi.fn(),
+            delete: vi.fn(),
+            getKnex: vi.fn(),
+        },
+        systemConfig: {
+            findById: vi.fn(),
+            create: vi.fn(),
+            update: vi.fn(),
+        },
+        user: {
+            findById: vi.fn(),
+        },
+    }
+})
 
 vi.mock('../../src/models/factory.js', () => ({
     ModelFactory: mockModels,
@@ -62,10 +86,21 @@ vi.mock('../../src/models/factory.js', () => ({
 const service = new KnowledgeBaseService()
 
 const resetMocks = () => {
-    vi.clearAllMocks()
-    Object.values(mockModels.knowledgeBaseSource).forEach(fn => fn.mockReset())
-    Object.values(mockModels.systemConfig).forEach(fn => fn.mockReset())
+    // Reset individual mocks but preserve implementations
+    mockModels.knowledgeBaseSource.findAll.mockReset()
+    mockModels.knowledgeBaseSource.findById.mockReset()
+    mockModels.knowledgeBaseSource.create.mockReset()
+    mockModels.knowledgeBaseSource.update.mockReset()
+    mockModels.knowledgeBaseSource.delete.mockReset()
+    mockModels.knowledgeBaseSource.getKnex.mockReset()
+    mockModels.knowledgeBaseSource.getKnex.mockImplementation(createKBQueryBuilder)
+    
+    mockModels.systemConfig.findById.mockReset()
+    mockModels.systemConfig.create.mockReset()
+    mockModels.systemConfig.update.mockReset()
+    
     mockTeamService.getUserTeams.mockReset()
+    mockPromptPermissionService.resolveUserPermission.mockReset()
     mockAudit.log.mockReset()
     mockLog.error.mockReset()
 }
@@ -120,7 +155,7 @@ describe('KnowledgeBaseService', () => {
 
             await service.saveSystemConfig('defaultChatSourceId', 's1', user)
 
-            expect(mockModels.systemConfig.create).toHaveBeenCalledWith({ key: 'defaultChatSourceId', value: 's1' })
+            expect(mockModels.systemConfig.create).toHaveBeenCalledWith({ key: 'defaultChatSourceId', value: 's1', created_by: 'u1', updated_by: 'u1' })
             expect(mockAudit.log).toHaveBeenCalledWith(expect.objectContaining({
                 userId: 'u1',
                 resourceId: 'defaultChatSourceId',
@@ -134,7 +169,7 @@ describe('KnowledgeBaseService', () => {
 
             await service.saveSystemConfig('k', 'new')
 
-            expect(mockModels.systemConfig.update).toHaveBeenCalledWith('k', { value: 'new' })
+            expect(mockModels.systemConfig.update).toHaveBeenCalledWith('k', { value: 'new', updated_by: null })
             expect(mockAudit.log).not.toHaveBeenCalled()
         })
     })
@@ -165,6 +200,13 @@ describe('KnowledgeBaseService', () => {
             await expect(service.createSource({ type: 'chat', name: 'Src', url: 'http' })).rejects.toThrow('boom')
             expect(mockLog.error).toHaveBeenCalledWith('Failed to create knowledge base source in database', expect.any(Object))
         })
+
+        it('throws when source name already exists', async () => {
+            // Simulate knex returning an existing record
+            mockModels.knowledgeBaseSource.getKnex.mockImplementationOnce(() => ({ where: () => ({ first: async () => ({ id: 'sExisting' }) }) }))
+            await expect(service.createSource({ type: 'chat', name: 'Dup', url: 'http' })).rejects.toThrow(/already exists/)
+            expect(mockLog.error).toHaveBeenCalled()
+        })
     })
 
     describe('updateSource', () => {
@@ -177,6 +219,7 @@ describe('KnowledgeBaseService', () => {
             expect(mockModels.knowledgeBaseSource.update).toHaveBeenCalledWith('s1', {
                 name: 'Updated',
                 access_control: JSON.stringify({ public: false }),
+                updated_by: 'u1'
             })
             expect(result?.name).toBe('Updated')
             expect(mockAudit.log).toHaveBeenCalledWith(expect.objectContaining({ action: 'update_source', resourceId: 's1' }))
@@ -187,6 +230,15 @@ describe('KnowledgeBaseService', () => {
 
             await expect(service.updateSource('s1', { name: 'Bad' })).rejects.toThrow('fail')
             expect(mockLog.error).toHaveBeenCalledWith('Failed to update knowledge base source in database', expect.any(Object))
+        })
+
+        it('warns and rethrows on duplicate name during update', async () => {
+            // current source has different name, and another exists with desired name
+            mockModels.knowledgeBaseSource.findById.mockResolvedValueOnce({ id: 's1', name: 'OldName' })
+            mockModels.knowledgeBaseSource.getKnex.mockImplementationOnce(() => ({ where: () => ({ whereNot: () => ({ first: async () => ({ id: 'other' }) }) }) }))
+
+            await expect(service.updateSource('s1', { name: 'DupName' }, { id: 'u1', email: 'e' })).rejects.toThrow(/already exists/)
+            expect(mockLog.warn).toHaveBeenCalledWith('Knowledge base source name already exists', expect.any(Object))
         })
     })
 
@@ -212,6 +264,7 @@ describe('KnowledgeBaseService', () => {
                 { id: 's1', type: 'search', name: 'Search', access_control: { public: true } },
             ])
             mockModels.systemConfig.findById.mockImplementation(async key => ({ key, value: `${key}-val` }))
+            mockPromptPermissionService.resolveUserPermission.mockResolvedValueOnce(0)
 
             const result = await service.getConfig({ id: 'u', role: 'user' })
 

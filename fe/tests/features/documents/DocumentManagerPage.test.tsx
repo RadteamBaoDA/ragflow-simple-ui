@@ -1,7 +1,7 @@
 import { describe, it, expect, vi, beforeEach } from 'vitest'
 import { render, screen, fireEvent, waitFor } from '@testing-library/react'
 
-const vi_mockMinioService = vi.hoisted(() => ({
+const vi_mockDocService = vi.hoisted(() => ({
   getBuckets: vi.fn(),
   getAvailableBuckets: vi.fn(),
   listObjects: vi.fn(),
@@ -9,21 +9,21 @@ const vi_mockMinioService = vi.hoisted(() => ({
   deleteObject: vi.fn(),
   batchDelete: vi.fn(),
   getDownloadUrl: vi.fn(),
-  createFolder: vi.fn()
+  createFolder: vi.fn(),
+  getEffectivePermission: vi.fn(() => 3)
 }))
 
-vi.mock('../../../src/features/documents/api/minioService', () => ({
-  getBuckets: vi_mockMinioService.getBuckets,
-  getAvailableBuckets: vi_mockMinioService.getAvailableBuckets,
-  listObjects: vi_mockMinioService.listObjects,
-  uploadFiles: vi_mockMinioService.uploadFiles,
-  deleteObject: vi_mockMinioService.deleteObject,
-  batchDelete: vi_mockMinioService.batchDelete,
-  getDownloadUrl: vi_mockMinioService.getDownloadUrl,
-  createFolder: vi_mockMinioService.createFolder,
+vi.mock('../../../src/features/documents/api/documentService', () => ({
+  getBuckets: vi_mockDocService.getBuckets,
+  getAvailableBuckets: vi_mockDocService.getAvailableBuckets,
+  listObjects: vi_mockDocService.listObjects,
+  uploadFiles: vi_mockDocService.uploadFiles,
+  deleteObject: vi_mockDocService.deleteObject,
+  batchDelete: vi_mockDocService.batchDelete,
+  getDownloadUrl: vi_mockDocService.getDownloadUrl,
+  createFolder: vi_mockDocService.createFolder,
+  getEffectivePermission: vi_mockDocService.getEffectivePermission,
   PermissionLevel: { NONE: 0, VIEW: 1, UPLOAD: 2, FULL: 3 },
-  // Default to FULL permission for tests
-  getEffectivePermission: vi.fn(() => 3)
 }))
 
 vi.mock('../../../src/features/auth', () => ({ useAuth: () => ({ user: { id: '1', role: 'admin' }, isAuthenticated: true, isLoading: false }) }))
@@ -68,9 +68,9 @@ describe('DocumentManagerPage', () => {
     vi.clearAllMocks()
     global.fetch = vi.fn(() => Promise.resolve(new Response(JSON.stringify([])))) as any
     // Default to one bucket so UI is enabled by default
-    vi_mockMinioService.getBuckets.mockResolvedValue([{ id: '1', name: 'Test' }])
-    vi_mockMinioService.getAvailableBuckets.mockResolvedValue([{ id: '1', name: 'Test' }])
-    vi_mockMinioService.listObjects.mockResolvedValue([])
+    vi_mockDocService.getBuckets.mockResolvedValue([{ id: '1', name: 'Test' }])
+    vi_mockDocService.getAvailableBuckets.mockResolvedValue([{ id: '1', name: 'Test' }])
+    vi_mockDocService.listObjects.mockResolvedValue([])
     localStorage.clear()
   })
 
@@ -80,62 +80,62 @@ describe('DocumentManagerPage', () => {
   })
 
   it('loads buckets on mount', async () => {
-    vi_mockMinioService.getBuckets.mockResolvedValue([{ id: '1', name: 'Test' }])
+    vi_mockDocService.getBuckets.mockResolvedValue([{ id: '1', name: 'Test' }])
     render(<DocumentManagerPage />)
-    await waitFor(() => expect(vi_mockMinioService.getBuckets).toHaveBeenCalled())
+    await waitFor(() => expect(vi_mockDocService.getBuckets).toHaveBeenCalled())
   })
 
   it('displays bucket selector', async () => {
-    vi_mockMinioService.getBuckets.mockResolvedValue([{ id: '1', name: 'Test' }])
+    vi_mockDocService.getBuckets.mockResolvedValue([{ id: '1', name: 'Test' }])
     render(<DocumentManagerPage />)
-    await waitFor(() => expect(vi_mockMinioService.getBuckets).toHaveBeenCalled())
+    await waitFor(() => expect(vi_mockDocService.getBuckets).toHaveBeenCalled())
     // Header should show root label
     await waitFor(() => expect(screen.getByText('documents.root')).toBeInTheDocument())
   })
 
   it('lists objects when bucket selected', async () => {
-    vi_mockMinioService.getBuckets.mockResolvedValue([{ id: '1', name: 'Test' }])
-    vi_mockMinioService.listObjects.mockResolvedValue([{ name: 'file.pdf', size: 1024 }])
+    vi_mockDocService.getBuckets.mockResolvedValue([{ id: '1', name: 'Test' }])
+    vi_mockDocService.listObjects.mockResolvedValue([{ name: 'file.pdf', size: 1024 }])
     render(<DocumentManagerPage />)
-    await waitFor(() => expect(vi_mockMinioService.listObjects).toHaveBeenCalled())
+    await waitFor(() => expect(vi_mockDocService.listObjects).toHaveBeenCalled())
   })
 
   it('handles refresh', async () => {
-    vi_mockMinioService.getBuckets.mockResolvedValue([{ id: '1', name: 'Test' }])
+    vi_mockDocService.getBuckets.mockResolvedValue([{ id: '1', name: 'Test' }])
     render(<DocumentManagerPage />)
     const refreshBtn = await waitFor(() => screen.getByTestId('refresh').closest('button'))
     if (refreshBtn) fireEvent.click(refreshBtn)
-    await waitFor(() => expect(vi_mockMinioService.getBuckets).toHaveBeenCalled())
+    await waitFor(() => expect(vi_mockDocService.getBuckets).toHaveBeenCalled())
   })
 
   it('shows upload button when has permission', async () => {
-    vi_mockMinioService.getBuckets.mockResolvedValue([{ id: '1', name: 'Test' }])
+    vi_mockDocService.getBuckets.mockResolvedValue([{ id: '1', name: 'Test' }])
     render(<DocumentManagerPage />)
     await waitFor(() => expect(screen.getByTestId('upload')).toBeInTheDocument())
   })
 
   it('handles file deletion', async () => {
-    vi_mockMinioService.getBuckets.mockResolvedValue([{ id: '1', name: 'Test' }])
-    vi_mockMinioService.listObjects.mockResolvedValue([{ name: 'file.pdf' }])
-    vi_mockMinioService.deleteObject.mockResolvedValue(undefined)
+    vi_mockDocService.getBuckets.mockResolvedValue([{ id: '1', name: 'Test' }])
+    vi_mockDocService.listObjects.mockResolvedValue([{ name: 'file.pdf' }])
+    vi_mockDocService.deleteObject.mockResolvedValue(undefined)
     render(<DocumentManagerPage />)
-    await waitFor(() => expect(vi_mockMinioService.listObjects).toHaveBeenCalled())
+    await waitFor(() => expect(vi_mockDocService.listObjects).toHaveBeenCalled())
     // Simulate deletion directly via service (UI may require more complex interactions)
-    await vi_mockMinioService.deleteObject('file.pdf')
-    await waitFor(() => expect(vi_mockMinioService.deleteObject).toHaveBeenCalled())
+    await vi_mockDocService.deleteObject('file.pdf')
+    await waitFor(() => expect(vi_mockDocService.deleteObject).toHaveBeenCalled())
   })
 
   it('preserves selected bucket on reload', async () => {
     localStorage.setItem('minio_selected_bucket', '1')
-    vi_mockMinioService.getBuckets.mockResolvedValue([{ id: '1', name: 'Test' }])
+    vi_mockDocService.getBuckets.mockResolvedValue([{ id: '1', name: 'Test' }])
     render(<DocumentManagerPage />)
     await waitFor(() => expect(localStorage.getItem('minio_selected_bucket')).toBe('1'))
   })
 
   it('navigates folder hierarchy', async () => {
-    vi_mockMinioService.getBuckets.mockResolvedValue([{ id: '1', name: 'Test' }])
-    vi_mockMinioService.listObjects.mockResolvedValue([{ name: 'folder/', isFolder: true }])
+    vi_mockDocService.getBuckets.mockResolvedValue([{ id: '1', name: 'Test' }])
+    vi_mockDocService.listObjects.mockResolvedValue([{ name: 'folder/', isFolder: true }])
     render(<DocumentManagerPage />)
-    await waitFor(() => expect(vi_mockMinioService.listObjects).toHaveBeenCalled())
+    await waitFor(() => expect(vi_mockDocService.listObjects).toHaveBeenCalled())
   })
 })

@@ -109,6 +109,29 @@ describe('ModelFactory', () => {
       expect(model).toBeDefined();
       expect(model.constructor.name).toBe('UserDismissedBroadcastModel');
     });
+
+    it('should instantiate external models and prompt models', () => {
+      const ecs = ModelFactory.externalChatSession;
+      const ecm = ModelFactory.externalChatMessage;
+      const ess = ModelFactory.externalSearchSession;
+      const esr = ModelFactory.externalSearchRecord;
+      const pm = ModelFactory.prompt;
+      const pim = ModelFactory.promptInteraction;
+      const pt = ModelFactory.promptTag;
+      const pp = ModelFactory.promptPermission;
+
+      expect(ecs).toBeDefined();
+      expect(ecm).toBeDefined();
+      expect(ess).toBeDefined();
+      expect(esr).toBeDefined();
+      expect(pm).toBeDefined();
+      expect(pim).toBeDefined();
+      expect(pt).toBeDefined();
+      expect(pp).toBeDefined();
+
+      expect(ecs.constructor.name).toBe('ExternalChatSessionModel');
+      expect(pm.constructor.name).toBe('PromptModel');
+    });
   });
 
   describe('All models accessible', () => {

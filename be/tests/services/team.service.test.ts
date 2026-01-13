@@ -8,6 +8,18 @@ import { TeamService } from '../../src/services/team.service.js'
 
 vi.mock('uuid', () => ({ v4: () => 'uuid-1' }))
 
+// Define createQueryBuilder outside hoisted
+function createTeamQueryBuilder() {
+    const qb = {} as any;
+    // Set methods after creating the object to avoid "qb not initialized" error
+    qb.where = vi.fn().mockReturnValue(qb);
+    qb.andWhere = vi.fn().mockReturnValue(qb);
+    qb.whereNot = vi.fn().mockReturnValue(qb);
+    qb.first = vi.fn().mockResolvedValue(undefined);
+    qb.orderBy = vi.fn().mockReturnValue(qb);
+    return qb;
+}
+
 const mockLog = vi.hoisted(() => ({
     error: vi.fn(),
 }))
@@ -40,25 +52,28 @@ vi.mock('../../src/services/user.service.js', () => ({
     userService: mockUserService,
 }))
 
-const mockModels = vi.hoisted(() => ({
-    team: {
-        create: vi.fn(),
-        findAll: vi.fn(),
-        findById: vi.fn(),
-        update: vi.fn(),
-        delete: vi.fn(),
-    },
-    userTeam: {
-        upsert: vi.fn(),
-        deleteByUserAndTeam: vi.fn(),
-        findMembersByTeamId: vi.fn(),
-        findTeamsWithDetailsByUserId: vi.fn(),
-        findUsersByIds: vi.fn(),
-    },
-    user: {
-        findById: vi.fn(),
-    },
-}))
+const mockModels = vi.hoisted(() => {
+    return {
+        team: {
+            create: vi.fn(),
+            findAll: vi.fn(),
+            findById: vi.fn(),
+            update: vi.fn(),
+            delete: vi.fn(),
+            getKnex: vi.fn(),
+        },
+        userTeam: {
+            upsert: vi.fn(),
+            deleteByUserAndTeam: vi.fn(),
+            findMembersByTeamId: vi.fn(),
+            findTeamsWithDetailsByUserId: vi.fn(),
+            findUsersByIds: vi.fn(),
+        },
+        user: {
+            findById: vi.fn(),
+        },
+    }
+})
 
 vi.mock('../../src/models/factory.js', () => ({
     ModelFactory: mockModels,
@@ -67,9 +82,21 @@ vi.mock('../../src/models/factory.js', () => ({
 const service = new TeamService()
 
 const resetMocks = () => {
-    vi.clearAllMocks()
-    Object.values(mockModels.team).forEach(fn => fn.mockReset())
-    Object.values(mockModels.userTeam).forEach(fn => fn.mockReset())
+    // Reset individual mocks but preserve implementations
+    mockModels.team.create.mockReset()
+    mockModels.team.findAll.mockReset()
+    mockModels.team.findById.mockReset()
+    mockModels.team.update.mockReset()
+    mockModels.team.delete.mockReset()
+    mockModels.team.getKnex.mockReset()
+    mockModels.team.getKnex.mockImplementation(createTeamQueryBuilder)
+    
+    mockModels.userTeam.upsert.mockReset()
+    mockModels.userTeam.deleteByUserAndTeam.mockReset()
+    mockModels.userTeam.findMembersByTeamId.mockReset()
+    mockModels.userTeam.findTeamsWithDetailsByUserId.mockReset()
+    mockModels.userTeam.findUsersByIds.mockReset()
+    
     mockModels.user.findById.mockReset()
     mockAudit.log.mockReset()
     mockLog.error.mockReset()
@@ -88,7 +115,7 @@ describe('TeamService', () => {
 
             const result = await service.createTeam({ name: 'Team' }, user)
 
-            expect(mockModels.team.create).toHaveBeenCalledWith({ id: 'uuid-1', name: 'Team', project_name: null, description: null })
+            expect(mockModels.team.create).toHaveBeenCalledWith({ id: 'uuid-1', name: 'Team', project_name: null, description: null, created_by: 'u1', updated_by: 'u1' })
             expect(result.id).toBe('uuid-1')
             expect(mockAudit.log).toHaveBeenCalledWith(expect.objectContaining({
                 action: 'create_team',
@@ -103,10 +130,11 @@ describe('TeamService', () => {
     describe('getters', () => {
         it('fetches all teams ordered', async () => {
             mockModels.team.findAll.mockResolvedValueOnce([{ id: 't1' }])
+            mockModels.userTeam.findMembersByTeamId.mockResolvedValueOnce([])
 
             const res = await service.getAllTeams()
 
-            expect(res).toEqual([{ id: 't1' }])
+            expect(res).toEqual([{ id: 't1', member_count: 0, leader: null }])
             expect(mockModels.team.findAll).toHaveBeenCalledWith({}, { orderBy: { created_at: 'desc' } })
         })
 
@@ -136,7 +164,7 @@ describe('TeamService', () => {
 
             const res = await service.updateTeam('t1', { name: 'New', description: 'Desc' }, user)
 
-            expect(mockModels.team.update).toHaveBeenCalledWith('t1', { name: 'New', description: 'Desc' })
+            expect(mockModels.team.update).toHaveBeenCalledWith('t1', { name: 'New', description: 'Desc', updated_by: 'u1' })
             expect(res?.name).toBe('New')
             expect(mockAudit.log).toHaveBeenCalledWith(expect.objectContaining({ action: 'update_team', resourceId: 't1' }))
         })
@@ -165,7 +193,7 @@ describe('TeamService', () => {
 
             await service.addUserToTeam('t1', 'u2', 'member', actor)
 
-            expect(mockModels.userTeam.upsert).toHaveBeenCalledWith('u2', 't1', 'member')
+            expect(mockModels.userTeam.upsert).toHaveBeenCalledWith('u2', 't1', 'member', actor.id)
             expect(mockAudit.log).toHaveBeenCalledWith(expect.objectContaining({
                 action: 'update_team',
                 resourceId: 't1',

@@ -44,3 +44,37 @@ describe('KnowledgeBaseSourceModel', () => {
     expect(ModelFactory.knowledgeBaseSource.findAll).toBeDefined()
   })
 })
+
+// Additional unit tests for direct model methods
+import { KnowledgeBaseSourceModel } from '@/models/knowledge-base-source.model.js'
+import { db } from '@/db/knex.js'
+vi.mock('@/db/knex.js', () => ({ db: vi.fn() }))
+
+describe('KnowledgeBaseSourceModel direct methods', () => {
+  let model: KnowledgeBaseSourceModel
+  beforeEach(() => { model = new KnowledgeBaseSourceModel(); vi.clearAllMocks() })
+
+  it('getChatSourceNames queries select where and orderBy and maps names', async () => {
+    const orderBy = vi.fn().mockResolvedValue([{ name: 'A' }, { name: 'B' }])
+    const where = vi.fn(() => ({ orderBy }))
+    const select = vi.fn(() => ({ where }))
+    ;(db as any).mockReturnValue({ select })
+
+    const res = await model.getChatSourceNames()
+    expect(select).toHaveBeenCalledWith('name')
+    expect(where).toHaveBeenCalledWith('type', 'chat')
+    expect(orderBy).toHaveBeenCalledWith('name', 'asc')
+    expect(res).toEqual(['A', 'B'])
+  })
+
+  it('findByType queries where and orderBy', async () => {
+    const orderBy = vi.fn().mockResolvedValue([{ id: '1' }])
+    const where = vi.fn(() => ({ orderBy }))
+    ;(db as any).mockReturnValue({ where })
+
+    const res = await model.findByType('search')
+    expect(where).toHaveBeenCalledWith('type', 'search')
+    expect(orderBy).toHaveBeenCalledWith('name', 'asc')
+    expect(res).toEqual([{ id: '1' }])
+  })
+})

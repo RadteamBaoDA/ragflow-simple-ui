@@ -1,5 +1,5 @@
 import { describe, it, expect, beforeEach, vi, afterEach } from 'vitest'
-import { connectSocket, disconnectSocket, getSocket, getSocketStatus, isSocketConnected, subscribeToNotifications, subscribeToRoom } from '@/lib/socket'
+import { connectSocket, disconnectSocket, getSocket, getSocketStatus, isSocketConnected, subscribeToNotifications, subscribeToRoom, unsubscribeFromRoom, sendPing, onSocketEvent, emitSocketEvent } from '@/lib/socket'
 
 let mockOn: any
 let mockOff: any
@@ -242,6 +242,77 @@ describe('Notification subscriptions', () => {
 
     warnSpy.mockRestore()
   })
+
+  it('should unsubscribe from room', () => {
+    connectSocket()
+
+    unsubscribeFromRoom('test-room')
+
+    expect(mockEmit).toHaveBeenCalledWith('unsubscribe', 'test-room')
+  })
+
+  it('should sendPing', () => {
+    connectSocket()
+
+    sendPing()
+
+    expect(mockEmit).toHaveBeenCalledWith('ping')
+  })
+
+  it('should listen to custom events with onSocketEvent', () => {
+    connectSocket()
+    const callback = vi.fn()
+
+    const unsubscribe = onSocketEvent('custom-event', callback)
+
+    expect(mockOn).toHaveBeenCalledWith('custom-event', callback)
+    expect(typeof unsubscribe).toBe('function')
+  })
+
+  it('should emit custom events with emitSocketEvent', () => {
+    connectSocket()
+
+    emitSocketEvent('custom-event', { data: 'test' })
+
+    expect(mockEmit).toHaveBeenCalledWith('custom-event', { data: 'test' })
+  })
+
+  it('should handle pong event', () => {
+    connectSocket()
+
+    const pongHandler = mockOn.mock.calls.find(call => call[0] === 'pong')?.[1]
+    pongHandler?.({ timestamp: '2024-01-01' })
+
+    // No assertion needed, just ensuring no errors
+    expect(pongHandler).toBeDefined()
+  })
+
+  it('should handle server shutdown event', () => {
+    connectSocket()
+    const warnSpy = vi.spyOn(console, 'warn').mockImplementation()
+
+    const shutdownHandler = mockOn.mock.calls.find(call => call[0] === 'server:shutdown')?.[1]
+    shutdownHandler?.()
+
+    expect(warnSpy).toHaveBeenCalled()
+    warnSpy.mockRestore()
+  })
+
+  it('should handle reconnect_attempt event', () => {
+    connectSocket()
+
+    const reconnectAttemptHandler = mockOn.mock.calls.find(call => call[0] === 'reconnect_attempt')?.[1]
+    reconnectAttemptHandler?.()
+
+    expect(getSocketStatus()).toBe('connecting')
+  })
+
+  it('should handle reconnect event', () => {
+    connectSocket()
+
+    const reconnectHandler = mockOn.mock.calls.find(call => call[0] === 'reconnect')?.[1]
+    reconnectHandler?.(3)
+
+    expect(getSocketStatus()).toBe('connected')
+  })
 })
-
-

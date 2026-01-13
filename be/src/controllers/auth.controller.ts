@@ -53,7 +53,12 @@ export class AuthController {
                 // Opportunistic IP recording so audit/IP alerts see resumed sessions
                 const ipAddress = getClientIp(req)
                 if (ipAddress) {
-                    await userService.recordUserIp(req.session.user.id, ipAddress)
+                    try {
+                        await userService.recordUserIp(req.session.user.id, ipAddress)
+                    } catch (ipError) {
+                        // Log but don't fail the entire request
+                        log.warn('Failed to record user IP', { userId: req.session.user.id, error: String(ipError) })
+                    }
                 }
 
                 // Optional: update session with fresh DB data
