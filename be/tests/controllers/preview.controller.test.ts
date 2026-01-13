@@ -11,6 +11,7 @@ const mockService = vi.hoisted(() => ({
 
 const mockLog = vi.hoisted(() => ({
   error: vi.fn(),
+  debug: vi.fn(),
 }))
 
 vi.mock('../../src/services/preview.service.js', () => ({
@@ -48,7 +49,8 @@ describe('PreviewController', () => {
     const res = makeRes()
     mockService.generatePreview.mockResolvedValueOnce('/path/to/preview.png')
 
-    await controller.getPreview({ params: { bucketName: 'docs', fileName: 'file.pdf' } } as any, res)
+    const req = { params: { bucketName: 'docs', 0: 'file.pdf' } }
+    await controller.getPreview(req as any, res)
 
     expect(mockService.generatePreview).toHaveBeenCalledWith('docs', 'file.pdf')
     expect(res.sendFile).toHaveBeenCalledWith('/path/to/preview.png')
@@ -58,7 +60,8 @@ describe('PreviewController', () => {
     const res = makeRes()
     mockService.generatePreview.mockRejectedValueOnce(new Error('fail'))
 
-    await controller.getPreview({ params: { bucketName: 'docs', fileName: 'file.pdf' } } as any, res)
+    const req = { params: { bucketName: 'docs', 0: 'file.pdf' } }
+    await controller.getPreview(req as any, res)
 
     expect(mockLog.error).toHaveBeenCalled()
     expect(res.status).toHaveBeenCalledWith(500)

@@ -15,7 +15,7 @@ describe('AdminHistoryService', () => {
             select: vi.fn().mockReturnThis(),
             from: vi.fn().mockReturnThis(),
             leftJoin: vi.fn().mockReturnThis(),
-            where: vi.fn().mockReturnThis(),
+            where: vi.fn().mockImplementation(function(arg: any){ if (typeof arg === 'function') { arg(this); return this } return this }),
             andWhere: vi.fn().mockReturnThis(),
             orWhere: vi.fn().mockReturnThis(),
             orderBy: vi.fn().mockReturnThis(),
@@ -23,6 +23,9 @@ describe('AdminHistoryService', () => {
             offset: vi.fn().mockReturnThis(),
             then: vi.fn((cb: any) => Promise.resolve([]).then(cb)),
             whereExists: vi.fn().mockReturnThis(),
+            orWhereExists: vi.fn().mockImplementation(function(fn: any){ fn.call(this); return this }),
+            whereRaw: vi.fn().mockReturnThis(),
+            orWhereRaw: vi.fn().mockReturnThis(),
             client: {
                 raw: vi.fn((sql) => sql) // Mock client.raw for getSystemChatHistory
             }
@@ -97,6 +100,16 @@ describe('AdminHistoryService', () => {
             expect(mockQuery.leftJoin).toHaveBeenCalledWith('knowledge_base_sources', 'external_search_sessions.share_id', 'knowledge_base_sources.share_id');
             expect(mockQuery.orderBy).toHaveBeenCalledWith('external_search_sessions.updated_at', 'desc');
         });
+
+        it('should apply search and orWhereExists when search provided', async () => {
+            // make orWhereExists available on the mock
+            mockQuery.orWhereExists = vi.fn().mockImplementation(function(fn: any) { fn.call(this); return this })
+
+            await adminHistoryService.getSearchHistory(1, 10, 'term', '', '', '', '')
+            // Ensure the subquery search predicates were applied on the sub builder
+            expect(mockQuery.whereRaw).toHaveBeenCalled()
+            expect(mockQuery.orWhereRaw).toHaveBeenCalled()
+        })
     });
 
     describe('getSystemChatHistory', () => {
@@ -111,5 +124,12 @@ describe('AdminHistoryService', () => {
             expect(mockQuery.select).toHaveBeenCalled();
             expect(mockQuery.orderBy).toHaveBeenCalledWith('chat_sessions.updated_at', 'desc');
         });
+
+        it('should apply search filter and orWhereExists', async () => {
+            mockQuery.orWhereExists = vi.fn().mockImplementation(function(fn: any) { fn.call(this); return this })
+            await adminHistoryService.getSystemChatHistory(1, 10, 'hello')
+            // check that message content filter applied to subquery
+            expect(mockQuery.andWhere).toHaveBeenCalledWith('content', 'ilike', '%hello%')
+        })
     });
 });

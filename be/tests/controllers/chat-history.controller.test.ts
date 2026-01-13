@@ -3,6 +3,7 @@ import { describe, it, expect, vi, beforeEach } from 'vitest'
 import { ChatHistoryController } from '../../src/controllers/chat-history.controller.js'
 import { ModelFactory } from '@/models/factory.js'
 import { Request, Response } from 'express'
+import { log } from '@/services/logger.service.js'
 
 // Mock ModelFactory
 vi.mock('@/models/factory.js', () => ({
@@ -98,10 +99,27 @@ describe('ChatHistoryController', () => {
             expect(res.json).toHaveBeenCalled()
         })
 
+        it('should apply pagination and search filters', async () => {
+            req.query = { limit: '5', offset: '10', q: 'hello', startDate: '2020-01-01', endDate: '2020-01-02' }
+            await controller.searchSessions(req as Request, res as Response)
+
+            expect(mockQueryBuilder.limit).toHaveBeenCalledWith(5)
+            expect(mockQueryBuilder.offset).toHaveBeenCalledWith(10)
+        })
+
         it('should return 401 if user is not authenticated', async () => {
             req.user = undefined as any // Force undefined
             await controller.searchSessions(req as Request, res as Response)
             expect(res.status).toHaveBeenCalledWith(401)
+        })
+
+        it('should return 500 and log error when service throws', async () => {
+            const spy = vi.spyOn(log, 'error')
+            const svc = await import('../../src/services/chat-history.service.js')
+            vi.spyOn(svc.chatHistoryService, 'searchSessions' as any).mockRejectedValueOnce(new Error('boom'))
+            await controller.searchSessions(req as Request, res as Response)
+            expect(res.status).toHaveBeenCalledWith(500)
+            expect(spy).toHaveBeenCalled()
         })
     })
 
@@ -113,6 +131,55 @@ describe('ChatHistoryController', () => {
             expect(mockQueryBuilder.where).toHaveBeenCalledWith({ id: 'session-1', user_id: 'user-1' })
             expect(mockQueryBuilder.delete).toHaveBeenCalled()
             expect(res.status).toHaveBeenCalledWith(204)
+        })
+
+        it('should return 404 when session not found', async () => {
+            req.params = { id: 'nope' }
+            mockQueryBuilder.delete.mockResolvedValueOnce(0)
+
+            await controller.deleteSession(req as Request, res as Response)
+            expect(res.status).toHaveBeenCalledWith(404)
+            expect(res.json).toHaveBeenCalledWith({ error: 'Session not found' })
+        })
+
+        it('should return 401 if unauthenticated', async () => {
+            req.user = undefined as any
+            await controller.deleteSession(req as Request, res as Response)
+            expect(res.status).toHaveBeenCalledWith(401)
+        })
+    })
+
+    describe('deleteSessions', () => {
+        it('should return 401 if unauthenticated', async () => {
+            req.user = undefined as any
+            await controller.deleteSessions(req as Request, res as Response)
+            expect(res.status).toHaveBeenCalledWith(401)
+        })
+
+        it('should return 400 if no sessions specified and all is false', async () => {
+            req.body = { sessionIds: [], all: false }
+            await controller.deleteSessions(req as Request, res as Response)
+            expect(res.status).toHaveBeenCalledWith(400)
+        })
+
+        it('should delete sessions and return count', async () => {
+            req.body = { sessionIds: ['s1', 's2'], all: false }
+            const svc = await import('../../src/services/chat-history.service.js')
+            vi.spyOn(svc.chatHistoryService, 'deleteSessions' as any).mockResolvedValue(2)
+
+            await controller.deleteSessions(req as Request, res as Response)
+            expect(res.json).toHaveBeenCalledWith({ deleted: 2 })
+        })
+
+        it('should return 500 and log error when service throws', async () => {
+            const spy = vi.spyOn(log, 'error')
+            const svc = await import('../../src/services/chat-history.service.js')
+            vi.spyOn(svc.chatHistoryService, 'deleteSessions' as any).mockRejectedValueOnce(new Error('boom'))
+
+            req.body = { sessionIds: ['s1'], all: false }
+            await controller.deleteSessions(req as Request, res as Response)
+            expect(res.status).toHaveBeenCalledWith(500)
+            expect(spy).toHaveBeenCalled()
         })
     })
 })

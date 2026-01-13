@@ -194,4 +194,70 @@ describe('TeamController', () => {
     expect(mockService.grantPermissionsToTeam).toHaveBeenCalledWith('t1', ['p1'], expect.any(Object))
     expect(res.json).toHaveBeenCalledWith({ message: 'Permissions granted successfully' })
   })
+
+  // Error branches
+  it('createTeam handles errors', async () => {
+    const res = makeRes()
+    mockService.createTeam.mockRejectedValueOnce(new Error('boom'))
+    await controller.createTeam(makeReq({ body: { name: 'T' }, user: { id: 'u', email: 'e' } }) as any, res)
+    expect(mockLog.error).toHaveBeenCalled()
+    expect(res.status).toHaveBeenCalledWith(500)
+  })
+
+  it('updateTeam handles service errors', async () => {
+    const res = makeRes()
+    mockService.updateTeam.mockRejectedValueOnce(new Error('boom'))
+    await controller.updateTeam(makeReq({ params: { id: 't1' }, body: {} , user: { id: 'u', email: 'e' } }) as any, res)
+    expect(res.status).toHaveBeenCalledWith(500)
+  })
+
+  it('deleteTeam handles errors', async () => {
+    const res = makeRes()
+    mockService.deleteTeam.mockRejectedValueOnce(new Error('boom'))
+    await controller.deleteTeam(makeReq({ params: { id: 't1' }, user: { id: 'u', email: 'e' } }) as any, res)
+    expect(mockLog.error).toHaveBeenCalled()
+    expect(res.status).toHaveBeenCalledWith(500)
+  })
+
+  it('getTeamMembers handles errors', async () => {
+    const res = makeRes()
+    mockService.getTeamMembers.mockRejectedValueOnce(new Error('boom'))
+    await controller.getTeamMembers(makeReq({ params: { id: 't1' } }) as any, res)
+    expect(mockLog.error).toHaveBeenCalled()
+    expect(res.status).toHaveBeenCalledWith(500)
+  })
+
+  it('addMembers handles Not Found errors', async () => {
+    const res = makeRes()
+    mockService.addMembersWithAutoRole.mockRejectedValueOnce(new Error('No valid users found'))
+    await controller.addMembers(makeReq({ params: { id: 't1' }, body: { userId: 'u1' } }) as any, res)
+    expect(res.status).toHaveBeenCalledWith(404)
+
+    mockService.addMembersWithAutoRole.mockRejectedValueOnce(new Error('User not found'))
+    await controller.addMembers(makeReq({ params: { id: 't1' }, body: { userId: 'u1' } }) as any, res)
+    expect(res.status).toHaveBeenCalledWith(404)
+  })
+
+  it('addMembers handles generic errors', async () => {
+    const res = makeRes()
+    mockService.addMembersWithAutoRole.mockRejectedValueOnce(new Error('unexpected'))
+    await controller.addMembers(makeReq({ params: { id: 't1' }, body: { userId: 'u1' } }) as any, res)
+    expect(res.status).toHaveBeenCalledWith(500)
+  })
+
+  it('removeMember handles service errors', async () => {
+    const res = makeRes()
+    mockService.removeUserFromTeam.mockRejectedValueOnce(new Error('boom'))
+    await controller.removeMember(makeReq({ params: { id: 't1', userId: 'u1' }, user: { id: 'u', email: 'e' } }) as any, res)
+    expect(mockLog.error).toHaveBeenCalled()
+    expect(res.status).toHaveBeenCalledWith(500)
+  })
+
+  it('grantPermissions handles service errors', async () => {
+    const res = makeRes()
+    mockService.grantPermissionsToTeam.mockRejectedValueOnce(new Error('boom'))
+    await controller.grantPermissions(makeReq({ params: { id: 't1' }, body: { permissions: ['p1'] }, user: { id: 'u', email: 'e' } }) as any, res)
+    expect(mockLog.error).toHaveBeenCalled()
+    expect(res.status).toHaveBeenCalledWith(500)
+  })
 })

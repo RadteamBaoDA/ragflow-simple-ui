@@ -17,6 +17,7 @@ const mockAuthService = vi.hoisted(() => ({
 
 const mockUserService = vi.hoisted(() => ({
   findOrCreateUser: vi.fn(),
+  getUserById: vi.fn(),
   recordUserIp: vi.fn(),
 }));
 
@@ -127,6 +128,7 @@ describe('AuthController', () => {
         },
       } as any;
 
+      mockUserService.getUserById.mockResolvedValue({ id: 'user-123', email: 'test@example.com', name: 'Test User', role: 'user' });
       mockUserService.recordUserIp.mockResolvedValue(undefined);
 
       await controller.getMe(req as Request, res as Response);
@@ -149,6 +151,7 @@ describe('AuthController', () => {
         user: { id: 'user-123', email: 'test@example.com' },
       } as any;
 
+      mockUserService.getUserById.mockResolvedValue({ id: 'user-123', email: 'test@example.com' });
       mockUserService.recordUserIp.mockRejectedValue(new Error('IP recording failed'));
 
       await controller.getMe(req as Request, res as Response);

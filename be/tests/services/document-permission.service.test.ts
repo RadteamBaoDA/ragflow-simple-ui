@@ -8,6 +8,7 @@ import { DocumentPermissionService, PermissionLevel } from '../../src/services/d
 
 const mockLog = vi.hoisted(() => ({
     error: vi.fn(),
+    debug: vi.fn(),
 }))
 
 vi.mock('../../src/services/logger.service.js', () => ({
@@ -88,7 +89,7 @@ describe('DocumentPermissionService', () => {
 
             await service.setPermission('user', 'u1', 'b1', PermissionLevel.UPLOAD, actor)
 
-            expect(mockModels.documentPermission.update).toHaveBeenCalledWith('p1', { permission_level: PermissionLevel.UPLOAD })
+            expect(mockModels.documentPermission.update).toHaveBeenCalledWith('p1', { permission_level: PermissionLevel.UPLOAD, updated_by: actor.id })
             expect(mockAudit.log).toHaveBeenCalledWith(expect.objectContaining({
                 resourceId: 'user:u1:b1',
                 details: { entityType: 'user', entityId: 'u1', bucketId: 'b1', level: PermissionLevel.UPLOAD },
@@ -106,6 +107,8 @@ describe('DocumentPermissionService', () => {
                 entity_id: 't1',
                 bucket_id: 'b2',
                 permission_level: PermissionLevel.VIEW,
+                created_by: null,
+                updated_by: null
             })
             expect(mockAudit.log).not.toHaveBeenCalled()
         })

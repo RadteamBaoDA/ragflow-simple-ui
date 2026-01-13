@@ -32,9 +32,10 @@ describe('ExternalChatSessionModel', () => {
 
     beforeEach(() => {
         mockQuery = createMockQuery();
-        mockKnex = vi.fn(() => mockQuery) as any;
-        // Mock knex.raw to return the string/obj passed to it
-        mockKnex.raw = vi.fn((sql) => sql);
+        mockKnex = {
+            select: vi.fn().mockReturnValue(mockQuery),
+            raw: vi.fn((sql) => sql),
+        };
 
         testModel = new ExternalChatSessionModel();
         // Inject mock knex
@@ -49,7 +50,7 @@ describe('ExternalChatSessionModel', () => {
         it('should build correct query options without filters', async () => {
             const result = await testModel.findHistoryByUser(userEmail, limit, offset);
 
-            expect(mockQuery.select).toHaveBeenCalled();
+            expect(mockKnex.select).toHaveBeenCalled();
             expect(mockQuery.from).toHaveBeenCalledWith('external_chat_sessions');
             expect(mockQuery.leftJoin).toHaveBeenCalledWith('knowledge_base_sources', 'external_chat_sessions.share_id', 'knowledge_base_sources.share_id');
             expect(mockQuery.where).toHaveBeenCalledWith('external_chat_sessions.user_email', userEmail);

@@ -156,10 +156,12 @@ export class BroadcastMessageService {
             if (data.font_color !== undefined) updateData.font_color = data.font_color;
             if (data.is_active !== undefined) updateData.is_active = data.is_active;
             if (data.is_dismissible !== undefined) updateData.is_dismissible = data.is_dismissible;
-            if (user) updateData.updated_by = user.id;
 
             // Return null if no fields to update
             if (Object.keys(updateData).length === 0) return null;
+
+            // Add updated_by after checking for fields to update
+            if (user) updateData.updated_by = user.id;
 
             // Update message using model factory
             const message = await ModelFactory.broadcastMessage.update(id, updateData);
