@@ -68,7 +68,8 @@ describe('BroadcastMessagePage', () => {
   it('shows no data message', async () => {
     vi_mockBroadcastService.getAllMessages.mockResolvedValue([])
     render(<BroadcastMessagePage />)
-    await waitFor(() => expect(screen.getByText('common.noData')).toBeInTheDocument())
+    // There may be multiple 'No data' nodes (title and empty description); assert at least one exists
+    await waitFor(() => expect(screen.getAllByText('No data').length).toBeGreaterThan(0))
   })
 
   it('renders messages table', async () => {

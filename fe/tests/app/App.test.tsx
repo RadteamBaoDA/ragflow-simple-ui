@@ -45,13 +45,17 @@ vi.mock('antd', () => ({
 }));
 
 vi.mock('@/features/auth', () => ({
+  useAuth: () => ({ isAuthenticated: false, isLoading: false, user: null }),
   AuthProvider: ({ children }: any) => <div data-testid="auth-provider">{children}</div>,
   ProtectedRoute: ({ children }: any) => <div data-testid="protected-route">{children}</div>,
   AdminRoute: ({ children }: any) => <div data-testid="admin-route">{children}</div>,
   RoleRoute: ({ children, allowedRoles }: any) => <div data-testid="role-route" data-roles={allowedRoles.join(',')}>{children}</div>,
-  LoginPage: () => <div>LoginPage</div>,
   LogoutPage: () => <div>LogoutPage</div>,
 }));
+
+// Mock the actual lazy-loaded page modules so Suspense resolves to deterministic components
+vi.mock('@/features/auth/pages/LoginPage', () => ({ default: () => <div>LoginPage</div> }))
+vi.mock('@/features/history/pages/HistoryPage', () => ({ default: () => <div>HistoryPage</div> }))
 
 vi.mock('@/app/contexts/SettingsContext', () => ({
   SettingsProvider: ({ children }: any) => <div data-testid="settings-provider">{children}</div>,

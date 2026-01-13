@@ -6,7 +6,7 @@ vi.mock('@/app/contexts/SettingsContext', () => ({ useSettings: () => ({ resolve
 vi.mock('../../../src/features/users', () => ({ useSharedUser: () => ({ user: { email: 'u@e.com' }, isLoading: false }) }))
 const mockKB = vi.hoisted(() => vi.fn(() => ({ isLoading: false, error: null, config: { chatSources: [{ id: 'c', url: 'https://chat.test/' }], searchSources: [{ id: 's', url: 'https://search.test/' }], defaultChatSourceId: 'c', defaultSearchSourceId: 's' }, selectedChatSourceId: 'c', selectedSearchSourceId: 's' })))
 vi.mock('../../../src/features/knowledge-base/context/KnowledgeBaseContext', () => ({ useKnowledgeBase: mockKB }))
-vi.mock('lucide-react', () => ({ RefreshCw: () => null, RotateCcw: () => null, WifiOff: () => null, Lock: () => null, FileQuestion: () => null, ServerCrash: () => null, AlertCircle: () => null, Maximize2: () => null, Minimize2: () => null }))
+vi.mock('lucide-react', () => ({ RefreshCw: () => null, RotateCcw: () => null, WifiOff: () => null, Lock: () => null, FileQuestion: () => null, ServerCrash: () => null, AlertCircle: () => null, Maximize2: () => null, Minimize2: () => null, Book: () => null, Search: () => null }))
 
 import RagflowIframe from '../../../src/features/ai/components/RagflowIframe'
 

@@ -1,102 +1,33 @@
 /**
  * @fileoverview Tests for ProtectedRoute component.
- * 
- * Tests:
- * - Authentication required
- * - Loading state
- * - Redirect to login
- * - Theme application
  */
 
 import { describe, it, expect, vi, beforeEach } from 'vitest';
-import { render, screen } from '@testing-library/react';
-import React, { createContext, useContext, ReactNode } from 'react';
-import { MemoryRouter, useLocation } from 'react-router-dom';
+import { render, screen, waitFor } from '@testing-library/react';
+import { MemoryRouter, Routes, Route } from 'react-router-dom';
 
-// ============================================================================
-// Types
-// ============================================================================
+// Mock dependencies
+vi.mock('react-i18next', () => ({
+  useTranslation: () => ({ t: (key: string) => key })
+}));
 
-interface User {
-  id: string;
-  email: string;
-  name: string;
-  role: 'admin' | 'manager' | 'user';
-}
-
-interface AuthContextType {
-  user: User | null;
-  isAuthenticated: boolean;
-  isLoading: boolean;
-}
-
-interface SettingsContextType {
-  resolvedTheme: 'light' | 'dark';
-}
-
-// ============================================================================
-// Mock Contexts
-// ============================================================================
-
-const AuthContext = createContext<AuthContextType>({
-  user: null,
+let mockAuthState = {
   isAuthenticated: false,
   isLoading: false,
-});
+  user: null
+};
 
-const SettingsContext = createContext<SettingsContextType>({
-  resolvedTheme: 'light',
-});
+let mockTheme = 'light';
 
-function useAuth() {
-  return useContext(AuthContext);
-}
+vi.mock('@/features/auth', () => ({
+  useAuth: () => mockAuthState
+}));
 
-function useSettings() {
-  return useContext(SettingsContext);
-}
+vi.mock('@/app/contexts/SettingsContext', () => ({
+  useSettings: () => ({ resolvedTheme: mockTheme })
+}));
 
-// ============================================================================
-// Mock Components
-// ============================================================================
-
-function Navigate({ to }: { to: string }) {
-  return <div data-testid="redirect" data-to={to}>Redirecting...</div>;
-}
-
-interface ProtectedRouteProps {
-  children: ReactNode;
-}
-
-function ProtectedRoute({ children }: ProtectedRouteProps) {
-  const { isAuthenticated, isLoading } = useAuth();
-  const { resolvedTheme } = useSettings();
-  const location = useLocation();
-
-  // Apply theme during loading
-  React.useEffect(() => {
-    if (resolvedTheme === 'dark') {
-      document.documentElement.classList.add('dark');
-    } else {
-      document.documentElement.classList.remove('dark');
-    }
-  }, [resolvedTheme]);
-
-  if (isLoading) {
-    return (
-      <div data-testid="loading" className="min-h-screen flex items-center justify-center">
-        <div className="text-center">
-          <div data-testid="spinner" className="animate-spin rounded-full h-12 w-12 border-b-2 border-blue-600 mx-auto mb-4"></div>
-          <p>common.checkingSession</p>
-        </div>
-      </div>
-    );
-  }
-
-  if (!isAuthenticated) {
-    const redirectUrl = location.pathname + location.search;
-    return <Navigate to={`/login?redirect=${encodeURIComponent(redirectUrl)}`} />;
-  }
+import ProtectedRoute from '../../src/features/auth/components/ProtectedRoute';
 
   return <>{children}</>;
 }

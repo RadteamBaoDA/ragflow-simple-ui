@@ -160,13 +160,21 @@ describe('StoragePage', () => {
   it('refreshes bucket list', async () => {
     render(<StoragePage />, { wrapper: createWrapper() })
     await waitFor(() => expect(vi_mockStorageService.getRawBuckets).toHaveBeenCalled())
+    // Wait for the bucket row to render before interacting with table buttons
+    await waitFor(() => expect(screen.getByText('bucket1')).toBeInTheDocument())
     const tables = screen.getAllByTestId('table')
-    const table = tables[tables.length - 1]
-    const refreshBtn = within(table).getByTestId('refresh').closest('button')
-    if (refreshBtn) {
-      // Clicking refresh in the table should trigger a buckets reload
-      fireEvent.click(refreshBtn)
-      await waitFor(() => expect(vi_mockStorageService.getRawBuckets).toHaveBeenCalledTimes(2))
+    // Find the table that contains the bucket row (not the files table)
+    const table = tables.find(t => within(t).queryByText('bucket1'))
+    if (table) {
+      const refreshBtn = within(table).getByTestId('refresh').closest('button')
+      if (refreshBtn) {
+        // Clicking refresh in the table should trigger a buckets reload
+        fireEvent.click(refreshBtn)
+        await waitFor(() => expect(vi_mockStorageService.getRawBuckets).toHaveBeenCalledTimes(2))
+      }
+    } else {
+      // Fail clearly if the expected table isn't found
+      throw new Error('Bucket table not found')
     }
   })
 
@@ -176,7 +184,7 @@ describe('StoragePage', () => {
       { name: 'other-bucket', creationDate: '2025-01-02T00:00:00Z' }
     ])
     render(<StoragePage />, { wrapper: createWrapper() })
-    const searchInput = screen.getByRole('textbox')
+    const searchInput = screen.getByPlaceholderText('storage.search.placeholder')
     fireEvent.change(searchInput, { target: { value: 'test' } })
     await waitFor(() => expect(screen.getByText('test-bucket')).toBeInTheDocument())
   })

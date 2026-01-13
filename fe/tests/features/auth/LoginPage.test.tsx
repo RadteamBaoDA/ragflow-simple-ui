@@ -27,6 +27,11 @@ describe('LoginPage', () => {
     vi_mockAuth.mockReturnValue({ isAuthenticated: false, isLoading: false })
     delete (window as any).location
     ;(window as any).location = { href: '' }
+    // Default fetch handler for auth config
+    global.fetch = vi.fn((url: string) => {
+      if (url.includes('/api/auth/config')) return Promise.resolve(new Response(JSON.stringify({ authBaseUrl: 'https://kb.baoda.live' })))
+      return Promise.resolve(new Response(null))
+    }) as any
   })
 
   it('renders oauth button', () => {
@@ -46,7 +51,8 @@ describe('LoginPage', () => {
   it('redirects authenticated users', () => {
     vi_mockAuth.mockReturnValue({ isAuthenticated: true, isLoading: false })
     render(<MemoryRouter><LoginPage /></MemoryRouter>)
-    expect(vi_mockNav).toHaveBeenCalledWith('/ai-chat', expect.any(Object))
+    // The app now redirects to '/chat' for authenticated users
+    expect(vi_mockNav).toHaveBeenCalledWith('/chat', expect.any(Object))
   })
 
   it('shows dark theme', () => {
