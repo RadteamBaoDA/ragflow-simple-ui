@@ -639,7 +639,10 @@
     "descriptionPlaceholder": "このソースのオプション説明",
     "addSuccess": "ソースが正常に追加されました",
     "updateSuccess": "ソースが正常に更新されました",
-    "deleteSuccess": "ソースが正常に削除されました"
+    "deleteSuccess": "ソースが正常に削除されました",
+    "chatWidgetUrl": "チャットウィジェットURL",
+    "chatWidgetUrlPlaceholder": "https://チャットウィジェットURL.com",
+    "chatWidgetUrlDesc": "検索ページにフローティングチャットウィジェットを埋め込むためのオプションURL"
   },
   "histories": {
     "title": "履歴一覧",

@@ -165,12 +165,13 @@ export class KnowledgeBaseService {
      */
     async createSource(data: any, user?: { id: string, email: string, ip?: string }): Promise<KnowledgeBaseSource> {
         try {
-            // Check for duplicate name
+            // Check for duplicate name within the same type (chat or search)
             const existingSource = await ModelFactory.knowledgeBaseSource.getKnex()
                 .where('name', data.name)
+                .where('type', data.type)
                 .first();
             if (existingSource) {
-                throw new Error(`Knowledge base source with name "${data.name}" already exists`);
+                throw new Error(`Knowledge base source with name "${data.name}" already exists for type "${data.type}"`);
             }
 
             // Create source in database
@@ -180,6 +181,7 @@ export class KnowledgeBaseService {
                 url: data.url,
                 description: data.description || null,
                 share_id: data.share_id || null,
+                chat_widget_url: data.chat_widget_url || null,
                 access_control: JSON.stringify(data.access_control || { public: true }),
                 created_by: user?.id || null,
                 updated_by: user?.id || null
@@ -241,21 +243,23 @@ export class KnowledgeBaseService {
             if (data.url !== undefined) updateData.url = data.url;
             if (data.description !== undefined) updateData.description = data.description;
             if (data.share_id !== undefined) updateData.share_id = data.share_id;
+            if (data.chat_widget_url !== undefined) updateData.chat_widget_url = data.chat_widget_url;
             if (data.access_control !== undefined) updateData.access_control = JSON.stringify(data.access_control);
             if (user) updateData.updated_by = user.id;
 
-            // Check for duplicate name (only if name is being changed to a different value)
+            // Check for duplicate name within the same type (only if name is being changed to a different value)
             if (data.name !== undefined) {
-                // Fetch current source to compare names
+                // Fetch current source to compare names and get type
                 const currentSource = await ModelFactory.knowledgeBaseSource.findById(id);
                 // Only check duplicates if the name is actually changing
                 if (currentSource && data.name !== currentSource.name) {
                     const existingSource = await ModelFactory.knowledgeBaseSource.getKnex()
                         .where('name', data.name)
+                        .where('type', currentSource.type)
                         .whereNot('id', id)
                         .first();
                     if (existingSource) {
-                        throw new Error(`Knowledge base source with name "${data.name}" already exists`);
+                        throw new Error(`Knowledge base source with name "${data.name}" already exists for type "${currentSource.type}"`);
                     }
                 }
             }

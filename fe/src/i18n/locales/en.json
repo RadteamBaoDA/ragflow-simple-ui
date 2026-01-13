@@ -653,7 +653,10 @@
     "descriptionPlaceholder": "Optional description for this source",
     "addSuccess": "Source added successfully",
     "updateSuccess": "Source updated successfully",
-    "deleteSuccess": "Source deleted successfully"
+    "deleteSuccess": "Source deleted successfully",
+    "chatWidgetUrl": "Chat Widget URL",
+    "chatWidgetUrlPlaceholder": "https://your-chat-widget-url.com",
+    "chatWidgetUrlDesc": "Optional URL for embedding a floating chat widget on the Search page"
   },
   "histories": {
     "title": "Histories",

@@ -187,6 +187,8 @@ export interface KnowledgeBaseSource {
     description?: string | null;
     /** Share ID extracted from URL (shared_id param) */
     share_id?: string | null;
+    /** URL for embedded chat widget on search page */
+    chat_widget_url?: string | null;
     /** Access Control List details in JSON format */
     access_control: any;
     /** User ID who created this record */

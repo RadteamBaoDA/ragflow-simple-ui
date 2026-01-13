@@ -654,7 +654,10 @@
     "descriptionPlaceholder": "Mô tả tùy chọn cho nguồn này",
     "addSuccess": "Thêm nguồn thành công",
     "updateSuccess": "Cập nhật nguồn thành công",
-    "deleteSuccess": "Xóa nguồn thành công"
+    "deleteSuccess": "Xóa nguồn thành công",
+    "chatWidgetUrl": "URL Widget Chat",
+    "chatWidgetUrlPlaceholder": "https://url-widget-chat.com",
+    "chatWidgetUrlDesc": "URL tùy chọn để nhúng widget chat nổi trên trang Tìm kiếm"
   },
   "histories": {
     "title": "Lịch sử hệ thống",

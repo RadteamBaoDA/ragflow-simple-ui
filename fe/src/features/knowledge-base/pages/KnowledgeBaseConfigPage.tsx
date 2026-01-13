@@ -59,7 +59,7 @@ export default function KnowledgeBaseConfigPage() {
     // --- Source CRUD State ---
     const [isDialogOpen, setIsDialogOpen] = useState(false);
     const [editingSource, setEditingSource] = useState<KnowledgeBaseSource | null>(null);
-    const [formData, setFormData] = useState({ name: '', url: '', description: '', shareId: '' });
+    const [formData, setFormData] = useState({ name: '', url: '', description: '', shareId: '', chatWidgetUrl: '' });
 
     /**
      * Extract shared_id parameter from a URL.
@@ -103,7 +103,7 @@ export default function KnowledgeBaseConfigPage() {
      */
     const openCreateDialog = () => {
         setEditingSource(null);
-        setFormData({ name: '', url: '', description: '', shareId: '' });
+        setFormData({ name: '', url: '', description: '', shareId: '', chatWidgetUrl: '' });
         // Reset permissions for new source
         setIsPublic(false); // Default to private as per user checklist
         setSelectedTeamIds([]);
@@ -118,7 +118,7 @@ export default function KnowledgeBaseConfigPage() {
      */
     const openEditDialog = (source: KnowledgeBaseSource) => {
         setEditingSource(source);
-        setFormData({ name: source.name, url: source.url, description: source.description || '', shareId: source.share_id || '' });
+        setFormData({ name: source.name, url: source.url, description: source.description || '', shareId: source.share_id || '', chatWidgetUrl: source.chat_widget_url || '' });
 
 
         // Load existing permissions
@@ -165,7 +165,7 @@ export default function KnowledgeBaseConfigPage() {
     // --- Mutations ---
     const createMutation = useMutation({
         mutationKey: ['create', 'source'],
-        mutationFn: (data: { name: string, url: string, description: string, shareId: string, access_control: AccessControl }) => addSource(activeTab, data.name, data.url, data.access_control, data.shareId, data.description),
+        mutationFn: (data: { name: string, url: string, description: string, shareId: string, chatWidgetUrl: string, access_control: AccessControl }) => addSource(activeTab, data.name, data.url, data.access_control, data.shareId, data.description, data.chatWidgetUrl),
         onSuccess: () => {
             queryClient.invalidateQueries({ queryKey: ['knowledgeBaseConfig'] });
             setIsDialogOpen(false);
@@ -180,7 +180,7 @@ export default function KnowledgeBaseConfigPage() {
 
     const updateMutation = useMutation({
         mutationKey: ['update', 'source'],
-        mutationFn: (data: { id: string, name: string, url: string, description?: string, shareId?: string, access_control?: AccessControl }) => updateSource(data.id, data.name, data.url, data.access_control, data.shareId, data.description),
+        mutationFn: (data: { id: string, name: string, url: string, description?: string, shareId?: string, chatWidgetUrl?: string, access_control?: AccessControl }) => updateSource(data.id, data.name, data.url, data.access_control, data.shareId, data.description, data.chatWidgetUrl),
         onSuccess: () => {
             queryClient.invalidateQueries({ queryKey: ['knowledgeBaseConfig'] });
             setIsDialogOpen(false);
@@ -460,6 +460,21 @@ export default function KnowledgeBaseConfigPage() {
                                 />
                             </div>
                         </div>
+
+                        {/* Form Fields - Row 3: Chat Widget URL (Search tab only) */}
+                        {activeTab === 'search' && (
+                            <div className="shrink-0">
+                                <label className="block text-sm font-medium mb-1 text-gray-700 dark:text-gray-300">{t('knowledgeBaseConfig.chatWidgetUrl') || 'Chat Widget URL'}</label>
+                                <input
+                                    type="text"
+                                    value={formData.chatWidgetUrl}
+                                    onChange={(e) => setFormData({ ...formData, chatWidgetUrl: e.target.value })}
+                                    className="w-full px-3 py-2 border rounded-md dark:bg-slate-800 dark:border-slate-600 dark:text-white"
+                                    placeholder={t('knowledgeBaseConfig.chatWidgetUrlPlaceholder') || 'https://your-chat-widget-url.com'}
+                                />
+                                <p className="mt-1 text-xs text-gray-500 dark:text-gray-400">{t('knowledgeBaseConfig.chatWidgetUrlDesc') || 'Optional URL for embedding a floating chat widget on the Search page'}</p>
+                            </div>
+                        )}
 
                         <div className="border-t dark:border-gray-700 my-2"></div>
 
