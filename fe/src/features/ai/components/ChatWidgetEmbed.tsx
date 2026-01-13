@@ -109,6 +109,18 @@ export function ChatWidgetEmbed({ widgetUrl }: ChatWidgetEmbedProps) {
             else if (e.data.type === 'SCROLL_PASSTHROUGH') {
                 window.scrollBy(0, e.data.deltaY);
             }
+
+            else if (e.data.type === 'RESIZE_IFRAME') {
+                const chatWindow = document.getElementById('chat-win') as HTMLIFrameElement | null;
+                if (!chatWindow) return;
+                if (e.data.expanded) {
+                    chatWindow.style.height = '80vh';
+                    chatWindow.style.width = '80vw';
+                } else {
+                    chatWindow.style.height = '500px';
+                    chatWindow.style.width = '380px';
+                }
+            }
         };
 
         // Add event listener
@@ -133,8 +145,6 @@ export function ChatWidgetEmbed({ widgetUrl }: ChatWidgetEmbedProps) {
                 position: 'fixed',
                 bottom: '1.5rem',
                 right: '1.5rem',
-                width: '100px',
-                height: '100px',
                 border: 'none',
                 background: 'transparent',
                 zIndex: 100
