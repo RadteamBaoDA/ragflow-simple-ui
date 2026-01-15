@@ -90,7 +90,7 @@ export function ChatWidgetEmbed({ widgetUrl }: ChatWidgetEmbedProps) {
                 const iframe = document.createElement('iframe');
                 iframe.id = 'chat-win';
                 iframe.src = e.data.src;
-                iframe.style.cssText = 'position:fixed;bottom:104px;right:24px;width:380px;height:500px;border:none;background:transparent;z-index:9998;display:none';
+                iframe.style.cssText = 'position:fixed;bottom:140px;right:24px;width:380px;height:500px;border:none;background:transparent;z-index:9998;display:none';
                 iframe.frameBorder = '0';
                 iframe.allow = 'microphone;camera';
                 document.body.appendChild(iframe);
@@ -143,8 +143,10 @@ export function ChatWidgetEmbed({ widgetUrl }: ChatWidgetEmbedProps) {
             src={widgetSrc}
             style={{
                 position: 'fixed',
-                bottom: '1.5rem',
+                bottom: '3.5rem',
                 right: '1.5rem',
+                width: '100px',
+                height: '100px',
                 border: 'none',
                 background: 'transparent',
                 zIndex: 100
