@@ -6,6 +6,7 @@ import { auditService, AuditAction, AuditResourceType } from '@/services/audit.s
 import { KnowledgeBaseSource } from '@/models/types.js';
 import { teamService } from '@/services/team.service.js';
 import { promptPermissionService } from '@/services/prompt-permission.service.js';
+import { config } from '@/config/index.js';
 
 export interface AccessControl {
     public: boolean;
@@ -361,7 +362,8 @@ export class KnowledgeBaseService {
             searchSources: availableSources.filter(s => s.type === 'search'),
             defaultChatSourceId: defaultChatSourceId?.value || '',
             defaultSearchSourceId: defaultSearchSourceId?.value || '',
-            promptPermission
+            promptPermission,
+            kbBaseUrl: config.kbBaseUrl
         };
     }
 

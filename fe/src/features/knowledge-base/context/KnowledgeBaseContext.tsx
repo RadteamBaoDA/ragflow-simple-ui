@@ -48,6 +48,8 @@ interface KnowledgeBaseConfig {
     searchSources: KnowledgeBaseSource[];
     /** Effective prompt permission level */
     promptPermission: number;
+    /** Base URL for document links */
+    kbBaseUrl: string;
 }
 
 /**

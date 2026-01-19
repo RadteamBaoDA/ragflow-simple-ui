@@ -16,6 +16,7 @@ import { Dialog } from '@/components/Dialog';
 import { MarkdownRenderer } from '@/components/MarkdownRenderer';
 
 import { ChatSessionSummary, ExternalChatHistory, FilterState, fetchChatHistory, fetchChatSessionDetails } from '@/features/history/api/historyService';
+import { useKnowledgeBase } from '@/features/knowledge-base/context/KnowledgeBaseContext';
 
 // ============================================================================
 // Component
@@ -31,6 +32,7 @@ import { ChatSessionSummary, ExternalChatHistory, FilterState, fetchChatHistory,
  */
 function ChatHistoryPage() {
     const { t } = useTranslation();
+    const { config } = useKnowledgeBase();
     const [isSidebarOpen, setIsSidebarOpen] = useState(true);
     const [selectedSession, setSelectedSession] = useState<ChatSessionSummary | null>(null);
     const [searchQuery, setSearchQuery] = useState('');
@@ -344,12 +346,33 @@ function ChatHistoryPage() {
                                                         {item.citations?.length > 0 && (
                                                             <div className="pt-2">
                                                                 <div className="inline-flex flex-wrap gap-2">
-                                                                    {item.citations.map((citation: any, idx: number) => (
-                                                                        <span key={idx} className="inline-flex items-center gap-1.5 px-3 py-1 rounded-full bg-slate-100/80 dark:bg-slate-800/80 text-[11px] font-medium text-slate-600 dark:text-slate-400 border border-slate-200 dark:border-slate-700/50 hover:border-primary/30 hover:bg-white dark:hover:bg-slate-800 transition-all cursor-default select-none">
-                                                                            <span className="w-4 h-4 rounded-full bg-slate-200 dark:bg-slate-700 flex items-center justify-center text-[9px] font-bold text-slate-500 dark:text-slate-300">{idx + 1}</span>
-                                                                            <span className="truncate max-w-[200px]" title={typeof citation === 'string' ? citation : JSON.stringify(citation)}>{citation}</span>
-                                                                        </span>
-                                                                    ))}
+                                                                    {item.citations.map((citation: any, idx: number) => {
+                                                                        const isObject = typeof citation === 'object' && citation !== null;
+                                                                        const content = isObject ? citation.document_name : citation;
+                                                                        const documentId = isObject ? citation.document_id : null;
+                                                                        const link = documentId && config?.kbBaseUrl
+                                                                            ? `${config.kbBaseUrl}/document/${documentId}?ext=pdf&prefix=document`
+                                                                            : null;
+
+                                                                        return (
+                                                                            <span key={idx} className="inline-flex items-center gap-1.5 px-3 py-1 rounded-full bg-slate-100/80 dark:bg-slate-800/80 text-[11px] font-medium text-slate-600 dark:text-slate-400 border border-slate-200 dark:border-slate-700/50 hover:border-primary/30 hover:bg-white dark:hover:bg-slate-800 transition-all cursor-default select-none">
+                                                                                <span className="w-4 h-4 rounded-full bg-slate-200 dark:bg-slate-700 flex items-center justify-center text-[9px] font-bold text-slate-500 dark:text-slate-300">{idx + 1}</span>
+                                                                                {link ? (
+                                                                                    <a
+                                                                                        href={link}
+                                                                                        target="_blank"
+                                                                                        rel="noopener noreferrer"
+                                                                                        className="truncate max-w-[200px] hover:text-primary hover:underline"
+                                                                                        title={content}
+                                                                                    >
+                                                                                        {content}
+                                                                                    </a>
+                                                                                ) : (
+                                                                                    <span className="truncate max-w-[200px]" title={content}>{content}</span>
+                                                                                )}
+                                                                            </span>
+                                                                        );
+                                                                    })}
                                                                 </div>
                                                             </div>
                                                         )}
