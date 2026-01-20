@@ -69,7 +69,8 @@ export function PermissionsSelector({
     ) || [];
 
     const filteredUsers = usersQuery.data?.filter(user =>
-        (user.displayName || user.email).toLowerCase().includes(searchTerm.toLowerCase())
+        (user.displayName?.toLowerCase().includes(searchTerm.toLowerCase())) ||
+        (user.email?.toLowerCase().includes(searchTerm.toLowerCase()))
     ) || [];
 
     return (
