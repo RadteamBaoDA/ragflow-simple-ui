@@ -527,8 +527,8 @@ function RagflowIframe({ path }: RagflowIframeProps) {
           <Tooltip title={t('prompts.library.title', 'Prompt Library')} placement="left">
             <button
               onClick={() => setIsPromptLibraryOpen(true)}
-              className="absolute bottom-34 right-6 p-3 bg-white dark:bg-slate-700 text-slate-700 dark:text-slate-200 rounded-full shadow-lg hover:bg-slate-100 dark:hover:bg-slate-600 transition-all duration-200 z-[100] border border-slate-200 dark:border-slate-600 group cursor-pointer"
-              style={{ bottom: '9rem' }}
+              className="absolute right-6 p-3 bg-white dark:bg-slate-700 text-slate-700 dark:text-slate-200 rounded-full shadow-lg hover:bg-slate-100 dark:hover:bg-slate-600 transition-all duration-200 z-[100] border border-slate-200 dark:border-slate-600 group cursor-pointer"
+              style={{ bottom: '5.5rem' }}
             >
               <Book className="w-6 h-6" />
               <span className="sr-only">
