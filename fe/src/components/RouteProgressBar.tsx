@@ -1,5 +1,5 @@
 // Shows top loading bar on route transitions using NProgress.
-import { useEffect, useState } from 'react';
+import { useEffect, useRef } from 'react';
 import { useLocation } from 'react-router-dom';
 import NProgress from 'nprogress';
 import 'nprogress/nprogress.css';
@@ -16,16 +16,17 @@ NProgress.configure({
 /**
  * Component that displays a top progress bar during route transitions.
  * Listens to location changes and triggers NProgress start/done.
+ * Uses useRef instead of useState to avoid triggering re-renders during Suspense transitions.
  */
 export const RouteProgressBar = () => {
     const location = useLocation();
-    const [prevLoc, setPrevLoc] = useState("");
+    const prevLocRef = useRef("");
 
     useEffect(() => {
         // Skip if it's the same path (only query params change)
-        if (location.pathname === prevLoc) return;
+        if (location.pathname === prevLocRef.current) return;
 
-        setPrevLoc(location.pathname);
+        prevLocRef.current = location.pathname;
         NProgress.start();
 
         // Small timeout to ensure the bar is visible even for fast loads
@@ -37,7 +38,7 @@ export const RouteProgressBar = () => {
             clearTimeout(timer);
             NProgress.done();
         };
-    }, [location, prevLoc]);
+    }, [location.pathname]);
 
     return null;
 };

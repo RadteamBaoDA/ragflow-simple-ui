@@ -12,6 +12,7 @@ import { apiFetch } from '@/lib/api';
 import { Filter, Search, MessageSquare, FileText, Clock, User, ChevronRight, Sparkles, PanelLeftClose, PanelLeft, RefreshCw } from 'lucide-react';
 import { Dialog } from '@/components/Dialog';
 import { MarkdownRenderer } from '@/components/MarkdownRenderer';
+import { useKnowledgeBase } from '@/features/knowledge-base/context/KnowledgeBaseContext';
 
 // ============================================================================
 // Types
@@ -169,6 +170,7 @@ async function fetchSearchSessionDetails(sessionId: string): Promise<ExternalSea
  */
 function HistoriesPage() {
     const { t } = useTranslation();
+    const { config } = useKnowledgeBase();
     const [isSidebarOpen, setIsSidebarOpen] = useState(true);
     const [activeTab, setActiveTab] = useState<'chat' | 'search'>('chat');
     const [selectedSession, setSelectedSession] = useState<ChatSessionSummary | SearchSessionSummary | null>(null);
@@ -543,12 +545,34 @@ function HistoriesPage() {
                                                             {(item as ExternalChatHistory).citations?.length > 0 && (
                                                                 <div className="pt-2">
                                                                     <div className="inline-flex flex-wrap gap-2">
-                                                                        {(item as ExternalChatHistory).citations.map((citation: any, idx: number) => (
-                                                                            <span key={idx} className="inline-flex items-center gap-1.5 px-3 py-1 rounded-full bg-slate-100/80 dark:bg-slate-800/80 text-[11px] font-medium text-slate-600 dark:text-slate-400 border border-slate-200 dark:border-slate-700/50 hover:border-primary/30 hover:bg-white dark:hover:bg-slate-800 transition-all cursor-default select-none">
-                                                                                <span className="w-4 h-4 rounded-full bg-slate-200 dark:bg-slate-700 flex items-center justify-center text-[9px] font-bold text-slate-500 dark:text-slate-300">{idx + 1}</span>
-                                                                                <span className="truncate max-w-[200px]" title={typeof citation === 'string' ? citation : JSON.stringify(citation)}>{citation}</span>
-                                                                            </span>
-                                                                        ))}
+                                                                        {(item as ExternalChatHistory).citations.map((citation: any, idx: number) => {
+                                                                            // Handle citation as object with document_name or as string
+                                                                            const isObject = typeof citation === 'object' && citation !== null;
+                                                                            const content = isObject ? citation.document_name : citation;
+                                                                            const documentId = isObject ? citation.document_id : null;
+                                                                            const link = documentId && config?.kbBaseUrl
+                                                                                ? `${config.kbBaseUrl}/document/${documentId}?ext=pdf&prefix=document`
+                                                                                : null;
+
+                                                                            return (
+                                                                                <span key={idx} className="inline-flex items-center gap-1.5 px-3 py-1 rounded-full bg-slate-100/80 dark:bg-slate-800/80 text-[11px] font-medium text-slate-600 dark:text-slate-400 border border-slate-200 dark:border-slate-700/50 hover:border-primary/30 hover:bg-white dark:hover:bg-slate-800 transition-all cursor-default select-none">
+                                                                                    <span className="w-4 h-4 rounded-full bg-slate-200 dark:bg-slate-700 flex items-center justify-center text-[9px] font-bold text-slate-500 dark:text-slate-300">{idx + 1}</span>
+                                                                                    {link ? (
+                                                                                        <a
+                                                                                            href={link}
+                                                                                            target="_blank"
+                                                                                            rel="noopener noreferrer"
+                                                                                            className="truncate max-w-[200px] hover:text-primary hover:underline"
+                                                                                            title={content}
+                                                                                        >
+                                                                                            {content}
+                                                                                        </a>
+                                                                                    ) : (
+                                                                                        <span className="truncate max-w-[200px]" title={content}>{content}</span>
+                                                                                    )}
+                                                                                </span>
+                                                                            );
+                                                                        })}
                                                                     </div>
                                                                 </div>
                                                             )}
@@ -598,22 +622,41 @@ function HistoriesPage() {
                                                                     <span className="text-xs font-bold uppercase tracking-wider">Retrieved Files</span>
                                                                 </div>
                                                                 <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
-                                                                    {(item as ExternalSearchHistory).file_results?.map((file: any, idx: number) => (
-                                                                        <div key={idx} className="flex items-start gap-3 p-3 rounded-xl bg-slate-50 dark:bg-slate-800/50 border border-slate-100 dark:border-slate-800 hover:border-blue-300 dark:hover:border-blue-700 transition-colors">
-                                                                            <div className="mt-0.5 bg-white dark:bg-slate-800 p-1.5 rounded-lg shadow-sm">
-                                                                                <FileText size={16} className="text-blue-500 dark:text-blue-400" />
+                                                                    {(item as ExternalSearchHistory).file_results?.map((file: any, idx: number) => {
+                                                                        // Handle file as object with document_name or as string
+                                                                        const isObject = typeof file === 'object' && file !== null;
+                                                                        const fileName = isObject ? file.document_name : file;
+                                                                        const documentId = isObject ? file.document_id : null;
+                                                                        const link = documentId && config?.kbBaseUrl
+                                                                            ? `${config.kbBaseUrl}/document/${documentId}?ext=pdf&prefix=document`
+                                                                            : null;
+
+                                                                        return (
+                                                                            <div key={idx} className="flex items-start gap-3 p-3 rounded-xl bg-slate-50 dark:bg-slate-800/50 border border-slate-100 dark:border-slate-800 hover:border-blue-300 dark:hover:border-blue-700 transition-colors">
+                                                                                <div className="mt-0.5 bg-white dark:bg-slate-800 p-1.5 rounded-lg shadow-sm">
+                                                                                    <FileText size={16} className="text-blue-500 dark:text-blue-400" />
+                                                                                </div>
+                                                                                <div className="min-w-0 flex-1">
+                                                                                    {link ? (
+                                                                                        <a
+                                                                                            href={link}
+                                                                                            target="_blank"
+                                                                                            rel="noopener noreferrer"
+                                                                                            className="text-sm font-medium text-slate-700 dark:text-slate-200 truncate block hover:text-primary hover:underline"
+                                                                                            title={fileName}
+                                                                                        >
+                                                                                            <HighlightMatch text={fileName} query={executedSearchQuery} />
+                                                                                        </a>
+                                                                                    ) : (
+                                                                                        <p className="text-sm font-medium text-slate-700 dark:text-slate-200 truncate" title={fileName}>
+                                                                                            <HighlightMatch text={fileName || ''} query={executedSearchQuery} />
+                                                                                        </p>
+                                                                                    )}
+                                                                                    <p className="text-[10px] text-slate-400 mt-0.5">Relevance Score: {(Math.random() * 0.5 + 0.5).toFixed(2)}</p>
+                                                                                </div>
                                                                             </div>
-                                                                            <div className="min-w-0">
-                                                                                <p className="text-sm font-medium text-slate-700 dark:text-slate-200 truncate" title={typeof file === 'string' ? file : JSON.stringify(file)}>
-                                                                                    <HighlightMatch
-                                                                                        text={typeof file === 'string' ? file : JSON.stringify(file)}
-                                                                                        query={executedSearchQuery}
-                                                                                    />
-                                                                                </p>
-                                                                                <p className="text-[10px] text-slate-400 mt-0.5">Relevance Score: {(Math.random() * 0.5 + 0.5).toFixed(2)}</p>
-                                                                            </div>
-                                                                        </div>
-                                                                    ))}
+                                                                        );
+                                                                    })}
                                                                 </div>
                                                             </div>
                                                         </div>

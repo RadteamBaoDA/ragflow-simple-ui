@@ -171,6 +171,10 @@ export function AuthProvider({ children }: AuthProviderProps) {
   /**
    * @description Effect: Check session on mount or navigation.
    * Logic handles public paths, already authenticated state, and redirects.
+   * 
+   * IMPORTANT: This effect should NOT trigger re-renders during navigation when
+   * the user is already authenticated. Doing so causes race conditions with
+   * React Suspense lazy loading, resulting in double-click navigation bugs.
    */
   useEffect(() => {
     const publicPaths = ['/login', '/logout'];
@@ -178,18 +182,18 @@ export function AuthProvider({ children }: AuthProviderProps) {
 
     // Skip auth check for defined public paths
     if (isPublicPath) {
-      console.log('[Auth] Public path, skipping auth check:', location.pathname);
       setIsLoading(false);
       return;
     }
 
-    // Skip auth check if user State is already populated (prevents redundant API calls)
-    if (user) {
-      setIsLoading(false);
+    // Skip auth check if user is already authenticated
+    // CRITICAL: Do NOT call setIsLoading here - it triggers re-renders that
+    // conflict with Suspense transitions, causing the double-click bug
+    if (user !== null) {
       return;
     }
 
-    // Attempt to validate session for protected paths
+    // Only check session if user is null (initial mount or after logout)
     console.log('[Auth] Protected path, checking session:', location.pathname);
     checkSession().then(isValid => {
       if (!isValid) {

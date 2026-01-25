@@ -15,12 +15,13 @@
  * @module components/Layout
  */
 
-import { useState, Suspense } from 'react';
+import { useState } from 'react';
 import { Outlet, NavLink, useLocation, Link } from 'react-router-dom';
 import { useTranslation } from 'react-i18next';
 import { useAuth, User } from '@/features/auth';
 import { useSettings } from '@/app/contexts/SettingsContext';
 import { useKnowledgeBase } from '@/features/knowledge-base';
+import { useNavigation } from '@/components/NavigationLoader';
 import { config } from '../config';
 import { Select } from '@/components/Select';
 import {
@@ -54,22 +55,7 @@ import logo from '../assets/logo.png';
 import logoDark from '../assets/logo-dark.png';
 import BroadcastBanner from '@/features/broadcast/components/BroadcastBanner';
 
-// ============================================================================
-// Content Loading Component
-// ============================================================================
 
-/**
- * Loading indicator shown while lazy-loaded page content is loading.
- * Displayed inside the content area (not full-screen) so sidebar stays visible.
- */
-const ContentLoader = () => (
-  <div className="flex items-center justify-center h-full bg-gray-50 dark:bg-slate-900">
-    <div className="flex flex-col items-center gap-3">
-      <div className="animate-spin rounded-full h-10 w-10 border-t-2 border-b-2 border-primary-600"></div>
-      <span className="text-sm text-gray-500 dark:text-gray-400">Loading...</span>
-    </div>
-  </div>
-);
 
 // ============================================================================
 // Sub-components
@@ -144,7 +130,20 @@ function Layout() {
   const { openSettings, resolvedTheme } = useSettings();
   const knowledgeBase = useKnowledgeBase();
 
-  // Select logo based on current theme
+  // Navigation loading overlay hook
+  const { startNavigation } = useNavigation();
+
+  /**
+   * Handle navigation link click - show loading overlay immediately
+   * if navigating to a different page
+   */
+  const handleNavClick = (targetPath: string) => (_e: React.MouseEvent) => {
+    // Don't show loader if clicking the current page
+    if (location.pathname !== targetPath) {
+      startNavigation();
+    }
+  };
+
   // Select logo based on current theme
   const logoSrc = resolvedTheme === 'dark' ? logoDark : logo;
 
@@ -250,6 +249,7 @@ function Layout() {
             <div className="flex flex-col gap-1">
               <NavLink
                 to="/chat"
+                onClick={handleNavClick('/chat')}
                 className={({ isActive }: { isActive: boolean }) => `sidebar-link w-full ${isActive && !location.pathname.includes('history') ? 'active' : ''} ${isCollapsed ? 'justify-center px-2' : ''}`}
                 title={t('nav.aiChat')}
               >
@@ -264,7 +264,7 @@ function Layout() {
 
               {(!isCollapsed && shouldExpandChat) && config.features.enableHistory && (
                 <div className="pl-4 flex flex-col gap-1">
-                  <NavLink to="/chat/history" className={({ isActive }: { isActive: boolean }) => `sidebar-link text-sm ${isActive ? 'active' : ''}`} title={t('nav.chatHistory')}>
+                  <NavLink to="/chat/history" onClick={handleNavClick('/chat/history')} className={({ isActive }: { isActive: boolean }) => `sidebar-link text-sm ${isActive ? 'active' : ''}`} title={t('nav.chatHistory')}>
                     <History size={16} />
                     <span>{t('nav.chatHistory')}</span>
                   </NavLink>
@@ -276,6 +276,7 @@ function Layout() {
             <div className="flex flex-col gap-1">
               <NavLink
                 to="/search"
+                onClick={handleNavClick('/search')}
                 className={({ isActive }: { isActive: boolean }) => `sidebar-link w-full ${isActive && !location.pathname.includes('history') ? 'active' : ''} ${isCollapsed ? 'justify-center px-2' : ''}`}
                 title={t('nav.aiSearch')}
               >
@@ -290,7 +291,7 @@ function Layout() {
 
               {(!isCollapsed && shouldExpandSearch) && config.features.enableHistory && (
                 <div className="pl-4 flex flex-col gap-1">
-                  <NavLink to="/search/history" className={({ isActive }: { isActive: boolean }) => `sidebar-link text-sm ${isActive ? 'active' : ''}`} title={t('nav.searchHistory')}>
+                  <NavLink to="/search/history" onClick={handleNavClick('/search/history')} className={({ isActive }: { isActive: boolean }) => `sidebar-link text-sm ${isActive ? 'active' : ''}`} title={t('nav.searchHistory')}>
                     <ClipboardList size={16} />
                     <span>{t('nav.searchHistory')}</span>
                   </NavLink>
@@ -316,24 +317,24 @@ function Layout() {
 
               {(!isCollapsed && shouldExpandKnowledgeBase) && (
                 <div className="pl-4 flex flex-col gap-1">
-                  <NavLink to="/knowledge-base/documents" className={({ isActive }: { isActive: boolean }) => `sidebar-link ${isActive ? 'active' : ''}`} title={t('nav.storage')}>
+                  <NavLink to="/knowledge-base/documents" onClick={handleNavClick('/knowledge-base/documents')} className={({ isActive }: { isActive: boolean }) => `sidebar-link ${isActive ? 'active' : ''}`} title={t('nav.storage')}>
                     <HardDrive size={18} />
                     <span>{t('nav.storage')}</span>
                   </NavLink>
                   {user?.role === 'admin' && (
-                    <NavLink to="/knowledge-base/config" className={({ isActive }: { isActive: boolean }) => `sidebar-link ${isActive ? 'active' : ''}`} title={t('knowledgeBaseConfig.title')}>
+                    <NavLink to="/knowledge-base/config" onClick={handleNavClick('/knowledge-base/config')} className={({ isActive }: { isActive: boolean }) => `sidebar-link ${isActive ? 'active' : ''}`} title={t('knowledgeBaseConfig.title')}>
                       <Settings2 size={18} />
                       <span>{t('knowledgeBaseConfig.title')}</span>
                     </NavLink>
                   )}
                   {user?.role === 'admin' && (
-                    <NavLink to="/knowledge-base/storage" className={({ isActive }: { isActive: boolean }) => `sidebar-link ${isActive ? 'active' : ''}`} title={t('storage.title')}>
+                    <NavLink to="/knowledge-base/storage" onClick={handleNavClick('/knowledge-base/storage')} className={({ isActive }: { isActive: boolean }) => `sidebar-link ${isActive ? 'active' : ''}`} title={t('storage.title')}>
                       <Database size={18} />
 
                       <span>{t('storage.title')}</span>
                     </NavLink>
                   )}
-                  <NavLink to="/knowledge-base/prompts" className={({ isActive }: { isActive: boolean }) => `sidebar-link ${isActive ? 'active' : ''}`} title={t('nav.prompts')}>
+                  <NavLink to="/knowledge-base/prompts" onClick={handleNavClick('/knowledge-base/prompts')} className={({ isActive }: { isActive: boolean }) => `sidebar-link ${isActive ? 'active' : ''}`} title={t('nav.prompts')}>
                     <BookOpen size={18} />
                     <span>{t('nav.prompts')}</span>
                   </NavLink>
@@ -365,11 +366,11 @@ function Layout() {
 
               {(!isCollapsed && shouldExpandIam) && (
                 <div className="pl-4 flex flex-col gap-1">
-                  <NavLink to="/iam/users" className={({ isActive }: { isActive: boolean }) => `sidebar-link ${isActive ? 'active' : ''}`} title={t('nav.userManagement')}>
+                  <NavLink to="/iam/users" onClick={handleNavClick('/iam/users')} className={({ isActive }: { isActive: boolean }) => `sidebar-link ${isActive ? 'active' : ''}`} title={t('nav.userManagement')}>
                     <UserIcon size={18} />
                     <span>{t('nav.userManagement')}</span>
                   </NavLink>
-                  <NavLink to="/iam/teams" className={({ isActive }: { isActive: boolean }) => `sidebar-link ${isActive ? 'active' : ''}`} title={t('nav.teamManagement')}>
+                  <NavLink to="/iam/teams" onClick={handleNavClick('/iam/teams')} className={({ isActive }: { isActive: boolean }) => `sidebar-link ${isActive ? 'active' : ''}`} title={t('nav.teamManagement')}>
                     <Users size={18} />
                     <span>{t('nav.teamManagement')}</span>
                   </NavLink>
@@ -395,27 +396,27 @@ function Layout() {
 
               {(!isCollapsed && shouldExpandAdministrators) && (
                 <div className="pl-4 flex flex-col gap-1">
-                  <NavLink to="/admin/audit-log" className={({ isActive }: { isActive: boolean }) => `sidebar-link ${isActive ? 'active' : ''}`} title={t('nav.auditLog')}>
+                  <NavLink to="/admin/audit-log" onClick={handleNavClick('/admin/audit-log')} className={({ isActive }: { isActive: boolean }) => `sidebar-link ${isActive ? 'active' : ''}`} title={t('nav.auditLog')}>
                     <ClipboardList size={18} />
                     <span>{t('nav.auditLog')}</span>
                   </NavLink>
-                  <NavLink to="/admin/system-tools" className={({ isActive }: { isActive: boolean }) => `sidebar-link ${isActive ? 'active' : ''}`} title={t('nav.systemTools')}>
+                  <NavLink to="/admin/system-tools" onClick={handleNavClick('/admin/system-tools')} className={({ isActive }: { isActive: boolean }) => `sidebar-link ${isActive ? 'active' : ''}`} title={t('nav.systemTools')}>
                     <Server size={18} />
                     <span>{t('nav.systemTools')}</span>
                   </NavLink>
-                  <NavLink to="/admin/system-monitor" className={({ isActive }: { isActive: boolean }) => `sidebar-link ${isActive ? 'active' : ''}`} title={t('nav.systemMonitor')}>
+                  <NavLink to="/admin/system-monitor" onClick={handleNavClick('/admin/system-monitor')} className={({ isActive }: { isActive: boolean }) => `sidebar-link ${isActive ? 'active' : ''}`} title={t('nav.systemMonitor')}>
                     <Activity size={18} />
                     <span>{t('nav.systemMonitor')}</span>
                   </NavLink>
-                  <NavLink to="/admin/tokenizer" className={({ isActive }: { isActive: boolean }) => `sidebar-link ${isActive ? 'active' : ''}`} title={t('nav.tokenizer')}>
+                  <NavLink to="/admin/tokenizer" onClick={handleNavClick('/admin/tokenizer')} className={({ isActive }: { isActive: boolean }) => `sidebar-link ${isActive ? 'active' : ''}`} title={t('nav.tokenizer')}>
                     <FileCode size={18} />
                     <span>{t('nav.tokenizer')}</span>
                   </NavLink>
-                  <NavLink to="/admin/broadcast-messages" className={({ isActive }: { isActive: boolean }) => `sidebar-link ${isActive ? 'active' : ''}`} title={t('nav.broadcastMessages')}>
+                  <NavLink to="/admin/broadcast-messages" onClick={handleNavClick('/admin/broadcast-messages')} className={({ isActive }: { isActive: boolean }) => `sidebar-link ${isActive ? 'active' : ''}`} title={t('nav.broadcastMessages')}>
                     <Megaphone size={18} />
                     <span>{t('nav.broadcastMessages')}</span>
                   </NavLink>
-                  <NavLink to="/admin/histories" className={({ isActive }: { isActive: boolean }) => `sidebar-link ${isActive ? 'active' : ''}`} title={t('nav.histories')}>
+                  <NavLink to="/admin/histories" onClick={handleNavClick('/admin/histories')} className={({ isActive }: { isActive: boolean }) => `sidebar-link ${isActive ? 'active' : ''}`} title={t('nav.histories')}>
                     <History size={18} />
                     <span>{t('nav.histories')}</span>
                   </NavLink>
@@ -511,9 +512,7 @@ function Layout() {
           </header>
         )}
         <div className={`flex-1 overflow-hidden ${['/chat', '/search', '/knowledge-base/documents', '/admin/system-tools', '/knowledge-base/storage', '/ragflow-config', '/iam/teams', '/admin/histories', '/chat/history', '/search/history', '/knowledge-base/config'].includes(location.pathname) ? '' : 'p-8 overflow-auto'}`}>
-          <Suspense fallback={<ContentLoader />}>
-            <Outlet />
-          </Suspense>
+          <Outlet />
         </div>
       </main>
     </div>
