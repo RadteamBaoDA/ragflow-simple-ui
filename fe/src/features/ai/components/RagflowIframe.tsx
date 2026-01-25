@@ -526,6 +526,7 @@ function RagflowIframe({ path }: RagflowIframeProps) {
         {path === 'chat' && (
           <Tooltip title={t('prompts.library.title', 'Prompt Library')} placement="left">
             <button
+              id="prompt-library-btn"
               onClick={() => setIsPromptLibraryOpen(true)}
               className="absolute right-6 p-3 bg-white dark:bg-slate-700 text-slate-700 dark:text-slate-200 rounded-full shadow-lg hover:bg-slate-100 dark:hover:bg-slate-600 transition-all duration-200 z-[100] border border-slate-200 dark:border-slate-600 group cursor-pointer"
               style={{ bottom: '5.5rem' }}

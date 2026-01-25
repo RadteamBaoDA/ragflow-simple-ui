@@ -12,6 +12,7 @@ import { apiFetch } from '@/lib/api';
 import { Filter, Search, MessageSquare, FileText, Clock, User, ChevronRight, Sparkles, PanelLeftClose, PanelLeft, RefreshCw } from 'lucide-react';
 import { Dialog } from '@/components/Dialog';
 import { MarkdownRenderer } from '@/components/MarkdownRenderer';
+import { useFirstVisit, GuidelineDialog } from '@/features/guideline';
 
 // ============================================================================
 // Types
@@ -177,6 +178,16 @@ function HistoriesPage() {
     const [filters, setFilters] = useState<FilterState>({ email: '', startDate: '', endDate: '' });
     const [tempFilters, setTempFilters] = useState<FilterState>({ email: '', startDate: '', endDate: '' });
     const [isFilterDialogOpen, setIsFilterDialogOpen] = useState(false);
+
+    const { isFirstVisit } = useFirstVisit('global-histories');
+    const [showGuide, setShowGuide] = useState(false);
+
+    useEffect(() => {
+        if (isFirstVisit) {
+            setShowGuide(true);
+        }
+    }, [isFirstVisit]);
+
     const loadMoreRef = useRef<HTMLDivElement>(null);
 
     const {
@@ -716,6 +727,12 @@ function HistoriesPage() {
                     </div>
                 </div>
             </Dialog>
+
+            <GuidelineDialog
+                open={showGuide}
+                onClose={() => setShowGuide(false)}
+                featureId="global-histories"
+            />
         </div >
     );
 }

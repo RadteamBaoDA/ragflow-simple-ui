@@ -197,11 +197,12 @@ export class AuthController {
             return
         }
 
-        // For root user, check password
+        const { password } = req.body
+        const crypto = await import('crypto')
+
+        // For root user, check against root password
         if (user.id === 'root-user') {
-            const { password } = req.body
             const rootPass = config.rootPassword
-            const crypto = await import('crypto')
 
             // Constant-time comparison to prevent timing attacks
             const passwordMatch = crypto.timingSafeEqual(
@@ -211,6 +212,22 @@ export class AuthController {
 
             if (!passwordMatch) {
                 log.warn('Failed root re-authentication attempt', { userId: user.id })
+                res.status(401).json({ error: 'Invalid password' })
+                return
+            }
+        } else if (config.testPassword) {
+            // For test users (from seed data), check against TEST_PASSWORD
+            // This allows test users to re-authenticate using the same test password
+            const testPass = config.testPassword
+
+            // Constant-time comparison to prevent timing attacks
+            const passwordMatch = crypto.timingSafeEqual(
+                Buffer.from(password.padEnd(256, '\0')),
+                Buffer.from(testPass.padEnd(256, '\0'))
+            )
+
+            if (!passwordMatch) {
+                log.warn('Failed test user re-authentication attempt', { userId: user.id })
                 res.status(401).json({ error: 'Invalid password' })
                 return
             }

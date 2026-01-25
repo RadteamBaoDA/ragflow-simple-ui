@@ -25,6 +25,7 @@ import { config } from '@/config';
 import RouteProgressBar from '@/components/RouteProgressBar';
 import '@/i18n';
 import icon from '@/assets/icon.png';
+import { GuidelineProvider } from '@/features/guideline';
 // ============================================================================
 // Lazy-loaded Pages (Code Splitting)
 // ============================================================================
@@ -129,122 +130,125 @@ function App() {
       <AuthProvider>
         <SettingsProvider>
           <KnowledgeBaseProvider>
-            <ConfirmProvider>
-              <RouteProgressBar />
-              <Suspense fallback={<PageLoader />}>
-                <Routes>
-                  {/* Public routes */}
-                  <Route path="/login" element={<LoginPage />} />
-                  <Route path="/logout" element={<LogoutPage />} />
+            <GuidelineProvider>
+              <ConfirmProvider>
+                <RouteProgressBar />
+                <Suspense fallback={<PageLoader />}>
+                  <Routes>
+                    {/* ... routes ... */}
+                    {/* Public routes */}
+                    <Route path="/login" element={<LoginPage />} />
+                    <Route path="/logout" element={<LogoutPage />} />
 
-                  {/* Protected routes */}
-                  <Route element={<ProtectedRoute><Outlet /></ProtectedRoute>}>
-                    <Route element={<Layout />}>
-                      <Route index element={<Navigate to={getDefaultPath()} replace />} />
+                    {/* Protected routes */}
+                    <Route element={<ProtectedRoute><Outlet /></ProtectedRoute>}>
+                      <Route element={<Layout />}>
+                        <Route index element={<Navigate to={getDefaultPath()} replace />} />
 
-                      {/* Chat routes */}
-                      {config.features.enableAiChat && (
-                        <>
-                          <Route path="chat" element={<AiChatPage />} />
-                          {config.features.enableHistory && (
-                            <Route path="chat/history" element={<ChatHistoryPage />} />
-                          )}
-                        </>
-                      )}
+                        {/* Chat routes */}
+                        {config.features.enableAiChat && (
+                          <>
+                            <Route path="chat" element={<AiChatPage />} />
+                            {config.features.enableHistory && (
+                              <Route path="chat/history" element={<ChatHistoryPage />} />
+                            )}
+                          </>
+                        )}
 
-                      {/* Search routes */}
-                      {config.features.enableAiSearch && (
-                        <>
-                          <Route path="search" element={<AiSearchPage />} />
-                          {config.features.enableHistory && (
-                            <Route path="search/history" element={<SearchHistoryPage />} />
-                          )}
-                        </>
-                      )}
+                        {/* Search routes */}
+                        {config.features.enableAiSearch && (
+                          <>
+                            <Route path="search" element={<AiSearchPage />} />
+                            {config.features.enableHistory && (
+                              <Route path="search/history" element={<SearchHistoryPage />} />
+                            )}
+                          </>
+                        )}
 
-                      {config.features.enableHistory && (
-                        <Route path="history" element={<HistoryPage />} />
-                      )}
+                        {config.features.enableHistory && (
+                          <Route path="history" element={<HistoryPage />} />
+                        )}
 
-                      {/* Knowledge Base routes */}
-                      <Route path="knowledge-base/documents" element={
-                        <RoleRoute allowedRoles={['admin', 'leader']}>
-                          <DocumentManagerPage />
-                        </RoleRoute>
-                      } />
-                      <Route path="knowledge-base/config" element={
-                        <AdminRoute>
-                          <KnowledgeBaseConfigPage />
-                        </AdminRoute>
-                      } />
-                      <Route path="knowledge-base/storage" element={
-                        <AdminRoute>
-                          <StoragePage />
+                        {/* Knowledge Base routes */}
+                        <Route path="knowledge-base/documents" element={
+                          <RoleRoute allowedRoles={['admin', 'leader']}>
+                            <DocumentManagerPage />
+                          </RoleRoute>
+                        } />
+                        <Route path="knowledge-base/config" element={
+                          <AdminRoute>
+                            <KnowledgeBaseConfigPage />
+                          </AdminRoute>
+                        } />
+                        <Route path="knowledge-base/storage" element={
+                          <AdminRoute>
+                            <StoragePage />
 
-                        </AdminRoute>
-                      } />
-                      <Route path="knowledge-base/prompts" element={
-                        <RoleRoute allowedRoles={['admin', 'leader']}>
-                          <PromptsPage />
-                        </RoleRoute>
-                      } />
+                          </AdminRoute>
+                        } />
+                        <Route path="knowledge-base/prompts" element={
+                          <RoleRoute allowedRoles={['admin', 'leader']}>
+                            <PromptsPage />
+                          </RoleRoute>
+                        } />
 
-                      {/* IAM routes */}
-                      <Route path="iam/users" element={
-                        <AdminRoute>
-                          <UserManagementPage />
-                        </AdminRoute>
-                      } />
+                        {/* IAM routes */}
+                        <Route path="iam/users" element={
+                          <AdminRoute>
+                            <UserManagementPage />
+                          </AdminRoute>
+                        } />
 
-                      <Route path="iam/teams" element={
-                        <AdminRoute>
-                          <TeamManagementPage />
-                        </AdminRoute>
-                      } />
+                        <Route path="iam/teams" element={
+                          <AdminRoute>
+                            <TeamManagementPage />
+                          </AdminRoute>
+                        } />
 
-                      {/* Admin routes */}
-                      <Route path="admin/audit-log" element={
-                        <AdminRoute>
-                          <AuditLogPage />
-                        </AdminRoute>
-                      } />
-                      <Route path="admin/system-tools" element={
-                        <AdminRoute>
-                          <SystemToolsPage />
-                        </AdminRoute>
-                      } />
-                      <Route path="admin/system-monitor" element={
-                        <AdminRoute>
-                          <SystemMonitorPage />
-                        </AdminRoute>
-                      } />
-                      <Route path="admin/tokenizer" element={
-                        <AdminRoute>
-                          <TokenizerPage />
-                        </AdminRoute>
-                      } />
-                      <Route path="admin/broadcast-messages" element={
-                        <AdminRoute>
-                          <BroadcastMessagePage />
-                        </AdminRoute>
-                      } />
-                      <Route path="admin/histories" element={
-                        <AdminRoute>
-                          <HistoriesPage />
-                        </AdminRoute>
-                      } />
+                        {/* Admin routes */}
+                        <Route path="admin/audit-log" element={
+                          <AdminRoute>
+                            <AuditLogPage />
+                          </AdminRoute>
+                        } />
+                        <Route path="admin/system-tools" element={
+                          <AdminRoute>
+                            <SystemToolsPage />
+                          </AdminRoute>
+                        } />
+                        <Route path="admin/system-monitor" element={
+                          <AdminRoute>
+                            <SystemMonitorPage />
+                          </AdminRoute>
+                        } />
+                        <Route path="admin/tokenizer" element={
+                          <AdminRoute>
+                            <TokenizerPage />
+                          </AdminRoute>
+                        } />
+                        <Route path="admin/broadcast-messages" element={
+                          <AdminRoute>
+                            <BroadcastMessagePage />
+                          </AdminRoute>
+                        } />
+                        <Route path="admin/histories" element={
+                          <AdminRoute>
+                            <HistoriesPage />
+                          </AdminRoute>
+                        } />
+                      </Route>
                     </Route>
-                  </Route>
 
-                  {/* Error routes */}
-                  <Route path="/403" element={<ErrorPage code={403} />} />
-                  <Route path="/404" element={<ErrorPage code={404} />} />
-                  <Route path="/500" element={<ErrorPage code={500} />} />
-                  <Route path="*" element={<Navigate to="/404" replace />} />
-                </Routes>
-              </Suspense>
-              <SettingsDialog />
-            </ConfirmProvider>
+                    {/* Error routes */}
+                    <Route path="/403" element={<ErrorPage code={403} />} />
+                    <Route path="/404" element={<ErrorPage code={404} />} />
+                    <Route path="/500" element={<ErrorPage code={500} />} />
+                    <Route path="*" element={<Navigate to="/404" replace />} />
+                  </Routes>
+                </Suspense>
+                <SettingsDialog />
+              </ConfirmProvider>
+            </GuidelineProvider>
           </KnowledgeBaseProvider>
         </SettingsProvider>
       </AuthProvider>

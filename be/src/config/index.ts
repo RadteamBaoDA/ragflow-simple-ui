@@ -117,6 +117,9 @@ export const config = {
   rootUser: process.env['KB_ROOT_USER'] || 'admin@localhost',
   rootPassword: process.env['KB_ROOT_PASSWORD'] || 'admin',
 
+  /** Test password for sample users (development/testing only) */
+  testPassword: process.env['TEST_PASSWORD'] || '',
+
   /** Base URL for Knowledge Base documents */
   kbBaseUrl: process.env['KB_BASE_URL'] || '',
 

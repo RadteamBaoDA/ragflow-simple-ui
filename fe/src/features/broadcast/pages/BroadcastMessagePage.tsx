@@ -10,6 +10,7 @@ import { BroadcastMessage } from '../types';
 import { Plus, CheckCircle, Trash2, Edit2, XCircle } from 'lucide-react';
 import { Dialog } from '@/components/Dialog';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
+import { useFirstVisit, GuidelineDialog } from '@/features/guideline';
 
 import { Table, Tag, Button, Card, Space, Pagination, Tooltip, DatePicker, ColorPicker } from 'antd';
 import dayjs from 'dayjs';
@@ -25,6 +26,15 @@ const BroadcastMessagePage: React.FC = () => {
     const queryClient = useQueryClient();
     const [isDialogOpen, setIsDialogOpen] = useState(false);
     const [editingMessage, setEditingMessage] = useState<Partial<BroadcastMessage> | null>(null);
+
+    const { isFirstVisit } = useFirstVisit('broadcast');
+    const [showGuide, setShowGuide] = useState(false);
+
+    React.useEffect(() => {
+        if (isFirstVisit) {
+            setShowGuide(true);
+        }
+    }, [isFirstVisit]);
 
     // Pagination state
     const [currentPage, setCurrentPage] = useState(1);
@@ -320,6 +330,12 @@ const BroadcastMessagePage: React.FC = () => {
                     </div>
                 </div>
             </Dialog>
+
+            <GuidelineDialog
+                open={showGuide}
+                onClose={() => setShowGuide(false)}
+                featureId="broadcast"
+            />
         </div>
     );
 };
