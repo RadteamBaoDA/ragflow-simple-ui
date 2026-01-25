@@ -25,6 +25,7 @@ import { config } from '@/config';
 import { NavigationProvider } from '@/components/NavigationLoader';
 import '@/i18n';
 import icon from '@/assets/icon.png';
+import { GuidelineProvider } from '@/features/guideline';
 // ============================================================================
 // Lazy-loaded Pages (Code Splitting)
 // ============================================================================
@@ -70,6 +71,7 @@ const PageLoader = () => (
 // ============================================================================
 
 import { message as antdMessage } from 'antd';
+import RouteProgressBar from '@/components/RouteProgressBar';
 let messageApi: any = null;
 
 // Bridge Ant Design message API so non-component code (mutations) can surface notifications
@@ -129,10 +131,12 @@ function App() {
       <AuthProvider>
         <SettingsProvider>
           <KnowledgeBaseProvider>
-            <ConfirmProvider>
-              <NavigationProvider>
+            <GuidelineProvider>
+              <ConfirmProvider>
+                <RouteProgressBar />
                 <Suspense fallback={<PageLoader />}>
                   <Routes>
+                    {/* ... routes ... */}
                     {/* Public routes */}
                     <Route path="/login" element={<LoginPage />} />
                     <Route path="/logout" element={<LogoutPage />} />
@@ -244,8 +248,8 @@ function App() {
                   </Routes>
                 </Suspense>
                 <SettingsDialog />
-              </NavigationProvider>
-            </ConfirmProvider>
+              </ConfirmProvider>
+            </GuidelineProvider>
           </KnowledgeBaseProvider>
         </SettingsProvider>
       </AuthProvider>

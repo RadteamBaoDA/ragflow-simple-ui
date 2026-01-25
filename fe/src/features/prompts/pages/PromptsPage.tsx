@@ -19,6 +19,7 @@ import { PromptPermissionModal } from '../components/PromptPermissionModal';
 import { globalMessage } from '@/app/App';
 import { useAuth } from '@/features/auth';
 import { useDebounce } from '@/hooks/useDebounce';
+import { useFirstVisit, GuidelineDialog } from '@/features/guideline';
 import dayjs from 'dayjs';
 
 // ============================================================================
@@ -62,6 +63,15 @@ export const PromptsPage = () => {
 
     // Feedback counts cache: promptId -> counts
     const [feedbackCountsMap, setFeedbackCountsMap] = useState<Record<string, FeedbackCounts>>({});
+
+    const { isFirstVisit } = useFirstVisit('kb-prompts');
+    const [showGuide, setShowGuide] = useState(false);
+
+    useEffect(() => {
+        if (isFirstVisit) {
+            setShowGuide(true);
+        }
+    }, [isFirstVisit]);
 
     // Filters
     const [searchFilter, setSearchFilter] = useState<string | undefined>();
@@ -627,6 +637,11 @@ export const PromptsPage = () => {
             <PromptPermissionModal
                 open={isPermissionModalOpen}
                 onClose={() => setIsPermissionModalOpen(false)}
+            />
+            <GuidelineDialog
+                open={showGuide}
+                onClose={() => setShowGuide(false)}
+                featureId="kb-prompts"
             />
         </div>
     );

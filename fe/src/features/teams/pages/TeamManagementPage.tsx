@@ -18,9 +18,20 @@ import { User } from '@/features/auth';
 import UserMultiSelect from '@/features/users/components/UserMultiSelect';
 import { useConfirm } from '@/components/ConfirmDialog';
 import { Dialog } from '@/components/Dialog';
+import { useFirstVisit, GuidelineDialog } from '@/features/guideline';
 
 export default function TeamManagementPage() {
     const { t } = useTranslation();
+
+    const { isFirstVisit } = useFirstVisit('iam');
+    const [showGuide, setShowGuide] = useState(false);
+
+    useEffect(() => {
+        if (isFirstVisit) {
+            setShowGuide(true);
+        }
+    }, [isFirstVisit]);
+
     const confirm = useConfirm();
     const [teams, setTeams] = useState<Team[]>([]);
     const [loading, setLoading] = useState(true);
@@ -517,6 +528,12 @@ export default function TeamManagementPage() {
                     </div>
                 </div>
             </Dialog>
+
+            <GuidelineDialog
+                open={showGuide}
+                onClose={() => setShowGuide(false)}
+                featureId="iam"
+            />
         </div>
     );
 }

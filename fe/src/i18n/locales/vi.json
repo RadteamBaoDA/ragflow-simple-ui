@@ -764,5 +764,45 @@
   },
   "errors": {
     "REAUTH_REQUIRED": "Yêu cầu xác thực lại"
+  },
+  "guideline": {
+    "title": "Hướng dẫn sử dụng",
+    "overview": "Tổng quan",
+    "welcome": "Chào mừng đến với Hướng dẫn sử dụng",
+    "quickStart": "Chủ đề Khởi đầu Nhanh",
+    "helpTooltip": "Mở Hướng dẫn sử dụng",
+    "modules": {
+      "ai-chat": {
+        "title": "Hướng dẫn AI Chat"
+      },
+      "ai-search": {
+        "title": "Hướng dẫn AI Search"
+      },
+      "kb-config": {
+        "title": "Cấu hình Cơ sở Kiến thức"
+      },
+      "kb-prompts": {
+        "title": "Thư viện Gợi ý"
+      },
+      "iam": {
+        "title": "Quản lý Định danh & Truy cập"
+      },
+      "audit": {
+        "title": "Nhật ký Kiểm toán"
+      },
+      "broadcast": {
+        "title": "Thông báo Hệ thống"
+      },
+      "global-histories": {
+        "title": "Lịch sử Hệ thống"
+      }
+    },
+    "tour": {
+      "start": "Bắt đầu hướng dẫn trực tiếp",
+      "next": "Tiếp theo",
+      "back": "Quay lại",
+      "last": "Hoàn tất",
+      "skip": "Bỏ qua"
+    }
   }
 }

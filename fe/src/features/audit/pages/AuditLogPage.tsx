@@ -24,6 +24,7 @@ import {
     X
 } from 'lucide-react';
 import { Table, Pagination, Card, Space, Avatar, DatePicker } from 'antd';
+import { useFirstVisit, GuidelineDialog } from '@/features/guideline';
 import dayjs from 'dayjs';
 
 /** API base URL from environment */
@@ -235,6 +236,15 @@ function formatDetails(details: Record<string, any>): string {
 export default function AuditLogPage() {
     const { t } = useTranslation();
     const { user: currentUser } = useAuth();
+
+    const { isFirstVisit } = useFirstVisit('audit');
+    const [showGuide, setShowGuide] = useState(false);
+
+    useEffect(() => {
+        if (isFirstVisit) {
+            setShowGuide(true);
+        }
+    }, [isFirstVisit]);
 
     // Data state for logs and pagination
     const [logs, setLogs] = useState<AuditLogEntry[]>([]);
@@ -657,6 +667,12 @@ export default function AuditLogPage() {
                     />
                 </div>
             </Card>
+
+            <GuidelineDialog
+                open={showGuide}
+                onClose={() => setShowGuide(false)}
+                featureId="audit"
+            />
         </div>
     );
 }
