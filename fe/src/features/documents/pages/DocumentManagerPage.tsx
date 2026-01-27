@@ -15,7 +15,7 @@
  */
 
 import { useState, useEffect, useRef, useMemo } from 'react';
-import { createPortal } from 'react-dom';
+import { HeaderActions } from '@/components/HeaderActions';
 import { useTranslation } from 'react-i18next';
 import {
     Table,
@@ -1152,11 +1152,9 @@ const DocumentManagerPage = () => {
         columnWidth: 50,
     };
 
-    const headerActions = document.getElementById('header-actions');
-
     return (
         <div className="w-full h-full flex flex-col">
-            {headerActions && createPortal(
+            <HeaderActions>
                 <div className="flex items-center gap-2">
                     {error && (
                         <div className="mr-2 flex items-center gap-2 px-3 py-2 bg-red-100 dark:bg-red-900/30 text-red-700 dark:text-red-300 text-sm rounded-lg border border-red-200 dark:border-red-800 max-w-2xl">
@@ -1171,51 +1169,52 @@ const DocumentManagerPage = () => {
                         disabled={buckets.length === 0}
                         className="w-64"
                     />
-                </div>,
-                headerActions
-            )}
+                </div>
+            </HeaderActions>
 
             {/* Breadcrumb Navigation */}
-            {selectedBucket && (
-                <div className="px-4 py-2 border-b border-gray-200 dark:border-gray-700 bg-white dark:bg-gray-800 flex items-center justify-between gap-4">
-                    {/* Left: Breadcrumb */}
-                    <div className="flex items-center gap-1 text-sm overflow-x-auto flex-shrink-0">
-                        <button
-                            onClick={() => navigateTo('')}
-                            className="flex items-center gap-1 px-2 py-1 text-primary dark:text-blue-400 hover:bg-primary-50 dark:hover:bg-blue-900/30 rounded transition-colors"
-                            title={t('documents.rootFolder')}
-                        >
-                            <Home className="w-4 h-4" />
-                            <span className="hidden sm:inline">{t('documents.root')}</span>
-                        </button>
-                        {currentPrefix && currentPrefix.split('/').filter(Boolean).map((folder: string, index: number, arr: string[]) => {
-                            const path = arr.slice(0, index + 1).join('/') + '/';
-                            const isLast = index === arr.length - 1;
-                            return (
-                                <div key={path} className="flex items-center gap-1">
-                                    <ChevronRight className="w-4 h-4 text-gray-400" />
-                                    <button
-                                        onClick={() => !isLast && navigateTo(path)}
-                                        className={`px-2 py-1 rounded transition-colors ${isLast
-                                            ? 'text-gray-900 dark:text-white font-medium bg-gray-100 dark:bg-gray-700'
-                                            : 'text-primary dark:text-blue-400 hover:bg-primary-50 dark:hover:bg-blue-900/30'
-                                            }`}
-                                    >
-                                        {folder}
-                                    </button>
-                                </div>
-                            );
-                        })}
-                    </div>
-
-                    {/* Right: Bucket description */}
-                    {selectedBucketInfo?.description && (
-                        <div className="flex-shrink-0 text-sm text-gray-500 dark:text-gray-400 italic truncate max-w-md" title={selectedBucketInfo.description}>
-                            {selectedBucketInfo.description}
+            {
+                selectedBucket && (
+                    <div className="px-4 py-2 border-b border-gray-200 dark:border-gray-700 bg-white dark:bg-gray-800 flex items-center justify-between gap-4">
+                        {/* Left: Breadcrumb */}
+                        <div className="flex items-center gap-1 text-sm overflow-x-auto flex-shrink-0">
+                            <button
+                                onClick={() => navigateTo('')}
+                                className="flex items-center gap-1 px-2 py-1 text-primary dark:text-blue-400 hover:bg-primary-50 dark:hover:bg-blue-900/30 rounded transition-colors"
+                                title={t('documents.rootFolder')}
+                            >
+                                <Home className="w-4 h-4" />
+                                <span className="hidden sm:inline">{t('documents.root')}</span>
+                            </button>
+                            {currentPrefix && currentPrefix.split('/').filter(Boolean).map((folder: string, index: number, arr: string[]) => {
+                                const path = arr.slice(0, index + 1).join('/') + '/';
+                                const isLast = index === arr.length - 1;
+                                return (
+                                    <div key={path} className="flex items-center gap-1">
+                                        <ChevronRight className="w-4 h-4 text-gray-400" />
+                                        <button
+                                            onClick={() => !isLast && navigateTo(path)}
+                                            className={`px-2 py-1 rounded transition-colors ${isLast
+                                                ? 'text-gray-900 dark:text-white font-medium bg-gray-100 dark:bg-gray-700'
+                                                : 'text-primary dark:text-blue-400 hover:bg-primary-50 dark:hover:bg-blue-900/30'
+                                                }`}
+                                        >
+                                            {folder}
+                                        </button>
+                                    </div>
+                                );
+                            })}
                         </div>
-                    )}
-                </div>
-            )}
+
+                        {/* Right: Bucket description */}
+                        {selectedBucketInfo?.description && (
+                            <div className="flex-shrink-0 text-sm text-gray-500 dark:text-gray-400 italic truncate max-w-md" title={selectedBucketInfo.description}>
+                                {selectedBucketInfo.description}
+                            </div>
+                        )}
+                    </div>
+                )
+            }
 
             {/* Toolbar */}
             <div className="p-4 border-b border-gray-200 dark:border-gray-700 flex items-center justify-between bg-gray-50 dark:bg-gray-900/50">
@@ -1256,7 +1255,7 @@ const DocumentManagerPage = () => {
                     <Input
                         prefix={<Search size={16} className="text-gray-400" />}
                         value={searchQuery}
-                        onChange={(e) => setSearchQuery(e.target.value)}
+                        onChange={(e: any) => setSearchQuery(e.target.value)}
                         placeholder={t('documents.searchPlaceholder')}
                         disabled={!selectedBucket}
                         allowClear
@@ -1448,214 +1447,224 @@ const DocumentManagerPage = () => {
 
 
             {/* Conflict Resolution Modal */}
-            {showConflictModal && (
-                <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50">
-                    <div className="bg-white dark:bg-gray-800 rounded-lg shadow-xl w-full max-w-md p-6">
-                        <div className="flex items-center gap-3 mb-4">
-                            <AlertCircle className="w-8 h-8 text-yellow-500" />
-                            <h3 className="text-lg font-semibold text-gray-900 dark:text-gray-100">
-                                {t('documents.conflictDetected', 'File Conflict Detected')}
-                            </h3>
-                        </div>
+            {
+                showConflictModal && (
+                    <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50">
+                        <div className="bg-white dark:bg-gray-800 rounded-lg shadow-xl w-full max-w-md p-6">
+                            <div className="flex items-center gap-3 mb-4">
+                                <AlertCircle className="w-8 h-8 text-yellow-500" />
+                                <h3 className="text-lg font-semibold text-gray-900 dark:text-gray-100">
+                                    {t('documents.conflictDetected', 'File Conflict Detected')}
+                                </h3>
+                            </div>
 
-                        <p className="text-gray-600 dark:text-gray-300 mb-4">
-                            {t('documents.conflictMessage', {
-                                count: conflictFiles.length,
-                                defaultValue: `${conflictFiles.length} file(s) already exist in this location.`
-                            })}
-                        </p>
+                            <p className="text-gray-600 dark:text-gray-300 mb-4">
+                                {t('documents.conflictMessage', {
+                                    count: conflictFiles.length,
+                                    defaultValue: `${conflictFiles.length} file(s) already exist in this location.`
+                                })}
+                            </p>
 
-                        <div className="space-y-2 mb-6 max-h-40 overflow-y-auto bg-gray-50 dark:bg-gray-900 p-2 rounded">
-                            {conflictFiles.slice(0, 10).map((file, i) => (
-                                <div key={i} className="text-sm text-gray-500 truncate">
-                                    {file}
-                                </div>
-                            ))}
-                            {conflictFiles.length > 10 && (
-                                <div className="text-xs text-center text-gray-400 mt-1">
-                                    {t('documents.andMore', { count: conflictFiles.length - 10, defaultValue: `...and ${conflictFiles.length - 10} more` })}
-                                </div>
-                            )}
-                        </div>
+                            <div className="space-y-2 mb-6 max-h-40 overflow-y-auto bg-gray-50 dark:bg-gray-900 p-2 rounded">
+                                {conflictFiles.slice(0, 10).map((file, i) => (
+                                    <div key={i} className="text-sm text-gray-500 truncate">
+                                        {file}
+                                    </div>
+                                ))}
+                                {conflictFiles.length > 10 && (
+                                    <div className="text-xs text-center text-gray-400 mt-1">
+                                        {t('documents.andMore', { count: conflictFiles.length - 10, defaultValue: `...and ${conflictFiles.length - 10} more` })}
+                                    </div>
+                                )}
+                            </div>
 
-                        <div className="flex flex-col gap-2">
-                            <button
-                                onClick={() => handleConflictResolution('replace')}
-                                className="w-full px-4 py-2 bg-red-600 hover:bg-red-700 text-white rounded-lg transition-colors flex items-center justify-center gap-2"
-                            >
-                                {t('documents.replace', 'Replace All')}
-                            </button>
-                            <button
-                                onClick={() => handleConflictResolution('keepBoth')}
-                                className="w-full px-4 py-2 bg-blue-600 hover:bg-blue-700 text-white rounded-lg transition-colors flex items-center justify-center gap-2"
-                            >
-                                {t('documents.keepBoth', 'Keep Both (Rename)')}
-                            </button>
-                            <button
-                                onClick={() => handleConflictResolution('skip')}
-                                className="w-full px-4 py-2 bg-gray-600 hover:bg-gray-700 text-white rounded-lg transition-colors flex items-center justify-center gap-2"
-                            >
-                                {t('documents.skip', 'Skip Duplicates')}
-                            </button>
-                            <button
-                                onClick={() => {
-                                    setShowConflictModal(false);
-                                    setPendingUploadFiles(null);
-                                    setConflictFiles([]);
-                                }}
-                                className="w-full px-4 py-2 border border-gray-300 dark:border-gray-600 text-gray-700 dark:text-gray-300 rounded-lg hover:bg-gray-50 dark:hover:bg-gray-700 transition-colors"
-                            >
-                                {t('common.cancel', 'Cancel')}
-                            </button>
+                            <div className="flex flex-col gap-2">
+                                <button
+                                    onClick={() => handleConflictResolution('replace')}
+                                    className="w-full px-4 py-2 bg-red-600 hover:bg-red-700 text-white rounded-lg transition-colors flex items-center justify-center gap-2"
+                                >
+                                    {t('documents.replace', 'Replace All')}
+                                </button>
+                                <button
+                                    onClick={() => handleConflictResolution('keepBoth')}
+                                    className="w-full px-4 py-2 bg-blue-600 hover:bg-blue-700 text-white rounded-lg transition-colors flex items-center justify-center gap-2"
+                                >
+                                    {t('documents.keepBoth', 'Keep Both (Rename)')}
+                                </button>
+                                <button
+                                    onClick={() => handleConflictResolution('skip')}
+                                    className="w-full px-4 py-2 bg-gray-600 hover:bg-gray-700 text-white rounded-lg transition-colors flex items-center justify-center gap-2"
+                                >
+                                    {t('documents.skip', 'Skip Duplicates')}
+                                </button>
+                                <button
+                                    onClick={() => {
+                                        setShowConflictModal(false);
+                                        setPendingUploadFiles(null);
+                                        setConflictFiles([]);
+                                    }}
+                                    className="w-full px-4 py-2 border border-gray-300 dark:border-gray-600 text-gray-700 dark:text-gray-300 rounded-lg hover:bg-gray-50 dark:hover:bg-gray-700 transition-colors"
+                                >
+                                    {t('common.cancel', 'Cancel')}
+                                </button>
+                            </div>
                         </div>
                     </div>
-                </div>
-            )}
+                )
+            }
 
             {/* Upload Progress Modal */}
-            {uploading && (
-                <div className="fixed inset-0 bg-black/50 flex items-center justify-center z-50 p-4">
-                    <div className="bg-white dark:bg-gray-800 rounded-lg shadow-xl max-w-md w-full p-6">
-                        <div className="flex items-center gap-3 mb-4">
-                            <Upload className="w-6 h-6 text-primary animate-pulse" />
-                            <h3 className="text-lg font-semibold text-gray-900 dark:text-white">
-                                {t('documents.uploadingFiles')}
-                            </h3>
-                        </div>
-                        <div className="space-y-3">
-                            <div className="flex justify-between text-sm text-gray-600 dark:text-gray-400">
-                                <span>{t('documents.filesProgress')}</span>
-                                <span>{uploadProgress.total} {t('documents.filesCount')}</span>
+            {
+                uploading && (
+                    <div className="fixed inset-0 bg-black/50 flex items-center justify-center z-50 p-4">
+                        <div className="bg-white dark:bg-gray-800 rounded-lg shadow-xl max-w-md w-full p-6">
+                            <div className="flex items-center gap-3 mb-4">
+                                <Upload className="w-6 h-6 text-primary animate-pulse" />
+                                <h3 className="text-lg font-semibold text-gray-900 dark:text-white">
+                                    {t('documents.uploadingFiles')}
+                                </h3>
                             </div>
-                            <div className="flex justify-between text-sm text-gray-600 dark:text-gray-400">
-                                <span>{t('documents.transferProgress')}</span>
-                                <span>{uploadProgress.transferProgress.toFixed(0)}%</span>
-                            </div>
-                            <div className="w-full bg-gray-200 dark:bg-gray-700 rounded-full h-2">
-                                <div
-                                    className="bg-primary dark:bg-blue-500 h-2 rounded-full transition-all duration-300"
-                                    style={{ width: `${uploadProgress.transferProgress}%` }}
-                                />
+                            <div className="space-y-3">
+                                <div className="flex justify-between text-sm text-gray-600 dark:text-gray-400">
+                                    <span>{t('documents.filesProgress')}</span>
+                                    <span>{uploadProgress.total} {t('documents.filesCount')}</span>
+                                </div>
+                                <div className="flex justify-between text-sm text-gray-600 dark:text-gray-400">
+                                    <span>{t('documents.transferProgress')}</span>
+                                    <span>{uploadProgress.transferProgress.toFixed(0)}%</span>
+                                </div>
+                                <div className="w-full bg-gray-200 dark:bg-gray-700 rounded-full h-2">
+                                    <div
+                                        className="bg-primary dark:bg-blue-500 h-2 rounded-full transition-all duration-300"
+                                        style={{ width: `${uploadProgress.transferProgress}%` }}
+                                    />
+                                </div>
                             </div>
                         </div>
                     </div>
-                </div>
-            )}
+                )
+            }
 
             {/* Create Folder Modal */}
-            {showCreateFolderModal && (
-                <div className="fixed inset-0 bg-black/50 flex items-center justify-center z-50 p-4">
-                    <div className="bg-white dark:bg-gray-800 rounded-lg shadow-xl max-w-md w-full">
-                        <div className="flex items-center justify-between p-4 border-b border-gray-200 dark:border-gray-700">
-                            <h2 className="text-lg font-semibold text-gray-900 dark:text-white">{t('documents.createFolder')}</h2>
-                            <button
-                                onClick={() => {
-                                    setShowCreateFolderModal(false);
-                                    setNewFolderName('');
-                                    setFolderError(null);
-                                }}
-                                className="p-1 hover:bg-gray-100 dark:hover:bg-gray-700 rounded"
-                            >
-                                <X className="w-5 h-5" />
-                            </button>
-                        </div>
-
-                        <div className="p-4 space-y-4">
-                            <div>
-                                <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">
-                                    {t('documents.folderName')}
-                                </label>
-                                <input
-                                    type="text"
-                                    value={newFolderName}
-                                    onChange={(e) => {
-                                        setNewFolderName(e.target.value);
+            {
+                showCreateFolderModal && (
+                    <div className="fixed inset-0 bg-black/50 flex items-center justify-center z-50 p-4">
+                        <div className="bg-white dark:bg-gray-800 rounded-lg shadow-xl max-w-md w-full">
+                            <div className="flex items-center justify-between p-4 border-b border-gray-200 dark:border-gray-700">
+                                <h2 className="text-lg font-semibold text-gray-900 dark:text-white">{t('documents.createFolder')}</h2>
+                                <button
+                                    onClick={() => {
+                                        setShowCreateFolderModal(false);
+                                        setNewFolderName('');
                                         setFolderError(null);
                                     }}
-                                    onKeyPress={(e) => e.key === 'Enter' && handleCreateFolder()}
-                                    placeholder={t('documents.folderNamePlaceholder')}
-                                    className={`w-full px-3 py-2 border rounded-lg bg-white dark:bg-gray-700 text-gray-900 dark:text-white focus:ring-2 focus:ring-primary dark:focus:ring-blue-500 focus:border-transparent ${folderError
-                                        ? 'border-red-500 dark:border-red-500'
-                                        : 'border-gray-300 dark:border-gray-600'
-                                        }`}
-                                    autoFocus
-                                />
-                                {folderError && (
-                                    <p className="mt-1 text-sm text-red-600 dark:text-red-400">{folderError}</p>
-                                )}
+                                    className="p-1 hover:bg-gray-100 dark:hover:bg-gray-700 rounded"
+                                >
+                                    <X className="w-5 h-5" />
+                                </button>
+                            </div>
+
+                            <div className="p-4 space-y-4">
+                                <div>
+                                    <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">
+                                        {t('documents.folderName')}
+                                    </label>
+                                    <input
+                                        type="text"
+                                        value={newFolderName}
+                                        onChange={(e) => {
+                                            setNewFolderName(e.target.value);
+                                            setFolderError(null);
+                                        }}
+                                        onKeyPress={(e) => e.key === 'Enter' && handleCreateFolder()}
+                                        placeholder={t('documents.folderNamePlaceholder')}
+                                        className={`w-full px-3 py-2 border rounded-lg bg-white dark:bg-gray-700 text-gray-900 dark:text-white focus:ring-2 focus:ring-primary dark:focus:ring-blue-500 focus:border-transparent ${folderError
+                                            ? 'border-red-500 dark:border-red-500'
+                                            : 'border-gray-300 dark:border-gray-600'
+                                            }`}
+                                        autoFocus
+                                    />
+                                    {folderError && (
+                                        <p className="mt-1 text-sm text-red-600 dark:text-red-400">{folderError}</p>
+                                    )}
+                                </div>
+                            </div>
+
+                            <div className="flex items-center justify-end gap-2 p-4 border-t border-gray-200 dark:border-gray-700">
+                                <button
+                                    onClick={() => {
+                                        setShowCreateFolderModal(false);
+                                        setNewFolderName('');
+                                        setFolderError(null);
+                                    }}
+                                    className="px-4 py-2 text-gray-700 dark:text-gray-300 hover:bg-gray-100 dark:hover:bg-gray-700 rounded-lg transition-colors"
+                                >
+                                    {t('common.cancel')}
+                                </button>
+                                <button
+                                    onClick={handleCreateFolder}
+                                    disabled={creatingFolder || !newFolderName.trim()}
+                                    className="px-4 py-2 bg-primary dark:bg-blue-600 hover:bg-primary-hover dark:hover:bg-blue-700 text-white rounded-lg transition-colors disabled:opacity-50 disabled:cursor-not-allowed flex items-center gap-2"
+                                >
+                                    {creatingFolder ? (
+                                        <>
+                                            <RefreshCw className="w-4 h-4 animate-spin" />
+                                            {t('documents.creatingFolder')}
+                                        </>
+                                    ) : (
+                                        t('documents.createFolder')
+                                    )}
+                                </button>
                             </div>
                         </div>
-
-                        <div className="flex items-center justify-end gap-2 p-4 border-t border-gray-200 dark:border-gray-700">
-                            <button
-                                onClick={() => {
-                                    setShowCreateFolderModal(false);
-                                    setNewFolderName('');
-                                    setFolderError(null);
-                                }}
-                                className="px-4 py-2 text-gray-700 dark:text-gray-300 hover:bg-gray-100 dark:hover:bg-gray-700 rounded-lg transition-colors"
-                            >
-                                {t('common.cancel')}
-                            </button>
-                            <button
-                                onClick={handleCreateFolder}
-                                disabled={creatingFolder || !newFolderName.trim()}
-                                className="px-4 py-2 bg-primary dark:bg-blue-600 hover:bg-primary-hover dark:hover:bg-blue-700 text-white rounded-lg transition-colors disabled:opacity-50 disabled:cursor-not-allowed flex items-center gap-2"
-                            >
-                                {creatingFolder ? (
-                                    <>
-                                        <RefreshCw className="w-4 h-4 animate-spin" />
-                                        {t('documents.creatingFolder')}
-                                    </>
-                                ) : (
-                                    t('documents.createFolder')
-                                )}
-                            </button>
-                        </div>
                     </div>
-                </div>
-            )}
+                )
+            }
 
             {/* Delete Progress Modal */}
-            {deleting && (
-                <div className="fixed inset-0 bg-black/50 flex items-center justify-center z-50 p-4">
-                    <div className="bg-white dark:bg-gray-800 rounded-lg shadow-xl max-w-md w-full p-6">
-                        <div className="flex items-center gap-3 mb-4">
-                            <RefreshCw className="w-6 h-6 text-primary-600 animate-spin" />
-                            <h3 className="text-lg font-semibold text-gray-900 dark:text-white">
-                                {t('documents.deletingItems')}
-                            </h3>
-                        </div>
-                        <div className="space-y-2">
-                            <div className="flex justify-between text-sm text-gray-600 dark:text-gray-400">
-                                <span>{t('documents.progress')}</span>
-                                <span>{deleteProgress.current} / {deleteProgress.total}</span>
+            {
+                deleting && (
+                    <div className="fixed inset-0 bg-black/50 flex items-center justify-center z-50 p-4">
+                        <div className="bg-white dark:bg-gray-800 rounded-lg shadow-xl max-w-md w-full p-6">
+                            <div className="flex items-center gap-3 mb-4">
+                                <RefreshCw className="w-6 h-6 text-primary-600 animate-spin" />
+                                <h3 className="text-lg font-semibold text-gray-900 dark:text-white">
+                                    {t('documents.deletingItems')}
+                                </h3>
                             </div>
-                            <div className="w-full bg-gray-200 dark:bg-gray-700 rounded-full h-2">
-                                <div
-                                    className="bg-primary dark:bg-blue-500 h-2 rounded-full transition-all duration-300"
-                                    style={{ width: `${(deleteProgress.current / deleteProgress.total) * 100}%` }}
-                                />
+                            <div className="space-y-2">
+                                <div className="flex justify-between text-sm text-gray-600 dark:text-gray-400">
+                                    <span>{t('documents.progress')}</span>
+                                    <span>{deleteProgress.current} / {deleteProgress.total}</span>
+                                </div>
+                                <div className="w-full bg-gray-200 dark:bg-gray-700 rounded-full h-2">
+                                    <div
+                                        className="bg-primary dark:bg-blue-500 h-2 rounded-full transition-all duration-300"
+                                        style={{ width: `${(deleteProgress.current / deleteProgress.total) * 100}%` }}
+                                    />
+                                </div>
                             </div>
                         </div>
                     </div>
-                </div>
-            )}
+                )
+            }
             {/* Preview Modal */}
             {/* Preview Modal */}
-            {showPreview && previewFile && (
-                <FilePreviewModal
-                    onClose={() => {
-                        setShowPreview(false);
-                        setPreviewFile(null);
-                        setPreviewUrl(null);
-                    }}
-                    file={previewFile}
-                    url={previewUrl || ''}
-                    onDownload={() => handleDownload(previewFile)}
-                />
-            )}
-        </div>
+            {
+                showPreview && previewFile && (
+                    <FilePreviewModal
+                        onClose={() => {
+                            setShowPreview(false);
+                            setPreviewFile(null);
+                            setPreviewUrl(null);
+                        }}
+                        file={previewFile}
+                        url={previewUrl || ''}
+                        onDownload={() => handleDownload(previewFile)}
+                    />
+                )
+            }
+        </div >
     );
 };
 

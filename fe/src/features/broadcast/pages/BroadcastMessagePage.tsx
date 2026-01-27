@@ -3,7 +3,7 @@
  */
 
 import React, { useState } from 'react';
-import { createPortal } from 'react-dom';
+import { HeaderActions } from '@/components/HeaderActions';
 import { useTranslation } from 'react-i18next';
 import { broadcastMessageService } from '../api/broadcastMessageService';
 import { BroadcastMessage } from '../types';
@@ -95,33 +95,31 @@ const BroadcastMessagePage: React.FC = () => {
 
     /**
      * @description Renders the "Add" button into the header portal.
-     * @returns {React.ReactPortal | null} Portal content.
+     * @returns {JSX.Element | null} Portal content.
      */
     const renderHeaderActions = () => {
-        const headerActions = document.getElementById('header-actions');
-        if (!headerActions) return null;
-
-        return createPortal(
-            <Button
-                type="primary"
-                icon={<Plus className="w-4 h-4" />}
-                onClick={() => {
-                    setEditingMessage({
-                        message: '',
-                        starts_at: new Date().toISOString().slice(0, 16),
-                        ends_at: new Date(Date.now() + 86400000).toISOString().slice(0, 16),
-                        color: '#4043e7ff',
-                        font_color: '#FFFFFF',
-                        is_active: true,
-                        is_dismissible: true,
-                    });
-                    setIsDialogOpen(true);
-                }}
-                className="flex items-center gap-2"
-            >
-                {t('common.add')}
-            </Button>,
-            headerActions
+        return (
+            <HeaderActions>
+                <Button
+                    type="primary"
+                    icon={<Plus className="w-4 h-4" />}
+                    onClick={() => {
+                        setEditingMessage({
+                            message: '',
+                            starts_at: new Date().toISOString().slice(0, 16),
+                            ends_at: new Date(Date.now() + 86400000).toISOString().slice(0, 16),
+                            color: '#4043e7ff',
+                            font_color: '#FFFFFF',
+                            is_active: true,
+                            is_dismissible: true,
+                        });
+                        setIsDialogOpen(true);
+                    }}
+                    className="flex items-center gap-2"
+                >
+                    {t('common.add')}
+                </Button>
+            </HeaderActions>
         );
     };
 
@@ -295,7 +293,7 @@ const BroadcastMessagePage: React.FC = () => {
                             <label className="block text-sm font-medium mb-1">{t('common.backgroundColor')}</label>
                             <ColorPicker
                                 value={editingMessage?.color || '#4043e7ff'}
-                                onChange={(color) => setEditingMessage({ ...editingMessage, color: color.toHexString() })}
+                                onChange={(color: any) => setEditingMessage({ ...editingMessage, color: color.toHexString() })}
                                 showText
                                 format="hex"
                             />
@@ -304,7 +302,7 @@ const BroadcastMessagePage: React.FC = () => {
                             <label className="block text-sm font-medium mb-1">{t('common.fontColor')}</label>
                             <ColorPicker
                                 value={editingMessage?.font_color || '#FFFFFF'}
-                                onChange={(color) => setEditingMessage({ ...editingMessage, font_color: color.toHexString() })}
+                                onChange={(color: any) => setEditingMessage({ ...editingMessage, font_color: color.toHexString() })}
                                 showText
                                 format="hex"
                             />

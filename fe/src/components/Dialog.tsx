@@ -8,7 +8,7 @@
  * @module components/Dialog
  */
 
-import { Fragment, ReactNode } from 'react';
+import { Fragment, ReactNode, useState, useEffect, useId } from 'react';
 import { Dialog as HeadlessDialog, DialogPanel, DialogTitle, Transition, TransitionChild } from '@headlessui/react';
 import { X } from 'lucide-react';
 
@@ -77,13 +77,27 @@ export function Dialog({
     maxWidth = 'md',
     className = ''
 }: DialogProps) {
+    // Track mounted state to prevent portal cleanup issues during navigation
+    const [isMounted, setIsMounted] = useState(false);
+    const dialogId = useId();
+
+    useEffect(() => {
+        setIsMounted(true);
+        return () => {
+            setIsMounted(false);
+        };
+    }, []);
+
+    // Don't render until mounted to prevent SSR/hydration issues
+    if (!isMounted) {
+        return null;
+    }
 
     return (
         <Transition appear show={open} as={Fragment}>
-            <HeadlessDialog className="relative z-50" onClose={onClose}>
-                {/* Backdrop */}
+            <HeadlessDialog key={dialogId} className="relative z-50" onClose={onClose}>
+                {/* Backdrop - using div wrapper instead of Fragment for as prop */}
                 <TransitionChild
-                    as={Fragment}
                     enter="ease-out duration-300"
                     enterFrom="opacity-0"
                     enterTo="opacity-100"
@@ -98,7 +112,6 @@ export function Dialog({
                 <div className="fixed inset-0 overflow-y-auto">
                     <div className="flex min-h-full items-center justify-center p-4">
                         <TransitionChild
-                            as={Fragment}
                             enter="ease-out duration-300"
                             enterFrom="opacity-0 scale-95"
                             enterTo="opacity-100 scale-100"

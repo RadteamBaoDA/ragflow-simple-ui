@@ -22,6 +22,7 @@ import { useAuth, User } from '@/features/auth';
 import { useSettings } from '@/app/contexts/SettingsContext';
 import { useKnowledgeBase } from '@/features/knowledge-base';
 import { useNavigation } from '@/components/NavigationLoader';
+import { useHeaderActionsContent } from '@/components/HeaderActions';
 import { config } from '../config';
 import { Select } from '@/components/Select';
 import {
@@ -145,6 +146,9 @@ function Layout() {
 
   // Navigation loading overlay hook
   const { startNavigation } = useNavigation();
+
+  // Get header actions injected from page components via context
+  const headerActionsContent = useHeaderActionsContent();
 
   /**
    * Handle navigation link click - show loading overlay immediately
@@ -478,6 +482,8 @@ function Layout() {
               {guidelineFeatureId && (
                 <GuidelineHelpButton featureId={guidelineFeatureId} className="mr-1" />
               )}
+              {/* Render injected actions from pages via HeaderActions component */}
+              {headerActionsContent}
             </div>
 
             {showChatDropdown && (

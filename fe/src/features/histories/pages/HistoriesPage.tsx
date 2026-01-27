@@ -14,7 +14,6 @@ import { Dialog } from '@/components/Dialog';
 import { MarkdownRenderer } from '@/components/MarkdownRenderer';
 import { useFirstVisit, GuidelineDialog } from '@/features/guideline';
 import { useKnowledgeBase } from '@/features/knowledge-base/context/KnowledgeBaseContext';
-import { useFirstVisit, GuidelineDialog } from '@/features/guideline';
 
 // ============================================================================
 // Types

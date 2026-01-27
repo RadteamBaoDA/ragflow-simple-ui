@@ -20,6 +20,15 @@ export default {
           active: '#0D26CF',  // Blue
         },
       },
+      keyframes: {
+        fadeIn: {
+          '0%': { opacity: '0' },
+          '100%': { opacity: '1' },
+        },
+      },
+      animation: {
+        fadeIn: 'fadeIn 0.1s ease-out forwards',
+      },
     },
   },
   plugins: [
