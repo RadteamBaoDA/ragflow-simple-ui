@@ -172,7 +172,7 @@ export function useNavigation(): NavigationContextType {
 function NavigationOverlay() {
     return (
         <div
-            className="fixed inset-0 z-[9999] bg-slate-900/40 dark:bg-slate-900/60 backdrop-blur-[2px] flex items-center justify-center opacity-0 animate-[fadeIn_0.1s_ease-out_forwards]"
+            className="fixed inset-0 z-[9999] bg-slate-900/90 dark:bg-black/95 backdrop-blur-sm flex items-center justify-center opacity-0 animate-[fadeIn_0.1s_ease-out_forwards]"
             style={{
                 pointerEvents: 'all',
             }}
