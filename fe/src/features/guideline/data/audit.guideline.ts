@@ -49,19 +49,31 @@ export const auditGuideline: IFeatureGuideline = {
                     },
                     details: {
                         en: [
-                            '1. Use the advanced filter controls at the top.',
-                            '2. Search for a specific User ID or Action (e.g., LOGIN_FAILED).',
-                            '3. Export filtered results to CSV for external analysis.'
+                            '1. Click the filter icon to open the filter dialog.',
+                            '2. Search for a specific User ID or Action type (e.g., LOGIN_FAILED).',
+                            '3. **Start Date**: Click the date picker and select the beginning date of your range.',
+                            '4. **End Date**: Click the date picker and select the ending date of your range.',
+                            '5. Click **"Apply Filters"** to filter the audit logs by the selected criteria.',
+                            '6. Click **"Reset"** to clear all filters and show all logs.',
+                            '7. Export filtered results to CSV for external analysis.'
                         ],
                         vi: [
-                            '1. Sử dụng các điều khiển bộ lọc nâng cao ở trên cùng.',
-                            '2. Tìm kiếm ID người dùng hoặc Hành động cụ thể (ví dụ: LOGIN_FAILED).',
-                            '3. Xuất kết quả đã lọc sang CSV để phân tích bên ngoài.'
+                            '1. Nhấp vào biểu tượng bộ lọc để mở hộp thoại bộ lọc.',
+                            '2. Tìm kiếm ID người dùng hoặc loại Hành động cụ thể (ví dụ: LOGIN_FAILED).',
+                            '3. **Ngày Bắt Đầu**: Nhấp vào bộ chọn ngày và chọn ngày bắt đầu của phạm vi.',
+                            '4. **Ngày Kết Thúc**: Nhấp vào bộ chọn ngày và chọn ngày kết thúc của phạm vi.',
+                            '5. Nhấp **"Áp Dụng Bộ Lọc"** để lọc nhật ký kiểm toán theo các tiêu chí đã chọn.',
+                            '6. Nhấp **"Đặt Lại"** để xóa tất cả bộ lọc và hiển thị tất cả nhật ký.',
+                            '7. Xuất kết quả đã lọc sang CSV để phân tích bên ngoài.'
                         ],
                         ja: [
-                            '1. 上部にある高度なフィルタコントロールを使用します。',
-                            '2. 特定のユーザーIDまたはアクション（例：LOGIN_FAILED）を検索します。',
-                            '3. フィルタリングされた結果をCSVにエクスポートして、外部分析を行います。'
+                            '1. フィルタアイコンをクリックしてフィルタダイアログを開きます。',
+                            '2. 特定のユーザーIDまたはアクションタイプ（例：LOGIN_FAILED）を検索します。',
+                            '3. **開始日**: 日付ピッカーをクリックして、範囲の開始日を選択します。',
+                            '4. **終了日**: 日付ピッカーをクリックして、範囲の終了日を選択します。',
+                            '5. **「フィルタを適用」** をクリックして、選択した基準で監査ログをフィルタリングします。',
+                            '6. **「リセット」** をクリックして、すべてのフィルタをクリアし、すべてのログを表示します。',
+                            '7. フィルタリングされた結果をCSVにエクスポートして、外部分析を行います。'
                         ]
                     }
                 }

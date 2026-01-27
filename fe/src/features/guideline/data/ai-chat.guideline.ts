@@ -234,6 +234,168 @@ export const aiChatGuideline: IFeatureGuideline = {
             ]
         },
         {
+            tabId: 'promptGuideline',
+            tabTitle: { en: 'Prompt Guideline', vi: 'Hướng Dẫn Viết Prompt', ja: 'プロンプトガイドライン' },
+            steps: [
+                {
+                    id: 'step1',
+                    title: { en: 'Prompt Structure', vi: 'Cấu Trúc Prompt', ja: 'プロンプト構造' },
+                    description: {
+                        en: 'Learn the basic structure for effective prompts with knowledge base.',
+                        vi: 'Tìm hiểu cấu trúc cơ bản cho các prompt hiệu quả với cơ sở tri thức.',
+                        ja: 'ナレッジベースで効果的なプロンプトの基本構造を学びます。'
+                    },
+                    details: {
+                        en: [
+                            '**First Sentence: Guide the AI**',
+                            '• Start with a clear instruction telling the AI what to do.',
+                            '• Example: "Summarize the key points from the documents."',
+                            '• Example: "Compare the information between these two sources."',
+                            '',
+                            '**Second Sentence: Your Query/Input**',
+                            '• Provide your specific question or the content to process.',
+                            '• Example: "What are the main differences between policy A and B?"',
+                            '• Example: "Explain the process described in document X."'
+                        ],
+                        vi: [
+                            '**Câu đầu tiên: Hướng dẫn AI**',
+                            '• Bắt đầu bằng một chỉ dẫn rõ ràng cho AI biết phải làm gì.',
+                            '• Ví dụ: "Tóm tắt các điểm chính từ các tài liệu."',
+                            '• Ví dụ: "So sánh thông tin giữa hai nguồn này."',
+                            '',
+                            '**Câu thứ hai: Câu hỏi/Đầu vào của bạn**',
+                            '• Cung cấp câu hỏi cụ thể hoặc nội dung cần xử lý.',
+                            '• Ví dụ: "Sự khác biệt chính giữa chính sách A và B là gì?"',
+                            '• Ví dụ: "Giải thích quy trình được mô tả trong tài liệu X."'
+                        ],
+                        ja: [
+                            '**最初の文：AIへの指示**',
+                            '• AIに何をすべきかを明確に指示することから始めます。',
+                            '• 例：「ドキュメントから要点を要約してください。」',
+                            '• 例：「これら2つのソース間の情報を比較してください。」',
+                            '',
+                            '**2番目の文：あなたのクエリ/入力**',
+                            '• 具体的な質問または処理するコンテンツを提供します。',
+                            '• 例：「ポリシーAとBの主な違いは何ですか？」',
+                            '• 例：「ドキュメントXで説明されているプロセスを説明してください。」'
+                        ]
+                    }
+                },
+                {
+                    id: 'step2',
+                    title: { en: 'Best Practice Examples', vi: 'Ví Dụ Thực Hành Tốt', ja: 'ベストプラクティス例' },
+                    description: {
+                        en: 'Real-world examples of effective prompts for knowledge base queries.',
+                        vi: 'Các ví dụ thực tế về prompt hiệu quả cho truy vấn cơ sở tri thức.',
+                        ja: 'ナレッジベースクエリの効果的なプロンプトの実例。'
+                    },
+                    details: {
+                        en: [
+                            '**For Summarization:**',
+                            '• "Based on the uploaded documents, provide a summary. Focus on the main objectives and key findings."',
+                            '',
+                            '**For Comparison:**',
+                            '• "Compare and contrast the information. What are the similarities and differences between product X and Y?"',
+                            '',
+                            '**For Explanation:**',
+                            '• "Using the knowledge base, explain in simple terms. How does the approval workflow function?"',
+                            '',
+                            '**For Analysis:**',
+                            '• "Analyze the data from the documents. What trends can be identified in the quarterly reports?"'
+                        ],
+                        vi: [
+                            '**Để Tóm Tắt:**',
+                            '• "Dựa trên các tài liệu đã tải lên, cung cấp bản tóm tắt. Tập trung vào các mục tiêu chính và phát hiện quan trọng."',
+                            '',
+                            '**Để So Sánh:**',
+                            '• "So sánh và đối chiếu thông tin. Điểm giống và khác nhau giữa sản phẩm X và Y là gì?"',
+                            '',
+                            '**Để Giải Thích:**',
+                            '• "Sử dụng cơ sở tri thức, giải thích một cách đơn giản. Quy trình phê duyệt hoạt động như thế nào?"',
+                            '',
+                            '**Để Phân Tích:**',
+                            '• "Phân tích dữ liệu từ các tài liệu. Có thể nhận ra xu hướng nào trong các báo cáo hàng quý?"'
+                        ],
+                        ja: [
+                            '**要約の場合：**',
+                            '• 「アップロードされたドキュメントに基づいて要約を提供してください。主な目的と重要な発見に焦点を当ててください。」',
+                            '',
+                            '**比較の場合：**',
+                            '• 「情報を比較対照してください。製品XとYの類似点と相違点は何ですか？」',
+                            '',
+                            '**説明の場合：**',
+                            '• 「ナレッジベースを使用して、簡単な言葉で説明してください。承認ワークフローはどのように機能しますか？」',
+                            '',
+                            '**分析の場合：**',
+                            '• 「ドキュメントからデータを分析してください。四半期報告書でどのような傾向が特定できますか？」'
+                        ]
+                    }
+                },
+                {
+                    id: 'step3',
+                    title: { en: 'Tips for Qwen3', vi: 'Mẹo Cho Qwen3', ja: 'Qwen3のヒント' },
+                    description: {
+                        en: 'Optimize your prompts specifically for Qwen3 model.',
+                        vi: 'Tối ưu hóa prompt của bạn đặc biệt cho mô hình Qwen3.',
+                        ja: 'Qwen3モデル向けにプロンプトを最適化します。'
+                    },
+                    details: {
+                        en: [
+                            '**Be Specific:**',
+                            '• Clearly state the task type (summarize, compare, explain, analyze).',
+                            '• Specify the scope and depth of the response you expect.',
+                            '',
+                            '**Use Context Keywords:**',
+                            '• Include phrases like "based on the documents", "from the knowledge base".',
+                            '• This helps Qwen3 prioritize knowledge base content over general knowledge.',
+                            '',
+                            '**Structure Your Request:**',
+                            '• For complex queries, break them into numbered steps.',
+                            '• Example: "1. Find relevant sections about X. 2. Summarize each section. 3. Compare the findings."',
+                            '',
+                            '**Avoid Vague Questions:**',
+                            '• ❌ "Tell me about this"',
+                            '• ✅ "Explain the main features of the product described in the uploaded manual."'
+                        ],
+                        vi: [
+                            '**Cụ Thể:**',
+                            '• Nêu rõ loại nhiệm vụ (tóm tắt, so sánh, giải thích, phân tích).',
+                            '• Chỉ định phạm vi và độ sâu của phản hồi bạn mong đợi.',
+                            '',
+                            '**Sử Dụng Từ Khóa Ngữ Cảnh:**',
+                            '• Bao gồm các cụm từ như "dựa trên các tài liệu", "từ cơ sở tri thức".',
+                            '• Điều này giúp Qwen3 ưu tiên nội dung cơ sở tri thức hơn kiến thức chung.',
+                            '',
+                            '**Cấu Trúc Yêu Cầu:**',
+                            '• Đối với các truy vấn phức tạp, chia chúng thành các bước được đánh số.',
+                            '• Ví dụ: "1. Tìm các phần liên quan về X. 2. Tóm tắt từng phần. 3. So sánh các phát hiện."',
+                            '',
+                            '**Tránh Câu Hỏi Mơ Hồ:**',
+                            '• ❌ "Cho tôi biết về cái này"',
+                            '• ✅ "Giải thích các tính năng chính của sản phẩm được mô tả trong hướng dẫn sử dụng đã tải lên."'
+                        ],
+                        ja: [
+                            '**具体的に：**',
+                            '• タスクの種類（要約、比較、説明、分析）を明確に述べてください。',
+                            '• 期待する回答の範囲と深さを指定してください。',
+                            '',
+                            '**コンテキストキーワードを使用：**',
+                            '• 「ドキュメントに基づいて」、「ナレッジベースから」などのフレーズを含めてください。',
+                            '• これにより、Qwen3は一般的な知識よりもナレッジベースのコンテンツを優先します。',
+                            '',
+                            '**リクエストを構造化：**',
+                            '• 複雑なクエリの場合は、番号付きのステップに分割してください。',
+                            '• 例：「1. Xに関する関連セクションを見つける。2. 各セクションを要約する。3. 発見を比較する。」',
+                            '',
+                            '**あいまいな質問を避ける：**',
+                            '• ❌ 「これについて教えて」',
+                            '• ✅ 「アップロードされたマニュアルに記載されている製品の主な機能を説明してください。」'
+                        ]
+                    }
+                }
+            ]
+        },
+        {
             tabId: 'historySearch',
             tabTitle: { en: 'Search & Filter', vi: 'Tìm Kiếm & Lọc', ja: '検索とフィルタ' },
             steps: [
@@ -267,25 +429,31 @@ export const aiChatGuideline: IFeatureGuideline = {
                     id: 'step2',
                     title: { en: 'Filter Options', vi: 'Tùy Chọn Lọc', ja: 'フィルタオプション' },
                     description: {
-                        en: 'Filter sessions by date range or other criteria.',
-                        vi: 'Lọc các phiên theo phạm vi ngày hoặc các tiêu chí khác.',
-                        ja: '日付範囲やその他の基準でセッションをフィルタリングします。'
+                        en: 'Filter sessions by date range using date pickers.',
+                        vi: 'Lọc các phiên theo phạm vi ngày bằng bộ chọn ngày.',
+                        ja: '日付ピッカーを使用して日付範囲でセッションをフィルタリングします。'
                     },
                     details: {
                         en: [
-                            '1. Click the filter icon next to the search bar.',
-                            '2. Select a date range (e.g., Last 7 days, Last month).',
-                            '3. Apply filters to narrow down the history list.'
+                            '1. Click the filter icon next to the search bar to open the "Filter History" dialog.',
+                            '2. **Start Date**: Click the date picker and select the beginning date of your range.',
+                            '3. **End Date**: Click the date picker and select the ending date of your range.',
+                            '4. Click **"Apply Filters"** to filter the history list by the selected date range.',
+                            '5. Click **"Reset"** to clear all date filters and show all history.'
                         ],
                         vi: [
-                            '1. Nhấp vào biểu tượng bộ lọc bên cạnh thanh tìm kiếm.',
-                            '2. Chọn phạm vi ngày (ví dụ: 7 ngày qua, Tháng trước).',
-                            '3. Áp dụng bộ lọc để thu hẹp danh sách lịch sử.'
+                            '1. Nhấp vào biểu tượng bộ lọc bên cạnh thanh tìm kiếm để mở hộp thoại "Lọc Lịch Sử".',
+                            '2. **Ngày Bắt Đầu**: Nhấp vào bộ chọn ngày và chọn ngày bắt đầu của phạm vi.',
+                            '3. **Ngày Kết Thúc**: Nhấp vào bộ chọn ngày và chọn ngày kết thúc của phạm vi.',
+                            '4. Nhấp **"Áp Dụng Bộ Lọc"** để lọc danh sách lịch sử theo phạm vi ngày đã chọn.',
+                            '5. Nhấp **"Đặt Lại"** để xóa tất cả bộ lọc ngày và hiển thị toàn bộ lịch sử.'
                         ],
                         ja: [
-                            '1. 検索バーの横にあるフィルタアイコンをクリックします。',
-                            '2. 日付範囲を選択します（例：過去7日間、先月）。',
-                            '3. フィルタを適用して履歴リストを絞り込みます。'
+                            '1. 検索バーの横にあるフィルタアイコンをクリックして「履歴をフィルタ」ダイアログを開きます。',
+                            '2. **開始日**: 日付ピッカーをクリックして、範囲の開始日を選択します。',
+                            '3. **終了日**: 日付ピッカーをクリックして、範囲の終了日を選択します。',
+                            '4. **「フィルタを適用」** をクリックして、選択した日付範囲で履歴リストをフィルタリングします。',
+                            '5. **「リセット」** をクリックして、すべての日付フィルタをクリアし、すべての履歴を表示します。'
                         ]
                     }
                 }

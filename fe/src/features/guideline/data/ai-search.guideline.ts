@@ -113,19 +113,28 @@ export const aiSearchGuideline: IFeatureGuideline = {
                     },
                     details: {
                         en: [
-                            '1. Click on the "Filter" button near the search bar.',
-                            '2. Choose specific file types (e.g., PDF, DOCX) or kb categories.',
-                            '3. Set a date range to find recent documents only.'
+                            '1. Click on the "Filter" button near the search bar to open the filter dialog.',
+                            '2. Choose specific file types (e.g., PDF, DOCX) or KB categories.',
+                            '3. **Start Date**: Click the date picker and select the beginning date of your range.',
+                            '4. **End Date**: Click the date picker and select the ending date of your range.',
+                            '5. Click **"Apply Filters"** to filter results by the selected criteria.',
+                            '6. Click **"Reset"** to clear all filters and show all results.'
                         ],
                         vi: [
-                            '1. Nhấp vào nút "Bộ lọc" gần thanh tìm kiếm.',
-                            '2. Chọn các loại tệp cụ thể (ví dụ: PDF, DOCX) hoặc danh mục kb.',
-                            '3. Đặt phạm vi ngày để chỉ tìm các tài liệu gần đây.'
+                            '1. Nhấp vào nút "Bộ lọc" gần thanh tìm kiếm để mở hộp thoại bộ lọc.',
+                            '2. Chọn các loại tệp cụ thể (ví dụ: PDF, DOCX) hoặc danh mục KB.',
+                            '3. **Ngày Bắt Đầu**: Nhấp vào bộ chọn ngày và chọn ngày bắt đầu của phạm vi.',
+                            '4. **Ngày Kết Thúc**: Nhấp vào bộ chọn ngày và chọn ngày kết thúc của phạm vi.',
+                            '5. Nhấp **"Áp Dụng Bộ Lọc"** để lọc kết quả theo các tiêu chí đã chọn.',
+                            '6. Nhấp **"Đặt Lại"** để xóa tất cả bộ lọc và hiển thị tất cả kết quả.'
                         ],
                         ja: [
-                            '1. 検索バーの近くにある「フィルタ」ボタンをクリックします。',
+                            '1. 検索バーの近くにある「フィルタ」ボタンをクリックしてフィルタダイアログを開きます。',
                             '2. 特定のファイルタイプ（例：PDF、DOCX）またはKBカテゴリを選択します。',
-                            '3. 日付範囲を設定して、最近のドキュメントのみを検索します。'
+                            '3. **開始日**: 日付ピッカーをクリックして、範囲の開始日を選択します。',
+                            '4. **終了日**: 日付ピッカーをクリックして、範囲の終了日を選択します。',
+                            '5. **「フィルタを適用」** をクリックして、選択した基準で結果をフィルタリングします。',
+                            '6. **「リセット」** をクリックして、すべてのフィルタをクリアし、すべての結果を表示します。'
                         ]
                     }
                 }
@@ -146,18 +155,30 @@ export const aiSearchGuideline: IFeatureGuideline = {
                     details: {
                         en: [
                             '1. Access the history sidebar on the left.',
-                            '2. Use the search box above the history list.',
-                            '3. Type keywords from your past queries to filter the list.'
+                            '2. Use the search box above the history list to filter by keywords.',
+                            '3. Click the filter icon to open the "Filter History" dialog.',
+                            '4. **Start Date**: Select the beginning date of your range.',
+                            '5. **End Date**: Select the ending date of your range.',
+                            '6. Click **"Apply Filters"** to filter history by date range.',
+                            '7. Click **"Reset"** to clear filters and show all history.'
                         ],
                         vi: [
                             '1. Truy cập thanh bên lịch sử ở bên trái.',
-                            '2. Sử dụng hộp tìm kiếm phía trên danh sách lịch sử.',
-                            '3. Nhập từ khóa từ các truy vấn trước đây của bạn để lọc danh sách.'
+                            '2. Sử dụng hộp tìm kiếm phía trên danh sách lịch sử để lọc theo từ khóa.',
+                            '3. Nhấp vào biểu tượng bộ lọc để mở hộp thoại "Lọc Lịch Sử".',
+                            '4. **Ngày Bắt Đầu**: Chọn ngày bắt đầu của phạm vi.',
+                            '5. **Ngày Kết Thúc**: Chọn ngày kết thúc của phạm vi.',
+                            '6. Nhấp **"Áp Dụng Bộ Lọc"** để lọc lịch sử theo phạm vi ngày.',
+                            '7. Nhấp **"Đặt Lại"** để xóa bộ lọc và hiển thị toàn bộ lịch sử.'
                         ],
                         ja: [
                             '1. 左側の履歴サイドバーにアクセスします。',
-                            '2. 履歴リストの上にある検索ボックスを使用します。',
-                            '3. 過去のクエリからキーワードを入力してリストをフィルタリングします。'
+                            '2. 履歴リストの上にある検索ボックスを使用して、キーワードでフィルタリングします。',
+                            '3. フィルタアイコンをクリックして「履歴をフィルタ」ダイアログを開きます。',
+                            '4. **開始日**: 範囲の開始日を選択します。',
+                            '5. **終了日**: 範囲の終了日を選択します。',
+                            '6. **「フィルタを適用」** をクリックして、日付範囲で履歴をフィルタリングします。',
+                            '7. **「リセット」** をクリックして、フィルタをクリアし、すべての履歴を表示します。'
                         ]
                     }
                 }
