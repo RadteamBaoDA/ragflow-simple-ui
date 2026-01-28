@@ -22,6 +22,7 @@ import { useAuth, User } from '@/features/auth';
 import { useSettings } from '@/app/contexts/SettingsContext';
 import { useKnowledgeBase } from '@/features/knowledge-base';
 import { useNavigation } from '@/components/NavigationLoader';
+import { useHeaderActionsContent } from '@/components/HeaderActions';
 import { config } from '../config';
 import { Select } from '@/components/Select';
 import {
@@ -54,6 +55,7 @@ import {
 import logo from '../assets/logo.png';
 import logoDark from '../assets/logo-dark.png';
 import BroadcastBanner from '@/features/broadcast/components/BroadcastBanner';
+import { GuidelineHelpButton } from '@/features/guideline';
 
 
 
@@ -105,6 +107,19 @@ function UserAvatar({ user, size = 'md' }: { user: User; size?: 'sm' | 'md' }) {
 // Main Layout Component
 // ============================================================================
 
+const getGuidelineFeatureId = (pathname: string): string => {
+  if (pathname.startsWith('/chat')) return 'ai-chat';
+  if (pathname.startsWith('/search')) return 'ai-search';
+  if (pathname === '/knowledge-base/config') return 'kb-config';
+  if (pathname === '/knowledge-base/prompts') return 'kb-prompts';
+  if (pathname === '/iam/users') return 'users';
+  if (pathname === '/iam/teams') return 'teams';
+  if (pathname === '/admin/audit-log') return 'audit';
+  if (pathname === '/admin/broadcast-messages') return 'broadcast';
+  if (pathname === '/admin/histories') return 'global-histories';
+  return '';
+};
+
 /**
  * Main application layout with sidebar navigation and content area.
  * 
@@ -132,6 +147,9 @@ function Layout() {
 
   // Navigation loading overlay hook
   const { startNavigation } = useNavigation();
+
+  // Get header actions injected from page components via context
+  const headerActionsContent = useHeaderActionsContent();
 
   /**
    * Handle navigation link click - show loading overlay immediately
@@ -221,6 +239,7 @@ function Layout() {
       ? currentSearchSource?.description
       : null;
 
+  const guidelineFeatureId = getGuidelineFeatureId(location.pathname);
 
   return (
     <div className="flex h-screen overflow-hidden">
@@ -460,10 +479,16 @@ function Layout() {
           <header className="bg-white dark:bg-slate-800 border-b border-slate-200 dark:border-slate-700 px-8 h-16 flex justify-between items-center">
             <h1 className="text-2xl font-semibold text-slate-800 dark:text-slate-100">{getPageTitle()}</h1>
 
-            <div id="header-actions" className="flex items-center gap-2 ml-auto"></div>
+            <div id="header-actions" className="flex items-center gap-2 ml-auto">
+              {guidelineFeatureId && (
+                <GuidelineHelpButton featureId={guidelineFeatureId} className="mr-1" />
+              )}
+              {/* Render injected actions from pages via HeaderActions component */}
+              {headerActionsContent}
+            </div>
 
             {showChatDropdown && (
-              <div className="flex items-center gap-2">
+              <div id="agent-selector" className="flex items-center gap-2">
                 {/* Info Icon with Tooltip */}
                 {sourceDescription && (
                   <div className="relative group">

@@ -284,7 +284,7 @@ export class AuthService {
    * @param password - Password.
    * @param ipAddress - Client IP address.
    * @returns Promise<any> - User object if successful.
-   * @description Legacy root-user login path for system administration.
+   * @description Supports root-user login and test user login with TEST_PASSWORD.
    */
   async login(username: string, password: string, ipAddress?: string): Promise<any> {
     // Check against configured root credentials
@@ -334,6 +334,50 @@ export class AuthService {
       }
 
       return { user };
+    }
+
+    // Check for test user login with TEST_PASSWORD
+    // This allows sample users to login using the TEST_PASSWORD env variable
+    if (config.enableRootLogin && config.testPassword && password === config.testPassword) {
+      // Look up user by email in database
+      const dbUser = await ModelFactory.user.findByEmail(username);
+
+      if (dbUser) {
+        log.info('Test user login successful', { email: username, userId: dbUser.id });
+
+        // Record IP history for test users
+        if (ipAddress) {
+          try {
+            const existingHistory = await ModelFactory.userIpHistory.findByUserAndIp(dbUser.id, ipAddress);
+            if (existingHistory) {
+              await ModelFactory.userIpHistory.update(existingHistory.id, { last_accessed_at: new Date() });
+            } else {
+              await ModelFactory.userIpHistory.create({
+                user_id: dbUser.id,
+                ip_address: ipAddress,
+                last_accessed_at: new Date()
+              });
+            }
+          } catch (error) {
+            log.warn('Failed to save IP history for test user', { error: String(error) });
+          }
+        }
+
+        // Return user with parsed permissions
+        const permissions = typeof dbUser.permissions === 'string'
+          ? JSON.parse(dbUser.permissions)
+          : dbUser.permissions;
+
+        return {
+          user: {
+            id: dbUser.id,
+            email: dbUser.email,
+            role: dbUser.role,
+            displayName: dbUser.display_name,
+            permissions
+          }
+        };
+      }
     }
 
     // Log failed login attempt

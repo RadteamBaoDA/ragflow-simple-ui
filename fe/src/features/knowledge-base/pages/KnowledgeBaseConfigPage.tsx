@@ -7,6 +7,7 @@ import { Card, Table, Button, Space, Tabs, Tooltip, Pagination as AntPagination,
 import { Dialog } from '@/components/Dialog';
 import { SourcePermissionsModal, PermissionsSelector } from '@/features/documents/components/SourcePermissionsModal';
 import { useConfirm } from '@/components/ConfirmDialog';
+import { useFirstVisit, GuidelineDialog } from '@/features/guideline';
 
 /**
  * @fileoverview Knowledge Base Configuration Page.
@@ -22,6 +23,15 @@ export default function KnowledgeBaseConfigPage() {
     const confirm = useConfirm();
     const queryClient = useQueryClient();
     const [activeTab, setActiveTab] = useState<'chat' | 'search'>('chat');
+
+    const { isFirstVisit } = useFirstVisit('kb-config');
+    const [showGuide, setShowGuide] = useState(false);
+
+    useEffect(() => {
+        if (isFirstVisit) {
+            setShowGuide(true);
+        }
+    }, [isFirstVisit]);
 
     // Config (Defaults) Query
     const configQuery = useQuery({
@@ -511,6 +521,11 @@ export default function KnowledgeBaseConfigPage() {
                     onClose={() => setIsPermModalOpen(false)}
                     source={permSource}
                     onSave={handleSavePermissions}
+                />
+                <GuidelineDialog
+                    open={showGuide}
+                    onClose={() => setShowGuide(false)}
+                    featureId="kb-config"
                 />
             </div>
         </div>

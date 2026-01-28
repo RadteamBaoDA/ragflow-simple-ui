@@ -70,7 +70,6 @@ export function NavigationProvider({ children }: NavigationProviderProps) {
      * Start navigation - shows overlay immediately
      */
     const startNavigation = useCallback(() => {
-        console.log('[NavigationLoader] startNavigation called - setting isNavigating to true');
         // Remember the current location so we know when it changes
         startLocationRef.current = location.pathname;
         setIsNavigating(true);
@@ -81,7 +80,6 @@ export function NavigationProvider({ children }: NavigationProviderProps) {
      * Stop navigation - hides overlay
      */
     const stopNavigation = useCallback(() => {
-        console.log('[NavigationLoader] stopNavigation called - setting isNavigating to false');
         setIsNavigating(false);
         NProgress.done();
     }, []);
@@ -132,8 +130,6 @@ export function NavigationProvider({ children }: NavigationProviderProps) {
         navigateWithLoader,
     };
 
-    console.log('[NavigationLoader] Rendering provider, isNavigating:', isNavigating);
-
     return (
         <NavigationContext.Provider value={value}>
             {children}
@@ -176,10 +172,9 @@ export function useNavigation(): NavigationContextType {
 function NavigationOverlay() {
     return (
         <div
-            className="fixed inset-0 z-[9999] bg-slate-900/40 dark:bg-slate-900/60 backdrop-blur-[2px] flex items-center justify-center animate-fadeIn"
+            className="fixed inset-0 z-[9999] bg-slate-900/90 dark:bg-black/95 backdrop-blur-sm flex items-center justify-center opacity-0 animate-[fadeIn_0.1s_ease-out_forwards]"
             style={{
                 pointerEvents: 'all',
-                animation: 'fadeIn 0.1s ease-out'
             }}
             onClick={(e) => e.stopPropagation()}
             onMouseDown={(e) => e.stopPropagation()}
@@ -188,12 +183,6 @@ function NavigationOverlay() {
             aria-busy="true"
             aria-label="Loading page..."
         >
-            <style>{`
-                @keyframes fadeIn {
-                    from { opacity: 0; }
-                    to { opacity: 1; }
-                }
-            `}</style>
             <div className="flex flex-col items-center gap-4 bg-white dark:bg-slate-800 rounded-2xl p-6 shadow-2xl">
                 {/* Spinner */}
                 <div className="relative">

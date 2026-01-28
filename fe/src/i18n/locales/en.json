@@ -763,5 +763,45 @@
   },
   "errors": {
     "REAUTH_REQUIRED": "Re-authentication required"
+  },
+  "guideline": {
+    "title": "User Guide",
+    "overview": "Overview",
+    "welcome": "Welcome to the User Guide",
+    "quickStart": "Quick Start Topics",
+    "helpTooltip": "Open User Guide",
+    "modules": {
+      "ai-chat": {
+        "title": "AI Chat Guide"
+      },
+      "ai-search": {
+        "title": "AI Search Guide"
+      },
+      "kb-config": {
+        "title": "Knowledge Base Config"
+      },
+      "kb-prompts": {
+        "title": "Prompt Library"
+      },
+      "iam": {
+        "title": "Identity & Access Management"
+      },
+      "audit": {
+        "title": "Audit Logs"
+      },
+      "broadcast": {
+        "title": "Broadcast Messages"
+      },
+      "global-histories": {
+        "title": "System Histories"
+      }
+    },
+    "tour": {
+      "start": "Start Live Tour",
+      "next": "Next",
+      "back": "Back",
+      "last": "Finish",
+      "skip": "Skip Tour"
+    }
   }
 }

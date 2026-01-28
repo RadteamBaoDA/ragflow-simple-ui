@@ -749,5 +749,45 @@
   },
   "errors": {
     "REAUTH_REQUIRED": "再認証が必要です"
+  },
+  "guideline": {
+    "title": "ユーザーガイド",
+    "overview": "概要",
+    "welcome": "ユーザーガイドへようこそ",
+    "quickStart": "クイックスタートトピック",
+    "helpTooltip": "ユーザーガイドを開く",
+    "modules": {
+      "ai-chat": {
+        "title": "AIチャットガイド"
+      },
+      "ai-search": {
+        "title": "AI検索ガイド"
+      },
+      "kb-config": {
+        "title": "ナレッジベース設定"
+      },
+      "kb-prompts": {
+        "title": "プロンプトライブラリ"
+      },
+      "iam": {
+        "title": "ID管理とアクセス制御"
+      },
+      "audit": {
+        "title": "監査ログ"
+      },
+      "broadcast": {
+        "title": "一斉通知"
+      },
+      "global-histories": {
+        "title": "システム履歴"
+      }
+    },
+    "tour": {
+      "start": "ライブツアーを開始",
+      "next": "次へ",
+      "back": "戻る",
+      "last": "完了",
+      "skip": "スキップ"
+    }
   }
 }

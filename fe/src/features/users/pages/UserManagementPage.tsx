@@ -21,6 +21,7 @@ import { Dialog } from '@/components/Dialog';
 import { useMutation } from '@tanstack/react-query';
 import { useTranslation } from 'react-i18next';
 import { Table, Tag, Card, Space, Avatar, Button, Tooltip, Pagination } from 'antd';
+import { useFirstVisit, GuidelineDialog } from '@/features/guideline';
 
 /** API base URL from environment */
 const API_BASE_URL = import.meta.env.VITE_API_BASE_URL || '';
@@ -52,6 +53,15 @@ type IpHistoryMap = Record<string, UserIpHistory[]>;
 export default function UserManagementPage() {
     const { t } = useTranslation();
     const { user: currentUser } = useAuth();
+
+    const { isFirstVisit } = useFirstVisit('users');
+    const [showGuide, setShowGuide] = useState(false);
+
+    useEffect(() => {
+        if (isFirstVisit) {
+            setShowGuide(true);
+        }
+    }, [isFirstVisit]);
 
     // State management
     const [users, setUsers] = useState<User[]>([]);
@@ -702,6 +712,12 @@ export default function UserManagementPage() {
                     </div>
                 </div>
             </Dialog>
+
+            <GuidelineDialog
+                open={showGuide}
+                onClose={() => setShowGuide(false)}
+                featureId="users"
+            />
         </>
     );
 }

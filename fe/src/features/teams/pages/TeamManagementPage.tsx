@@ -8,7 +8,7 @@
  */
 import { useState, useEffect, useRef } from 'react';
 import { useTranslation } from 'react-i18next';
-import { createPortal } from 'react-dom';
+import { HeaderActions } from '@/components/HeaderActions';
 import { Table, Tag, Card, Space, Button, Input, Select, Tooltip, Avatar, Pagination } from 'antd';
 import { Plus, Edit, Trash2, Users, Search } from 'lucide-react';
 import { globalMessage } from '@/app/App';
@@ -18,9 +18,20 @@ import { User } from '@/features/auth';
 import UserMultiSelect from '@/features/users/components/UserMultiSelect';
 import { useConfirm } from '@/components/ConfirmDialog';
 import { Dialog } from '@/components/Dialog';
+import { useFirstVisit, GuidelineDialog } from '@/features/guideline';
 
 export default function TeamManagementPage() {
     const { t } = useTranslation();
+
+    const { isFirstVisit } = useFirstVisit('iam');
+    const [showGuide, setShowGuide] = useState(false);
+
+    useEffect(() => {
+        if (isFirstVisit) {
+            setShowGuide(true);
+        }
+    }, [isFirstVisit]);
+
     const confirm = useConfirm();
     const [teams, setTeams] = useState<Team[]>([]);
     const [loading, setLoading] = useState(true);
@@ -277,7 +288,7 @@ export default function TeamManagementPage() {
                     prefix={<Search className="text-slate-400" size={20} />}
                     placeholder={t('common.searchPlaceholder')}
                     value={searchTerm}
-                    onChange={(e) => handleSearch(e.target.value)}
+                    onChange={(e: any) => handleSearch(e.target.value)}
                     className="flex-1 dark:bg-slate-800 dark:border-slate-700 dark:text-white"
                 />
 
@@ -393,8 +404,8 @@ export default function TeamManagementPage() {
                 </div>
             )}
 
-            {/* Header Actions Portal */}
-            {document.getElementById('header-actions') && createPortal(
+            {/* Header Actions */}
+            <HeaderActions>
                 <Button
                     type="primary"
                     icon={<Plus size={20} />}
@@ -405,9 +416,8 @@ export default function TeamManagementPage() {
                     className="flex items-center gap-2"
                 >
                     {t('iam.teams.create')}
-                </Button>,
-                document.getElementById('header-actions')!
-            )}
+                </Button>
+            </HeaderActions>
 
             {/* Create/Edit Team Dialog */}
             <Dialog
@@ -439,7 +449,7 @@ export default function TeamManagementPage() {
                         <Input
                             required
                             value={formData.name}
-                            onChange={e => setFormData({ ...formData, name: e.target.value })}
+                            onChange={(e: any) => setFormData({ ...formData, name: e.target.value })}
                             className="dark:bg-slate-800 dark:border-slate-600 dark:text-white"
                             placeholder={t('iam.teams.name')}
                         />
@@ -450,7 +460,7 @@ export default function TeamManagementPage() {
                         </label>
                         <Input
                             value={formData.project_name}
-                            onChange={e => setFormData({ ...formData, project_name: e.target.value })}
+                            onChange={(e: any) => setFormData({ ...formData, project_name: e.target.value })}
                             className="dark:bg-slate-800 dark:border-slate-600 dark:text-white"
                             placeholder={t('iam.teams.projectName')}
                         />
@@ -462,7 +472,7 @@ export default function TeamManagementPage() {
                         <Input.TextArea
                             rows={4}
                             value={formData.description}
-                            onChange={e => setFormData({ ...formData, description: e.target.value })}
+                            onChange={(e: any) => setFormData({ ...formData, description: e.target.value })}
                             className="dark:bg-slate-800 dark:border-slate-600 dark:text-white"
                             placeholder={t('iam.teams.formDescription')}
                         />
@@ -517,6 +527,12 @@ export default function TeamManagementPage() {
                     </div>
                 </div>
             </Dialog>
+
+            <GuidelineDialog
+                open={showGuide}
+                onClose={() => setShowGuide(false)}
+                featureId="iam"
+            />
         </div>
     );
 }
