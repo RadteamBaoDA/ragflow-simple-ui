@@ -15,6 +15,32 @@ export const aiSearchGuideline: IFeatureGuideline = {
             steps: [
                 {
                     id: 'step1',
+                    title: { en: 'Select Search Agent', vi: 'Chọn Agent Tìm Kiếm', ja: '検索エージェントを選択' },
+                    description: {
+                        en: 'Choose the specialized agent for your search needs.',
+                        vi: 'Chọn agent chuyên biệt cho nhu cầu tìm kiếm của bạn.',
+                        ja: '検索ニーズに合わせて専門のエージェントを選択します。'
+                    },
+                    details: {
+                        en: [
+                            '1. Locate the agent dropdown at the top of the search page.',
+                            '2. Select an agent (e.g., "General Search", "Technical Docs").',
+                            '3. This ensures the search is optimized for the specific context.'
+                        ],
+                        vi: [
+                            '1. Tìm menu thả xuống agent ở đầu trang tìm kiếm.',
+                            '2. Chọn một agent (ví dụ: "Tìm kiếm chung", "Tài liệu kỹ thuật").',
+                            '3. Điều này đảm bảo việc tìm kiếm được tối ưu hóa cho ngữ cảnh cụ thể.'
+                        ],
+                        ja: [
+                            '1. 検索ページ上部のエージェントドロップダウンを見つけます。',
+                            '2. エージェントを選択します（例：「一般検索」、「技術文書」）。',
+                            '3. これにより、特定のコンテキストに合わせて検索が最適化されます。'
+                        ]
+                    }
+                },
+                {
+                    id: 'step2',
                     title: { en: 'Enter Keywords', vi: 'Nhập Từ Khóa', ja: 'キーワードを入力' },
                     description: {
                         en: 'Type your question or keywords naturally.',
@@ -56,18 +82,21 @@ export const aiSearchGuideline: IFeatureGuideline = {
                     details: {
                         en: [
                             '1. The top section displays an AI-generated answer.',
-                            '2. Read the summary for a quick understanding of the topic.',
-                            '3. Check the citations to verify the information source.'
+                            '2. Hover over citation tags (e.g., Fig. X) to see an image or text overview.',
+                            '3. Click the file icon in the popup to open the file review dialog.',
+                            '4. Click the **Like** or **Dislike** buttons to provide feedback on the answer.'
                         ],
                         vi: [
                             '1. Phần trên cùng hiển thị câu trả lời do AI tạo ra.',
-                            '2. Đọc bản tóm tắt để hiểu nhanh về chủ đề.',
-                            '3. Kiểm tra các trích dẫn để xác minh nguồn thông tin.'
+                            '2. Di chuột qua thẻ trích dẫn (ví dụ: Fig. X) để xem hình ảnh hoặc văn bản tổng quan.',
+                            '3. Nhấp vào biểu tượng tệp trong cửa sổ bật lên để mở hộp thoại xem lại tệp.',
+                            '4. Nhấp vào nút **Thích** hoặc **Không thích** để phản hồi về câu trả lời.'
                         ],
                         ja: [
                             '1. 上部セクションには、AI生成の回答が表示されます。',
-                            '2. トピックを素早く理解するために要約を読みます。',
-                            '3. 情報源を確認するために引用をチェックします。'
+                            '2. 引用タグ（例：Fig. X）にマウスを合わせると、画像またはテキストの概要が表示されます。',
+                            '3. ポップアップ内のファイルアイコンをクリックして、ファイルレビューダイアログを開きます。',
+                            '4. 回答にフィードバックを提供するには、**いいね**または**よくないね**ボタンをクリックします。'
                         ]
                     }
                 },
@@ -82,59 +111,50 @@ export const aiSearchGuideline: IFeatureGuideline = {
                     details: {
                         en: [
                             '1. Scroll down to see the list of "Source Files".',
-                            '2. Click on a file name to preview its content.',
-                            '3. Download the file if you need the full original document.'
+                            '2. Use the dropdown menu to filter files within the result view.',
+                            '3. View file thumbnails to quickly identify content.',
+                            '4. Click on a file name to preview its full content.'
                         ],
                         vi: [
                             '1. Cuộn xuống để xem danh sách "Tệp Nguồn".',
-                            '2. Nhấp vào tên tệp để xem trước nội dung.',
-                            '3. Tải xuống tệp nếu bạn cần toàn bộ tài liệu gốc.'
+                            '2. Sử dụng menu thả xuống để lọc các tệp trong chế độ xem kết quả.',
+                            '3. Xem hình thu nhỏ của tệp để xác định nhanh nội dung.',
+                            '4. Nhấp vào tên tệp để xem trước toàn bộ nội dung.'
                         ],
                         ja: [
                             '1. 下にスクロールして「ソースファイル」のリストを表示します。',
-                            '2. ファイル名をクリックしてコンテンツをプレビューします。',
-                            '3. 完全な元のドキュメントが必要な場合は、ファイルをダウンロードします。'
+                            '2. ドロップダウンメニューを使用して、結果ビュー内のファイルをフィルタリングします。',
+                            '3. ファイルのサムネイルを表示して、コンテンツをすばやく識別します。',
+                            '4. ファイル名をクリックして、完全なコンテンツをプレビューします。'
                         ]
                     }
-                }
-            ]
-        },
-        {
-            tabId: 'metadataFilters',
-            tabTitle: { en: 'Filters', vi: 'Bộ Lọc', ja: 'フィルタ' },
-            steps: [
+                },
                 {
-                    id: 'step1',
-                    title: { en: 'Filter Results', vi: 'Lọc Kết Quả', ja: '結果をフィルタ' },
+                    id: 'step3',
+                    title: { en: 'Other controls', vi: 'Các điều khiển khác', ja: 'その他のコントロール' },
                     description: {
-                        en: 'Refine search results by file type, date, or other metadata.',
-                        vi: 'Tinh chỉnh kết quả tìm kiếm theo loại tệp, ngày tháng hoặc siêu dữ liệu khác.',
-                        ja: 'ファイルタイプ、日付、またはその他のメタデータで検索結果を絞り込みます。'
+                        en: 'Utilities for helping the search view.',
+                        vi: 'Các tiện ích hỗ trợ chế độ xem tìm kiếm.',
+                        ja: '検索ビューを支援するユーティリティ。'
                     },
                     details: {
                         en: [
-                            '1. Click on the "Filter" button near the search bar to open the filter dialog.',
-                            '2. Choose specific file types (e.g., PDF, DOCX) or KB categories.',
-                            '3. **Start Date**: Click the date picker and select the beginning date of your range.',
-                            '4. **End Date**: Click the date picker and select the ending date of your range.',
-                            '5. Click **"Apply Filters"** to filter results by the selected criteria.',
-                            '6. Click **"Reset"** to clear all filters and show all results.'
+                            '1. **Refresh**: Reload the search results to get the latest updates.',
+                            '2. **Fullscreen**: Expand the result view to fill the entire screen.',
+                            '3. **Chat**: Click the chat icon to open the dialog, discuss results with AI, and click the "X" button to close.',
+                            '4. **Pagination**: Navigation buttons to move through multiple pages of results.'
                         ],
                         vi: [
-                            '1. Nhấp vào nút "Bộ lọc" gần thanh tìm kiếm để mở hộp thoại bộ lọc.',
-                            '2. Chọn các loại tệp cụ thể (ví dụ: PDF, DOCX) hoặc danh mục KB.',
-                            '3. **Ngày Bắt Đầu**: Nhấp vào bộ chọn ngày và chọn ngày bắt đầu của phạm vi.',
-                            '4. **Ngày Kết Thúc**: Nhấp vào bộ chọn ngày và chọn ngày kết thúc của phạm vi.',
-                            '5. Nhấp **"Áp Dụng Bộ Lọc"** để lọc kết quả theo các tiêu chí đã chọn.',
-                            '6. Nhấp **"Đặt Lại"** để xóa tất cả bộ lọc và hiển thị tất cả kết quả.'
+                            '1. **Làm mới**: Tải lại kết quả tìm kiếm để nhận các cập nhật mới nhất.',
+                            '2. **Toàn màn hình**: Mở rộng chế độ xem kết quả ra toàn màn hình.',
+                            '3. **Trò chuyện**: Nhấp vào biểu tượng trò chuyện để mở hộp thoại, thảo luận kết quả với AI và nhấp vào nút "X" để đóng.',
+                            '4. **Phân trang**: Các nút điều hướng để di chuyển qua nhiều trang kết quả.'
                         ],
                         ja: [
-                            '1. 検索バーの近くにある「フィルタ」ボタンをクリックしてフィルタダイアログを開きます。',
-                            '2. 特定のファイルタイプ（例：PDF、DOCX）またはKBカテゴリを選択します。',
-                            '3. **開始日**: 日付ピッカーをクリックして、範囲の開始日を選択します。',
-                            '4. **終了日**: 日付ピッカーをクリックして、範囲の終了日を選択します。',
-                            '5. **「フィルタを適用」** をクリックして、選択した基準で結果をフィルタリングします。',
-                            '6. **「リセット」** をクリックして、すべてのフィルタをクリアし、すべての結果を表示します。'
+                            '1. **更新**: 検索結果を再読み込みして、最新の更新を取得します。',
+                            '2. **全画面表示**: 結果ビューを全画面に拡大します。',
+                            '3. **チャット**: チャットアイコンをクリックしてダイアログを開き、AIと結果について話し合い、"X"ボタンをクリックして閉じます。',
+                            '4. **ページネーション**: 複数の結果ページを移動するためのナビゲーションボタン。'
                         ]
                     }
                 }

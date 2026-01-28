@@ -10,8 +10,8 @@ export const auditGuideline: IFeatureGuideline = {
     },
     tabs: [
         {
-            tabId: 'audit',
-            tabTitle: { en: 'Audit Logs', vi: 'Nhật Ký', ja: '監査ログ' },
+            tabId: 'overview',
+            tabTitle: { en: 'Overview', vi: 'Tổng Quan', ja: '概要' },
             steps: [
                 {
                     id: 'step1',
@@ -38,42 +38,62 @@ export const auditGuideline: IFeatureGuideline = {
                             '3. 行の詳細をクリックして、デバッグ用の生のJSONデータを表示します。'
                         ]
                     }
-                },
+                }
+            ]
+        },
+        {
+            tabId: 'filters',
+            tabTitle: { en: 'Search & Filters', vi: 'Tìm Kiếm & Bộ Lọc', ja: '検索とフィルタ' },
+            steps: [
                 {
-                    id: 'step2',
-                    title: { en: 'Filter Logs', vi: 'Lọc Nhật Ký', ja: 'ログフィルタ' },
+                    id: 'step1',
+                    title: { en: 'Search & Refresh', vi: 'Tìm Kiếm & Làm Mới', ja: '検索と更新' },
                     description: {
-                        en: 'Filter by user, action type, or date.',
-                        vi: 'Lọc theo người dùng, loại hành động hoặc ngày tháng.',
-                        ja: 'ユーザー、アクションタイプ、または日付でフィルタリングします。'
+                        en: 'Find specific logs and update the list.',
+                        vi: 'Tìm nhật ký cụ thể và cập nhật danh sách.',
+                        ja: '特定のログを検索し、リストを更新します。'
                     },
                     details: {
                         en: [
-                            '1. Click the filter icon to open the filter dialog.',
-                            '2. Search for a specific User ID or Action type (e.g., LOGIN_FAILED).',
-                            '3. **Start Date**: Click the date picker and select the beginning date of your range.',
-                            '4. **End Date**: Click the date picker and select the ending date of your range.',
-                            '5. Click **"Apply Filters"** to filter the audit logs by the selected criteria.',
-                            '6. Click **"Reset"** to clear all filters and show all logs.',
-                            '7. Export filtered results to CSV for external analysis.'
+                            '1. **Search Bar**: Enter user email or details to find specific events.',
+                            '2. **Refresh Button**: Click the circular arrow icon to reload the latest logs.',
+                            '3. **Filters Button**: Click to toggle the advanced filter panel.'
                         ],
                         vi: [
-                            '1. Nhấp vào biểu tượng bộ lọc để mở hộp thoại bộ lọc.',
-                            '2. Tìm kiếm ID người dùng hoặc loại Hành động cụ thể (ví dụ: LOGIN_FAILED).',
-                            '3. **Ngày Bắt Đầu**: Nhấp vào bộ chọn ngày và chọn ngày bắt đầu của phạm vi.',
-                            '4. **Ngày Kết Thúc**: Nhấp vào bộ chọn ngày và chọn ngày kết thúc của phạm vi.',
-                            '5. Nhấp **"Áp Dụng Bộ Lọc"** để lọc nhật ký kiểm toán theo các tiêu chí đã chọn.',
-                            '6. Nhấp **"Đặt Lại"** để xóa tất cả bộ lọc và hiển thị tất cả nhật ký.',
-                            '7. Xuất kết quả đã lọc sang CSV để phân tích bên ngoài.'
+                            '1. **Thanh Tìm Kiếm**: Nhập email người dùng hoặc chi tiết để tìm sự kiện cụ thể.',
+                            '2. **Nút Làm Mới**: Nhấp vào biểu tượng mũi tên tròn để tải lại nhật ký mới nhất.',
+                            '3. **Nút Bộ Lọc**: Nhấp để bật/tắt bảng bộ lọc nâng cao.'
                         ],
                         ja: [
-                            '1. フィルタアイコンをクリックしてフィルタダイアログを開きます。',
-                            '2. 特定のユーザーIDまたはアクションタイプ（例：LOGIN_FAILED）を検索します。',
-                            '3. **開始日**: 日付ピッカーをクリックして、範囲の開始日を選択します。',
-                            '4. **終了日**: 日付ピッカーをクリックして、範囲の終了日を選択します。',
-                            '5. **「フィルタを適用」** をクリックして、選択した基準で監査ログをフィルタリングします。',
-                            '6. **「リセット」** をクリックして、すべてのフィルタをクリアし、すべてのログを表示します。',
-                            '7. フィルタリングされた結果をCSVにエクスポートして、外部分析を行います。'
+                            '1. **検索バー**: ユーザーのメールアドレスまたは詳細を入力して、特定のイベントを検索します。',
+                            '2. **更新ボタン**: 円形の矢印アイコンをクリックして、最新のログを再読み込みします。',
+                            '3. **フィルタボタン**: クリックして詳細フィルタパネルを切り替えます。'
+                        ]
+                    }
+                },
+                {
+                    id: 'step2',
+                    title: { en: 'Advanced Filters', vi: 'Bộ Lọc Nâng Cao', ja: '詳細フィルタ' },
+                    description: {
+                        en: 'Filter logs by specific criteria.',
+                        vi: 'Lọc nhật ký theo các tiêu chí cụ thể.',
+                        ja: '特定の基準でログをフィルタリングします。'
+                    },
+                    details: {
+                        en: [
+                            '1. **Action**: Select a specific action type (e.g., Login, Update, Delete) from the dropdown.',
+                            '2. **Resource Type**: Filter by the type of resource affected.',
+                            '3. **Date Range**: Use **Start Date** and **End Date** pickers to view logs within a specific period.'
+                        ],
+                        vi: [
+                            '1. **Hành Động**: Chọn loại hành động cụ thể (ví dụ: Đăng nhập, Cập nhật, Xóa) từ danh sách thả xuống.',
+                            '2. **Loại Tài Nguyên**: Lọc theo loại tài nguyên bị ảnh hưởng.',
+                            '3. **Phạm Vi Ngày**: Sử dụng bộ chọn **Ngày Bắt Đầu** và **Ngày Kết Thúc** để xem nhật ký trong một khoảng thời gian cụ thể.'
+                        ],
+                        ja: [
+                            '1. **アクション**: ドロップダウンから特定のアクションタイプ（例：ログイン、更新、削除）を選択します。',
+                            '2. **リソースタイプ**: 影響を受けるリソースのタイプでフィルタリングします。',
+                            '3. **日付範囲**: **開始日**と**終了日**のピッカーを使用して、特定の期間内のログを表示します。'
                         ]
                     }
                 }

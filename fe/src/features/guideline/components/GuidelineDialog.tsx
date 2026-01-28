@@ -5,6 +5,8 @@ import { useGuideline } from '../hooks/useGuideline';
 import { useAuth } from '@/features/auth';
 import { Play } from 'lucide-react';
 import { LanguageCode } from '@/i18n';
+import ReactMarkdown from 'react-markdown';
+import remarkGfm from 'remark-gfm';
 
 interface GuidelineDialogProps {
     open: boolean;
@@ -165,7 +167,14 @@ export function GuidelineDialog({ open, onClose, featureId }: GuidelineDialogPro
                                                             {getLocList(step.details).map((detail, idx) => (
                                                                 <li key={idx} className="text-sm text-slate-700 dark:text-slate-300 flex items-start gap-2">
                                                                     <span>•</span>
-                                                                    <span>{detail.replace(/^\d+\.\s*/, '')}</span> {/* Remove manual numbering if present in string since we use bullets */}
+                                                                    <ReactMarkdown
+                                                                        remarkPlugins={[remarkGfm]}
+                                                                        components={{
+                                                                            p: ({ children }) => <span className="inline">{children}</span>
+                                                                        }}
+                                                                    >
+                                                                        {detail.replace(/^\d+\.\s*/, '')}
+                                                                    </ReactMarkdown>
                                                                 </li>
                                                             ))}
                                                         </ul>

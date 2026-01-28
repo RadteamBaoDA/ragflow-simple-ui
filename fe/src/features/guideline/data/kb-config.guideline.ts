@@ -15,6 +15,35 @@ export const kbConfigGuideline: IFeatureGuideline = {
             steps: [
                 {
                     id: 'step1',
+                    title: { en: 'System Defaults', vi: 'Mặc Định Hệ Thống', ja: 'システムのデフォルト' },
+                    description: {
+                        en: 'Set default knowledge bases for Chat and Search.',
+                        vi: 'Thiết lập cơ sở tri thức mặc định cho Trò chuyện và Tìm kiếm.',
+                        ja: 'チャットと検索のデフォルトのナレッジベースを設定します。'
+                    },
+                    details: {
+                        en: [
+                            '1. Switch between **Chat** and **Search** tabs.',
+                            '2. Select a source from the dropdown menu (only public sources allowed).',
+                            '3. Click **Save** to apply the change.',
+                            '4. Click the **Open** icon to test the URL in a new tab.'
+                        ],
+                        vi: [
+                            '1. Chuyển đổi giữa các tab **Trò chuyện** và **Tìm kiếm**.',
+                            '2. Chọn một nguồn từ menu thả xuống (chỉ cho phép các nguồn công khai).',
+                            '3. Nhấp vào **Lưu** để áp dụng thay đổi.',
+                            '4. Nhấp vào biểu tượng **Mở** để kiểm tra URL trong tab mới.'
+                        ],
+                        ja: [
+                            '1. **チャット**タブと**検索**タブを切り替えます。',
+                            '2. ドロップダウンメニューからソースを選択します（公開ソースのみ許可）。',
+                            '3. **保存**をクリックして変更を適用します。',
+                            '4. **開く**アイコンをクリックして、新しいタブでURLをテストします。'
+                        ]
+                    }
+                },
+                {
+                    id: 'step2',
                     title: { en: 'Add Source', vi: 'Thêm Nguồn', ja: 'ソースを追加' },
                     description: {
                         en: 'Connect new data sources to your knowledge base.',
@@ -40,28 +69,28 @@ export const kbConfigGuideline: IFeatureGuideline = {
                     }
                 },
                 {
-                    id: 'step2',
-                    title: { en: 'Manage Permissions', vi: 'Quản Lý Quyền', ja: '権限管理' },
+                    id: 'step3',
+                    title: { en: 'Source Actions', vi: 'Thao Tác Nguồn', ja: 'ソースアクション' },
                     description: {
-                        en: 'Control who can access different knowledge sources.',
-                        vi: 'Kiểm soát ai có thể truy cập các nguồn kiến thức khác nhau.',
-                        ja: '誰がどの知識ソースにアクセスできるかを制御します。'
+                        en: 'Edit, secure, or remove sources.',
+                        vi: 'Chỉnh sửa, bảo mật hoặc xóa nguồn.',
+                        ja: 'ソースの編集、保護、または削除。'
                     },
                     details: {
                         en: [
-                            '1. Locate a source in the list and click the Shield icon.',
-                            '2. Add specific teams or users to the access list.',
-                            '3. Save changes to enforce the new access control policies.'
+                            '1. **Edit** (Pencil): Open dialog to modify Name, URL, Share ID, Description, and Chat Widget URL.',
+                            '2. **Permissions** (Shield): Open modal to toggle "System-wide Access" or assign specific Users/Teams.',
+                            '3. **Delete** (Trash): Permanently remove the source after confirmation.'
                         ],
                         vi: [
-                            '1. Tìm nguồn trong danh sách và nhấp vào biểu tượng Khiên.',
-                            '2. Thêm các nhóm hoặc người dùng cụ thể vào danh sách truy cập.',
-                            '3. Lưu thay đổi để áp dụng các chính sách kiểm soát truy cập mới.'
+                            '1. **Chỉnh sửa** (Bút chì): Mở hộp thoại để sửa Tên, URL, ID Chia sẻ, Mô tả và URL Widget Trò chuyện.',
+                            '2. **Quyền** (Khiên): Mở phương thức để bật "Truy cập toàn hệ thống" hoặc gán Người dùng/Nhóm cụ thể.',
+                            '3. **Xóa** (Thùng rác): Xóa vĩnh viễn nguồn sau khi xác nhận.'
                         ],
                         ja: [
-                            '1. リスト内のソースを見つけて、盾のアイコンをクリックします。',
-                            '2. 特定のチームまたはユーザーをアクセスリストに追加します。',
-                            '3. 変更を保存して、新しいアクセス制御ポリシーを適用します。'
+                            '1. **編集** (鉛筆): ダイアログを開いて、名前、URL、共有ID、説明、チャットウィジェットURLを変更します。',
+                            '2. **権限** (盾): モーダルを開いて、「システム全体のアクセス」を切り替えるか、特定のユーザー/チームを割り当てます。',
+                            '3. **削除** (ゴミ箱): 確認後にソースを完全に削除します。'
                         ]
                     }
                 }

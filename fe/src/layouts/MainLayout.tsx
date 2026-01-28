@@ -112,7 +112,8 @@ const getGuidelineFeatureId = (pathname: string): string => {
   if (pathname.startsWith('/search')) return 'ai-search';
   if (pathname === '/knowledge-base/config') return 'kb-config';
   if (pathname === '/knowledge-base/prompts') return 'kb-prompts';
-  if (pathname.startsWith('/iam/')) return 'iam';
+  if (pathname === '/iam/users') return 'users';
+  if (pathname === '/iam/teams') return 'teams';
   if (pathname === '/admin/audit-log') return 'audit';
   if (pathname === '/admin/broadcast-messages') return 'broadcast';
   if (pathname === '/admin/histories') return 'global-histories';

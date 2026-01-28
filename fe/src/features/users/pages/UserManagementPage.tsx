@@ -54,7 +54,7 @@ export default function UserManagementPage() {
     const { t } = useTranslation();
     const { user: currentUser } = useAuth();
 
-    const { isFirstVisit } = useFirstVisit('iam');
+    const { isFirstVisit } = useFirstVisit('users');
     const [showGuide, setShowGuide] = useState(false);
 
     useEffect(() => {
@@ -716,7 +716,7 @@ export default function UserManagementPage() {
             <GuidelineDialog
                 open={showGuide}
                 onClose={() => setShowGuide(false)}
-                featureId="iam"
+                featureId="users"
             />
         </>
     );

@@ -38,6 +38,58 @@ export const aiChatGuideline: IFeatureGuideline = {
                             '3. AIが処理して応答をストリーミングするのを待ちます。'
                         ]
                     }
+                },
+                {
+                    id: 'step2',
+                    title: { en: 'View Citations', vi: 'Xem Trích Dẫn', ja: '引用を表示' },
+                    description: {
+                        en: 'Hover over citation tags to see the source content.',
+                        vi: 'Di chuột qua các thẻ trích dẫn để xem nội dung nguồn.',
+                        ja: '引用タグにマウスを合わせると、ソースコンテンツが表示されます。'
+                    },
+                    details: {
+                        en: [
+                            '1. Locate citation tags like `<Fig. X>` within the AI response.',
+                            '2. Hover your mouse over the tag to see a popup with the source text.',
+                            '3. The popup shows the specific chunk retrieved from the Knowledge Base.'
+                        ],
+                        vi: [
+                            '1. Tìm các thẻ trích dẫn như `<Fig. X>` trong câu trả lời của AI.',
+                            '2. Di chuột qua thẻ để thấy cửa sổ hiện lên chứa nội dung nguồn.',
+                            '3. Cửa sổ này hiển thị đoạn trích cụ thể được lấy từ Cơ sở Tri thức.'
+                        ],
+                        ja: [
+                            '1. AIの回答内にある `<Fig. X>` などの引用タグを探します。',
+                            '2. タグにマウスを合わせると、ソーステキストを含むポップアップが表示されます。',
+                            '3. ポップアップには、ナレッジベースから取得された特定のチャンクが表示されます。'
+                        ]
+                    }
+                },
+                {
+                    id: 'step3',
+                    title: { en: 'Open Source Document', vi: 'Mở Tài Liệu Nguồn', ja: 'ソースドキュメントを開く' },
+                    description: {
+                        en: 'Access the full document for complete context.',
+                        vi: 'Truy cập tài liệu đầy đủ để biết toàn bộ bối cảnh.',
+                        ja: '完全なコンテキストを確認するために、ドキュメント全体にアクセスします。'
+                    },
+                    details: {
+                        en: [
+                            '1. While viewing the citation popup, look at the bottom area.',
+                            '2. Click on the file name (e.g., "Master RAG.pdf").',
+                            '3. The "Document Previewer" will open, displaying the full file.'
+                        ],
+                        vi: [
+                            '1. Trong khi xem cửa sổ trích dẫn, hãy nhìn vào khu vực phía dưới.',
+                            '2. Nhấp vào tên tệp (ví dụ: "Master RAG.pdf").',
+                            '3. "Trình xem Tài liệu" sẽ mở ra, hiển thị toàn bộ tệp.'
+                        ],
+                        ja: [
+                            '1. 引用ポップアップを表示している間、下部のエリアを確認します。',
+                            '2. ファイル名（例：「Master RAG.pdf」）をクリックします。',
+                            '3. 「ドキュメントプレビュー」が開き、ファイル全体が表示されます。'
+                        ]
+                    }
                 }
             ]
         },
