@@ -33,8 +33,10 @@ export function GuidedTour({ steps, run, onTourFinish }: GuidedTourProps) {
         }));
     }, [steps, currentLang]);
 
+    const JoyrideWrapper = Joyride as any;
+
     return (
-        <Joyride
+        <JoyrideWrapper
             steps={joyrideSteps}
             run={run}
             continuous

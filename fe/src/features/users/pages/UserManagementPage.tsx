@@ -532,13 +532,13 @@ export default function UserManagementPage() {
                                         title: t('userManagement.ipAddress'),
                                         dataIndex: 'ip_address',
                                         key: 'ip_address',
-                                        render: (text) => <span className="font-mono">{text}</span>
+                                        render: (text: string) => <span className="font-mono">{text}</span>
                                     },
                                     {
                                         title: t('userManagement.lastAccess'),
                                         dataIndex: 'last_accessed_at',
                                         key: 'last_accessed_at',
-                                        render: (text) => formatDate(text)
+                                        render: (text: string) => formatDate(text)
                                     }
                                 ]}
                             />

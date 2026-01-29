@@ -392,7 +392,7 @@ export const PromptsPage = () => {
                 <Input
                     placeholder={t('prompts.searchPlaceholder')}
                     allowClear
-                    onChange={(e) => handleSearch(e.target.value)}
+                    onChange={(e: React.ChangeEvent<HTMLInputElement>) => handleSearch(e.target.value)}
                     className="flex-1"
                     size="large"
                     prefix={<Search size={18} className="text-slate-400" />}
@@ -471,7 +471,7 @@ export const PromptsPage = () => {
                         pageSize={pageSize}
                         showSizeChanger={true}
                         pageSizeOptions={['10', '20', '50', '100']}
-                        onChange={(page, size) => {
+                        onChange={(page: number, size: number) => {
                             setCurrentPage(page);
                             setPageSize(size);
                         }}

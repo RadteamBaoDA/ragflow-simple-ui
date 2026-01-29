@@ -12,9 +12,9 @@ import { useState, useCallback } from 'react';
  * @param {string} featureId - Unique identifier for the feature.
  * @returns {object} Visibility state and control functions.
  */
-export function useFirstVisit(featureId: string) {
+export function useFirstVisit(_featureId: string) {
     // Default to FALSE to disable auto-show
-    const [shouldShowAuto, setShouldShowAuto] = useState(false);
+    const [shouldShowAuto] = useState(false);
 
     // Auto-show logic removed.
     // Ideally, we would check storage here, but requirement is to remove "login first display".

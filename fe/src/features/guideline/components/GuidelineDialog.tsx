@@ -170,7 +170,7 @@ export function GuidelineDialog({ open, onClose, featureId }: GuidelineDialogPro
                                                                     <ReactMarkdown
                                                                         remarkPlugins={[remarkGfm]}
                                                                         components={{
-                                                                            p: ({ children }) => <span className="inline">{children}</span>
+                                                                            p: ({ children }: any) => <span className="inline">{children}</span>
                                                                         }}
                                                                     >
                                                                         {detail.replace(/^\d+\.\s*/, '')}
