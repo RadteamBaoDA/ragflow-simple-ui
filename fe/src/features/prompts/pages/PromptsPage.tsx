@@ -10,12 +10,13 @@
 
 import { useState, useEffect } from 'react';
 import { useTranslation } from 'react-i18next';
-import { Plus, Edit2, Trash2, ThumbsUp, ThumbsDown, MessageCircle, Calendar, Search, Shield, Tag as TagIcon } from 'lucide-react';
+import { Plus, Edit2, Trash2, ThumbsUp, ThumbsDown, MessageCircle, Calendar, Search, Shield, Tag as TagIcon, Settings } from 'lucide-react';
 import { Table, Card, Input, Button, Tag, Space, Select, Modal, Form, DatePicker, Pagination, Tooltip } from 'antd';
 import { promptService } from '../api/promptService';
 import { Prompt } from '../types/prompt';
 import { TagInput } from '../components/TagInput';
 import { PromptPermissionModal } from '../components/PromptPermissionModal';
+import { PromptTagManagementModal } from '../components/PromptTagManagementModal';
 import { globalMessage } from '@/app/App';
 import { useAuth } from '@/features/auth';
 import { useDebounce } from '@/hooks/useDebounce';
@@ -81,6 +82,7 @@ export const PromptsPage = () => {
     // Create/Edit Modal State
     const [isModalOpen, setIsModalOpen] = useState(false);
     const [isPermissionModalOpen, setIsPermissionModalOpen] = useState(false);
+    const [isTagManagementOpen, setIsTagManagementOpen] = useState(false);
     const [editingPrompt, setEditingPrompt] = useState<Prompt | null>(null);
     const [submitting, setSubmitting] = useState(false);
     const [form] = Form.useForm();
@@ -426,14 +428,24 @@ export const PromptsPage = () => {
 
                 <Space>
                     {user?.role === 'admin' && (
-                        <Button
-                            type="default"
-                            icon={<Shield size={16} />}
-                            onClick={() => setIsPermissionModalOpen(true)}
-                            size="large"
-                        >
-                            {t('prompts.permissions.manage')}
-                        </Button>
+                        <>
+                            <Button
+                                type="default"
+                                icon={<Settings size={16} />}
+                                onClick={() => setIsTagManagementOpen(true)}
+                                size="large"
+                            >
+                                {t('tags.manageButton', 'Manage Tags')}
+                            </Button>
+                            <Button
+                                type="default"
+                                icon={<Shield size={16} />}
+                                onClick={() => setIsPermissionModalOpen(true)}
+                                size="large"
+                            >
+                                {t('prompts.permissions.manage')}
+                            </Button>
+                        </>
                     )}
                     <Tooltip title={permissionLevel < PermissionLevel.UPLOAD ? t('common.noPermission') : ''}>
                         <Button
@@ -638,6 +650,15 @@ export const PromptsPage = () => {
                 open={isPermissionModalOpen}
                 onClose={() => setIsPermissionModalOpen(false)}
             />
+            {user?.role === 'admin' && (
+                <PromptTagManagementModal
+                    open={isTagManagementOpen}
+                    onClose={() => {
+                        setIsTagManagementOpen(false);
+                        fetchTags(); // Refresh tags after closing management modal
+                    }}
+                />
+            )}
             <GuidelineDialog
                 open={showGuide}
                 onClose={() => setShowGuide(false)}

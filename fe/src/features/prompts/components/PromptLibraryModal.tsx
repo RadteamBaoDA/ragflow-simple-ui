@@ -2,10 +2,12 @@
 import { useState, useEffect } from 'react';
 import { useTranslation } from 'react-i18next';
 import { Modal, Input, List, Tag, Button, Empty, Tooltip, message, Select, Popover } from 'antd';
-import { Search, Copy, Book, Tag as TagIcon, ThumbsUp, ThumbsDown } from 'lucide-react';
+import { Search, Copy, Book, Tag as TagIcon, ThumbsUp, ThumbsDown, Settings } from 'lucide-react';
 import { promptService } from '../api/promptService';
 import { Prompt } from '../types/prompt';
 import { useDebounce } from '@/hooks/useDebounce';
+import { useAuth } from '@/features/auth/hooks/useAuth';
+import { PromptTagManagementModal } from './PromptTagManagementModal';
 
 interface PromptLibraryModalProps {
     open: boolean;
@@ -16,6 +18,8 @@ interface PromptLibraryModalProps {
 
 export const PromptLibraryModal = ({ open, onClose, onSelect }: PromptLibraryModalProps) => {
     const { t } = useTranslation();
+    const { user } = useAuth();
+    const isAdmin = user?.role === 'admin';
     const [prompts, setPrompts] = useState<Prompt[]>([]);
     const [loading, setLoading] = useState(false);
     const [loadingMore, setLoadingMore] = useState(false);
@@ -26,6 +30,9 @@ export const PromptLibraryModal = ({ open, onClose, onSelect }: PromptLibraryMod
     const [total, setTotal] = useState(0);
     const [offset, setOffset] = useState(0);
     const PAGE_SIZE = 25;
+
+    // Tag management modal (admin only)
+    const [isTagManagementOpen, setIsTagManagementOpen] = useState(false);
 
     // Reset and fetch when modal opens
     useEffect(() => {
@@ -119,69 +126,81 @@ export const PromptLibraryModal = ({ open, onClose, onSelect }: PromptLibraryMod
     };
 
     return (
-        <Modal
-            title={
-                <div className="flex items-center gap-2">
-                    <Book className="w-5 h-5 text-primary" />
-                    <span>{t('prompts.library.title', 'Prompt Library')}</span>
-                </div>
-            }
-            open={open}
-            onCancel={onClose}
-            footer={null}
-            width="70%"
-            className="top-10"
-            styles={{ body: { maxHeight: '80vh', overflow: 'hidden', display: 'flex', flexDirection: 'column' } }}
-        >
-            {/* Search and Filter */}
-            <div className="flex items-center gap-3 mb-4">
-                <Input
-                    placeholder={t('prompts.library.searchPlaceholder', 'Search prompts...')}
-                    prefix={<Search className="w-4 h-4 text-slate-400" />}
-                    value={searchText}
-                    onChange={(e: React.ChangeEvent<HTMLInputElement>) => setSearchText(e.target.value)}
-                    allowClear
-                    size="large"
-                    className="flex-1"
-                />
-                <Select
-                    mode="multiple"
-                    placeholder={t('prompts.filter.tag', 'Filter by tags')}
-                    value={selectedTags}
-                    onChange={setSelectedTags}
-                    options={availableTags.map(tag => ({
-                        label: (
-                            <div className="flex items-center">
-                                <Tag
-                                    className="border-none px-2 py-0.5 inline-flex items-center gap-1.5 rounded-md m-0"
-                                    style={tag.color ? { backgroundColor: tag.color, color: '#fff' } : {}}
-                                >
-                                    <span className="font-medium">{tag.name}</span>
-                                    <TagIcon size={12} className="text-white opacity-90" />
-                                </Tag>
-                            </div>
-                        ),
-                        value: tag.name
-                    }))}
-                    className="w-1/3 min-w-[200px]"
-                    style={{ minHeight: 44 }}
-                    size="large"
-                    allowClear
-                    maxTagCount="responsive"
-                />
-            </div>
-
-            {/* Prompts List */}
-            <div
-                className="flex-1 overflow-y-scroll pr-2 prompt-library-scroll"
-                style={{
-                    maxHeight: 'calc(80vh - 140px)',
-                    scrollbarWidth: 'thin',
-                    scrollbarColor: '#64748b transparent'
-                }}
-                onScroll={handleScroll}
+        <>
+            <Modal
+                title={
+                    <div className="flex items-center justify-between w-full pr-8">
+                        <div className="flex items-center gap-2">
+                            <Book className="w-5 h-5 text-primary" />
+                            <span>{t('prompts.library.title', 'Prompt Library')}</span>
+                        </div>
+                        {isAdmin && (
+                            <Button
+                                type="text"
+                                icon={<Settings className="w-4 h-4" />}
+                                onClick={() => setIsTagManagementOpen(true)}
+                            >
+                                {t('prompts.tags.manageButton', 'Manage Tags')}
+                            </Button>
+                        )}
+                    </div>
+                }
+                open={open}
+                onCancel={onClose}
+                footer={null}
+                width="70%"
+                className="top-10"
+                styles={{ body: { maxHeight: '80vh', overflow: 'hidden', display: 'flex', flexDirection: 'column' } }}
             >
-                <style>{`
+                {/* Search and Filter */}
+                <div className="flex items-center gap-3 mb-4">
+                    <Input
+                        placeholder={t('prompts.library.searchPlaceholder', 'Search prompts...')}
+                        prefix={<Search className="w-4 h-4 text-slate-400" />}
+                        value={searchText}
+                        onChange={(e: React.ChangeEvent<HTMLInputElement>) => setSearchText(e.target.value)}
+                        allowClear
+                        size="large"
+                        className="flex-1"
+                    />
+                    <Select
+                        mode="multiple"
+                        placeholder={t('prompts.filter.tag', 'Filter by tags')}
+                        value={selectedTags}
+                        onChange={setSelectedTags}
+                        options={availableTags.map(tag => ({
+                            label: (
+                                <div className="flex items-center">
+                                    <Tag
+                                        className="border-none px-2 py-0.5 inline-flex items-center gap-1.5 rounded-md m-0"
+                                        style={tag.color ? { backgroundColor: tag.color, color: '#fff' } : {}}
+                                    >
+                                        <span className="font-medium">{tag.name}</span>
+                                        <TagIcon size={12} className="text-white opacity-90" />
+                                    </Tag>
+                                </div>
+                            ),
+                            value: tag.name
+                        }))}
+                        className="w-1/3 min-w-[200px]"
+                        style={{ minHeight: 44 }}
+                        size="large"
+                        allowClear
+                        maxTagCount="responsive"
+                    />
+                </div>
+
+                {/* Prompts List */}
+                <div
+                    className="flex-1 overflow-y-scroll pr-2 prompt-library-scroll"
+                    style={{
+                        maxHeight: 'calc(80vh - 140px)',
+                        scrollbarWidth: 'thin',
+                        scrollbarColor: '#64748b transparent'
+                    }}
+                    onScroll={handleScroll}
+                >
+                    <style>{`
                     .prompt-library-scroll::-webkit-scrollbar {
                         width: 8px;
                     }
@@ -196,76 +215,93 @@ export const PromptLibraryModal = ({ open, onClose, onSelect }: PromptLibraryMod
                         background-color: #475569;
                     }
                 `}</style>
-                <List
-                    loading={loading}
-                    dataSource={prompts}
-                    locale={{ emptyText: <Empty description={t('common.noData')} /> }}
-                    renderItem={(item: Prompt) => (
-                        <List.Item
-                            className="bg-white dark:bg-slate-800 rounded-lg border border-slate-200 dark:border-slate-700 mb-3 p-4 hover:border-primary dark:hover:border-primary transition-colors cursor-pointer group"
-                            onClick={() => handleCopy(item.prompt)}
-                        >
-                            <div className="w-full">
-                                <div className="flex justify-between items-start mb-2">
-                                    <div className="flex-1">
-                                        <div className="text-sm text-slate-900 dark:text-slate-100 font-medium whitespace-pre-wrap break-all font-mono bg-slate-50 dark:bg-slate-900 p-2 rounded border border-slate-100 dark:border-slate-700">
-                                            {item.prompt}
+                    <List
+                        loading={loading}
+                        dataSource={prompts}
+                        locale={{ emptyText: <Empty description={t('common.noData')} /> }}
+                        renderItem={(item: Prompt) => (
+                            <List.Item
+                                className="bg-white dark:bg-slate-800 rounded-lg border border-slate-200 dark:border-slate-700 mb-3 p-4 hover:border-primary dark:hover:border-primary transition-colors cursor-pointer group"
+                                onClick={() => handleCopy(item.prompt)}
+                            >
+                                <div className="w-full">
+                                    <div className="flex justify-between items-start mb-2">
+                                        <div className="flex-1">
+                                            <div className="text-sm text-slate-900 dark:text-slate-100 font-medium whitespace-pre-wrap break-all font-mono bg-slate-50 dark:bg-slate-900 p-2 rounded border border-slate-100 dark:border-slate-700">
+                                                {item.prompt}
+                                            </div>
+                                        </div>
+                                        <div className="flex items-center">
+                                            <PromptInteractionButtons promptId={item.id} />
+                                            <Tooltip title={t('common.copy')}>
+                                                <Button
+                                                    type="text"
+                                                    icon={<Copy className="w-4 h-4" />}
+                                                    className="ml-2 text-slate-400 hover:text-primary"
+                                                    onClick={(e: React.MouseEvent) => { e.stopPropagation(); handleCopy(item.prompt); }}
+                                                />
+                                            </Tooltip>
                                         </div>
                                     </div>
-                                    <div className="flex items-center">
-                                        <PromptInteractionButtons promptId={item.id} />
-                                        <Tooltip title={t('common.copy')}>
-                                            <Button
-                                                type="text"
-                                                icon={<Copy className="w-4 h-4" />}
-                                                className="ml-2 text-slate-400 hover:text-primary"
-                                                onClick={(e: React.MouseEvent) => { e.stopPropagation(); handleCopy(item.prompt); }}
-                                            />
-                                        </Tooltip>
-                                    </div>
-                                </div>
 
-                                <div className="flex justify-between items-center mt-2">
-                                    <div className="flex flex-wrap gap-y-2 gap-x-1">
-                                        {item.tags?.map(tagName => {
-                                            const color = getTagColor(tagName);
-                                            return (
-                                                <Tag
-                                                    key={tagName}
-                                                    className="border-none px-2 py-1 inline-flex items-center gap-1.5 rounded-md m-0"
-                                                    style={color ? { backgroundColor: color, color: '#fff' } : {}}
-                                                >
-                                                    <span className="font-medium">{tagName}</span>
-                                                    <TagIcon size={12} className="text-white opacity-90" />
-                                                </Tag>
-                                            );
-                                        })}
+                                    <div className="flex justify-between items-center mt-2">
+                                        <div className="flex flex-wrap gap-y-2 gap-x-1">
+                                            {item.tags?.map(tagName => {
+                                                const color = getTagColor(tagName);
+                                                return (
+                                                    <Tag
+                                                        key={tagName}
+                                                        className="border-none px-2 py-1 inline-flex items-center gap-1.5 rounded-md m-0"
+                                                        style={color ? { backgroundColor: color, color: '#fff' } : {}}
+                                                    >
+                                                        <span className="font-medium">{tagName}</span>
+                                                        <TagIcon size={12} className="text-white opacity-90" />
+                                                    </Tag>
+                                                );
+                                            })}
+                                        </div>
+                                        {item.description && (
+                                            <Tooltip title={item.description} placement="left">
+                                                <span className="text-xs text-slate-500 italic truncate max-w-[200px] cursor-help">
+                                                    {item.description}
+                                                </span>
+                                            </Tooltip>
+                                        )}
                                     </div>
-                                    {item.description && (
-                                        <Tooltip title={item.description} placement="left">
-                                            <span className="text-xs text-slate-500 italic truncate max-w-[200px] cursor-help">
-                                                {item.description}
-                                            </span>
-                                        </Tooltip>
-                                    )}
                                 </div>
-                            </div>
-                        </List.Item>
+                            </List.Item>
+                        )}
+                    />
+                    {/* Loading More Indicator */}
+                    {loadingMore && (
+                        <div className="flex items-center justify-center py-4 gap-2">
+                            <div className="animate-spin rounded-full h-5 w-5 border-b-2 border-primary"></div>
+                            <span className="text-sm text-slate-500">{t('common.loading', 'Loading...')}</span>
+                        </div>
                     )}
-                />
-                {/* Loading More Indicator */}
-                {loadingMore && (
-                    <div className="flex items-center justify-center py-4 gap-2">
-                        <div className="animate-spin rounded-full h-5 w-5 border-b-2 border-primary"></div>
-                        <span className="text-sm text-slate-500">{t('common.loading', 'Loading...')}</span>
-                    </div>
-                )}
-            </div>
+                </div>
 
-            <div className="mt-4 text-xs text-center text-slate-400">
-                {t('prompts.library.clickToCopy', 'Click on a prompt to copy it to clipboard')}
-            </div>
-        </Modal>
+                <div className="mt-4 text-xs text-center text-slate-400">
+                    {t('prompts.library.clickToCopy', 'Click on a prompt to copy it to clipboard')}
+                </div>
+            </Modal>
+
+            {/* Tag Management Modal - Admin Only */}
+            {
+                isAdmin && (
+                    <PromptTagManagementModal
+                        open={isTagManagementOpen}
+                        onClose={() => {
+                            setIsTagManagementOpen(false);
+                            // Refresh tags after management
+                            promptService.getNewestTags(50).then(tagsData => {
+                                setAvailableTags(tagsData.map(t => ({ name: t.name, color: t.color })));
+                            });
+                        }}
+                    />
+                )
+            }
+        </>
     );
 };
 

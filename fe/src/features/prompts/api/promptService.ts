@@ -117,6 +117,25 @@ export const promptService = {
         return api.post<PromptTag[]>(`${TAGS_URL}/by-ids`, { ids });
     },
 
+    /**
+     * Update an existing tag (Admin only).
+     * @param id - Tag UUID
+     * @param name - New tag name
+     * @param color - New tag color
+     */
+    updateTag: async (id: string, name: string, color: string): Promise<PromptTag> => {
+        return api.put<PromptTag>(`${TAGS_URL}/${id}`, { name, color });
+    },
+
+    /**
+     * Delete a tag (Admin only).
+     * Will fail if tag is in use by any prompts.
+     * @param id - Tag UUID
+     */
+    deleteTag: async (id: string): Promise<void> => {
+        return api.delete<void>(`${TAGS_URL}/${id}`);
+    },
+
     // ========================================================================
     // Prompt Permissions API
     // ========================================================================

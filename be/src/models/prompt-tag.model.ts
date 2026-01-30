@@ -108,4 +108,99 @@ export class PromptTagModel extends BaseModel<PromptTag> {
 
         return results;
     }
+
+    /**
+     * Update an existing tag's name and/or color.
+     * Also performs a cascading update on the prompts table
+     * if the tag name changes.
+     * @param id - Tag UUID
+     * @param name - New tag name
+     * @param color - New tag color
+     * @param userId - User ID for audit columns
+     * @returns Updated tag
+     * @throws Error if tag not found or name conflict
+     */
+    async updateTag(id: string, name: string, color: string, userId?: string): Promise<PromptTag> {
+        // Use transaction for atomicity
+        return this.knex.transaction(async trx => {
+            // Find existing tag
+            const existing = await trx(this.tableName).where('id', id).first();
+            if (!existing) {
+                throw new Error('Tag not found');
+            }
+
+            const oldName = existing.name;
+            const newName = name.trim();
+
+            // Check for duplicate name if changing
+            if (oldName.toLowerCase() !== newName.toLowerCase()) {
+                const conflict = await trx(this.tableName)
+                    .whereRaw('LOWER(name) = ?', [newName.toLowerCase()])
+                    .whereNot('id', id)
+                    .first();
+                if (conflict) {
+                    throw new Error('Tag name already exists');
+                }
+
+                // Cascade update: replace old name with new name in prompts.tags JSONB array
+                // Uses PostgreSQL JSONB manipulation: array_replace
+                await trx.raw(`
+                    UPDATE prompts
+                    SET tags = (
+                        SELECT jsonb_agg(
+                            CASE WHEN elem = ? THEN ? ELSE elem END
+                        )
+                        FROM jsonb_array_elements_text(tags) AS elem
+                    ),
+                    updated_at = NOW()
+                    WHERE tags @> ?
+                `, [oldName, newName, JSON.stringify([oldName])]);
+            }
+
+            // Update the tag itself
+            const [updated] = await trx(this.tableName)
+                .where('id', id)
+                .update({
+                    name: newName,
+                    color,
+                    updated_by: userId || null,
+                    updated_at: trx.fn.now()
+                })
+                .returning('*');
+
+            return updated;
+        });
+    }
+
+    /**
+     * Delete a tag by ID.
+     * Throws if the tag is currently used by any prompts.
+     * @param id - Tag UUID
+     * @throws Error if tag is in use or not found
+     */
+    async deleteTag(id: string): Promise<void> {
+        return this.knex.transaction(async trx => {
+            // Find existing tag
+            const existing = await trx(this.tableName).where('id', id).first();
+            if (!existing) {
+                throw new Error('Tag not found');
+            }
+
+            const tagName = existing.name;
+
+            // Check if any prompts use this tag
+            const usageCount = await trx('prompts')
+                .whereRaw('tags @> ?', [JSON.stringify([tagName])])
+                .count('id as count')
+                .first();
+
+            const count = parseInt(usageCount?.count as string || '0', 10);
+            if (count > 0) {
+                throw new Error(`TAG_IN_USE:${count}`);
+            }
+
+            // Delete the tag
+            await trx(this.tableName).where('id', id).delete();
+        });
+    }
 }

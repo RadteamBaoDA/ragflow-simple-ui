@@ -759,6 +759,19 @@
       "feedbackPlaceholder": "Why did you dislike this prompt? (Optional, max 500 chars)",
       "submitFeedback": "Submit",
       "feedbackSuccess": "Thanks for your feedback"
+    },
+    "tags": {
+      "manageTitle": "Manage Tags",
+      "manageButton": "Manage Tags",
+      "searchPlaceholder": "Search tags...",
+      "create": "Create",
+      "namePlaceholder": "Tag name",
+      "nameRequired": "Tag name is required",
+      "duplicateName": "Tag name already exists",
+      "notFound": "Tag not found",
+      "inUse": "Cannot delete tag because it is in use",
+      "deleteConfirm": "Delete this tag?",
+      "deleteWarning": "Tags in use cannot be deleted."
     }
   },
   "errors": {

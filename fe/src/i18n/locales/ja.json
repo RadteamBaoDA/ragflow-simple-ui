@@ -745,6 +745,19 @@
       "feedbackPlaceholder": "このプロンプトが気に入らない理由は何ですか？（任意、最大500文字）",
       "submitFeedback": "送信",
       "feedbackSuccess": "フィードバックありがとうございます"
+    },
+    "tags": {
+      "manageTitle": "タグ管理",
+      "manageButton": "タグ管理",
+      "searchPlaceholder": "タグを検索...",
+      "create": "作成",
+      "namePlaceholder": "タグ名",
+      "nameRequired": "タグ名は必須です",
+      "duplicateName": "タグ名は既に存在します",
+      "notFound": "タグが見つかりません",
+      "inUse": "使用中のタグは削除できません",
+      "deleteConfirm": "このタグを削除しますか？",
+      "deleteWarning": "使用中のタグは削除できません。"
     }
   },
   "errors": {
