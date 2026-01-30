@@ -110,7 +110,7 @@ export const PromptPermissionModal = ({ open, onClose }: PromptPermissionModalPr
             render: (level: number, record: PermissionRecord) => (
                 <Select
                     value={level}
-                    onChange={(val) => handleSave(record.entity_type, record.entity_id, val)}
+                    onChange={(val: number) => handleSave(record.entity_type, record.entity_id, val)}
                     style={{ width: 120 }}
                     options={[
                         { value: 0, label: t('common.none') },
@@ -164,7 +164,7 @@ export const PromptPermissionModal = ({ open, onClose }: PromptPermissionModalPr
                         style={{ flex: 1 }}
                         value={selectedEntity}
                         onChange={setSelectedEntity}
-                        filterOption={(input, option: any) => {
+                        filterOption={(input: string, option: any) => {
                             if (option?.email) {
                                 return option.email.toLowerCase().includes(input.toLowerCase());
                             }

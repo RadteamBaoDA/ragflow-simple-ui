@@ -151,7 +151,7 @@ export function DocumentPermissionModal({ isOpen, onClose, bucketId, bucketName 
                     <div className="flex flex-col items-end">
                         <AntSelect
                             value={currentLevel}
-                            onChange={(val) => handleLevelChange(activeTab === 'users' ? 'user' : 'team', record.id, val)}
+                            onChange={(val: number) => handleLevelChange(activeTab === 'users' ? 'user' : 'team', record.id, val)}
                             className="w-48"
                             options={levels.map(lvl => ({ value: lvl.value, label: lvl.label }))}
                         />
@@ -196,7 +196,7 @@ export function DocumentPermissionModal({ isOpen, onClose, bucketId, bucketName 
                         prefix={<Search className="text-gray-400" size={16} />}
                         placeholder={t('common.searchPlaceholder')}
                         value={searchTerm}
-                        onChange={(e) => setSearchTerm(e.target.value)}
+                        onChange={(e: React.ChangeEvent<HTMLInputElement>) => setSearchTerm(e.target.value)}
                         className="dark:bg-slate-800 dark:border-slate-600"
                     />
                 </div>

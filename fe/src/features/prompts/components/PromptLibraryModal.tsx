@@ -139,7 +139,7 @@ export const PromptLibraryModal = ({ open, onClose, onSelect }: PromptLibraryMod
                     placeholder={t('prompts.library.searchPlaceholder', 'Search prompts...')}
                     prefix={<Search className="w-4 h-4 text-slate-400" />}
                     value={searchText}
-                    onChange={(e) => setSearchText(e.target.value)}
+                    onChange={(e: React.ChangeEvent<HTMLInputElement>) => setSearchText(e.target.value)}
                     allowClear
                     size="large"
                     className="flex-1"
@@ -219,7 +219,7 @@ export const PromptLibraryModal = ({ open, onClose, onSelect }: PromptLibraryMod
                                                 type="text"
                                                 icon={<Copy className="w-4 h-4" />}
                                                 className="ml-2 text-slate-400 hover:text-primary"
-                                                onClick={(e) => { e.stopPropagation(); handleCopy(item.prompt); }}
+                                                onClick={(e: React.MouseEvent) => { e.stopPropagation(); handleCopy(item.prompt); }}
                                             />
                                         </Tooltip>
                                     </div>
@@ -319,7 +319,7 @@ const PromptInteractionButtons = ({ promptId }: { promptId: string }) => {
         <div className="w-64" onClick={(e) => e.stopPropagation()}>
             <Input.TextArea
                 value={feedback}
-                onChange={(e) => setFeedback(e.target.value)}
+                onChange={(e: React.ChangeEvent<HTMLTextAreaElement>) => setFeedback(e.target.value)}
                 placeholder={t('prompts.library.feedbackPlaceholder')}
                 maxLength={500}
                 rows={3}

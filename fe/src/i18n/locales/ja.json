@@ -756,6 +756,7 @@
     "welcome": "ユーザーガイドへようこそ",
     "quickStart": "クイックスタートトピック",
     "helpTooltip": "ユーザーガイドを開く",
+    "searchPlaceholder": "ガイドを検索...",
     "modules": {
       "ai-chat": {
         "title": "AIチャットガイド"
