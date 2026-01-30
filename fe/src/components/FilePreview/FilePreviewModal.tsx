@@ -1,23 +1,31 @@
 /**
- * @fileoverview Modal component for previewing files in the Document Manager.
+ * @fileoverview Modal component for previewing files.
  * Routes to specific previewers based on file extension.
  */
 
 import React, { useEffect, useState } from 'react';
 import { X, Download, ExternalLink, AlertCircle } from 'lucide-react';
 import { useTranslation } from 'react-i18next';
-import { FileObject } from '@/features/documents/api/documentService';
 import { ImagePreview } from './PreviewComponents/ImagePreview';
 import { PdfPreview } from './PreviewComponents/PdfPreview';
 import { TextPreview } from './PreviewComponents/TextPreview';
 import { OfficePreview } from './PreviewComponents/OfficePreview';
 
 /**
+ * File object type
+ */
+interface FileObject {
+  name: string;
+  size?: number;
+  lastModified?: Date;
+}
+
+/**
  * @description Props for the FilePreviewModal.
  */
 interface FilePreviewModalProps {
-    /** File object with metadata (name, size, etc.) */
-    file: FileObject;
+  /** File object with metadata (name, size, etc.) */
+  file: FileObject;
     /** Presigned URL for accessing the file content */
     url: string;
     /** Callback to close the modal */

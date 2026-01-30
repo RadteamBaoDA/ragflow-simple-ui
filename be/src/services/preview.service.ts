@@ -33,15 +33,8 @@ export class PreviewService {
         // Start with the provided bucket name as target
         let targetBucketName = bucketName;
 
-        // UUID regex pattern to detect if bucketName is a database ID
-        const uuidRegex = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;
-
-        // If bucketName looks like a UUID, resolve actual bucket name from database
-        if (uuidRegex.test(bucketName)) {
-            // Look up bucket metadata by ID to get the real MinIO bucket name
-            const bucket = await ModelFactory.minioBucket.findById(bucketName);
-            if (bucket) targetBucketName = bucket.bucket_name;
-        }
+        // Note: Bucket name resolution by UUID has been removed
+        // If you need UUID to bucket name mapping, implement it separately
 
         // Sanitize filename to create a safe local cache key
         // Replace special characters with underscores to prevent path traversal

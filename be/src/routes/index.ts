@@ -17,13 +17,8 @@ import adminRoutes from '@/routes/admin.routes.js';
 import userRoutes from '@/routes/user.routes.js';
 import teamRoutes from '@/routes/team.routes.js';
 import systemToolsRoutes from '@/routes/system-tools.routes.js';
-import documentBucketRoutes from '@/routes/document-bucket.routes.js';
-import storageRawRoutes from '@/routes/storage-raw.routes.js';
-import documentStorageRoutes from '@/routes/document-storage.routes.js';
-import documentPermissionRoutes from '@/routes/document-permission.routes.js';
 import auditRoutes from '@/routes/audit.routes.js';
 import externalRoutes from '@/routes/external/index.js';
-import previewRoutes from '@/routes/preview.routes.js';
 import broadcastMessageRoutes from '@/routes/broadcast-message.routes.js';
 import adminHistoryRoutes from '@/routes/admin-history.routes.js';
 import chatHistoryRoutes from '@/routes/chat-history.routes.js';
@@ -119,22 +114,11 @@ function registerRoutes(apiRouter: Router): void {
     // System tools (health checks, diagnostics)
     apiRouter.use('/system-tools', systemToolsRoutes);
 
-    // Document storage routes
-    apiRouter.use('/document/buckets', documentBucketRoutes);
-    apiRouter.use('/storage/raw', storageRawRoutes); // Generic storage admin routes
-    apiRouter.use('/document/storage', documentStorageRoutes);
-
-    // Document permissions
-    apiRouter.use('/document-permissions', documentPermissionRoutes);
-
     // Audit logging
     apiRouter.use('/audit', auditRoutes);
 
     // External integrations
     apiRouter.use('/external', externalRoutes);
-
-    // Preview service
-    apiRouter.use('/preview', previewRoutes);
 
     // Broadcast messages
     apiRouter.use('/broadcast-messages', broadcastMessageRoutes);

@@ -76,21 +76,6 @@ export async function up(knex: Knex): Promise<void> {
         });
     }
 
-    // 6. MinIO Buckets
-    if (!(await knex.schema.hasTable('minio_buckets'))) {
-        await knex.schema.createTable('minio_buckets', (table) => {
-            table.text('id').primary().defaultTo(knex.raw('gen_random_uuid()::TEXT'));
-            table.text('bucket_name').notNullable().unique();
-            table.text('display_name').notNullable();
-            table.text('description');
-            table.text('created_by').notNullable();
-            table.text('updated_by');
-            table.timestamp('created_at', { useTz: true }).defaultTo(knex.fn.now());
-            table.integer('is_active').defaultTo(1);
-            table.foreign('created_by').references('users.id');
-        });
-    }
-
     // 7. System Configs
     if (!(await knex.schema.hasTable('system_configs'))) {
         await knex.schema.createTable('system_configs', (table) => {
@@ -111,6 +96,7 @@ export async function up(knex: Knex): Promise<void> {
             table.text('url').notNullable();
             table.text('description'); // Source description
             table.text('share_id'); // Share ID extracted from URL (shared_id param)
+            table.text('chat_widget_url'); // URL for embedded chat widget on search page
             table.jsonb('access_control').defaultTo('{"public": true}');
             table.text('created_by');
             table.text('updated_by');
@@ -152,26 +138,6 @@ export async function up(knex: Knex): Promise<void> {
             table.foreign('user_id').references('users.id').onDelete('CASCADE');
             table.index('user_id');
         });
-    }
-
-    // 11. Document Permissions
-    if (!(await knex.schema.hasTable('document_permissions'))) {
-        await knex.schema.createTable('document_permissions', (table) => {
-            table.uuid('id').primary().defaultTo(knex.raw('gen_random_uuid()'));
-            table.string('entity_type', 10).notNullable().checkIn(['user', 'team']);
-            table.text('entity_id').notNullable();
-            table.text('bucket_id').notNullable();
-            table.integer('permission_level').notNullable().defaultTo(0);
-            table.text('created_by');
-            table.text('updated_by');
-            table.timestamp('created_at', { useTz: true }).defaultTo(knex.fn.now());
-            table.timestamp('updated_at', { useTz: true }).defaultTo(knex.fn.now());
-            table.unique(['entity_type', 'entity_id', 'bucket_id']);
-            table.foreign('bucket_id').references('minio_buckets.id').onDelete('CASCADE');
-            table.index(['entity_type', 'entity_id']);
-            table.index('bucket_id');
-        });
-        await knex.raw('ALTER TABLE document_permissions ADD CONSTRAINT document_permissions_permission_level_check CHECK (permission_level BETWEEN 0 AND 3)');
     }
 
     // 12. Broadcast Messages
@@ -365,12 +331,10 @@ export async function down(knex: Knex): Promise<void> {
     await knex.schema.dropTableIfExists('external_chat_sessions');
     await knex.schema.dropTableIfExists('user_dismissed_broadcasts');
     await knex.schema.dropTableIfExists('broadcast_messages');
-    await knex.schema.dropTableIfExists('document_permissions');
     await knex.schema.dropTableIfExists('user_ip_history');
     await knex.schema.dropTableIfExists('audit_logs');
     await knex.schema.dropTableIfExists('knowledge_base_sources');
     await knex.schema.dropTableIfExists('system_configs');
-    await knex.schema.dropTableIfExists('minio_buckets');
     await knex.schema.dropTableIfExists('chat_messages');
     await knex.schema.dropTableIfExists('chat_sessions');
     await knex.schema.dropTableIfExists('user_teams');
