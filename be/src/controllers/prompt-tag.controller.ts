@@ -89,4 +89,73 @@ export class PromptTagController {
             res.status(500).json({ error: 'Failed to fetch tags' });
         }
     }
+
+    /**
+     * Update an existing tag.
+     * PUT /api/prompt-tags/:id
+     * Body: { name: string, color: string }
+     */
+    static async updateTag(req: Request, res: Response) {
+        try {
+            const { id } = req.params;
+            const { name, color } = req.body;
+
+            // Validate required fields
+            if (!name || typeof name !== 'string' || name.trim() === '') {
+                res.status(400).json({ error: 'Tag name is required' });
+                return;
+            }
+            if (!color || typeof color !== 'string') {
+                res.status(400).json({ error: 'Tag color is required' });
+                return;
+            }
+
+            // @ts-ignore - userId from auth middleware
+            const userId = req.user?.id || undefined;
+
+            const tag = await promptTagService.updateTag(id || '', name.trim(), color, userId);
+            res.json(tag);
+        } catch (error: any) {
+            console.error('Error updating tag:', error);
+            // Handle specific errors
+            if (error.message === 'Tag not found') {
+                res.status(404).json({ error: 'Tag not found' });
+                return;
+            }
+            if (error.message === 'Tag name already exists') {
+                res.status(409).json({ error: 'Tag name already exists' });
+                return;
+            }
+            res.status(500).json({ error: 'Failed to update tag' });
+        }
+    }
+
+    /**
+     * Delete a tag.
+     * DELETE /api/prompt-tags/:id
+     */
+    static async deleteTag(req: Request, res: Response) {
+        try {
+            const { id } = req.params;
+
+            await promptTagService.deleteTag(id || '');
+            res.status(204).send();
+        } catch (error: any) {
+            console.error('Error deleting tag:', error);
+            // Handle specific errors
+            if (error.message === 'Tag not found') {
+                res.status(404).json({ error: 'Tag not found' });
+                return;
+            }
+            if (error.message?.startsWith('TAG_IN_USE:')) {
+                const count = error.message.split(':')[1];
+                res.status(409).json({
+                    error: 'Tag is in use',
+                    message: `Cannot delete tag because it is used in ${count} prompt(s). Please remove it from all prompts first.`
+                });
+                return;
+            }
+            res.status(500).json({ error: 'Failed to delete tag' });
+        }
+    }
 }

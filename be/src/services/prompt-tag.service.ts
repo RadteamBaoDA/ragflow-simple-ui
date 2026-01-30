@@ -91,6 +91,31 @@ export class PromptTagService {
     }
 
     /**
+     * Update an existing tag's name and color.
+     * Performs cascading update on prompts if name changes.
+     * @param id - Tag UUID
+     * @param name - New tag name
+     * @param color - New tag color
+     * @param userId - User ID for audit
+     * @returns Updated tag
+     * @throws Error if tag not found, name conflict, or other issues
+     */
+    async updateTag(id: string, name: string, color: string, userId?: string): Promise<PromptTag> {
+        return ModelFactory.promptTag.updateTag(id, name, color, userId);
+    }
+
+    /**
+     * Delete a tag by ID.
+     * Throws if the tag is currently used by any prompts.
+     * @param id - Tag UUID
+     * @param userId - User ID for audit (not used in delete but kept for consistency)
+     * @throws Error with message starting with TAG_IN_USE: if tag is in use
+     */
+    async deleteTag(id: string): Promise<void> {
+        return ModelFactory.promptTag.deleteTag(id);
+    }
+
+    /**
      * Generate a random hex color.
      * @returns Random hex color string (e.g., #FF5733)
      */

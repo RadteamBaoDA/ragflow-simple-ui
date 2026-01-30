@@ -247,7 +247,7 @@ export const TagInput: React.FC<TagInputProps> = ({
                     backgroundColor: color,
                     borderColor: color,
                     color: '#fff',
-                    padding: '6px 14px',
+                    padding: '4px 2px',
                     borderRadius: '20px',
                     marginRight: 8,
                     marginTop: 3,

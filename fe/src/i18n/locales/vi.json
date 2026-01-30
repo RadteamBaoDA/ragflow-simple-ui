@@ -760,6 +760,19 @@
       "feedbackPlaceholder": "Tại sao bạn không thích prompt này? (Tùy chọn, tối đa 500 ký tự)",
       "submitFeedback": "Gửi",
       "feedbackSuccess": "Cảm ơn góp ý của bạn"
+    },
+    "tags": {
+      "manageTitle": "Quản lý Thẻ",
+      "manageButton": "Quản lý Thẻ",
+      "searchPlaceholder": "Tìm kiếm thẻ...",
+      "create": "Tạo mới",
+      "namePlaceholder": "Tên thẻ",
+      "nameRequired": "Tên thẻ là bắt buộc",
+      "duplicateName": "Tên thẻ đã tồn tại",
+      "notFound": "Không tìm thấy thẻ",
+      "inUse": "Không thể xóa thẻ vì đang được sử dụng",
+      "deleteConfirm": "Xóa thẻ này?",
+      "deleteWarning": "Không thể xóa thẻ đang được sử dụng."
     }
   },
   "errors": {
