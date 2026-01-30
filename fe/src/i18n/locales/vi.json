@@ -771,6 +771,7 @@
     "welcome": "Chào mừng đến với Hướng dẫn sử dụng",
     "quickStart": "Chủ đề Khởi đầu Nhanh",
     "helpTooltip": "Mở Hướng dẫn sử dụng",
+    "searchPlaceholder": "Tìm kiếm hướng dẫn...",
     "modules": {
       "ai-chat": {
         "title": "Hướng dẫn AI Chat"

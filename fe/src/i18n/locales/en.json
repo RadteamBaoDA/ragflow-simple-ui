@@ -770,6 +770,7 @@
     "welcome": "Welcome to the User Guide",
     "quickStart": "Quick Start Topics",
     "helpTooltip": "Open User Guide",
+    "searchPlaceholder": "Search guide...",
     "modules": {
       "ai-chat": {
         "title": "AI Chat Guide"

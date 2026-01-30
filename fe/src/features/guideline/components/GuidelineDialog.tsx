@@ -1,12 +1,13 @@
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useMemo } from 'react';
 import { useTranslation } from 'react-i18next';
 import { Dialog } from '@/components/Dialog';
 import { useGuideline } from '../hooks/useGuideline';
 import { useAuth } from '@/features/auth';
-import { Play } from 'lucide-react';
+import { Play, Search } from 'lucide-react';
 import { LanguageCode } from '@/i18n';
 import ReactMarkdown from 'react-markdown';
 import remarkGfm from 'remark-gfm';
+import { IGuidelineTab } from '../data/types';
 
 interface GuidelineDialogProps {
     open: boolean;
@@ -19,13 +20,54 @@ export function GuidelineDialog({ open, onClose, featureId }: GuidelineDialogPro
     const { guideline } = useGuideline(featureId);
     const { user } = useAuth();
     const [activeTabId, setActiveTabId] = useState<string>('overview');
+    const [searchQuery, setSearchQuery] = useState<string>('');
 
     // Reset state when feature changes or dialog opens
     useEffect(() => {
         if (open) {
             setActiveTabId('overview');
+            setSearchQuery('');
         }
     }, [open, featureId]);
+
+    const currentLang = (i18n.language || 'en') as LanguageCode & string;
+
+    // Resolve localized strings helper
+    const getLocPath = (record: Record<string, string>) => {
+        return record[currentLang] || record['en'] || '';
+    };
+
+    // Helper for string array localization
+    const getLocList = (record?: Record<string, string[]>) => {
+        if (!record) return [];
+        return record[currentLang] || record['en'] || [];
+    };
+
+    /**
+     * Filters tabs based on search query.
+     * A tab matches if its title or any step's title/description/details contain the query.
+     */
+    const filteredTabs = useMemo((): IGuidelineTab[] => {
+        if (!guideline || !searchQuery.trim()) return guideline?.tabs || [];
+        const query = searchQuery.toLowerCase().trim();
+
+        return guideline.tabs.filter(tab => {
+            // Check tab title
+            const tabTitle = getLocPath(tab.tabTitle).toLowerCase();
+            if (tabTitle.includes(query)) return true;
+
+            // Check steps
+            return tab.steps.some(step => {
+                const stepTitle = getLocPath(step.title).toLowerCase();
+                const stepDesc = getLocPath(step.description).toLowerCase();
+                if (stepTitle.includes(query) || stepDesc.includes(query)) return true;
+
+                // Check details
+                const details = getLocList(step.details);
+                return details.some(d => d.toLowerCase().includes(query));
+            });
+        });
+    }, [guideline, searchQuery, currentLang]);
 
     const handleClose = () => {
         onClose();
@@ -42,34 +84,33 @@ export function GuidelineDialog({ open, onClose, featureId }: GuidelineDialogPro
         return null; // Or render access denied
     }
 
-    const currentLang = (i18n.language || 'en') as LanguageCode & string;
     const activeTab = guideline.tabs.find(t => t.tabId === activeTabId);
-
-    // Resolve localized strings helper
-    const getLocPath = (record: Record<string, string>) => {
-        return record[currentLang] || record['en'] || '';
-    };
-
-    // Helper for string array localization
-    const getLocList = (record?: Record<string, string[]>) => {
-        if (!record) return [];
-        return record[currentLang] || record['en'] || [];
-    };
-
 
     return (
         <Dialog
             open={open}
             onClose={handleClose}
             title={t(`guideline.modules.${featureId}.title`, { defaultValue: getLocPath(guideline.overview).split('.')[0] })} // Fallback title
-            maxWidth="4xl"
-            className="h-[80vh]"
+            maxWidth="none"
+            className="h-[80vh] w-[70vw]"
         >
             <div className="flex h-full flex-col lg:flex-row gap-4">
                 {/* Sidebar / Tabs */}
                 <div className="w-full lg:w-64 shrink-0 border-r dark:border-slate-700 pr-4 flex flex-col gap-2">
+                    {/* Search Input */}
+                    <div className="relative">
+                        <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 w-4 h-4 text-slate-400" />
+                        <input
+                            type="text"
+                            placeholder={t('guideline.searchPlaceholder', 'Search guide...')}
+                            value={searchQuery}
+                            onChange={(e: React.ChangeEvent<HTMLInputElement>) => setSearchQuery(e.target.value)}
+                            className="w-full pl-10 pr-4 py-2 text-sm border border-slate-200 dark:border-slate-600 rounded-lg bg-white dark:bg-slate-800 text-slate-900 dark:text-white focus:ring-2 focus:ring-blue-500 focus:border-transparent placeholder-slate-400 dark:placeholder-slate-500"
+                        />
+                    </div>
+
                     <button
-                        onClick={() => setActiveTabId('overview')}
+                        onClick={() => { setActiveTabId('overview'); setSearchQuery(''); }}
                         className={`w-full text-left px-4 py-3 rounded-lg transition-colors font-medium
               ${activeTabId === 'overview'
                                 ? 'bg-blue-50 text-blue-600 dark:bg-blue-900/20 dark:text-blue-400'
@@ -82,21 +123,27 @@ export function GuidelineDialog({ open, onClose, featureId }: GuidelineDialogPro
                     <div className="my-2 border-t dark:border-slate-700" />
 
                     <div className="flex flex-col gap-1 overflow-y-auto flex-1">
-                        {guideline.tabs.map(tab => (
-                            <button
-                                key={tab.tabId}
-                                onClick={() => {
-                                    setActiveTabId(tab.tabId);
-                                }}
-                                className={`w-full text-left px-4 py-2 rounded-lg transition-colors text-sm
+                        {filteredTabs.length === 0 && searchQuery.trim() ? (
+                            <p className="text-sm text-slate-400 dark:text-slate-500 px-4 py-2">
+                                {t('common.noData', 'No results found')}
+                            </p>
+                        ) : (
+                            filteredTabs.map(tab => (
+                                <button
+                                    key={tab.tabId}
+                                    onClick={() => {
+                                        setActiveTabId(tab.tabId);
+                                    }}
+                                    className={`w-full text-left px-4 py-2 rounded-lg transition-colors text-sm
                   ${activeTabId === tab.tabId
-                                        ? 'bg-slate-100 text-slate-900 dark:bg-slate-800 dark:text-slate-100 font-medium'
-                                        : 'hover:bg-slate-50 dark:hover:bg-slate-800/50 text-slate-500 dark:text-slate-500'
-                                    }`}
-                            >
-                                {getLocPath(tab.tabTitle)}
-                            </button>
-                        ))}
+                                            ? 'bg-slate-100 text-slate-900 dark:bg-slate-800 dark:text-slate-100 font-medium'
+                                            : 'hover:bg-slate-50 dark:hover:bg-slate-800/50 text-slate-500 dark:text-slate-500'
+                                        }`}
+                                >
+                                    {getLocPath(tab.tabTitle)}
+                                </button>
+                            ))
+                        )}
                     </div>
                 </div>
 
@@ -119,7 +166,7 @@ export function GuidelineDialog({ open, onClose, featureId }: GuidelineDialogPro
                                     {t('guideline.quickStart', 'Quick Start')}
                                 </h4>
                                 <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
-                                    {guideline.tabs.slice(0, 4).map(tab => ( // Show first 4 features as quick links
+                                    {filteredTabs.slice(0, 4).map(tab => ( // Show first 4 features as quick links
                                         <button
                                             key={tab.tabId}
                                             onClick={() => {
@@ -163,21 +210,43 @@ export function GuidelineDialog({ open, onClose, featureId }: GuidelineDialogPro
                                                 {/* Detailed Steps List */}
                                                 {step.details && (
                                                     <div className="bg-slate-50 dark:bg-slate-900/50 rounded-lg p-4 border border-slate-100 dark:border-slate-800">
-                                                        <ul className="space-y-2">
-                                                            {getLocList(step.details).map((detail, idx) => (
-                                                                <li key={idx} className="text-sm text-slate-700 dark:text-slate-300 flex items-start gap-2">
-                                                                    <span>•</span>
-                                                                    <ReactMarkdown
-                                                                        remarkPlugins={[remarkGfm]}
-                                                                        components={{
-                                                                            p: ({ children }: any) => <span className="inline">{children}</span>
-                                                                        }}
-                                                                    >
-                                                                        {detail.replace(/^\d+\.\s*/, '')}
-                                                                    </ReactMarkdown>
-                                                                </li>
-                                                            ))}
-                                                        </ul>
+                                                        <div className="prose prose-sm dark:prose-invert max-w-none prose-headings:text-slate-800 dark:prose-headings:text-slate-100 prose-p:text-slate-700 dark:prose-p:text-slate-300 prose-ul:list-disc prose-ul:pl-5 prose-ol:list-decimal prose-ol:pl-5 prose-li:text-slate-700 dark:prose-li:text-slate-300 prose-strong:text-slate-900 dark:prose-strong:text-slate-100 prose-code:text-slate-800 dark:prose-code:text-slate-200 prose-code:bg-slate-200 dark:prose-code:bg-slate-800 prose-code:px-1 prose-code:py-0.5 prose-code:rounded prose-pre:bg-slate-800 dark:prose-pre:bg-slate-900 prose-pre:text-slate-100">
+                                                            <ReactMarkdown
+                                                                remarkPlugins={[remarkGfm]}
+                                                                components={{
+                                                                    table: ({ children }: { children: React.ReactNode }) => (
+                                                                        <table className="min-w-full divide-y divide-slate-200 dark:divide-slate-700 border border-slate-200 dark:border-slate-700 my-4">
+                                                                            {children}
+                                                                        </table>
+                                                                    ),
+                                                                    thead: ({ children }: { children: React.ReactNode }) => (
+                                                                        <thead className="bg-slate-100 dark:bg-slate-800">
+                                                                            {children}
+                                                                        </thead>
+                                                                    ),
+                                                                    tbody: ({ children }: { children: React.ReactNode }) => (
+                                                                        <tbody className="bg-white dark:bg-slate-900 divide-y divide-slate-200 dark:divide-slate-700">
+                                                                            {children}
+                                                                        </tbody>
+                                                                    ),
+                                                                    tr: ({ children }: { children: React.ReactNode }) => (
+                                                                        <tr>{children}</tr>
+                                                                    ),
+                                                                    th: ({ children }: { children: React.ReactNode }) => (
+                                                                        <th className="px-4 py-2 text-left text-xs font-semibold text-slate-700 dark:text-slate-200 uppercase tracking-wider border-r border-slate-200 dark:border-slate-700 last:border-r-0">
+                                                                            {children}
+                                                                        </th>
+                                                                    ),
+                                                                    td: ({ children }: { children: React.ReactNode }) => (
+                                                                        <td className="px-4 py-2 text-sm text-slate-700 dark:text-slate-300 border-r border-slate-200 dark:border-slate-700 last:border-r-0">
+                                                                            {children}
+                                                                        </td>
+                                                                    ),
+                                                                }}
+                                                            >
+                                                                {getLocList(step.details).join('\n')}
+                                                            </ReactMarkdown>
+                                                        </div>
                                                     </div>
                                                 )}
                                             </div>
