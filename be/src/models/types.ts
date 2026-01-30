@@ -130,30 +130,6 @@ export interface ChatMessage {
 }
 
 /**
- * MinioBucket interface representing a managed MinIO bucket.
- */
-export interface MinioBucket {
-    /** Unique UUID for the bucket record */
-    id: string;
-    /** Actual bucket name in MinIO */
-    bucket_name: string;
-    /** Human-readable display name */
-    display_name: string;
-    /** Description of the bucket's contents */
-    description?: string | null;
-    /** UUID of the user who created the bucket */
-    created_by: string;
-    /** User ID who last updated this record */
-    updated_by?: string | null;
-    /** Timestamp of record creation */
-    created_at: Date;
-    /** Timestamp of last update */
-    updated_at?: Date;
-    /** Flag indicating if the bucket is active (1) or not (0) */
-    is_active: number;
-}
-
-/**
  * SystemConfig interface representing key-value configuration pairs.
  */
 export interface SystemConfig {
@@ -245,30 +221,6 @@ export interface UserIpHistory {
     created_by?: string | null;
     /** User ID who last updated this record */
     updated_by?: string | null;
-}
-
-/**
- * DocumentPermission interface representing fine-grained access control.
- */
-export interface DocumentPermission {
-    /** Unique UUID for the permission record */
-    id: string;
-    /** Type of entity granted permission ('user' or 'team') */
-    entity_type: string;
-    /** UUID of the user or team */
-    entity_id: string;
-    /** UUID of the MinIO bucket */
-    bucket_id: string;
-    /** Numeric permission level */
-    permission_level: number;
-    /** User ID who created this record */
-    created_by?: string | null;
-    /** User ID who last updated this record */
-    updated_by?: string | null;
-    /** Timestamp of record creation */
-    created_at: Date;
-    /** Timestamp of last update */
-    updated_at: Date;
 }
 
 /**

@@ -28,19 +28,15 @@ import { Select } from '@/components/Select';
 import {
   MessageSquare,
   Search,
-
   Settings,
   BookOpen,
   LogOut,
   ChevronLeft,
   ChevronRight,
   Users,
-
   Server,
-  HardDrive,
   ClipboardList,
   FileCode,
-  Database,
   Settings2,
   Activity,
   Shield,
@@ -181,12 +177,8 @@ function Layout() {
         return t('pages.searchHistory.title');
       case '/history':
         return t('pages.history.title');
-      case '/knowledge-base/documents':
-        return t('pages.storage.title');
       case '/knowledge-base/config':
         return t('knowledgeBaseConfig.title');
-      case '/knowledge-base/storage':
-        return t('storage.title');
       case '/knowledge-base/prompts':
         return t('prompts.title');
       case '/iam/users':
@@ -210,7 +202,7 @@ function Layout() {
   };
 
   // Auto-expand parent menus when their children are active
-  const isKnowledgeBaseActive = ['/knowledge-base/documents', '/knowledge-base/config', '/knowledge-base/storage', '/knowledge-base/prompts'].includes(location.pathname);
+  const isKnowledgeBaseActive = ['/knowledge-base/config', '/knowledge-base/prompts'].includes(location.pathname);
   const isIamActive = ['/iam/users', '/iam/teams'].includes(location.pathname);
   const isAdministratorsActive = ['/admin/audit-log', '/admin/system-tools', '/admin/system-monitor', '/admin/tokenizer', '/admin/broadcast-messages', '/admin/histories'].includes(location.pathname);
   const isChatActive = ['/chat', '/chat/history'].includes(location.pathname);
@@ -336,21 +328,10 @@ function Layout() {
 
               {(!isCollapsed && shouldExpandKnowledgeBase) && (
                 <div className="pl-4 flex flex-col gap-1">
-                  <NavLink to="/knowledge-base/documents" onClick={handleNavClick('/knowledge-base/documents')} className={({ isActive }: { isActive: boolean }) => `sidebar-link ${isActive ? 'active' : ''}`} title={t('nav.storage')}>
-                    <HardDrive size={18} />
-                    <span>{t('nav.storage')}</span>
-                  </NavLink>
                   {user?.role === 'admin' && (
                     <NavLink to="/knowledge-base/config" onClick={handleNavClick('/knowledge-base/config')} className={({ isActive }: { isActive: boolean }) => `sidebar-link ${isActive ? 'active' : ''}`} title={t('knowledgeBaseConfig.title')}>
                       <Settings2 size={18} />
                       <span>{t('knowledgeBaseConfig.title')}</span>
-                    </NavLink>
-                  )}
-                  {user?.role === 'admin' && (
-                    <NavLink to="/knowledge-base/storage" onClick={handleNavClick('/knowledge-base/storage')} className={({ isActive }: { isActive: boolean }) => `sidebar-link ${isActive ? 'active' : ''}`} title={t('storage.title')}>
-                      <Database size={18} />
-
-                      <span>{t('storage.title')}</span>
                     </NavLink>
                   )}
                   <NavLink to="/knowledge-base/prompts" onClick={handleNavClick('/knowledge-base/prompts')} className={({ isActive }: { isActive: boolean }) => `sidebar-link ${isActive ? 'active' : ''}`} title={t('nav.prompts')}>
@@ -536,7 +517,7 @@ function Layout() {
             )}
           </header>
         )}
-        <div className={`flex-1 overflow-hidden ${['/chat', '/search', '/knowledge-base/documents', '/admin/system-tools', '/knowledge-base/storage', '/ragflow-config', '/iam/teams', '/admin/histories', '/chat/history', '/search/history', '/knowledge-base/config'].includes(location.pathname) ? '' : 'p-8 overflow-auto'}`}>
+        <div className={`flex-1 overflow-hidden ${['/chat', '/search', '/admin/system-tools', '/ragflow-config', '/iam/teams', '/admin/histories', '/chat/history', '/search/history', '/knowledge-base/config'].includes(location.pathname) ? '' : 'p-8 overflow-auto'}`}>
           <Outlet />
         </div>
       </main>

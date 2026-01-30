@@ -7,12 +7,10 @@ import { TeamModel } from '@/models/team.model.js';
 import { UserTeamModel } from '@/models/user-team.model.js';
 import { ChatSessionModel } from '@/models/chat-session.model.js';
 import { ChatMessageModel } from '@/models/chat-message.model.js';
-import { MinioBucketModel } from '@/models/minio-bucket.model.js';
 import { SystemConfigModel } from '@/models/system-config.model.js';
 import { KnowledgeBaseSourceModel } from '@/models/knowledge-base-source.model.js';
 import { AuditLogModel } from '@/models/audit-log.model.js';
 import { UserIpHistoryModel } from '@/models/user-ip-history.model.js';
-import { DocumentPermissionModel } from '@/models/document-permission.model.js';
 import { BroadcastMessageModel } from '@/models/broadcast-message.model.js';
 import { UserDismissedBroadcastModel } from '@/models/user-dismissed-broadcast.model.js';
 import { ExternalChatSessionModel } from '@/models/external/chat-session.model.js';
@@ -42,8 +40,6 @@ export class ModelFactory {
   private static chatSessionModel: ChatSessionModel;
   /** Chat message model singleton instance */
   private static chatMessageModel: ChatMessageModel;
-  /** MinIO bucket model singleton instance */
-  private static minioBucketModel: MinioBucketModel;
   /** System config model singleton instance */
   private static systemConfigModel: SystemConfigModel;
   /** Knowledge base source model singleton instance */
@@ -52,8 +48,6 @@ export class ModelFactory {
   private static auditLogModel: AuditLogModel;
   /** User IP history model singleton instance */
   private static userIpHistoryModel: UserIpHistoryModel;
-  /** Document permission model singleton instance */
-  private static documentPermissionModel: DocumentPermissionModel;
   /** Broadcast message model singleton instance */
   private static broadcastMessageModel: BroadcastMessageModel;
   /** User dismissed broadcast model singleton instance */
@@ -127,17 +121,6 @@ export class ModelFactory {
   }
 
   /**
-   * Get the MinioBucket model singleton.
-   * Manages MinIO bucket metadata and configuration.
-   * @returns MinioBucketModel instance for bucket CRUD operations
-   */
-  static get minioBucket() {
-    // Create instance on first access (lazy initialization)
-    if (!this.minioBucketModel) this.minioBucketModel = new MinioBucketModel();
-    return this.minioBucketModel;
-  }
-
-  /**
    * Get the SystemConfig model singleton.
    * Manages key-value system configuration storage.
    * @returns SystemConfigModel instance for config CRUD operations
@@ -179,17 +162,6 @@ export class ModelFactory {
     // Create instance on first access (lazy initialization)
     if (!this.userIpHistoryModel) this.userIpHistoryModel = new UserIpHistoryModel();
     return this.userIpHistoryModel;
-  }
-
-  /**
-   * Get the DocumentPermission model singleton.
-   * Manages per-user and per-team access to MinIO buckets.
-   * @returns DocumentPermissionModel instance for permission operations
-   */
-  static get documentPermission() {
-    // Create instance on first access (lazy initialization)
-    if (!this.documentPermissionModel) this.documentPermissionModel = new DocumentPermissionModel();
-    return this.documentPermissionModel;
   }
 
   /**

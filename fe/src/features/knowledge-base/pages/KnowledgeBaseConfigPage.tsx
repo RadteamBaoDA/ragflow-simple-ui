@@ -5,7 +5,7 @@ import { getKnowledgeBaseConfig, updateSystemConfig, addSource, updateSource, de
 import { Save, Plus, ExternalLink, Trash2, Search, MessageSquare, Edit2, Shield } from 'lucide-react';
 import { Card, Table, Button, Space, Tabs, Tooltip, Pagination as AntPagination, message } from 'antd';
 import { Dialog } from '@/components/Dialog';
-import { SourcePermissionsModal, PermissionsSelector } from '@/features/documents/components/SourcePermissionsModal';
+import { SourcePermissionsModal, PermissionsSelector } from '../components/SourcePermissionsModal';
 import { useConfirm } from '@/components/ConfirmDialog';
 import { useFirstVisit, GuidelineDialog } from '@/features/guideline';
 

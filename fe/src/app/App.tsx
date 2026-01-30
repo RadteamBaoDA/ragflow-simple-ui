@@ -43,10 +43,8 @@ const TeamManagementPage = lazy(() => import('@/features/teams/pages/TeamManagem
 const SystemToolsPage = lazy(() => import('@/features/system/pages/SystemToolsPage'));
 const SystemMonitorPage = lazy(() => import('@/features/system/pages/SystemMonitorPage'));
 const ErrorPage = lazy(() => import('@/components/ErrorPage'));
-const DocumentManagerPage = lazy(() => import('@/features/documents/pages/DocumentManagerPage'));
 const AuditLogPage = lazy(() => import('@/features/audit/pages/AuditLogPage'));
 const TokenizerPage = lazy(() => import('@/features/ai/pages/TokenizerPage'));
-const StoragePage = lazy(() => import('@/features/storage/pages/StoragePage'));
 const KnowledgeBaseConfigPage = lazy(() => import('@/features/knowledge-base/pages/KnowledgeBaseConfigPage'));
 const BroadcastMessagePage = lazy(() => import('@/features/broadcast/pages/BroadcastMessagePage'));
 
@@ -168,20 +166,9 @@ function App() {
                             )}
 
                             {/* Knowledge Base routes */}
-                            <Route path="knowledge-base/documents" element={
-                              <RoleRoute allowedRoles={['admin', 'leader']}>
-                                <DocumentManagerPage />
-                              </RoleRoute>
-                            } />
                             <Route path="knowledge-base/config" element={
                               <AdminRoute>
                                 <KnowledgeBaseConfigPage />
-                              </AdminRoute>
-                            } />
-                            <Route path="knowledge-base/storage" element={
-                              <AdminRoute>
-                                <StoragePage />
-
                               </AdminRoute>
                             } />
                             <Route path="knowledge-base/prompts" element={
