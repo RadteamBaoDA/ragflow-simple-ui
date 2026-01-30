@@ -179,4 +179,19 @@ export class PromptModel extends BaseModel<Prompt> {
       .where('is_active', true)
       .first();
   }
+
+  /**
+   * Find which prompt texts already exist in the database.
+   * Used for bulk import to skip duplicates.
+   * @param promptTexts - Array of prompt texts to check
+   * @returns Set of existing prompt texts
+   */
+  async findExistingPromptTexts(promptTexts: string[]): Promise<Set<string>> {
+    if (promptTexts.length === 0) return new Set();
+    const results = await this.knex(this.tableName)
+      .select('prompt')
+      .whereIn('prompt', promptTexts)
+      .where('is_active', true);
+    return new Set(results.map((r: any) => r.prompt));
+  }
 }

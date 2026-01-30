@@ -33,6 +33,15 @@ export const promptService = {
         return api.delete<void>(`${BASE_URL}/${id}`);
     },
 
+    /**
+     * Bulk create prompts from CSV import.
+     * @param prompts - Array of prompt data to create
+     * @returns Result with imported/skipped counts
+     */
+    bulkCreate: async (prompts: CreatePromptDto[]): Promise<{ success: boolean; imported: number; skipped: number; errors: string[] }> => {
+        return api.post<{ success: boolean; imported: number; skipped: number; errors: string[] }>(`${BASE_URL}/bulk`, prompts);
+    },
+
     addInteraction: async (data: { prompt_id: string; interaction_type: 'like' | 'dislike' | 'comment'; comment?: string }): Promise<PromptInteraction> => {
         return api.post<PromptInteraction>(`${BASE_URL}/interactions`, data);
     },

@@ -758,6 +758,32 @@
       "inUse": "使用中のタグは削除できません",
       "deleteConfirm": "このタグを削除しますか？",
       "deleteWarning": "使用中のタグは削除できません。"
+    },
+    "bulkImport": {
+      "button": "CSVインポート",
+      "title": "Promptsを一括インポート",
+      "downloadTemplate": "テンプレートをダウンロード",
+      "import": "インポート",
+      "instructions": "CSVインポートの説明",
+      "instructionColumns": "必須列: {{required}}。オプション: {{optional}}",
+      "instructionMultiline": "複数行のプロンプトはダブルクォートで囲んでください",
+      "instructionTags": "タグはカンマで区切ります（例: \"tag1,tag2\"）",
+      "dropzone": "CSVファイルをここにドロップするかクリック",
+      "dropzoneHint": "最大1000行、5MB",
+      "parseError": "CSVの解析に失敗しました",
+      "fileLoaded": "ファイル読み込み済み: {{name}}",
+      "validRows": "{{count}}件の有効",
+      "errorRows": "{{count}}件のエラー",
+      "resultTitle": "インポート完了",
+      "resultMessage": "{{imported}}件のプロンプトをインポートしました。{{skipped}}件が重複でスキップされました。",
+      "success": "{{imported}}件のプロンプトをインポートしました。{{skipped}}件が重複でスキップされました",
+      "errors": {
+        "fileTooLarge": "ファイルサイズが{{max}}MBの制限を超えています",
+        "missingColumns": "必須列がありません: {{columns}}",
+        "tooManyRows": "ファイルに{{max}}行以上含まれています",
+        "missingPrompt": "{{row}}行目: プロンプトは必須です",
+        "noValidData": "インポート可能な有効なデータがありません"
+      }
     }
   },
   "errors": {

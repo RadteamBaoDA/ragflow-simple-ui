@@ -10,13 +10,14 @@
 
 import { useState, useEffect } from 'react';
 import { useTranslation } from 'react-i18next';
-import { Plus, Edit2, Trash2, ThumbsUp, ThumbsDown, MessageCircle, Calendar, Search, Shield, Tag as TagIcon, Settings } from 'lucide-react';
+import { Plus, Edit2, Trash2, ThumbsUp, ThumbsDown, MessageCircle, Calendar, Search, Shield, Tag as TagIcon, Settings, Upload } from 'lucide-react';
 import { Table, Card, Input, Button, Tag, Space, Select, Modal, Form, DatePicker, Pagination, Tooltip } from 'antd';
 import { promptService } from '../api/promptService';
 import { Prompt } from '../types/prompt';
 import { TagInput } from '../components/TagInput';
 import { PromptPermissionModal } from '../components/PromptPermissionModal';
 import { PromptTagManagementModal } from '../components/PromptTagManagementModal';
+import { BulkImportModal } from '../components/BulkImportModal';
 import { globalMessage } from '@/app/App';
 import { useAuth } from '@/features/auth';
 import { useDebounce } from '@/hooks/useDebounce';
@@ -83,6 +84,7 @@ export const PromptsPage = () => {
     const [isModalOpen, setIsModalOpen] = useState(false);
     const [isPermissionModalOpen, setIsPermissionModalOpen] = useState(false);
     const [isTagManagementOpen, setIsTagManagementOpen] = useState(false);
+    const [isBulkImportOpen, setIsBulkImportOpen] = useState(false);
     const [editingPrompt, setEditingPrompt] = useState<Prompt | null>(null);
     const [submitting, setSubmitting] = useState(false);
     const [form] = Form.useForm();
@@ -449,6 +451,17 @@ export const PromptsPage = () => {
                     )}
                     <Tooltip title={permissionLevel < PermissionLevel.UPLOAD ? t('common.noPermission') : ''}>
                         <Button
+                            type="default"
+                            icon={<Upload size={16} />}
+                            onClick={() => setIsBulkImportOpen(true)}
+                            size="large"
+                            disabled={permissionLevel < PermissionLevel.UPLOAD}
+                        >
+                            {t('prompts.bulkImport.button', 'Import CSV')}
+                        </Button>
+                    </Tooltip>
+                    <Tooltip title={permissionLevel < PermissionLevel.UPLOAD ? t('common.noPermission') : ''}>
+                        <Button
                             type="primary"
                             icon={<Plus size={16} />}
                             onClick={() => showModal()}
@@ -663,6 +676,14 @@ export const PromptsPage = () => {
                 open={showGuide}
                 onClose={() => setShowGuide(false)}
                 featureId="kb-prompts"
+            />
+            <BulkImportModal
+                open={isBulkImportOpen}
+                onClose={() => setIsBulkImportOpen(false)}
+                onSuccess={() => {
+                    fetchPrompts();
+                    fetchTags();
+                }}
             />
         </div>
     );

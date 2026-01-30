@@ -42,6 +42,76 @@ export const kbPromptsGuideline: IFeatureGuideline = {
             ]
         },
         {
+            tabId: 'bulk_import',
+            tabTitle: { en: 'CSV Import', vi: 'Nhập CSV', ja: 'CSVインポート' },
+            steps: [
+                {
+                    id: 'step_csv1',
+                    title: { en: 'Prepare Your CSV', vi: 'Chuẩn bị CSV', ja: 'CSVを準備' },
+                    description: {
+                        en: 'Format your CSV file correctly for bulk import.',
+                        vi: 'Định dạng tệp CSV của bạn đúng cách để nhập hàng loạt.',
+                        ja: '一括インポート用にCSVファイルを正しくフォーマットします。'
+                    },
+                    details: {
+                        en: [
+                            '1. **Required column**: `prompt` - The prompt text (required).',
+                            '2. **Optional columns**: `description`, `tags`, `source`.',
+                            '3. **Multi-line prompts**: Wrap the entire cell in double quotes.',
+                            '4. **Tags**: Separate multiple tags with commas (e.g., "tag1,tag2").',
+                            '5. **File limits**: Max 1000 rows, 5MB file size, UTF-8 encoding recommended.'
+                        ],
+                        vi: [
+                            '1. **Cột bắt buộc**: `prompt` - Nội dung prompt (bắt buộc).',
+                            '2. **Cột tùy chọn**: `description`, `tags`, `source`.',
+                            '3. **Prompt nhiều dòng**: Bao bọc toàn bộ ô trong dấu ngoặc kép.',
+                            '4. **Thẻ**: Phân cách nhiều thẻ bằng dấu phẩy (vd: "tag1,tag2").',
+                            '5. **Giới hạn tệp**: Tối đa 1000 dòng, 5MB, khuyến nghị mã hóa UTF-8.'
+                        ],
+                        ja: [
+                            '1. **必須列**: `prompt` - プロンプトテキスト（必須）。',
+                            '2. **オプション列**: `description`、`tags`、`source`。',
+                            '3. **複数行プロンプト**: セル全体をダブルクォートで囲みます。',
+                            '4. **タグ**: 複数のタグをカンマで区切ります（例：「tag1,tag2」）。',
+                            '5. **ファイル制限**: 最大1000行、5MBファイルサイズ、UTF-8エンコード推奨。'
+                        ]
+                    }
+                },
+                {
+                    id: 'step_csv2',
+                    title: { en: 'Import Process', vi: 'Quy Trình Nhập', ja: 'インポート手順' },
+                    description: {
+                        en: 'Upload and review your CSV before importing.',
+                        vi: 'Tải lên và xem lại CSV trước khi nhập.',
+                        ja: 'インポート前にCSVをアップロードして確認します。'
+                    },
+                    details: {
+                        en: [
+                            '1. Click the **Import CSV** button in the prompt management page.',
+                            '2. Click **Download Template** to get a sample CSV format.',
+                            '3. Drag and drop your CSV file or click to select.',
+                            '4. Review the preview table - valid rows are shown in green, errors in red.',
+                            '5. Click **Import** to add prompts. Duplicates are automatically skipped.'
+                        ],
+                        vi: [
+                            '1. Nhấp vào nút **Nhập CSV** trong trang quản lý prompt.',
+                            '2. Nhấp **Tải Template** để lấy mẫu định dạng CSV.',
+                            '3. Kéo và thả tệp CSV hoặc nhấp để chọn.',
+                            '4. Xem bảng xem trước - dòng hợp lệ hiển thị màu xanh, lỗi màu đỏ.',
+                            '5. Nhấp **Nhập** để thêm prompt. Các mục trùng lặp sẽ tự động bị bỏ qua.'
+                        ],
+                        ja: [
+                            '1. プロンプト管理ページの **CSVインポート** ボタンをクリックします。',
+                            '2. **テンプレートをダウンロード** をクリックしてサンプルCSV形式を取得します。',
+                            '3. CSVファイルをドラッグアンドドロップするか、クリックして選択します。',
+                            '4. プレビューテーブルを確認 - 有効な行は緑、エラーは赤で表示されます。',
+                            '5. **インポート** をクリックしてプロンプトを追加します。重複は自動的にスキップされます。'
+                        ]
+                    }
+                }
+            ]
+        },
+        {
             tabId: 'permissions',
             tabTitle: { en: 'Permissions', vi: 'Quyền Truy Cập', ja: '権限' },
             steps: [
