@@ -175,18 +175,7 @@ class SystemToolsService {
             dbStatus = false;
         }
 
-        // Check MinIO
-        const { storageService } = await import('@/services/storage/index.js');
-        const minioEnabled = !!(process.env.MINIO_ACCESS_KEY && process.env.MINIO_SECRET_KEY);
-        let minioStatus = 'disconnected';
-        if (minioEnabled) {
-            try {
-                await storageService.listBuckets();
-                minioStatus = 'connected';
-            } catch (e) {
-                minioStatus = 'disconnected';
-            }
-        }
+
 
         // Check Langfuse
         const langfuseEnabled = !!(config.langfuse.publicKey && config.langfuse.secretKey && config.langfuse.baseUrl);
@@ -223,11 +212,6 @@ class SystemToolsService {
                     status: redisStatus,
                     enabled: true,
                     host: config.redis.host,
-                },
-                minio: {
-                    status: minioStatus,
-                    enabled: minioEnabled,
-                    host: process.env.MINIO_ENDPOINT || 'localhost',
                 },
                 langfuse: {
                     status: langfuseStatus,
