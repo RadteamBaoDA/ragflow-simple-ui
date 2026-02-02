@@ -7,6 +7,9 @@ import { Card, Table, Button, Space, Tabs, Tooltip, Pagination as AntPagination,
 import { Dialog } from '@/components/Dialog';
 import { SourcePermissionsModal, PermissionsSelector } from '../components/SourcePermissionsModal';
 import { useConfirm } from '@/components/ConfirmDialog';
+import { teamService, Team } from '@/features/teams/api/teamService';
+import { userService } from '@/features/users/api/userService';
+import { User as UserType } from '@/features/auth';
 import { useFirstVisit, GuidelineDialog } from '@/features/guideline';
 
 /**
@@ -102,6 +105,34 @@ export default function KnowledgeBaseConfigPage() {
     const [isPublic, setIsPublic] = useState(true);
     const [selectedTeamIds, setSelectedTeamIds] = useState<string[]>([]);
     const [selectedUserIds, setSelectedUserIds] = useState<string[]>([]);
+
+    // --- Teams and Users Data Fetching ---
+    const [teams, setTeams] = useState<Team[]>([]);
+    const [users, setUsers] = useState<UserType[]>([]);
+    const [isLoadingData, setIsLoadingData] = useState(false);
+
+    // Fetch teams and users when the create/edit dialog is opened and access is private
+    useEffect(() => {
+        if (isDialogOpen && !isPublic && teams.length === 0 && users.length === 0) {
+            const fetchData = async () => {
+                setIsLoadingData(true);
+                try {
+                    // Parallel fetch of teams and users from their respective services
+                    const [teamsList, usersList] = await Promise.all([
+                        teamService.getTeams(),
+                        userService.getUsers()
+                    ]);
+                    setTeams(teamsList);
+                    setUsers(usersList);
+                } catch (error) {
+                    console.error('[KnowledgeBaseConfigPage] Failed to fetch teams/users:', error);
+                } finally {
+                    setIsLoadingData(false);
+                }
+            };
+            fetchData();
+        }
+    }, [isDialogOpen, isPublic, teams.length, users.length]);
 
     // Pagination state
     const [currentPage, setCurrentPage] = useState(1);
@@ -496,6 +527,9 @@ export default function KnowledgeBaseConfigPage() {
                                 setSelectedTeamIds={setSelectedTeamIds}
                                 selectedUserIds={selectedUserIds}
                                 setSelectedUserIds={setSelectedUserIds}
+                                teams={teams}
+                                users={users}
+                                isLoading={isLoadingData}
                             />
                         </div>
 
