@@ -773,6 +773,32 @@
       "inUse": "Không thể xóa thẻ vì đang được sử dụng",
       "deleteConfirm": "Xóa thẻ này?",
       "deleteWarning": "Không thể xóa thẻ đang được sử dụng."
+    },
+    "bulkImport": {
+      "button": "Nhập CSV",
+      "title": "Nhập Prompt Hàng loạt",
+      "downloadTemplate": "Tải Template",
+      "import": "Nhập",
+      "instructions": "Hướng dẫn Nhập CSV",
+      "instructionColumns": "Cột bắt buộc: {{required}}. Tuỳ chọn: {{optional}}",
+      "instructionMultiline": "Sử dụng dấu ngoặc kép cho prompt nhiều dòng",
+      "instructionTags": "Phân cách thẻ bằng dấu phẩy (vd: \"tag1,tag2\")",
+      "dropzone": "Nhấp hoặc kéo tệp CSV vào đây",
+      "dropzoneHint": "Tối đa 1000 dòng, 5MB",
+      "parseError": "Không thể phân tích CSV",
+      "fileLoaded": "Đã tải tệp: {{name}}",
+      "validRows": "{{count}} hợp lệ",
+      "errorRows": "{{count}} lỗi",
+      "resultTitle": "Nhập Hoàn tất",
+      "resultMessage": "Đã nhập {{imported}} prompt, bỏ qua {{skipped}} trùng lặp.",
+      "success": "Đã nhập {{imported}} prompt, bỏ qua {{skipped}} trùng lặp",
+      "errors": {
+        "fileTooLarge": "Kích thước tệp vượt quá giới hạn {{max}}MB",
+        "missingColumns": "Thiếu cột bắt buộc: {{columns}}",
+        "tooManyRows": "Tệp chứa nhiều hơn {{max}} dòng",
+        "missingPrompt": "Dòng {{row}}: Prompt là bắt buộc",
+        "noValidData": "Không có dữ liệu hợp lệ để nhập"
+      }
     }
   },
   "errors": {

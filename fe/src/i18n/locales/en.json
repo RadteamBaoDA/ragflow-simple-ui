@@ -772,6 +772,32 @@
       "inUse": "Cannot delete tag because it is in use",
       "deleteConfirm": "Delete this tag?",
       "deleteWarning": "Tags in use cannot be deleted."
+    },
+    "bulkImport": {
+      "button": "Import CSV",
+      "title": "Bulk Import Prompts",
+      "downloadTemplate": "Download Template",
+      "import": "Import",
+      "instructions": "CSV Import Instructions",
+      "instructionColumns": "Required column: {{required}}. Optional: {{optional}}",
+      "instructionMultiline": "Use double quotes for multi-line prompts",
+      "instructionTags": "Separate tags with commas (e.g., \"tag1,tag2\")",
+      "dropzone": "Click or drag CSV file here",
+      "dropzoneHint": "Max 1000 rows, 5MB",
+      "parseError": "Failed to Parse CSV",
+      "fileLoaded": "File loaded: {{name}}",
+      "validRows": "{{count}} valid",
+      "errorRows": "{{count}} errors",
+      "resultTitle": "Import Complete",
+      "resultMessage": "Imported {{imported}} prompts, skipped {{skipped}} duplicates.",
+      "success": "Imported {{imported}} prompts, skipped {{skipped}} duplicates",
+      "errors": {
+        "fileTooLarge": "File size exceeds {{max}}MB limit",
+        "missingColumns": "Missing required columns: {{columns}}",
+        "tooManyRows": "File contains more than {{max}} rows",
+        "missingPrompt": "Row {{row}}: Prompt is required",
+        "noValidData": "No valid data to import"
+      }
     }
   },
   "errors": {

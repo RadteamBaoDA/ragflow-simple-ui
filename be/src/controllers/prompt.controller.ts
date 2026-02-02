@@ -252,4 +252,44 @@ export class PromptController {
             return res.status(500).json({ error: 'Failed to fetch chat sources' });
         }
     }
+
+    /**
+     * Bulk create prompts from CSV import.
+     * Requires UPLOAD permission.
+     */
+    static async bulkCreate(req: Request, res: Response) {
+        try {
+            const user = (req as any).user;
+            if (!user?.id) {
+                return res.status(401).json({ error: 'Unauthorized: User ID missing' });
+            }
+            const level = await promptPermissionService.resolveUserPermission(user.id);
+            if (level < PermissionLevel.UPLOAD) {
+                return res.status(403).json({ error: 'Permission denied: ADD/EDIT required' });
+            }
+
+            const prompts = req.body;
+            if (!Array.isArray(prompts) || prompts.length === 0) {
+                return res.status(400).json({ error: 'Request body must be a non-empty array of prompts' });
+            }
+
+            // Validate each prompt has required 'prompt' field
+            for (let i = 0; i < prompts.length; i++) {
+                if (!prompts[i].prompt || typeof prompts[i].prompt !== 'string') {
+                    return res.status(400).json({ error: `Item at index ${i} is missing required 'prompt' field` });
+                }
+            }
+
+            const userContext = {
+                id: user.id,
+                email: user.email,
+                ip: req.ip || req.socket?.remoteAddress
+            };
+            const result = await promptService.bulkCreate(user.id, prompts, userContext);
+            return res.status(201).json(result);
+        } catch (error) {
+            console.error(error);
+            return res.status(500).json({ error: 'Failed to bulk create prompts' });
+        }
+    }
 }

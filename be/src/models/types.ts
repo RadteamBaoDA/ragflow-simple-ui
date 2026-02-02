@@ -369,3 +369,31 @@ export interface PromptPermission {
     /** Timestamp of last update */
     updated_at: Date;
 }
+
+/**
+ * DTO for bulk creating prompts.
+ */
+export interface BulkCreatePromptDto {
+    /** The prompt text (required) */
+    prompt: string;
+    /** Description of the prompt */
+    description?: string | null;
+    /** Array of tag names */
+    tags?: string[];
+    /** Source identifier */
+    source?: string;
+}
+
+/**
+ * Result of bulk prompt creation.
+ */
+export interface BulkCreateResult {
+    /** Whether the operation completed successfully */
+    success: boolean;
+    /** Number of prompts successfully imported */
+    imported: number;
+    /** Number of prompts skipped (duplicates) */
+    skipped: number;
+    /** Any error messages */
+    errors: string[];
+}

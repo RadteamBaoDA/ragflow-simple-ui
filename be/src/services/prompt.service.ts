@@ -5,8 +5,9 @@
  * Implements Singleton pattern for shared instance.
  */
 import { ModelFactory } from '@/models/factory.js';
-import { Prompt, PromptInteraction } from '@/models/types.js';
+import { Prompt, PromptInteraction, BulkCreatePromptDto, BulkCreateResult } from '@/models/types.js';
 import { auditService, AuditAction, AuditResourceType } from '@/services/audit.service.js';
+import { db } from '@/db/knex.js';
 
 /**
  * User context for audit logging.
@@ -245,6 +246,69 @@ export class PromptService {
      */
     async getChatSourceNames(): Promise<string[]> {
         return ModelFactory.knowledgeBaseSource.getChatSourceNames();
+    }
+
+    /**
+     * Bulk create prompts from an array.
+     * Skips duplicates (by prompt text). Uses a transaction.
+     * @param userId - ID of the user performing the import
+     * @param prompts - Array of prompts to create
+     * @param user - Optional user context for audit logging
+     * @returns Result with imported/skipped counts
+     */
+    async bulkCreate(userId: string, prompts: BulkCreatePromptDto[], user?: PromptUserContext): Promise<BulkCreateResult> {
+        const result: BulkCreateResult = { success: true, imported: 0, skipped: 0, errors: [] };
+        if (!prompts || prompts.length === 0) {
+            return result;
+        }
+
+        // Find existing prompts to skip
+        const promptTexts = prompts.map(p => p.prompt);
+        const existingTexts = await ModelFactory.prompt.findExistingPromptTexts(promptTexts);
+
+        // Filter to only new prompts
+        const newPrompts = prompts.filter(p => !existingTexts.has(p.prompt));
+        result.skipped = prompts.length - newPrompts.length;
+
+        if (newPrompts.length === 0) {
+            return result;
+        }
+
+        // Use transaction for atomic insert
+        await db.transaction(async (trx) => {
+            for (const p of newPrompts) {
+                const promptData = {
+                    prompt: p.prompt,
+                    description: p.description || null,
+                    tags: JSON.stringify(p.tags || []),
+                    source: p.source || 'import',
+                    is_active: true,
+                    created_by: userId,
+                    updated_by: userId
+                };
+                await trx('prompts').insert(promptData);
+                result.imported++;
+            }
+        });
+
+        // Log audit event for bulk import
+        if (user) {
+            await auditService.log({
+                userId: user.id,
+                userEmail: user.email,
+                action: AuditAction.CREATE_PROMPT,
+                resourceType: AuditResourceType.PROMPT,
+                resourceId: 'bulk-import',
+                details: {
+                    imported: result.imported,
+                    skipped: result.skipped,
+                    totalSubmitted: prompts.length
+                },
+                ipAddress: user.ip
+            });
+        }
+
+        return result;
     }
 
     /**

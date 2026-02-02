@@ -42,6 +42,73 @@ export const kbPromptsGuideline: IFeatureGuideline = {
             ]
         },
         {
+            tabId: 'bulk_import',
+            tabTitle: { en: 'CSV Import', vi: 'Nhập CSV', ja: 'CSVインポート' },
+            steps: [
+                {
+                    id: 'step_csv1',
+                    title: { en: 'Prepare Your CSV (Excel Tips)', vi: 'Chuẩn bị CSV (Mẹo Excel)', ja: 'CSVの準備（Excelのヒント）' },
+                    description: {
+                        en: 'Follow these tips to avoid common errors when using Excel or Google Sheets.',
+                        vi: 'Làm theo các mẹo sau để tránh các lỗi phổ biến khi sử dụng Excel hoặc Google Sheets.',
+                        ja: 'ExcelやGoogleスプレッドシートを使用する際の一般的なエラーを避けるために、以下のヒントに従ってください。'
+                    },
+                    details: {
+                        en: [
+                            '1. **Excel Multi-line**: Press **Alt + Enter** inside a cell to start a new line. Excel will handle the "quotes" for you automatically.',
+                            '2. **Markdown**: High-level headers (#), bold (**), and lists (-) are fully supported.',
+                            '3. **Required Header**: Your first row MUST be: `prompt, description, tags, source`.',
+                            '4. **Encoding**: When saving from Excel, choose **CSV UTF-8 (Comma delimited)** to prevent Japanese/Vietnamese characters from breaking.',
+                            '5. **Limit**: Maximum 1000 rows and 5MB per file.'
+                        ],
+                        vi: [
+                            '1. **Excel Nhiều dòng**: Nhấn **Alt + Enter** bên trong ô để bắt đầu dòng mới. Excel sẽ tự động xử lý dấu "ngoặc kép" cho bạn.',
+                            '2. **Markdown**: Các tiêu đề (#), chữ đậm (**) và danh sách (-) được hỗ trợ đầy đủ.',
+                            '3. **Tiêu đề bắt buộc**: Dòng đầu tiên PHẢI là: `prompt, description, tags, source`.',
+                            '4. **Mã hóa**: Khi lưu từ Excel, hãy chọn **CSV UTF-8 (Comma delimited)** để tránh lỗi font chữ tiếng Việt.',
+                            '5. **Giới hạn**: Tối đa 1000 dòng và 5MB mỗi tệp.'
+                        ],
+                        ja: [
+                            '1. **Excelの改行**: セル内で **Alt + Enter** を押すと新しい行が始まります。Excelが自動的に「引用符」を処理します。',
+                            '2. **Markdown**: 見出し（#）、太字（**）、リスト（-）が完全にサポートされています。',
+                            '3. **必須ヘッダー**: 1行目は必ず `prompt, description, tags, source` にしてください。',
+                            '4. **エンコーディング**: Excelで保存する際は、日本語が文字化けしないよう **CSV UTF-8 (コンマ区切り)** を選択してください。',
+                            '5. **制限**: 1ファイルあたり最大1000行、5MBまで。'
+                        ]
+                    }
+                },
+                {
+                    id: 'step_csv2',
+                    title: { en: 'Import Process', vi: 'Quy Trình Nhập', ja: 'インポート手順' },
+                    description: {
+                        en: 'Upload and review your CSV before importing.',
+                        vi: 'Tải lên và xem lại CSV trước khi nhập.',
+                        ja: 'インポート前にCSVをアップロードして確認します。'
+                    },
+                    details: {
+                        en: [
+                            '1. Click **Import CSV** in the prompt library.',
+                            '2. Use **Download Template** to get the correct format.',
+                            '3. Drag and drop your file. **Green rows** are ready to import, **Red rows** have errors.',
+                            '4. Click **Import**. The system will automatically skip prompts that already exist.'
+                        ],
+                        vi: [
+                            '1. Nhấp vào **Nhập CSV** trong thư viện prompt.',
+                            '2. Sử dụng **Tải Template** để có định dạng chính xác.',
+                            '3. Kéo và thả tệp của bạn. **Dòng xanh** đã sẵn sàng, **Dòng đỏ** có lỗi cần sửa.',
+                            '4. Nhấp **Nhập**. Hệ thống sẽ tự động bỏ qua các prompt đã tồn tại.'
+                        ],
+                        ja: [
+                            '1. プロンプトライブラリで **CSVインポート** をクリックします。',
+                            '2. **テンプレートをダウンロード** して正しい形式を確認してください。',
+                            '3. ファイルをドラッグ＆ドロップします。**緑色の行**はインポート可能、**赤色の行**はエラーです。',
+                            '4. **インポート** をクリックします。既存のプロンプトは自動的にスキップされます。'
+                        ]
+                    }
+                }
+            ]
+        },
+        {
             tabId: 'permissions',
             tabTitle: { en: 'Permissions', vi: 'Quyền Truy Cập', ja: '権限' },
             steps: [
