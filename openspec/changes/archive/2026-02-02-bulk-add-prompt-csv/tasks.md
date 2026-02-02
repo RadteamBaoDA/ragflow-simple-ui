@@ -22,6 +22,7 @@
 - [x] 3.1 Update `kb-prompts.guideline.ts` with CSV format instructions
 - [x] 3.2 Verify permissions (only Admin/Leader can see Import button)
 - [x] 3.3 Manual verification of multi-line import (see verification guide below)
+- [x] 3.4 Polish guideline for newbie users (Excel tips, UTF-8 instructions)
 
 ---
 
