@@ -12,6 +12,7 @@ const router = Router();
 router.get('/', requireAuth, PromptController.getPrompts); // List prompts
 router.post('/', requireAuth, PromptController.createPrompt); // Install/Create prompt
 router.post('/bulk', requireAuth, PromptController.bulkCreate); // Bulk import prompts
+router.post('/bulk-delete', requireAuth, PromptController.bulkDelete); // Bulk delete prompts
 router.get('/tags', requireAuth, PromptController.getTags); // Get tags
 router.get('/sources', requireAuth, PromptController.getSources); // Get sources
 router.get('/chat-sources', requireAuth, PromptController.getChatSources); // Get chat source names for tags

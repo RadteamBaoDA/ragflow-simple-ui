@@ -11,7 +11,8 @@
 import { useState, useEffect } from 'react';
 import { useTranslation } from 'react-i18next';
 import { Plus, Edit2, Trash2, ThumbsUp, ThumbsDown, MessageCircle, Calendar, Search, Shield, Tag as TagIcon, Settings, Upload } from 'lucide-react';
-import { Table, Card, Input, Button, Tag, Space, Select, Modal, Form, DatePicker, Pagination, Tooltip } from 'antd';
+import { Table, Card, Input, Button, Tag, Space, Select, Modal, Form, DatePicker, Pagination, Tooltip, Checkbox } from 'antd';
+import type { CheckboxChangeEvent } from 'antd/es/checkbox';
 import { promptService } from '../api/promptService';
 import { Prompt } from '../types/prompt';
 import { TagInput } from '../components/TagInput';
@@ -99,7 +100,11 @@ export const PromptsPage = () => {
 
     // Pagination state
     const [currentPage, setCurrentPage] = useState(1);
-    const [pageSize, setPageSize] = useState(10);
+    const [pageSize, setPageSize] = useState(25);
+    const [totalCount, setTotalCount] = useState(0);
+
+    // Multi-select state
+    const [selectedRowKeys, setSelectedRowKeys] = useState<string[]>([]);
 
     // ========================================================================
     // Data Fetching
@@ -109,6 +114,11 @@ export const PromptsPage = () => {
         fetchPermission();
         fetchPrompts();
         fetchTags();
+    }, [debouncedSearchFilter, tagFilter, currentPage, pageSize]);
+
+    // Reset to page 1 when filters change
+    useEffect(() => {
+        setCurrentPage(1);
     }, [debouncedSearchFilter, tagFilter]);
 
     const fetchPermission = async () => {
@@ -127,13 +137,17 @@ export const PromptsPage = () => {
     const fetchPrompts = async () => {
         setLoading(true);
         try {
-            const filters: any = {};
+            const filters: any = {
+                limit: pageSize,
+                offset: (currentPage - 1) * pageSize
+            };
             if (debouncedSearchFilter) filters.search = debouncedSearchFilter;
             if (searchFilter) filters.search = searchFilter;
             if (tagFilter && tagFilter.length > 0) filters.tags = tagFilter.join(',');
 
             const result = await promptService.getPrompts(filters);
             setPrompts(result.data);
+            setTotalCount(result.total);
 
             // Build feedbackCountsMap from the response data (counts are included)
             const countsMap: Record<string, FeedbackCounts> = {};
@@ -204,6 +218,31 @@ export const PromptsPage = () => {
                 try {
                     await promptService.deletePrompt(id);
                     globalMessage.success(t('common.deleteSuccess'));
+                    setSelectedRowKeys(prev => prev.filter(key => key !== id));
+                    fetchPrompts();
+                } catch (error) {
+                    globalMessage.error(t('common.error'));
+                }
+            }
+        });
+    };
+
+    /**
+     * Handle bulk delete of selected prompts.
+     */
+    const handleBulkDelete = () => {
+        if (selectedRowKeys.length === 0) return;
+
+        Modal.confirm({
+            title: t('prompts.bulkDelete.confirmTitle', { count: selectedRowKeys.length }),
+            content: t('prompts.bulkDelete.confirmMessage', { count: selectedRowKeys.length }),
+            okText: t('common.delete'),
+            okButtonProps: { danger: true },
+            onOk: async () => {
+                try {
+                    const result = await promptService.bulkDelete(selectedRowKeys);
+                    globalMessage.success(t('prompts.bulkDelete.success', { count: result.deleted }));
+                    setSelectedRowKeys([]);
                     fetchPrompts();
                 } catch (error) {
                     globalMessage.error(t('common.error'));
@@ -291,7 +330,56 @@ export const PromptsPage = () => {
     // Table Columns
     // ========================================================================
 
+    // Get current page data for select-all calculation
+    const currentPageData = prompts.slice((currentPage - 1) * pageSize, currentPage * pageSize);
+    const currentPageIds = currentPageData.map(p => p.id);
+    const allCurrentPageSelected = currentPageIds.length > 0 && currentPageIds.every(id => selectedRowKeys.includes(id));
+    const someCurrentPageSelected = currentPageIds.some(id => selectedRowKeys.includes(id)) && !allCurrentPageSelected;
+
+    /**
+     * Toggle select all on current page.
+     */
+    const handleSelectAll = (checked: boolean) => {
+        if (checked) {
+            // Add all current page IDs to selection
+            setSelectedRowKeys(prev => [...new Set([...prev, ...currentPageIds])]);
+        } else {
+            // Remove all current page IDs from selection
+            setSelectedRowKeys(prev => prev.filter(id => !currentPageIds.includes(id)));
+        }
+    };
+
+    /**
+     * Toggle single row selection.
+     */
+    const handleRowSelect = (id: string, checked: boolean) => {
+        if (checked) {
+            setSelectedRowKeys(prev => [...prev, id]);
+        } else {
+            setSelectedRowKeys(prev => prev.filter(key => key !== id));
+        }
+    };
+
     const columns = [
+        {
+            title: (
+                <Checkbox
+                    checked={allCurrentPageSelected}
+                    indeterminate={someCurrentPageSelected}
+                    onChange={(e: CheckboxChangeEvent) => handleSelectAll(e.target.checked)}
+                    disabled={permissionLevel < PermissionLevel.FULL}
+                />
+            ),
+            key: 'select',
+            width: 50,
+            render: (_: any, record: Prompt) => (
+                <Checkbox
+                    checked={selectedRowKeys.includes(record.id)}
+                    onChange={(e: CheckboxChangeEvent) => handleRowSelect(record.id, e.target.checked)}
+                    disabled={permissionLevel < PermissionLevel.FULL}
+                />
+            )
+        },
         {
             title: t('prompts.fields.prompt'),
             dataIndex: 'prompt',
@@ -308,7 +396,12 @@ export const PromptsPage = () => {
             dataIndex: 'description',
             key: 'description',
             ellipsis: true,
-            width: '20%'
+            width: '20%',
+            render: (text: string) => (
+                <div style={{ whiteSpace: 'pre-wrap', wordBreak: 'break-word' }}>
+                    {text}
+                </div>
+            )
         },
         {
             title: t('prompts.fields.tags'),
@@ -429,6 +522,17 @@ export const PromptsPage = () => {
                 />
 
                 <Space>
+                    {selectedRowKeys.length > 0 && (
+                        <Button
+                            danger
+                            type="primary"
+                            icon={<Trash2 size={16} />}
+                            onClick={handleBulkDelete}
+                            size="large"
+                        >
+                            {t('prompts.bulkDelete.button', { count: selectedRowKeys.length })}
+                        </Button>
+                    )}
                     {user?.role === 'admin' && (
                         <>
                             <Button
@@ -482,7 +586,7 @@ export const PromptsPage = () => {
                 <div className="flex-1 overflow-auto p-4">
                     <Table
                         columns={columns}
-                        dataSource={prompts.slice((currentPage - 1) * pageSize, currentPage * pageSize)}
+                        dataSource={prompts}
                         rowKey="id"
                         loading={loading}
                         pagination={false}
@@ -492,14 +596,19 @@ export const PromptsPage = () => {
                 <div className="flex justify-end p-4 border-t border-slate-200 dark:border-slate-700">
                     <Pagination
                         current={currentPage}
-                        total={prompts.length}
+                        total={totalCount}
                         pageSize={pageSize}
                         showSizeChanger={true}
-                        pageSizeOptions={['10', '20', '50', '100']}
+                        pageSizeOptions={['10', '25', '50', '100']}
                         onChange={(page: number, size: number) => {
-                            setCurrentPage(page);
-                            setPageSize(size);
+                            if (size !== pageSize) {
+                                setCurrentPage(1);
+                                setPageSize(size);
+                            } else {
+                                setCurrentPage(page);
+                            }
                         }}
+                        showTotal={(total: number, range: [number, number]) => `${range[0]}-${range[1]} / ${total}`}
                     />
                 </div>
             </Card>

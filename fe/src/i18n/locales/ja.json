@@ -768,17 +768,17 @@
       "deleteWarning": "使用中のタグは削除できません。"
     },
     "bulkImport": {
-      "button": "CSVインポート",
+      "button": "インポート",
       "title": "Promptsを一括インポート",
       "downloadTemplate": "テンプレートをダウンロード",
       "import": "インポート",
-      "instructions": "CSVインポートの説明",
+      "instructions": "Excelインポートの説明",
       "instructionColumns": "必須列: {{required}}。オプション: {{optional}}",
-      "instructionMultiline": "複数行のプロンプトはダブルクォートで囲んでください",
       "instructionTags": "タグはカンマで区切ります（例: \"tag1,tag2\"）",
-      "dropzone": "CSVファイルをここにドロップするかクリック",
-      "dropzoneHint": "最大1000行、5MB",
-      "parseError": "CSVの解析に失敗しました",
+      "instructionAutoTags": "存在しないタグは自動的に作成されます",
+      "dropzone": "Excelファイルをここにドロップするかクリック",
+      "dropzoneHint": ".xlsxと.xlsファイル対応（最大1000行、5MB）",
+      "parseError": "ファイルの解析に失敗しました",
       "fileLoaded": "ファイル読み込み済み: {{name}}",
       "validRows": "{{count}}件の有効",
       "errorRows": "{{count}}件のエラー",
@@ -790,8 +790,16 @@
         "missingColumns": "必須列がありません: {{columns}}",
         "tooManyRows": "ファイルに{{max}}行以上含まれています",
         "missingPrompt": "{{row}}行目: プロンプトは必須です",
-        "noValidData": "インポート可能な有効なデータがありません"
+        "noValidData": "インポート可能な有効なデータがありません",
+        "emptyFile": "ファイルが空であるか、シートがありません",
+        "noData": "ファイルにデータが見つかりません"
       }
+    },
+    "bulkDelete": {
+      "button": "削除 ({{count}})",
+      "confirmTitle": "{{count}}件のプロンプトを削除",
+      "confirmMessage": "選択した{{count}}件のプロンプトを削除してもよろしいですか？この操作は元に戻せません。",
+      "success": "{{count}}件のプロンプトを正常に削除しました"
     }
   },
   "errors": {
