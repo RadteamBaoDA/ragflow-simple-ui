@@ -43,7 +43,7 @@ export const promptService = {
     },
 
     /**
-     * Bulk create prompts from CSV import.
+     * Bulk create prompts from Excel import.
      * @param prompts - Array of prompt data to create
      * @returns Result with imported/skipped counts
      */

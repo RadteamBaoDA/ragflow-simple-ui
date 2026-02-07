@@ -561,7 +561,7 @@ export const PromptsPage = () => {
                             size="large"
                             disabled={permissionLevel < PermissionLevel.UPLOAD}
                         >
-                            {t('prompts.bulkImport.button', 'Import CSV')}
+                            {t('prompts.bulkImport.button', 'Import')}
                         </Button>
                     </Tooltip>
                     <Tooltip title={permissionLevel < PermissionLevel.UPLOAD ? t('common.noPermission') : ''}>
