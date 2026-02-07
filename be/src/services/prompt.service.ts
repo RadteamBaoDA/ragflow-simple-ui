@@ -312,6 +312,46 @@ export class PromptService {
     }
 
     /**
+     * Bulk delete prompts by IDs (soft delete).
+     * Uses a transaction for atomic update.
+     * @param ids - Array of prompt IDs to delete
+     * @param user - Optional user context for audit logging
+     * @returns Number of deleted prompts
+     */
+    async bulkDelete(ids: string[], user?: PromptUserContext): Promise<number> {
+        if (!ids || ids.length === 0) {
+            return 0;
+        }
+
+        // Use transaction for atomic update
+        const deleted = await db.transaction(async (trx) => {
+            const result = await trx('prompts')
+                .whereIn('id', ids)
+                .andWhere('is_active', true)
+                .update({ is_active: false });
+            return result;
+        });
+
+        // Log audit event for bulk delete
+        if (user) {
+            await auditService.log({
+                userId: user.id,
+                userEmail: user.email,
+                action: AuditAction.DELETE_PROMPT,
+                resourceType: AuditResourceType.PROMPT,
+                resourceId: 'bulk-delete',
+                details: {
+                    deletedCount: deleted,
+                    ids: ids
+                },
+                ipAddress: user.ip
+            });
+        }
+
+        return deleted;
+    }
+
+    /**
      * Normalize prompt by parsing stringified tags JSON.
      * @param prompt - Prompt with potentially stringified tags
      * @returns Prompt with parsed tags array

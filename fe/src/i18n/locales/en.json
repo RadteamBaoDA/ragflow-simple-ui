@@ -782,17 +782,17 @@
       "deleteWarning": "Tags in use cannot be deleted."
     },
     "bulkImport": {
-      "button": "Import CSV",
+      "button": "Import",
       "title": "Bulk Import Prompts",
       "downloadTemplate": "Download Template",
       "import": "Import",
-      "instructions": "CSV Import Instructions",
+      "instructions": "Excel Import Instructions",
       "instructionColumns": "Required column: {{required}}. Optional: {{optional}}",
-      "instructionMultiline": "Use double quotes for multi-line prompts",
       "instructionTags": "Separate tags with commas (e.g., \"tag1,tag2\")",
-      "dropzone": "Click or drag CSV file here",
-      "dropzoneHint": "Max 1000 rows, 5MB",
-      "parseError": "Failed to Parse CSV",
+      "instructionAutoTags": "Missing tags will be automatically created",
+      "dropzone": "Click or drag Excel file here",
+      "dropzoneHint": "Supports .xlsx and .xls files (max 1000 rows, 5MB)",
+      "parseError": "Failed to Parse File",
       "fileLoaded": "File loaded: {{name}}",
       "validRows": "{{count}} valid",
       "errorRows": "{{count}} errors",
@@ -804,8 +804,16 @@
         "missingColumns": "Missing required columns: {{columns}}",
         "tooManyRows": "File contains more than {{max}} rows",
         "missingPrompt": "Row {{row}}: Prompt is required",
-        "noValidData": "No valid data to import"
+        "noValidData": "No valid data to import",
+        "emptyFile": "File is empty or has no sheets",
+        "noData": "No data found in the file"
       }
+    },
+    "bulkDelete": {
+      "button": "Delete ({{count}})",
+      "confirmTitle": "Delete {{count}} Prompts",
+      "confirmMessage": "Are you sure you want to delete {{count}} selected prompts? This action cannot be undone.",
+      "success": "Successfully deleted {{count}} prompts"
     }
   },
   "errors": {

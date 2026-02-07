@@ -34,7 +34,16 @@ export const promptService = {
     },
 
     /**
-     * Bulk create prompts from CSV import.
+     * Bulk delete prompts by IDs.
+     * @param ids - Array of prompt IDs to delete
+     * @returns Result with deleted count
+     */
+    bulkDelete: async (ids: string[]): Promise<{ deleted: number }> => {
+        return api.post<{ deleted: number }>(`${BASE_URL}/bulk-delete`, { ids });
+    },
+
+    /**
+     * Bulk create prompts from Excel import.
      * @param prompts - Array of prompt data to create
      * @returns Result with imported/skipped counts
      */

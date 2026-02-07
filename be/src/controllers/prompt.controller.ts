@@ -292,4 +292,37 @@ export class PromptController {
             return res.status(500).json({ error: 'Failed to bulk create prompts' });
         }
     }
+
+    /**
+     * Bulk delete prompts by IDs.
+     * Requires FULL permission.
+     */
+    static async bulkDelete(req: Request, res: Response) {
+        try {
+            const user = (req as any).user;
+            if (!user?.id) {
+                return res.status(401).json({ error: 'Unauthorized: User ID missing' });
+            }
+            const level = await promptPermissionService.resolveUserPermission(user.id);
+            if (level < PermissionLevel.FULL) {
+                return res.status(403).json({ error: 'Permission denied: DELETE required' });
+            }
+
+            const { ids } = req.body;
+            if (!Array.isArray(ids) || ids.length === 0) {
+                return res.status(400).json({ error: 'Request body must contain a non-empty "ids" array' });
+            }
+
+            const userContext = {
+                id: user.id,
+                email: user.email,
+                ip: req.ip || req.socket?.remoteAddress
+            };
+            const deleted = await promptService.bulkDelete(ids, userContext);
+            return res.json({ deleted });
+        } catch (error) {
+            console.error(error);
+            return res.status(500).json({ error: 'Failed to bulk delete prompts' });
+        }
+    }
 }
