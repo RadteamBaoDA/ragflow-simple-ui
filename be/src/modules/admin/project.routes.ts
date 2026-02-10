@@ -3,7 +3,7 @@
  * Routes for project API endpoints.
  */
 import { Router } from 'express'
-import { ProjectController } from '@/modules/admin/project.controller.js'
+import { ProjectController } from '@/controllers/project.controller.js'
 import { requireAuth, requireRole } from '@/middleware/auth.middleware.js'
 
 const router = Router()

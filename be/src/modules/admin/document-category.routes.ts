@@ -4,7 +4,7 @@
  * Nested under /api/projects/:projectId/categories.
  */
 import { Router } from 'express'
-import { DocumentCategoryController } from '@/modules/admin/document-category.controller.js'
+import { DocumentCategoryController } from '@/controllers/document-category.controller.js'
 import { requireAuth } from '@/middleware/auth.middleware.js'
 import multer from 'multer'
 

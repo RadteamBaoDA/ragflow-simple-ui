@@ -3,8 +3,8 @@
  * ProjectController: Handles HTTP requests for project management.
  */
 import { Request, Response } from 'express'
-import { projectService } from '@/shared/services/project.service.js'
-import { ModelFactory } from '@/shared/models/factory.js'
+import { projectService } from '@/services/project.service.js'
+import { ModelFactory } from '@/models/factory.js'
 
 /**
  * Controller class for project API endpoints.

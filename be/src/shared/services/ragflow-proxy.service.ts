@@ -5,8 +5,8 @@
  * @description Implements Singleton Pattern per coding guidelines.
  */
 import axios, { AxiosInstance, AxiosResponse } from 'axios'
-import { ModelFactory } from '@/shared/models/factory.js'
-import { log } from '@/shared/services/logger.service.js'
+import { ModelFactory } from '@/models/factory.js'
+import { log } from '@/services/logger.service.js'
 
 /**
  * RAGFlow API response envelope shape.

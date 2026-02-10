@@ -3,8 +3,8 @@
  * DocumentCategoryController: Handles HTTP requests for document categories and versions.
  */
 import { Request, Response } from 'express'
-import { documentCategoryService } from '@/shared/services/document-category.service.js'
-import { ModelFactory } from '@/shared/models/factory.js'
+import { documentCategoryService } from '@/services/document-category.service.js'
+import { ModelFactory } from '@/models/factory.js'
 
 /**
  * Controller for document category and version API endpoints.
