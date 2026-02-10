@@ -97,6 +97,7 @@
     "prompts": "Prompts",
     "broadcastMessages": "Broadcast Messages",
     "histories": "Histories",
+    "dashboard": "Dashboard",
     "expandMenu": "Expand menu",
     "administrators": "Administrators",
     "collapseMenu": "Collapse menu"
@@ -858,6 +859,45 @@
       "back": "Back",
       "last": "Finish",
       "skip": "Skip Tour"
+    }
+  },
+  "dashboard": {
+    "title": "Activity Dashboard",
+    "subtitle": "User Activity Overview",
+    "refresh": "Refresh",
+    "startDate": "Start Date",
+    "endDate": "End Date",
+    "presets": {
+      "last1Day": "Last 1 Day",
+      "last7Days": "Last 7 Days",
+      "last30Days": "Last 30 Days",
+      "last90Days": "Last 90 Days",
+      "thisMonth": "This Month",
+      "lastMonth": "Last Month",
+      "last1Year": "Last 1 Year",
+      "last2Years": "Last 2 Years"
+    },
+    "stats": {
+      "totalSessions": "Total Sessions",
+      "totalMessages": "Total Messages",
+      "uniqueUsers": "Unique Users",
+      "avgMessagesPerSession": "Avg Messages / Session"
+    },
+    "charts": {
+      "activityTrend": "Activity Trend",
+      "topUsers": "Top Active Users",
+      "usageBreakdown": "Usage Breakdown",
+      "sessionsPerDay": "Sessions Per Day",
+      "date": "Date",
+      "messageCount": "Messages",
+      "sessions": "Sessions",
+      "totalActivity": "Total Activity",
+      "chatMessages": "AI Chat Messages",
+      "searchRecords": "AI Search Records",
+      "systemMessages": "System Chat Messages",
+      "aiChat": "AI Chat",
+      "aiSearch": "AI Search",
+      "systemChat": "System Chat"
     }
   }
 }

@@ -26,6 +26,7 @@ import userHistoryRoutes from '@/routes/user-history.routes.js';
 import promptRoutes from '@/routes/prompt.routes.js';
 import promptTagRoutes from '@/routes/prompt-tag.routes.js';
 import promptPermissionRoutes from '@/routes/prompt-permission.routes.js';
+import dashboardRoutes from '@/routes/dashboard.routes.js';
 
 // ============================================================================
 // Rate Limiters
@@ -103,6 +104,7 @@ function registerRoutes(apiRouter: Router): void {
     // Admin routes
     apiRouter.use('/admin', adminRoutes);
     apiRouter.use('/admin/history', adminHistoryRoutes);
+    apiRouter.use('/admin/dashboard', dashboardRoutes);
 
     // User management
     apiRouter.use('/users', userRoutes);

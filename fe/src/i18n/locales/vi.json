@@ -97,6 +97,7 @@
     "prompts": "Prompts",
     "broadcastMessages": "Thông báo",
     "histories": "Lịch sử hệ thống",
+    "dashboard": "Bảng thống kê",
     "expandMenu": "Mở rộng menu",
     "administrators": "Quản trị",
     "collapseMenu": "Thu gọn menu"
@@ -859,6 +860,45 @@
       "back": "Quay lại",
       "last": "Hoàn tất",
       "skip": "Bỏ qua"
+    }
+  },
+  "dashboard": {
+    "title": "Bảng thống kê hoạt động",
+    "subtitle": "Tổng quan hoạt động người dùng",
+    "refresh": "Làm mới",
+    "startDate": "Ngày bắt đầu",
+    "endDate": "Ngày kết thúc",
+    "presets": {
+      "last1Day": "1 ngày gần đây",
+      "last7Days": "7 ngày gần đây",
+      "last30Days": "30 ngày gần đây",
+      "last90Days": "90 ngày gần đây",
+      "thisMonth": "Tháng này",
+      "lastMonth": "Tháng trước",
+      "last1Year": "1 năm gần đây",
+      "last2Years": "2 năm gần đây"
+    },
+    "stats": {
+      "totalSessions": "Tổng phiên",
+      "totalMessages": "Tổng tin nhắn",
+      "uniqueUsers": "Người dùng duy nhất",
+      "avgMessagesPerSession": "TB tin nhắn / phiên"
+    },
+    "charts": {
+      "activityTrend": "Xu hướng hoạt động",
+      "topUsers": "Người dùng tích cực nhất",
+      "usageBreakdown": "Phân bố sử dụng",
+      "sessionsPerDay": "Phiên theo ngày",
+      "date": "Ngày",
+      "messageCount": "Tin nhắn",
+      "sessions": "Phiên",
+      "totalActivity": "Tổng hoạt động",
+      "chatMessages": "Tin nhắn AI Chat",
+      "searchRecords": "Bản ghi AI Search",
+      "systemMessages": "Tin nhắn hệ thống",
+      "aiChat": "AI Chat",
+      "aiSearch": "AI Search",
+      "systemChat": "Chat hệ thống"
     }
   }
 }
