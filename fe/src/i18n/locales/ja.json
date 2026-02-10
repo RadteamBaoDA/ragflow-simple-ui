@@ -97,6 +97,7 @@
     "prompts": "Prompts",
     "broadcastMessages": "一斉通知",
     "histories": "履歴一覧",
+    "dashboard": "ダッシュボード",
     "expandMenu": "メニューを展開",
     "administrators": "管理者",
     "collapseMenu": "メニューを折りたたむ"
@@ -844,6 +845,45 @@
       "back": "戻る",
       "last": "完了",
       "skip": "スキップ"
+    }
+  },
+  "dashboard": {
+    "title": "アクティビティダッシュボード",
+    "subtitle": "ユーザーアクティビティ概要",
+    "refresh": "更新",
+    "startDate": "開始日",
+    "endDate": "終了日",
+    "presets": {
+      "last1Day": "過去1日間",
+      "last7Days": "過去7日間",
+      "last30Days": "過去30日間",
+      "last90Days": "過去90日間",
+      "thisMonth": "今月",
+      "lastMonth": "先月",
+      "last1Year": "過去1年間",
+      "last2Years": "過去2年間"
+    },
+    "stats": {
+      "totalSessions": "総セッション数",
+      "totalMessages": "総メッセージ数",
+      "uniqueUsers": "ユニークユーザー数",
+      "avgMessagesPerSession": "平均メッセージ/セッション"
+    },
+    "charts": {
+      "activityTrend": "アクティビティ推移",
+      "topUsers": "アクティブユーザートップ10",
+      "usageBreakdown": "利用内訳",
+      "sessionsPerDay": "日別セッション数",
+      "date": "日付",
+      "messageCount": "メッセージ数",
+      "sessions": "セッション",
+      "totalActivity": "総アクティビティ",
+      "chatMessages": "AIチャットメッセージ",
+      "searchRecords": "AI検索レコード",
+      "systemMessages": "システムチャットメッセージ",
+      "aiChat": "AIチャット",
+      "aiSearch": "AI検索",
+      "systemChat": "システムチャット"
     }
   }
 }

@@ -46,6 +46,7 @@ import {
   Megaphone,
   History,
   Info, // Added Info icon
+  BarChart3,
 } from 'lucide-react';
 
 import logo from '../assets/logo.png';
@@ -196,6 +197,8 @@ function Layout() {
         return t('admin.broadcastMessages');
       case '/admin/histories':
         return t('histories.title');
+      case '/admin/dashboard':
+        return t('dashboard.title');
       default:
         return t('common.appName');
     }
@@ -204,7 +207,7 @@ function Layout() {
   // Auto-expand parent menus when their children are active
   const isKnowledgeBaseActive = ['/knowledge-base/config', '/knowledge-base/prompts'].includes(location.pathname);
   const isIamActive = ['/iam/users', '/iam/teams'].includes(location.pathname);
-  const isAdministratorsActive = ['/admin/audit-log', '/admin/system-tools', '/admin/system-monitor', '/admin/tokenizer', '/admin/broadcast-messages', '/admin/histories'].includes(location.pathname);
+  const isAdministratorsActive = ['/admin/audit-log', '/admin/system-tools', '/admin/system-monitor', '/admin/tokenizer', '/admin/broadcast-messages', '/admin/histories', '/admin/dashboard'].includes(location.pathname);
   const isChatActive = ['/chat', '/chat/history'].includes(location.pathname);
   const isSearchActive = ['/search', '/search/history'].includes(location.pathname);
 
@@ -396,6 +399,10 @@ function Layout() {
 
               {(!isCollapsed && shouldExpandAdministrators) && (
                 <div className="pl-4 flex flex-col gap-1">
+                  <NavLink to="/admin/dashboard" onClick={handleNavClick('/admin/dashboard')} className={({ isActive }: { isActive: boolean }) => `sidebar-link ${isActive ? 'active' : ''}`} title={t('nav.dashboard')}>
+                    <BarChart3 size={18} />
+                    <span>{t('nav.dashboard')}</span>
+                  </NavLink>
                   <NavLink to="/admin/audit-log" onClick={handleNavClick('/admin/audit-log')} className={({ isActive }: { isActive: boolean }) => `sidebar-link ${isActive ? 'active' : ''}`} title={t('nav.auditLog')}>
                     <ClipboardList size={18} />
                     <span>{t('nav.auditLog')}</span>

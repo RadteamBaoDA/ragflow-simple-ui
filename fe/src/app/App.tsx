@@ -50,6 +50,7 @@ const BroadcastMessagePage = lazy(() => import('@/features/broadcast/pages/Broad
 
 const HistoriesPage = lazy(() => import('@/features/histories/pages/HistoriesPage'));
 const PromptsPage = lazy(() => import('@/features/prompts/pages/PromptsPage'));
+const AdminDashboardPage = lazy(() => import('@/features/dashboard/pages/AdminDashboardPage'));
 
 // ============================================================================
 // Loading Component (for initial app load / login page)
@@ -219,6 +220,11 @@ function App() {
                             <Route path="admin/histories" element={
                               <AdminRoute>
                                 <HistoriesPage />
+                              </AdminRoute>
+                            } />
+                            <Route path="admin/dashboard" element={
+                              <AdminRoute>
+                                <AdminDashboardPage />
                               </AdminRoute>
                             } />
                           </Route>

@@ -24,7 +24,6 @@ const dbConfig = {
   },
   seeds: {
     directory: join(__dirname, 'seeds'),
-    fileName: '00_sample_users.ts',
     extension: ext,
     loadExtensions: [`.${ext}`],
   },
