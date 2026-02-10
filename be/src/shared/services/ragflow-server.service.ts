@@ -3,9 +3,9 @@
  * RagflowServerService: Business logic for RAGFlow server management.
  * Implements Singleton pattern.
  */
-import { ModelFactory } from '@/shared/models/factory.js'
-import { RagflowServer } from '@/shared/models/types.js'
-import { ragflowProxyService } from '@/shared/services/ragflow-proxy.service.js'
+import { ModelFactory } from '@/models/factory.js'
+import { RagflowServer } from '@/models/types.js'
+import { ragflowProxyService } from '@/services/ragflow-proxy.service.js'
 
 /**
  * Service managing RAGFlow server CRUD and connection testing.

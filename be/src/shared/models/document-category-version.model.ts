@@ -3,9 +3,9 @@
  * DocumentCategoryVersion model: manages versions within document categories.
  * Each version maps to exactly one RAGFlow dataset.
  */
-import { BaseModel } from '@/shared/models/base.model.js'
-import { db } from '@/shared/db/knex.js'
-import { DocumentCategoryVersion } from '@/shared/models/types.js'
+import { BaseModel } from '@/models/base.model.js'
+import { db } from '@/db/knex.js'
+import { DocumentCategoryVersion } from '@/models/types.js'
 
 /**
  * DocumentCategoryVersionModel

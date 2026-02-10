@@ -4,8 +4,8 @@
  * Handles CRUD, permission resolution, and RAGFlow server binding.
  * Implements Singleton pattern.
  */
-import { ModelFactory } from '@/shared/models/factory.js'
-import { Project, ProjectPermission } from '@/shared/models/types.js'
+import { ModelFactory } from '@/models/factory.js'
+import { Project, ProjectPermission } from '@/models/types.js'
 
 /**
  * Service managing project lifecycle and permissions.

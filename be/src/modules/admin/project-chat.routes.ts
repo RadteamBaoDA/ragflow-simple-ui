@@ -4,7 +4,7 @@
  * Nested under /api/projects/:projectId/chats.
  */
 import { Router } from 'express'
-import { ProjectChatController } from '@/modules/admin/project-chat.controller.js'
+import { ProjectChatController } from '@/controllers/project-chat.controller.js'
 import { requireAuth } from '@/middleware/auth.middleware.js'
 
 const router = Router({ mergeParams: true })

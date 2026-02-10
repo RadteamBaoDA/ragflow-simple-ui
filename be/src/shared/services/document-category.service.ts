@@ -7,9 +7,9 @@
  * NOTE: Files are saved locally to {UPLOAD_DIR}/{projectId}/{categoryId}/{versionId}/.
  * A future task converter will transform and push them to RAGFlow.
  */
-import { ModelFactory } from '@/shared/models/factory.js'
-import { DocumentCategory, DocumentCategoryVersion } from '@/shared/models/types.js'
-import { ragflowProxyService } from '@/shared/services/ragflow-proxy.service.js'
+import { ModelFactory } from '@/models/factory.js'
+import { DocumentCategory, DocumentCategoryVersion } from '@/models/types.js'
+import { ragflowProxyService } from '@/services/ragflow-proxy.service.js'
 import { config } from '@/config/index.js'
 import { promises as fs } from 'fs'
 import path from 'path'
@@ -58,8 +58,8 @@ export class DocumentCategoryService {
   }, userId?: string): Promise<DocumentCategory> {
     return ModelFactory.documentCategory.create({
       ...data,
-      created_by: userId ?? null,
-      updated_by: userId ?? null
+      created_by: userId,
+      updated_by: userId
     } as Partial<DocumentCategory>)
   }
 
@@ -73,9 +73,7 @@ export class DocumentCategoryService {
   async updateCategory(id: string, data: Partial<DocumentCategory>, userId?: string): Promise<DocumentCategory> {
     const existing = await ModelFactory.documentCategory.findById(id)
     if (!existing) throw new Error('Category not found')
-    const updated = await ModelFactory.documentCategory.update(id, { ...data, updated_by: userId ?? null })
-    if (!updated) throw new Error('Category not found after update')
-    return updated
+    return ModelFactory.documentCategory.update(id, { ...data, updated_by: userId })
   }
 
   /**
@@ -150,9 +148,9 @@ export class DocumentCategoryService {
     try {
       ragflowDataset = await ragflowProxyService.createDataset(serverId, {
         name: datasetName,
-        embedding_model: projectDefaults.embedding_model || 'bge-m3',
+        embedding_model: projectDefaults.embedding_model,
         chunk_method: projectDefaults.chunk_method || 'naive',
-        parser_config: projectDefaults.parser_config || {}
+        parser_config: projectDefaults.parser_config
       })
     } catch (err) {
       console.error('Failed to create RAGFlow dataset:', err)
@@ -168,8 +166,8 @@ export class DocumentCategoryService {
       status: 'active',
       last_synced_at: new Date(),
       metadata: ragflowDataset || {},
-      created_by: userId ?? null,
-      updated_by: userId ?? null
+      created_by: userId,
+      updated_by: userId
     } as Partial<DocumentCategoryVersion>)
   }
 
@@ -188,13 +186,11 @@ export class DocumentCategoryService {
     const datasets = await ragflowProxyService.listDatasets(serverId, { id: version.ragflow_dataset_id })
     const dataset = datasets?.[0]
 
-    const updated = await ModelFactory.documentCategoryVersion.update(versionId, {
+    return ModelFactory.documentCategoryVersion.update(versionId, {
       ragflow_dataset_name: dataset?.name || version.ragflow_dataset_name,
       metadata: dataset || version.metadata,
       last_synced_at: new Date()
     })
-    if (!updated) throw new Error('Version not found after update')
-    return updated
   }
 
   /**
@@ -206,12 +202,10 @@ export class DocumentCategoryService {
   async archiveVersion(versionId: string, userId?: string): Promise<DocumentCategoryVersion> {
     const version = await ModelFactory.documentCategoryVersion.findById(versionId)
     if (!version) throw new Error('Version not found')
-    const updated = await ModelFactory.documentCategoryVersion.update(versionId, {
+    return ModelFactory.documentCategoryVersion.update(versionId, {
       status: 'archived',
-      updated_by: userId ?? null
+      updated_by: userId
     })
-    if (!updated) throw new Error('Version not found after update')
-    return updated
   }
 
   /**
@@ -228,12 +222,10 @@ export class DocumentCategoryService {
   ): Promise<DocumentCategoryVersion> {
     const version = await ModelFactory.documentCategoryVersion.findById(versionId)
     if (!version) throw new Error('Version not found')
-    const updated = await ModelFactory.documentCategoryVersion.update(versionId, {
+    return ModelFactory.documentCategoryVersion.update(versionId, {
       ...data,
-      updated_by: userId ?? null
+      updated_by: userId
     })
-    if (!updated) throw new Error('Version not found after update')
-    return updated
   }
 
   /**
