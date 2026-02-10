@@ -4,7 +4,7 @@
  * Admin-only access.
  */
 import { Router } from 'express'
-import { RagflowServerController } from '@/modules/admin/ragflow-server.controller.js'
+import { RagflowServerController } from '@/controllers/ragflow-server.controller.js'
 import { requireRole } from '@/middleware/auth.middleware.js'
 
 const router = Router()

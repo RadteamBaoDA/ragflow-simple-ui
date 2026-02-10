@@ -4,7 +4,7 @@
  * Admin-only endpoints.
  */
 import { Request, Response } from 'express'
-import { ragflowServerService } from '@/shared/services/ragflow-server.service.js'
+import { ragflowServerService } from '@/services/ragflow-server.service.js'
 
 /**
  * Controller class for RAGFlow server API endpoints.
