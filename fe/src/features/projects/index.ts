@@ -1,0 +1,35 @@
+/**
+ * @fileoverview Public API barrel for projects feature.
+ */
+export {
+  getProjects,
+  getProjectById,
+  createProject,
+  updateProject,
+  deleteProject,
+  getProjectPermissions,
+  setProjectPermission,
+  removeProjectPermission,
+  getDocumentCategories,
+  createDocumentCategory,
+  updateDocumentCategory,
+  deleteDocumentCategory,
+  getCategoryVersions,
+  createCategoryVersion,
+  syncCategoryVersion,
+  archiveCategoryVersion,
+  deleteCategoryVersion,
+  getVersionDocuments,
+  uploadVersionDocument,
+  getProjectChats,
+  getProjectChatById,
+  createProjectChat,
+  updateProjectChat,
+  deleteProjectChat,
+  syncProjectChat,
+  type Project,
+  type ProjectPermission,
+  type DocumentCategory,
+  type DocumentCategoryVersion,
+  type ProjectChat
+} from './api/projectService'

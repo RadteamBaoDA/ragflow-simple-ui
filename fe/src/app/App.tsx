@@ -51,6 +51,10 @@ const BroadcastMessagePage = lazy(() => import('@/features/broadcast/pages/Broad
 const HistoriesPage = lazy(() => import('@/features/histories/pages/HistoriesPage'));
 
 const GlossaryPage = lazy(() => import('@/features/glossary/pages/GlossaryPage'));
+
+const RagflowServersPage = lazy(() => import('@/features/ragflow-servers/pages/RagflowServersPage'));
+const ProjectListPage = lazy(() => import('@/features/projects/pages/ProjectListPage'));
+const ProjectDetailPage = lazy(() => import('@/features/projects/pages/ProjectDetailPage'));
 const AdminDashboardPage = lazy(() => import('@/features/dashboard/pages/AdminDashboardPage'));
 
 // ============================================================================
@@ -223,6 +227,23 @@ function App() {
                               <AdminRoute>
                                 <HistoriesPage />
                               </AdminRoute>
+                            } />
+
+                            {/* RAGFlow Management routes */}
+                            <Route path="admin/ragflow-servers" element={
+                              <AdminRoute>
+                                <RagflowServersPage />
+                              </AdminRoute>
+                            } />
+                            <Route path="knowledge-base/projects" element={
+                              <RoleRoute allowedRoles={['admin', 'leader']}>
+                                <ProjectListPage />
+                              </RoleRoute>
+                            } />
+                            <Route path="knowledge-base/projects/:projectId" element={
+                              <RoleRoute allowedRoles={['admin', 'leader']}>
+                                <ProjectDetailPage />
+                              </RoleRoute>
                             } />
                             <Route path="admin/dashboard" element={
                               <AdminRoute>

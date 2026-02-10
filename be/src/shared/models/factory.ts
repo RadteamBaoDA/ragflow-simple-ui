@@ -20,6 +20,12 @@ import { ExternalSearchRecordModel } from '@/modules/external/models/search-reco
 
 import { GlossaryTaskModel } from '@/modules/glossary/glossary-task.model.js';
 import { GlossaryKeywordModel } from '@/modules/glossary/glossary-keyword.model.js';
+import { RagflowServerModel } from '@/shared/models/ragflow-server.model.js';
+import { ProjectModel } from '@/shared/models/project.model.js';
+import { ProjectPermissionModel } from '@/shared/models/project-permission.model.js';
+import { DocumentCategoryModel } from '@/shared/models/document-category.model.js';
+import { DocumentCategoryVersionModel } from '@/shared/models/document-category-version.model.js';
+import { ProjectChatModel } from '@/shared/models/project-chat.model.js';
 
 /**
  * ModelFactory class implementing the Factory Pattern.
@@ -66,6 +72,21 @@ export class ModelFactory {
   private static glossaryTaskModel: GlossaryTaskModel;
   /** Glossary keyword model singleton instance */
   private static glossaryKeywordModel: GlossaryKeywordModel;
+
+  // Project Management Models
+  /** RAGFlow server model singleton instance */
+  private static ragflowServerModel: RagflowServerModel;
+  /** Project model singleton instance */
+  private static projectModel: ProjectModel;
+  /** Project permission model singleton instance */
+  private static projectPermissionModel: ProjectPermissionModel;
+  /** Document category model singleton instance */
+  private static documentCategoryModel: DocumentCategoryModel;
+  /** Document category version model singleton instance */
+  private static documentCategoryVersionModel: DocumentCategoryVersionModel;
+  /** Project chat model singleton instance */
+  private static projectChatModel: ProjectChatModel;
+
 
   /**
    * Get the User model singleton.
@@ -241,5 +262,65 @@ export class ModelFactory {
   static get glossaryKeyword() {
     if (!this.glossaryKeywordModel) this.glossaryKeywordModel = new GlossaryKeywordModel();
     return this.glossaryKeywordModel;
+  }
+
+  /**
+   * Get the RagflowServer model singleton.
+   * Manages RAGFlow server connection records.
+   * @returns RagflowServerModel instance
+   */
+  static get ragflowServer() {
+    if (!this.ragflowServerModel) this.ragflowServerModel = new RagflowServerModel();
+    return this.ragflowServerModel;
+  }
+
+  /**
+   * Get the Project model singleton.
+   * Manages centralized project records.
+   * @returns ProjectModel instance
+   */
+  static get project() {
+    if (!this.projectModel) this.projectModel = new ProjectModel();
+    return this.projectModel;
+  }
+
+  /**
+   * Get the ProjectPermission model singleton.
+   * Manages granular per-tab access control.
+   * @returns ProjectPermissionModel instance
+   */
+  static get projectPermission() {
+    if (!this.projectPermissionModel) this.projectPermissionModel = new ProjectPermissionModel();
+    return this.projectPermissionModel;
+  }
+
+  /**
+   * Get the DocumentCategory model singleton.
+   * Manages document categories within projects.
+   * @returns DocumentCategoryModel instance
+   */
+  static get documentCategory() {
+    if (!this.documentCategoryModel) this.documentCategoryModel = new DocumentCategoryModel();
+    return this.documentCategoryModel;
+  }
+
+  /**
+   * Get the DocumentCategoryVersion model singleton.
+   * Manages versions within document categories.
+   * @returns DocumentCategoryVersionModel instance
+   */
+  static get documentCategoryVersion() {
+    if (!this.documentCategoryVersionModel) this.documentCategoryVersionModel = new DocumentCategoryVersionModel();
+    return this.documentCategoryVersionModel;
+  }
+
+  /**
+   * Get the ProjectChat model singleton.
+   * Manages chat assistants linked to projects.
+   * @returns ProjectChatModel instance
+   */
+  static get projectChat() {
+    if (!this.projectChatModel) this.projectChatModel = new ProjectChatModel();
+    return this.projectChatModel;
   }
 }
