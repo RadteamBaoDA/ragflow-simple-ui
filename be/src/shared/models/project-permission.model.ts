@@ -2,9 +2,9 @@
 /**
  * ProjectPermission model: manages granular per-tab access control.
  */
-import { BaseModel } from '@/shared/models/base.model.js'
-import { db } from '@/shared/db/knex.js'
-import { ProjectPermission } from '@/shared/models/types.js'
+import { BaseModel } from '@/models/base.model.js'
+import { db } from '@/db/knex.js'
+import { ProjectPermission } from '@/models/types.js'
 
 /**
  * ProjectPermissionModel

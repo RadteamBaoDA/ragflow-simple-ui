@@ -3,8 +3,8 @@
  * ProjectChatController: Handles HTTP requests for project chat assistants.
  */
 import { Request, Response } from 'express'
-import { projectChatService } from '@/shared/services/project-chat.service.js'
-import { ModelFactory } from '@/shared/models/factory.js'
+import { projectChatService } from '@/services/project-chat.service.js'
+import { ModelFactory } from '@/models/factory.js'
 
 /**
  * Controller for project chat assistant API endpoints.

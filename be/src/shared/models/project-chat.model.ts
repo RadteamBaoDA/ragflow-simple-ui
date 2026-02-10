@@ -2,9 +2,9 @@
 /**
  * ProjectChat model: manages chat assistants linked to projects.
  */
-import { BaseModel } from '@/shared/models/base.model.js'
-import { db } from '@/shared/db/knex.js'
-import { ProjectChat } from '@/shared/models/types.js'
+import { BaseModel } from '@/models/base.model.js'
+import { db } from '@/db/knex.js'
+import { ProjectChat } from '@/models/types.js'
 
 /**
  * ProjectChatModel

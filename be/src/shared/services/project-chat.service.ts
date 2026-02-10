@@ -4,9 +4,9 @@
  * Handles CRUD with RAGFlow chat assistant sync.
  * Implements Singleton pattern.
  */
-import { ModelFactory } from '@/shared/models/factory.js'
-import { ProjectChat } from '@/shared/models/types.js'
-import { ragflowProxyService } from '@/shared/services/ragflow-proxy.service.js'
+import { ModelFactory } from '@/models/factory.js'
+import { ProjectChat } from '@/models/types.js'
+import { ragflowProxyService } from '@/services/ragflow-proxy.service.js'
 
 /**
  * Service managing project chat assistants.
