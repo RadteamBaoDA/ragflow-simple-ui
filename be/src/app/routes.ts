@@ -26,6 +26,10 @@ import userHistoryRoutes from '@/modules/user-history/user-history.routes.js';
 
 import dashboardRoutes from '@/modules/dashboard/dashboard.routes.js';
 import glossaryRoutes from '@/modules/glossary/glossary.routes.js';
+import ragflowServerRoutes from '@/modules/admin/ragflow-server.routes.js';
+import projectRoutes from '@/modules/admin/project.routes.js';
+import documentCategoryRoutes from '@/modules/admin/document-category.routes.js';
+import projectChatRoutes from '@/modules/admin/project-chat.routes.js';
 
 // ============================================================================
 // Rate Limiters
@@ -127,10 +131,20 @@ function registerRoutes(apiRouter: Router): void {
     // Chat history
     apiRouter.use('/chat', chatHistoryRoutes);
 
-
-
     // Glossary management (tasks, keywords, prompt builder)
     apiRouter.use('/glossary', glossaryRoutes);
+
+    // RAGFlow server management (admin only)
+    apiRouter.use('/ragflow-servers', ragflowServerRoutes);
+
+    // Project management
+    apiRouter.use('/projects', projectRoutes);
+
+    // Document categories (nested under projects)
+    apiRouter.use('/projects/:projectId/categories', documentCategoryRoutes);
+
+    // Project chats (nested under projects)
+    apiRouter.use('/projects/:projectId/chats', projectChatRoutes);
 }
 
 // ============================================================================
