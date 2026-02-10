@@ -216,6 +216,14 @@ export const config = {
    */
   ragflowConfigPath: process.env['RAGFLOW_CONFIG_PATH'] ?? undefined,
 
+  /**
+   * Local upload directory for document files.
+   * Files are saved here on upload. A future task converter will
+   * transform and push them to RAGFlow.
+   * Default: './uploads' relative to CWD
+   */
+  uploadDir: process.env['UPLOAD_DIR'] ?? './uploads',
+
   // --------------------------------------------------------------------------
   // Langfuse Observability Configuration
   // --------------------------------------------------------------------------

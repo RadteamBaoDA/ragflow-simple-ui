@@ -151,4 +151,5 @@ be/.data/knowledge-base.db
 # Backend config JSON files (contain environment-specific settings)
 be/src/config/*.json
 be/temp
+uploads/
 tasks

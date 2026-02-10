@@ -95,11 +95,15 @@ export async function apiFetch<T = unknown>(
     ? endpoint
     : `${API_BASE_URL}${endpoint}`;
 
+  // Build default headers — skip Content-Type for FormData (browser sets multipart boundary)
+  const defaultHeaders: Record<string, string> =
+    fetchOptions.body instanceof FormData ? {} : { 'Content-Type': 'application/json' }
+
   const response = await fetch(url, {
     ...fetchOptions,
     credentials: 'include', // Always include cookies for session auth
     headers: {
-      'Content-Type': 'application/json',
+      ...defaultHeaders,
       ...fetchOptions.headers,
     },
   });

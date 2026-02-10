@@ -432,6 +432,32 @@ export interface GlossaryTask {
 }
 
 /**
+ * RagflowServer interface representing a managed RAGFlow server connection.
+ */
+export interface RagflowServer {
+    /** Unique UUID for the server */
+    id: string;
+    /** Display name for the server */
+    name: string;
+    /** RAGFlow API endpoint URL */
+    endpoint_url: string;
+    /** RAGFlow API key (encrypted at app level) */
+    api_key: string;
+    /** Description of the server */
+    description?: string | null;
+    /** Whether the server is active */
+    is_active: boolean;
+    /** User ID who created this record */
+    created_by?: string | null;
+    /** User ID who last updated this record */
+    updated_by?: string | null;
+    /** Timestamp of record creation */
+    created_at: Date;
+    /** Timestamp of last update */
+    updated_at: Date;
+}
+
+/**
  * GlossaryKeyword interface representing a standalone keyword entity.
  * Keywords are independent entries in the glossary system.
  */
@@ -448,6 +474,38 @@ export interface GlossaryKeyword {
     sort_order: number;
     /** Whether the keyword is active */
     is_active: boolean;
+    /** User ID who created this record */
+    created_by?: string | null;
+    /** User ID who last updated this record */
+    updated_by?: string | null;
+    /** Timestamp of record creation */
+    created_at: Date;
+    /** Timestamp of last update */
+    updated_at: Date;
+}
+
+/**
+ * Project interface representing a centralized project entity.
+ */
+export interface Project {
+    /** Unique UUID for the project */
+    id: string;
+    /** Project name */
+    name: string;
+    /** Project description */
+    description?: string | null;
+    /** Base64 encoded avatar */
+    avatar?: string | null;
+    /** Linked RAGFlow server ID */
+    ragflow_server_id?: string | null;
+    /** Default embedding model for new datasets */
+    default_embedding_model?: string | null;
+    /** Default chunk method for new categories */
+    default_chunk_method: string;
+    /** Default parser config JSON */
+    default_parser_config: Record<string, any>;
+    /** Project status: 'active' | 'archived' */
+    status: string;
     /** User ID who created this record */
     created_by?: string | null;
     /** User ID who last updated this record */
@@ -486,4 +544,120 @@ export interface BulkImportGlossaryResult {
     skipped: number;
     /** Any error messages */
     errors: string[];
+}
+
+/**
+ * ProjectPermission interface for granular per-tab access control.
+ */
+export interface ProjectPermission {
+    /** Unique UUID for the permission */
+    id: string;
+    /** Project ID this permission belongs to */
+    project_id: string;
+    /** Type of grantee: 'user' | 'team' */
+    grantee_type: string;
+    /** UUID of the user or team */
+    grantee_id: string;
+    /** Permission level for Documents tab: 'none' | 'view' | 'manage' */
+    tab_documents: string;
+    /** Permission level for Chat tab: 'none' | 'view' | 'manage' */
+    tab_chat: string;
+    /** Permission level for Settings tab: 'none' | 'view' | 'manage' */
+    tab_settings: string;
+    /** User ID who created this record */
+    created_by?: string | null;
+    /** User ID who last updated this record */
+    updated_by?: string | null;
+    /** Timestamp of record creation */
+    created_at: Date;
+    /** Timestamp of last update */
+    updated_at: Date;
+}
+
+/**
+ * DocumentCategory interface representing a category within a project.
+ */
+export interface DocumentCategory {
+    /** Unique UUID for the category */
+    id: string;
+    /** Project ID this category belongs to */
+    project_id: string;
+    /** Category name (e.g., "funcspec", "screenspec", "DD") */
+    name: string;
+    /** Category description */
+    description?: string | null;
+    /** Sort order for display */
+    sort_order: number;
+    /** User ID who created this record */
+    created_by?: string | null;
+    /** User ID who last updated this record */
+    updated_by?: string | null;
+    /** Timestamp of record creation */
+    created_at: Date;
+    /** Timestamp of last update */
+    updated_at: Date;
+}
+
+/**
+ * DocumentCategoryVersion interface — each version maps to 1 RAGFlow dataset.
+ */
+export interface DocumentCategoryVersion {
+    /** Unique UUID for the version */
+    id: string;
+    /** Category ID this version belongs to */
+    category_id: string;
+    /** Version label (e.g., "v1.0", "v2.0") */
+    version_label: string;
+    /** RAGFlow dataset ID */
+    ragflow_dataset_id?: string | null;
+    /** Cached RAGFlow dataset name */
+    ragflow_dataset_name?: string | null;
+    /** Version status: 'active' | 'archived' */
+    status: string;
+    /** Last time synced with RAGFlow */
+    last_synced_at?: Date | null;
+    /** Cached RAGFlow metadata (chunk_count, document_count, etc.) */
+    metadata: Record<string, any>;
+    /** User ID who created this record */
+    created_by?: string | null;
+    /** User ID who last updated this record */
+    updated_by?: string | null;
+    /** Timestamp of record creation */
+    created_at: Date;
+    /** Timestamp of last update */
+    updated_at: Date;
+}
+
+/**
+ * ProjectChat interface representing a chat assistant linked to a project.
+ */
+export interface ProjectChat {
+    /** Unique UUID for the project chat */
+    id: string;
+    /** Project ID this chat belongs to */
+    project_id: string;
+    /** Chat assistant name */
+    name: string;
+    /** RAGFlow chat assistant ID */
+    ragflow_chat_id?: string | null;
+    /** Local version IDs linked to this chat */
+    dataset_ids: string[];
+    /** RAGFlow dataset IDs linked to this chat */
+    ragflow_dataset_ids: string[];
+    /** Cached LLM configuration */
+    llm_config: Record<string, any>;
+    /** Cached prompt configuration */
+    prompt_config: Record<string, any>;
+    /** Chat status: 'active' | 'archived' */
+    status: string;
+    /** Last time synced with RAGFlow */
+    last_synced_at?: Date | null;
+    /** User ID who created this record */
+    created_by?: string | null;
+    /** User ID who last updated this record */
+    updated_by?: string | null;
+    /** Timestamp of record creation */
+    created_at: Date;
+    /** Timestamp of last update */
+    updated_at: Date;
 }
