@@ -786,6 +786,10 @@
   },
   "glossary": {
     "title": "Quản lý Từ điển",
+    "tabs": {
+      "tasks": "Quản lý Nhiệm vụ",
+      "keywords": "Quản lý Từ khóa"
+    },
     "task": {
       "add": "Thêm Nhiệm vụ",
       "name": "Tên Nhiệm vụ",
@@ -817,6 +821,13 @@
       "name": "Từ khóa",
       "description": "Mô tả",
       "status": "Trạng thái",
+      "taskName": "Nhiệm vụ",
+      "allTasks": "Tất cả Nhiệm vụ",
+      "selectTask": "Chọn nhiệm vụ",
+      "taskRequired": "Nhiệm vụ là bắt buộc",
+      "searchPlaceholder": "Tìm kiếm từ khóa...",
+      "enKeyword": "Từ khóa tiếng Anh",
+      "enKeywordPlaceholder": "Nhập từ khóa tiếng Anh",
       "namePlaceholder": "Nhập từ khóa",
       "descriptionPlaceholder": "Mô tả tùy chọn",
       "nameRequired": "Từ khóa là bắt buộc",
@@ -846,12 +857,29 @@
       "parseError": "Không thể phân tích tệp Excel",
       "success": "Nhập hoàn tất thành công",
       "rowCount": "{{count}} dòng sẵn sàng nhập",
-      "resultSummary": "Nhiệm vụ tạo: {{tasks}}, Từ khóa tạo: {{keywords}}, Bỏ qua: {{skipped}}",
+      "resultSummary": "Nhiệm vụ tạo: {{tasks}}, Bỏ qua: {{skipped}}",
       "colTaskName": "Tên Nhiệm vụ",
       "colTaskInstruction": "Hướng dẫn Nhiệm vụ",
       "colContextTemplate": "Mẫu Ngữ cảnh",
       "colKeyword": "Từ khóa",
-      "colKeywordDesc": "Mô tả Từ khóa"
+      "colKeywordDesc": "Mô tả Từ khóa",
+      "downloadTemplate": "Tải mẫu"
+    },
+    "keywordImport": {
+      "button": "Nhập Từ khóa",
+      "title": "Nhập Từ khóa Hàng loạt",
+      "selectFile": "Nhấn để chọn tệp Excel (.xlsx)",
+      "fileFormat": "Cột bắt buộc: name. Tùy chọn: en_keyword, description",
+      "import": "Nhập",
+      "noSheet": "Không tìm thấy sheet trong tệp Excel",
+      "emptyFile": "Tệp không chứa dữ liệu",
+      "missingColumns": "Thiếu cột bắt buộc: {{cols}}",
+      "noValidRows": "Không tìm thấy dòng hợp lệ có cột name",
+      "parseError": "Không thể phân tích tệp Excel",
+      "success": "Nhập từ khóa thành công",
+      "rowCount": "{{count}} dòng sẵn sàng nhập",
+      "resultSummary": "Đã tạo: {{created}}, Bỏ qua: {{skipped}}",
+      "downloadTemplate": "Tải mẫu"
     },
     "promptBuilder": {
       "title": "Trình tạo Prompt",

@@ -409,9 +409,13 @@ export interface GlossaryTask {
     name: string;
     /** Description of the task */
     description?: string | null;
-    /** Line 1: What the AI should do (task instruction only) */
-    task_instruction: string;
-    /** Line 2: Keyword and context template with {keyword} placeholder */
+    /** Task instruction in English (required) */
+    task_instruction_en: string;
+    /** Task instruction in Japanese (optional) */
+    task_instruction_ja?: string | null;
+    /** Task instruction in Vietnamese (optional) */
+    task_instruction_vi?: string | null;
+    /** Keyword and context template with {keyword} placeholder */
     context_template: string;
     /** Sort order for display */
     sort_order: number;
@@ -428,16 +432,16 @@ export interface GlossaryTask {
 }
 
 /**
- * GlossaryKeyword interface representing a keyword belonging to a glossary task.
- * Keywords are child entities in the hierarchical glossary structure.
+ * GlossaryKeyword interface representing a standalone keyword entity.
+ * Keywords are independent entries in the glossary system.
  */
 export interface GlossaryKeyword {
     /** Unique UUID for the keyword */
     id: string;
-    /** UUID of the parent glossary task */
-    task_id: string;
-    /** Keyword name (unique within task) */
+    /** Keyword name (globally unique) */
     name: string;
+    /** English translation of the keyword */
+    en_keyword?: string | null;
     /** Description of the keyword */
     description?: string | null;
     /** Sort order for display */
@@ -460,14 +464,14 @@ export interface GlossaryKeyword {
 export interface BulkImportGlossaryRow {
     /** Name of the task (required) */
     task_name: string;
-    /** Line 1: Task instruction for the AI */
-    task_instruction: string;
-    /** Line 2: Context template with {keyword} placeholder */
+    /** Task instruction in English (required) */
+    task_instruction_en: string;
+    /** Task instruction in Japanese (optional) */
+    task_instruction_ja?: string;
+    /** Task instruction in Vietnamese (optional) */
+    task_instruction_vi?: string;
+    /** Context template with {keyword} placeholder */
     context_template: string;
-    /** Keyword name (required) */
-    keyword: string;
-    /** Keyword description (optional) */
-    keyword_description?: string;
 }
 
 /**
@@ -478,8 +482,6 @@ export interface BulkImportGlossaryResult {
     success: boolean;
     /** Number of tasks created */
     tasksCreated: number;
-    /** Number of keywords created */
-    keywordsCreated: number;
     /** Number of items skipped (duplicates) */
     skipped: number;
     /** Any error messages */

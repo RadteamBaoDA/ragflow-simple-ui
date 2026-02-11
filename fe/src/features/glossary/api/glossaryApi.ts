@@ -17,7 +17,9 @@ export interface GlossaryTask {
     id: string
     name: string
     description?: string | null
-    task_instruction: string
+    task_instruction_en: string
+    task_instruction_ja?: string | null
+    task_instruction_vi?: string | null
     context_template: string
     sort_order: number
     is_active: boolean
@@ -27,11 +29,11 @@ export interface GlossaryTask {
     updated_at: string
 }
 
-/** Glossary keyword entity */
+/** Glossary keyword entity (standalone, not linked to tasks) */
 export interface GlossaryKeyword {
     id: string
-    task_id: string
     name: string
+    en_keyword?: string | null
     description?: string | null
     sort_order: number
     is_active: boolean
@@ -41,16 +43,13 @@ export interface GlossaryKeyword {
     updated_at: string
 }
 
-/** Task with nested keywords (tree node) */
-export interface GlossaryTaskWithKeywords extends GlossaryTask {
-    keywords: GlossaryKeyword[]
-}
-
 /** DTO for creating/updating a task */
 export interface CreateTaskDto {
     name: string
     description?: string
-    task_instruction: string
+    task_instruction_en: string
+    task_instruction_ja?: string
+    task_instruction_vi?: string
     context_template: string
     sort_order?: number
     is_active?: boolean
@@ -59,25 +58,40 @@ export interface CreateTaskDto {
 /** DTO for creating/updating a keyword */
 export interface CreateKeywordDto {
     name: string
+    en_keyword?: string
     description?: string
     sort_order?: number
     is_active?: boolean
 }
 
-/** Row structure for bulk import */
+/** Row structure for task bulk import */
 export interface BulkImportRow {
     task_name: string
-    task_instruction: string
+    task_instruction_en: string
+    task_instruction_ja?: string
+    task_instruction_vi?: string
     context_template: string
-    keyword: string
-    keyword_description?: string | undefined
 }
 
-/** Result of bulk import */
+/** Result of task bulk import */
 export interface BulkImportResult {
     success: boolean
     tasksCreated: number
-    keywordsCreated: number
+    skipped: number
+    errors: string[]
+}
+
+/** Row structure for keyword bulk import */
+export interface BulkImportKeywordRow {
+    name: string
+    en_keyword?: string
+    description?: string
+}
+
+/** Result of keyword bulk import */
+export interface BulkImportKeywordResult {
+    success: boolean
+    created: number
     skipped: number
     errors: string[]
 }
@@ -97,9 +111,9 @@ export const glossaryApi = {
         return api.get<GlossaryTask[]>(`${BASE_URL}/tasks`)
     },
 
-    /** Get a single task with its keywords */
-    getTask: async (id: string): Promise<GlossaryTaskWithKeywords> => {
-        return api.get<GlossaryTaskWithKeywords>(`${BASE_URL}/tasks/${id}`)
+    /** Get a single task */
+    getTask: async (id: string): Promise<GlossaryTask> => {
+        return api.get<GlossaryTask>(`${BASE_URL}/tasks/${id}`)
     },
 
     /** Create a new task */
@@ -112,7 +126,7 @@ export const glossaryApi = {
         return api.put<GlossaryTask>(`${BASE_URL}/tasks/${id}`, data)
     },
 
-    /** Delete a task (cascades keywords) */
+    /** Delete a task */
     deleteTask: async (id: string): Promise<void> => {
         return api.delete<void>(`${BASE_URL}/tasks/${id}`)
     },
@@ -121,14 +135,14 @@ export const glossaryApi = {
     // Keyword CRUD
     // ========================================================================
 
-    /** List keywords for a task */
-    listKeywords: async (taskId: string): Promise<GlossaryKeyword[]> => {
-        return api.get<GlossaryKeyword[]>(`${BASE_URL}/tasks/${taskId}/keywords`)
+    /** List all keywords */
+    listKeywords: async (): Promise<GlossaryKeyword[]> => {
+        return api.get<GlossaryKeyword[]>(`${BASE_URL}/keywords`)
     },
 
-    /** Create a keyword under a task */
-    createKeyword: async (taskId: string, data: CreateKeywordDto): Promise<GlossaryKeyword> => {
-        return api.post<GlossaryKeyword>(`${BASE_URL}/tasks/${taskId}/keywords`, data)
+    /** Create a keyword */
+    createKeyword: async (data: CreateKeywordDto): Promise<GlossaryKeyword> => {
+        return api.post<GlossaryKeyword>(`${BASE_URL}/keywords`, data)
     },
 
     /** Update a keyword */
@@ -144,11 +158,6 @@ export const glossaryApi = {
     // ========================================================================
     // Prompt Builder
     // ========================================================================
-
-    /** Get the full glossary tree (active tasks + keywords) for Prompt Builder */
-    getTree: async (): Promise<GlossaryTaskWithKeywords[]> => {
-        return api.get<GlossaryTaskWithKeywords[]>(`${BASE_URL}/tree`)
-    },
 
     /** Search tasks and keywords by name */
     search: async (query: string): Promise<{ tasks: GlossaryTask[]; keywords: GlossaryKeyword[] }> => {
@@ -166,8 +175,13 @@ export const glossaryApi = {
     // Bulk Import
     // ========================================================================
 
-    /** Bulk import tasks and keywords from parsed Excel rows */
+    /** Bulk import tasks from parsed Excel rows */
     bulkImport: async (rows: BulkImportRow[]): Promise<BulkImportResult> => {
         return api.post<BulkImportResult>(`${BASE_URL}/bulk-import`, { rows })
+    },
+
+    /** Bulk import keywords from parsed Excel rows */
+    bulkImportKeywords: async (rows: BulkImportKeywordRow[]): Promise<BulkImportKeywordResult> => {
+        return api.post<BulkImportKeywordResult>(`${BASE_URL}/keywords/bulk-import`, { rows })
     },
 }

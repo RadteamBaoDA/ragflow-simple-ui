@@ -771,6 +771,10 @@
   },
   "glossary": {
     "title": "用語集管理",
+    "tabs": {
+      "tasks": "タスク管理",
+      "keywords": "キーワード管理"
+    },
     "task": {
       "add": "タスクを追加",
       "name": "タスク名",
@@ -802,6 +806,13 @@
       "name": "キーワード",
       "description": "説明",
       "status": "ステータス",
+      "taskName": "タスク",
+      "allTasks": "すべてのタスク",
+      "selectTask": "タスクを選択",
+      "taskRequired": "タスクは必須です",
+      "searchPlaceholder": "キーワードを検索...",
+      "enKeyword": "英語キーワード",
+      "enKeywordPlaceholder": "英語のキーワードを入力",
       "namePlaceholder": "キーワードを入力",
       "descriptionPlaceholder": "オプションの説明",
       "nameRequired": "キーワードは必須です",
@@ -831,12 +842,29 @@
       "parseError": "Excelファイルの解析に失敗しました",
       "success": "インポートが正常に完了しました",
       "rowCount": "{{count}}行のインポート準備完了",
-      "resultSummary": "タスク作成: {{tasks}}、キーワード作成: {{keywords}}、スキップ: {{skipped}}",
+      "resultSummary": "タスク作成: {{tasks}}、スキップ: {{skipped}}",
       "colTaskName": "タスク名",
       "colTaskInstruction": "タスク指示",
       "colContextTemplate": "コンテキストテンプレート",
       "colKeyword": "キーワード",
-      "colKeywordDesc": "キーワードの説明"
+      "colKeywordDesc": "キーワードの説明",
+      "downloadTemplate": "テンプレートをダウンロード"
+    },
+    "keywordImport": {
+      "button": "キーワードインポート",
+      "title": "キーワードの一括インポート",
+      "selectFile": "Excelファイル(.xlsx)を選択",
+      "fileFormat": "必須列: name。オプション: en_keyword, description",
+      "import": "インポート",
+      "noSheet": "Excelファイルにシートが見つかりません",
+      "emptyFile": "ファイルにデータがありません",
+      "missingColumns": "必須列がありません: {{cols}}",
+      "noValidRows": "nameが入力された有効な行が見つかりません",
+      "parseError": "Excelファイルの解析に失敗しました",
+      "success": "キーワードが正常にインポートされました",
+      "rowCount": "{{count}}行のインポート準備完了",
+      "resultSummary": "作成: {{created}}、スキップ: {{skipped}}",
+      "downloadTemplate": "テンプレートをダウンロード"
     },
     "promptBuilder": {
       "title": "プロンプトビルダー",

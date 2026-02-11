@@ -6,20 +6,12 @@
  */
 import { Knex } from 'knex';
 import { BaseModel } from '@/models/base.model.js';
-import { GlossaryTask, GlossaryKeyword } from '@/models/types.js';
+import { GlossaryTask } from '@/models/types.js';
 import { db } from '@/db/knex.js';
 
 /**
- * GlossaryTask with nested keywords for tree-view responses.
- */
-export interface GlossaryTaskWithKeywords extends GlossaryTask {
-    /** Keywords belonging to this task */
-    keywords: GlossaryKeyword[];
-}
-
-/**
  * Model for glossary_tasks table operations.
- * Provides hierarchical task management for the prompt builder.
+ * Provides task management for the prompt builder.
  */
 export class GlossaryTaskModel extends BaseModel<GlossaryTask> {
     protected tableName = 'glossary_tasks';
@@ -51,82 +43,23 @@ export class GlossaryTaskModel extends BaseModel<GlossaryTask> {
     }
 
     /**
-     * Get a single task with its keywords.
-     * @param id - Task ID
-     * @returns Task with keywords array, or undefined
-     */
-    async getWithKeywords(id: string): Promise<GlossaryTaskWithKeywords | undefined> {
-        // Fetch the task
-        const task = await this.findById(id);
-        if (!task) return undefined;
-
-        // Fetch keywords for this task
-        const keywords = await this.knex('glossary_keywords')
-            .where({ task_id: id })
-            .orderBy('sort_order', 'asc')
-            .orderBy('name', 'asc');
-
-        return { ...task, keywords };
-    }
-
-    /**
-     * Get all tasks with their keywords (tree structure).
-     * Used by the Prompt Builder modal to display the full glossary tree.
-     * @param activeOnly - If true, only return active tasks and keywords
-     * @returns Array of tasks each with their keywords
-     */
-    async getAllWithKeywords(activeOnly = false): Promise<GlossaryTaskWithKeywords[]> {
-        // Build tasks query
-        const tasksQuery = this.knex(this.tableName)
-            .orderBy('sort_order', 'asc')
-            .orderBy('name', 'asc');
-        if (activeOnly) {
-            tasksQuery.where({ is_active: true });
-        }
-        const tasks = await tasksQuery;
-
-        if (tasks.length === 0) return [];
-
-        // Fetch all keywords in a single query for efficiency
-        const taskIds = tasks.map((t: GlossaryTask) => t.id);
-        const keywordsQuery = this.knex('glossary_keywords')
-            .whereIn('task_id', taskIds)
-            .orderBy('sort_order', 'asc')
-            .orderBy('name', 'asc');
-        if (activeOnly) {
-            keywordsQuery.where({ is_active: true });
-        }
-        const allKeywords: GlossaryKeyword[] = await keywordsQuery;
-
-        // Group keywords by task_id
-        const keywordsByTask = new Map<string, GlossaryKeyword[]>();
-        for (const kw of allKeywords) {
-            const existing = keywordsByTask.get(kw.task_id) || [];
-            existing.push(kw);
-            keywordsByTask.set(kw.task_id, existing);
-        }
-
-        // Merge tasks with their keywords
-        return tasks.map((task: GlossaryTask) => ({
-            ...task,
-            keywords: keywordsByTask.get(task.id) || [],
-        }));
-    }
-
-    /**
      * Find or create a task by name.
      * Used during bulk import to ensure tasks exist.
      * @param name - Task name
-     * @param taskInstruction - Line 1 prompt instruction
+     * @param taskInstructionEn - English task instruction
      * @param contextTemplate - Line 2 context template with {keyword}
      * @param userId - User performing the action
+     * @param taskInstructionJa - Japanese task instruction (optional)
+     * @param taskInstructionVi - Vietnamese task instruction (optional)
      * @returns The found or created task
      */
     async findOrCreate(
         name: string,
-        taskInstruction: string,
+        taskInstructionEn: string,
         contextTemplate: string,
-        userId?: string
+        userId?: string,
+        taskInstructionJa?: string,
+        taskInstructionVi?: string,
     ): Promise<GlossaryTask> {
         // Check if task already exists
         const existing = await this.findByName(name);
@@ -135,10 +68,76 @@ export class GlossaryTaskModel extends BaseModel<GlossaryTask> {
         // Create new task
         return this.create({
             name: name.trim(),
-            task_instruction: taskInstruction,
+            task_instruction_en: taskInstructionEn,
+            task_instruction_ja: taskInstructionJa || null,
+            task_instruction_vi: taskInstructionVi || null,
             context_template: contextTemplate,
             created_by: userId || null,
             updated_by: userId || null,
         });
+    }
+
+    /**
+     * Bulk insert a chunk of task rows within a single transaction.
+     * Skips duplicates by name (case-insensitive) using both the DB and a seen Set.
+     * @param rows - Array of task rows to insert
+     * @param seen - Set of already-processed names (lowercase) for cross-chunk dedup
+     * @param userId - User performing the import
+     * @returns Object with created and skipped counts
+     */
+    async bulkInsertChunk(
+        rows: Array<{
+            task_name: string;
+            task_instruction_en: string;
+            task_instruction_ja?: string;
+            task_instruction_vi?: string;
+            context_template: string;
+        }>,
+        seen: Set<string>,
+        userId?: string,
+    ): Promise<{ created: number; skipped: number }> {
+        let created = 0;
+        let skipped = 0;
+
+        await this.knex.transaction(async (trx) => {
+            for (const row of rows) {
+                const taskName = row.task_name?.trim();
+                if (!taskName) {
+                    skipped++;
+                    continue;
+                }
+
+                // Skip if already processed in this import
+                const nameLower = taskName.toLowerCase();
+                if (seen.has(nameLower)) {
+                    skipped++;
+                    continue;
+                }
+                seen.add(nameLower);
+
+                // Skip if task already exists in DB (query within trx)
+                const existing = await trx(this.tableName)
+                    .whereRaw('LOWER(name) = ?', [nameLower])
+                    .first();
+                if (existing) {
+                    skipped++;
+                    continue;
+                }
+
+                // Insert new task
+                await trx(this.tableName).insert({
+                    name: taskName,
+                    task_instruction_en: row.task_instruction_en || '',
+                    task_instruction_ja: row.task_instruction_ja || null,
+                    task_instruction_vi: row.task_instruction_vi || null,
+                    context_template: row.context_template || '',
+                    created_by: userId || null,
+                    updated_by: userId || null,
+                });
+                created++;
+            }
+        });
+
+        return { created, skipped };
     }
 }

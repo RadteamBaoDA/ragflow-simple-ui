@@ -3,7 +3,7 @@
  *
  * A modal accessible from AI Chat page that allows users to:
  * 1. Select a glossary task
- * 2. Pick keywords from that task
+ * 2. Pick keywords (from all available keywords)
  * 3. Generate a structured prompt
  * 4. Copy the prompt to clipboard (since chat uses an iframe)
  */
@@ -16,7 +16,8 @@ import {
 import { Copy, Check, Sparkles } from 'lucide-react'
 import {
     glossaryApi,
-    type GlossaryTaskWithKeywords,
+    type GlossaryTask,
+    type GlossaryKeyword,
 } from '../api/glossaryApi'
 import { globalMessage } from '@/app/App'
 
@@ -40,7 +41,8 @@ export const PromptBuilderModal = ({ open, onClose }: PromptBuilderModalProps) =
     const { t } = useTranslation()
 
     // State
-    const [tasks, setTasks] = useState<GlossaryTaskWithKeywords[]>([])
+    const [tasks, setTasks] = useState<GlossaryTask[]>([])
+    const [keywords, setKeywords] = useState<GlossaryKeyword[]>([])
     const [loading, setLoading] = useState(false)
     const [selectedTaskId, setSelectedTaskId] = useState<string | null>(null)
     const [selectedKeywordIds, setSelectedKeywordIds] = useState<string[]>([])
@@ -52,13 +54,18 @@ export const PromptBuilderModal = ({ open, onClose }: PromptBuilderModalProps) =
     // Data Fetching
     // ========================================================================
 
-    const fetchTree = useCallback(async () => {
+    /** Fetch tasks and keywords separately */
+    const fetchData = useCallback(async () => {
         setLoading(true)
         try {
-            const data = await glossaryApi.getTree()
-            setTasks(data)
+            const [tasksData, keywordsData] = await Promise.all([
+                glossaryApi.listTasks(),
+                glossaryApi.listKeywords(),
+            ])
+            setTasks(tasksData)
+            setKeywords(keywordsData)
         } catch (error) {
-            console.error('Error fetching glossary tree:', error)
+            console.error('Error fetching glossary data:', error)
         } finally {
             setLoading(false)
         }
@@ -66,21 +73,21 @@ export const PromptBuilderModal = ({ open, onClose }: PromptBuilderModalProps) =
 
     useEffect(() => {
         if (open) {
-            fetchTree()
+            fetchData()
             // Reset state when opening
             setSelectedTaskId(null)
             setSelectedKeywordIds([])
             setGeneratedPrompt('')
             setCopied(false)
         }
-    }, [open, fetchTree])
+    }, [open, fetchData])
 
     // ========================================================================
     // Derived Data
     // ========================================================================
 
-    const selectedTask = tasks.find((t) => t.id === selectedTaskId)
-    const availableKeywords = selectedTask?.keywords?.filter((k) => k.is_active) || []
+    /** Active keywords available for selection */
+    const activeKeywords = keywords.filter((k) => k.is_active)
 
     // ========================================================================
     // Handlers
@@ -88,7 +95,6 @@ export const PromptBuilderModal = ({ open, onClose }: PromptBuilderModalProps) =
 
     const handleTaskChange = (taskId: string) => {
         setSelectedTaskId(taskId)
-        setSelectedKeywordIds([])
         setGeneratedPrompt('')
     }
 
@@ -176,8 +182,8 @@ export const PromptBuilderModal = ({ open, onClose }: PromptBuilderModalProps) =
                         />
                     </div>
 
-                    {/* Step 2: Select Keywords */}
-                    {selectedTask && (
+                    {/* Step 2: Select Keywords (from all keywords, not task-scoped) */}
+                    {selectedTaskId && (
                         <div>
                             <label className="text-sm font-medium mb-1 block">
                                 {t('glossary.promptBuilder.selectKeywords')}
@@ -188,7 +194,7 @@ export const PromptBuilderModal = ({ open, onClose }: PromptBuilderModalProps) =
                                 placeholder={t('glossary.promptBuilder.selectKeywords')}
                                 value={selectedKeywordIds}
                                 onChange={handleKeywordChange}
-                                options={availableKeywords.map((k) => ({
+                                options={activeKeywords.map((k) => ({
                                     value: k.id,
                                     label: k.name,
                                 }))}

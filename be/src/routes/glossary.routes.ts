@@ -14,9 +14,6 @@ const router = Router();
 // Prompt Builder (read-only, all authenticated users)
 // ============================================================================
 
-// Get full glossary tree for Prompt Builder modal
-router.get('/tree', requireAuth, GlossaryController.getTree);
-
 // Search tasks and keywords
 router.get('/search', requireAuth, GlossaryController.search);
 
@@ -30,7 +27,7 @@ router.post('/generate-prompt', requireAuth, GlossaryController.generatePrompt);
 // List all tasks
 router.get('/tasks', requireAuth, GlossaryController.listTasks);
 
-// Get single task with keywords
+// Get single task
 router.get('/tasks/:id', requireAuth, GlossaryController.getTask);
 
 // Create a new task
@@ -39,18 +36,18 @@ router.post('/tasks', requireRole('admin', 'leader'), GlossaryController.createT
 // Update a task
 router.put('/tasks/:id', requireRole('admin', 'leader'), GlossaryController.updateTask);
 
-// Delete a task (cascades keywords)
+// Delete a task
 router.delete('/tasks/:id', requireRole('admin', 'leader'), GlossaryController.deleteTask);
 
 // ============================================================================
 // Keyword Management (admin/leader only)
 // ============================================================================
 
-// List keywords for a task
-router.get('/tasks/:taskId/keywords', requireAuth, GlossaryController.listKeywords);
+// List all keywords
+router.get('/keywords', requireAuth, GlossaryController.listKeywords);
 
-// Create a keyword under a task
-router.post('/tasks/:taskId/keywords', requireRole('admin', 'leader'), GlossaryController.createKeyword);
+// Create a keyword
+router.post('/keywords', requireRole('admin', 'leader'), GlossaryController.createKeyword);
 
 // Update a keyword
 router.put('/keywords/:id', requireRole('admin', 'leader'), GlossaryController.updateKeyword);
@@ -62,7 +59,10 @@ router.delete('/keywords/:id', requireRole('admin', 'leader'), GlossaryControlle
 // Bulk Import (admin/leader only)
 // ============================================================================
 
-// Bulk import tasks and keywords from Excel data
+// Bulk import tasks from Excel data
 router.post('/bulk-import', requireRole('admin', 'leader'), GlossaryController.bulkImport);
+
+// Bulk import keywords from Excel data
+router.post('/keywords/bulk-import', requireRole('admin', 'leader'), GlossaryController.bulkImportKeywords);
 
 export default router;

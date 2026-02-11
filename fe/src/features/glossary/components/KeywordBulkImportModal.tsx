@@ -1,28 +1,34 @@
 /**
- * @fileoverview Glossary Bulk Import Modal
+ * @fileoverview Keyword Bulk Import Modal
  *
- * Parses Excel files with columns:
- *   task_name, task_instruction_en, task_instruction_ja, task_instruction_vi, context_template
- * Previews data in a table, then sends to the bulk-import API.
+ * Parses Excel files with columns: name, en_keyword, description
+ * Previews data, then sends to the keyword bulk-import API.
+ * @module features/glossary/components/KeywordBulkImportModal
  */
 
 import { useState, useCallback, useRef } from 'react'
 import { useTranslation } from 'react-i18next'
 import { Upload, FileSpreadsheet, AlertCircle, Download } from 'lucide-react'
-import {
-    Modal, Button, Table, Alert, Space
-} from 'antd'
+import { Modal, Button, Table, Alert, Space } from 'antd'
 import * as XLSX from 'xlsx'
-import { glossaryApi, type BulkImportRow, type BulkImportResult } from '../api/glossaryApi'
+import {
+    glossaryApi,
+    type BulkImportKeywordRow,
+    type BulkImportKeywordResult,
+} from '../api/glossaryApi'
 import { globalMessage } from '@/app/App'
 
 // ============================================================================
 // Props
 // ============================================================================
 
-interface GlossaryBulkImportModalProps {
+/** Props for the KeywordBulkImportModal component. */
+interface KeywordBulkImportModalProps {
+    /** Whether the modal is visible. */
     open: boolean
+    /** Callback to close the modal. */
     onClose: () => void
+    /** Callback invoked after a successful import. */
     onSuccess: () => void
 }
 
@@ -30,12 +36,20 @@ interface GlossaryBulkImportModalProps {
 // Component
 // ============================================================================
 
-export const GlossaryBulkImportModal = ({ open, onClose, onSuccess }: GlossaryBulkImportModalProps) => {
+/**
+ * Modal for bulk importing keywords via Excel file.
+ * @description User uploads an Excel file with columns (name, en_keyword, description),
+ * previews the data, then imports keywords.
+ * @param props - Component props.
+ * @returns React element.
+ */
+export const KeywordBulkImportModal = ({ open, onClose, onSuccess }: KeywordBulkImportModalProps) => {
     const { t } = useTranslation()
 
-    const [parsedRows, setParsedRows] = useState<BulkImportRow[]>([])
+    // State
+    const [parsedRows, setParsedRows] = useState<BulkImportKeywordRow[]>([])
     const [importing, setImporting] = useState(false)
-    const [importResult, setImportResult] = useState<BulkImportResult | null>(null)
+    const [importResult, setImportResult] = useState<BulkImportKeywordResult | null>(null)
     const [parseError, setParseError] = useState<string | null>(null)
     const [isDragging, setIsDragging] = useState(false)
 
@@ -43,7 +57,7 @@ export const GlossaryBulkImportModal = ({ open, onClose, onSuccess }: GlossaryBu
     // File Parsing
     // ========================================================================
 
-    /** Parse an Excel file and extract bulk import rows. */
+    /** Parse an Excel file and extract keyword rows. */
     const processFile = useCallback((file: File) => {
         setParseError(null)
         setImportResult(null)
@@ -56,44 +70,41 @@ export const GlossaryBulkImportModal = ({ open, onClose, onSuccess }: GlossaryBu
                 const workbook = XLSX.read(data, { type: 'array' })
                 const sheet = workbook.Sheets[workbook.SheetNames[0]!]
                 if (!sheet) {
-                    setParseError(t('glossary.bulkImport.noSheet'))
+                    setParseError(t('glossary.keywordImport.noSheet'))
                     return
                 }
 
                 const jsonData = XLSX.utils.sheet_to_json<Record<string, string>>(sheet)
 
                 if (jsonData.length === 0) {
-                    setParseError(t('glossary.bulkImport.emptyFile'))
+                    setParseError(t('glossary.keywordImport.emptyFile'))
                     return
                 }
 
                 const firstRow = jsonData[0]!
-                const requiredCols = ['task_name', 'task_instruction_en', 'context_template']
-                const missingCols = requiredCols.filter((col) => !(col in firstRow))
-                if (missingCols.length > 0) {
-                    setParseError(t('glossary.bulkImport.missingColumns', { cols: missingCols.join(', ') }))
+                if (!('name' in firstRow)) {
+                    setParseError(t('glossary.keywordImport.missingColumns', { cols: 'name' }))
                     return
                 }
 
-                const rows: BulkImportRow[] = jsonData
-                    .filter((row) => row.task_name)
-                    .map((row) => ({
-                        task_name: row.task_name?.trim() || '',
-                        task_instruction_en: row.task_instruction_en?.trim() || '',
-                        task_instruction_ja: row.task_instruction_ja?.trim() || '',
-                        task_instruction_vi: row.task_instruction_vi?.trim() || '',
-                        context_template: row.context_template?.trim() || '',
-                    }))
+                const rows: BulkImportKeywordRow[] = jsonData
+                    .filter((row) => row.name && row.name.trim())
+                    .map((row) => {
+                        const mapped: BulkImportKeywordRow = { name: row.name?.trim() || '' }
+                        if (row.en_keyword?.trim()) mapped.en_keyword = row.en_keyword.trim()
+                        if (row.description?.trim()) mapped.description = row.description.trim()
+                        return mapped
+                    })
 
                 if (rows.length === 0) {
-                    setParseError(t('glossary.bulkImport.noValidRows'))
+                    setParseError(t('glossary.keywordImport.noValidRows'))
                     return
                 }
 
                 setParsedRows(rows)
             } catch (err: any) {
                 console.error('Excel parse error:', err)
-                setParseError(err.message || t('glossary.bulkImport.parseError'))
+                setParseError(err.message || t('glossary.keywordImport.parseError'))
             }
         }
         reader.readAsArrayBuffer(file)
@@ -146,7 +157,7 @@ export const GlossaryBulkImportModal = ({ open, onClose, onSuccess }: GlossaryBu
         if (file && (file.name.endsWith('.xlsx') || file.name.endsWith('.xls'))) {
             processFile(file)
         } else {
-            setParseError(t('glossary.bulkImport.parseError'))
+            setParseError(t('glossary.keywordImport.parseError'))
         }
     }, [processFile, t])
 
@@ -154,32 +165,37 @@ export const GlossaryBulkImportModal = ({ open, onClose, onSuccess }: GlossaryBu
     // Download Template
     // ========================================================================
 
-    /** Generate and download a sample Excel template with example rows. */
+    /** Generate and download a sample Excel template with example keyword rows. */
     const downloadTemplate = useCallback(() => {
         const sampleRows = [
-            { task_name: 'Document Search', task_instruction_en: 'Use these terms to improve document search accuracy', task_instruction_ja: 'これらのキーワードを使って文書検索の精度を向上させてください', task_instruction_vi: 'Sử dụng các từ khóa này để cải thiện độ chính xác tìm kiếm tài liệu', context_template: 'Search for {keyword} related information' },
-            { task_name: 'FAQ Generation', task_instruction_en: 'Generate FAQ pairs for common questions', task_instruction_ja: 'よくある質問に対するFAQペアを生成してください', task_instruction_vi: 'Tạo các cặp FAQ cho những câu hỏi phổ biến', context_template: 'Generate FAQ about {keyword}' },
-            { task_name: 'Knowledge Base', task_instruction_en: 'Build and maintain knowledge base entries', task_instruction_ja: 'ナレッジベースのエントリを作成・維持してください', task_instruction_vi: 'Xây dựng và duy trì các mục cơ sở kiến thức', context_template: 'Create knowledge base entry for {keyword}' },
+            { name: '契約書', en_keyword: 'Contract', description: 'Legal binding agreement document' },
+            { name: '仕様書', en_keyword: 'Specification', description: 'Technical specification document' },
+            { name: 'マニュアル', en_keyword: 'Manual', description: 'User or operation manual' },
+            { name: '報告書', en_keyword: 'Report', description: 'Business or technical report' },
+            { name: '設計書', en_keyword: 'Design Document', description: 'System or software design document' },
         ]
         const ws = XLSX.utils.json_to_sheet(sampleRows)
         const wb = XLSX.utils.book_new()
-        XLSX.utils.book_append_sheet(wb, ws, 'Glossary Import')
-        XLSX.writeFile(wb, 'glossary_task_import_template.xlsx')
+        XLSX.utils.book_append_sheet(wb, ws, 'Keyword Import')
+        XLSX.writeFile(wb, 'glossary_keyword_import_template.xlsx')
     }, [])
 
     // ========================================================================
     // Import
     // ========================================================================
 
+    /**
+     * Send parsed rows to the keyword bulk-import API.
+     */
     const handleImport = async () => {
         if (parsedRows.length === 0) return
         setImporting(true)
         setImportResult(null)
         try {
-            const result = await glossaryApi.bulkImport(parsedRows)
+            const result = await glossaryApi.bulkImportKeywords(parsedRows)
             setImportResult(result)
             if (result.success) {
-                globalMessage.success(t('glossary.bulkImport.success'))
+                globalMessage.success(t('glossary.keywordImport.success'))
                 onSuccess()
                 handleClose()
             }
@@ -194,6 +210,9 @@ export const GlossaryBulkImportModal = ({ open, onClose, onSuccess }: GlossaryBu
     // Reset & Close
     // ========================================================================
 
+    /**
+     * Reset all state and close the modal.
+     */
     const handleClose = () => {
         setParsedRows([])
         setImportResult(null)
@@ -205,12 +224,11 @@ export const GlossaryBulkImportModal = ({ open, onClose, onSuccess }: GlossaryBu
     // Preview Columns
     // ========================================================================
 
+    /** Column definitions for the preview table. */
     const previewColumns = [
-        { title: t('glossary.bulkImport.colTaskName'), dataIndex: 'task_name', key: 'task_name', width: 150 },
-        { title: t('glossary.bulkImport.colTaskInstructionEn'), dataIndex: 'task_instruction_en', key: 'task_instruction_en', ellipsis: true },
-        { title: t('glossary.bulkImport.colTaskInstructionJa'), dataIndex: 'task_instruction_ja', key: 'task_instruction_ja', ellipsis: true },
-        { title: t('glossary.bulkImport.colTaskInstructionVi'), dataIndex: 'task_instruction_vi', key: 'task_instruction_vi', ellipsis: true },
-        { title: t('glossary.bulkImport.colContextTemplate'), dataIndex: 'context_template', key: 'context_template', ellipsis: true },
+        { title: t('glossary.keyword.name'), dataIndex: 'name', key: 'name', width: 200 },
+        { title: t('glossary.keyword.enKeyword'), dataIndex: 'en_keyword', key: 'en_keyword', width: 200 },
+        { title: t('glossary.keyword.description'), dataIndex: 'description', key: 'description', ellipsis: true },
     ]
 
     // ========================================================================
@@ -222,7 +240,7 @@ export const GlossaryBulkImportModal = ({ open, onClose, onSuccess }: GlossaryBu
             title={
                 <div className="flex items-center gap-2">
                     <FileSpreadsheet size={20} />
-                    <span>{t('glossary.bulkImport.title')}</span>
+                    <span>{t('glossary.keywordImport.title')}</span>
                 </div>
             }
             open={open}
@@ -233,7 +251,7 @@ export const GlossaryBulkImportModal = ({ open, onClose, onSuccess }: GlossaryBu
                 <div className="flex justify-between items-center">
                     <span className="text-sm text-slate-500">
                         {parsedRows.length > 0
-                            ? t('glossary.bulkImport.rowCount', { count: parsedRows.length })
+                            ? t('glossary.keywordImport.rowCount', { count: parsedRows.length })
                             : ''}
                     </span>
                     <Space>
@@ -244,7 +262,7 @@ export const GlossaryBulkImportModal = ({ open, onClose, onSuccess }: GlossaryBu
                             loading={importing}
                             disabled={parsedRows.length === 0 || importing}
                         >
-                            {t('glossary.bulkImport.import')}
+                            {t('glossary.keywordImport.import')}
                         </Button>
                     </Space>
                 </div>
@@ -267,10 +285,10 @@ export const GlossaryBulkImportModal = ({ open, onClose, onSuccess }: GlossaryBu
                     <label className="cursor-pointer flex flex-col items-center gap-2">
                         <Upload size={32} className="text-slate-400" />
                         <span className="text-sm text-slate-600 dark:text-slate-400">
-                            {t('glossary.bulkImport.selectFile')}
+                            {t('glossary.keywordImport.selectFile')}
                         </span>
                         <span className="text-xs text-slate-400">
-                            {t('glossary.bulkImport.fileFormat')}
+                            {t('glossary.keywordImport.fileFormat')}
                         </span>
                         <input
                             type="file"
@@ -286,7 +304,7 @@ export const GlossaryBulkImportModal = ({ open, onClose, onSuccess }: GlossaryBu
                         className="mt-2"
                         size="small"
                     >
-                        {t('glossary.bulkImport.downloadTemplate')}
+                        {t('glossary.keywordImport.downloadTemplate')}
                     </Button>
                 </div>
 
@@ -308,8 +326,8 @@ export const GlossaryBulkImportModal = ({ open, onClose, onSuccess }: GlossaryBu
                         type={importResult.success ? 'success' : 'warning'}
                         message={
                             <div>
-                                <p>{t('glossary.bulkImport.resultSummary', {
-                                    tasks: importResult.tasksCreated,
+                                <p>{t('glossary.keywordImport.resultSummary', {
+                                    created: importResult.created,
                                     skipped: importResult.skipped,
                                 })}</p>
                                 {importResult.errors.length > 0 && (

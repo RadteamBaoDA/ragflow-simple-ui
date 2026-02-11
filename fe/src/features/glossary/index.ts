@@ -8,7 +8,6 @@ export { PromptBuilderModal } from './components/PromptBuilderModal'
 export type {
     GlossaryTask,
     GlossaryKeyword,
-    GlossaryTaskWithKeywords,
     CreateTaskDto,
     CreateKeywordDto,
     BulkImportRow,
