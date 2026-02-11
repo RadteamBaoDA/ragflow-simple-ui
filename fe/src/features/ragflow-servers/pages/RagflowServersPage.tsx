@@ -26,6 +26,9 @@ import {
   Popconfirm,
   message,
   Tooltip,
+  Select,
+  Divider,
+  Typography,
 } from 'antd'
 import type { ColumnsType } from 'antd/es/table'
 import {
@@ -118,6 +121,8 @@ const RagflowServersPage = () => {
       api_key: server.api_key,
       description: server.description,
       is_active: server.is_active,
+      embedding_models: server.embedding_models || [],
+      chat_models: server.chat_models || [],
     })
     setModalOpen(true)
   }
@@ -365,6 +370,38 @@ const RagflowServersPage = () => {
             <Switch
               checkedChildren={t('ragflowServers.active')}
               unCheckedChildren={t('ragflowServers.inactive')}
+            />
+          </Form.Item>
+
+          {/* Model Configuration */}
+          <Divider orientation="left" plain>
+            <Typography.Text type="secondary" style={{ fontSize: 13 }}>
+              {t('ragflowServers.modelConfig.title')}
+            </Typography.Text>
+          </Divider>
+          <Typography.Text type="secondary" style={{ fontSize: 12, display: 'block', marginBottom: 16 }}>
+            {t('ragflowServers.modelConfig.description')}
+          </Typography.Text>
+
+          <Form.Item
+            name="embedding_models"
+            label={t('ragflowServers.modelConfig.embeddingModels')}
+          >
+            <Select
+              mode="tags"
+              placeholder={t('ragflowServers.modelConfig.embeddingModelsPlaceholder')}
+              tokenSeparators={[',']}
+            />
+          </Form.Item>
+
+          <Form.Item
+            name="chat_models"
+            label={t('ragflowServers.modelConfig.chatModels')}
+          >
+            <Select
+              mode="tags"
+              placeholder={t('ragflowServers.modelConfig.chatModelsPlaceholder')}
+              tokenSeparators={[',']}
             />
           </Form.Item>
         </Form>

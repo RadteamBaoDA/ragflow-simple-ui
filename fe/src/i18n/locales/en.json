@@ -774,7 +774,15 @@
     "endpointRequired": "Endpoint URL is required",
     "apiKeyRequired": "API key is required",
     "noServers": "No RAGFlow servers configured",
-    "noServersHint": "Add a server to get started with RAGFlow integration."
+    "noServersHint": "Add a server to get started with RAGFlow integration.",
+    "modelConfig": {
+      "title": "Model Configuration",
+      "description": "Configure available models for document embedding and chat. Type model names and press Enter.",
+      "embeddingModels": "Embedding Models",
+      "embeddingModelsPlaceholder": "Type model name and press Enter (e.g. BAAI/bge-large-zh-v1.5@Xinference)",
+      "chatModels": "Chat Models",
+      "chatModelsPlaceholder": "Type model name and press Enter (e.g. deepseek-chat@VolcEngine)"
+    }
   },
   "projectManagement": {
     "title": "Projects",
@@ -813,7 +821,19 @@
       "namePlaceholder": "Enter category name",
       "deleteConfirm": "Delete this category and all its versions?",
       "noCategories": "No categories yet",
-      "noCategoriesHint": "Add categories to organize your documents."
+      "noCategoriesHint": "Add categories to organize your documents.",
+      "datasetConfig": {
+        "title": "Dataset Configuration",
+        "description": "RAGFlow dataset settings used when creating a version. Leave blank to use project defaults.",
+        "language": "Language",
+        "embeddingModel": "Embedding Model",
+        "embeddingModelPlaceholder": "e.g. BAAI/bge-large-zh-v1.5@BAAI",
+        "chunkMethod": "Chunk Method (Built-in)",
+        "chunkTokenNum": "Chunk Token Size",
+        "delimiter": "Delimiter",
+        "layoutRecognize": "Layout Recognize",
+        "html4excel": "HTML for Excel"
+      }
     },
     "versions": {
       "title": "Versions",
