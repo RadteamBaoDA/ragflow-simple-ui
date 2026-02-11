@@ -100,7 +100,8 @@
     "dashboard": "ダッシュボード",
     "expandMenu": "メニューを展開",
     "administrators": "管理者",
-    "collapseMenu": "メニューを折りたたむ"
+    "collapseMenu": "メニューを折りたたむ",
+    "glossary": "用語集"
   },
   "iam": {
     "title": "ID管理とアクセス制御",
@@ -884,6 +885,87 @@
       "aiChat": "AIチャット",
       "aiSearch": "AI検索",
       "systemChat": "システムチャット"
+    }
+  },
+  "glossary": {
+    "title": "用語集管理",
+    "task": {
+      "add": "タスクを追加",
+      "name": "タスク名",
+      "description": "説明",
+      "taskInstruction": "タスク指示",
+      "contextTemplate": "コンテキストテンプレート",
+      "searchPlaceholder": "タスクを検索...",
+      "namePlaceholder": "タスク名を入力",
+      "descriptionPlaceholder": "オプションの説明",
+      "taskInstructionPlaceholder": "指示行（プロンプトの1行目）を入力",
+      "taskInstructionTooltip": "生成されたプロンプトの最初の行 — AIが行うべきことを説明",
+      "contextTemplatePlaceholder": "コンテキストテンプレート（プロンプトの2行目）を入力。プレースホルダーとして{{keywords}}を使用。",
+      "contextTemplateTooltip": "生成されたプロンプトの2行目 — {{keywords}}プレースホルダーでコンテキストを提供",
+      "nameRequired": "タスク名は必須です",
+      "taskInstructionRequired": "タスク指示は必須です",
+      "contextTemplateRequired": "コンテキストテンプレートは必須です",
+      "createTitle": "用語集タスクを作成",
+      "editTitle": "用語集タスクを編集",
+      "createSuccess": "タスクが正常に作成されました",
+      "updateSuccess": "タスクが正常に更新されました",
+      "deleteSuccess": "タスクが正常に削除されました",
+      "confirmDelete": "タスクを削除",
+      "confirmDeleteMessage": "タスク\"{{name}}\"を削除してもよろしいですか？このタスクに属するすべてのキーワードも削除されます。",
+      "selectPrompt": "左のパネルからタスクを選択してキーワードを表示",
+      "promptPreview": "プロンプトテンプレートのプレビュー"
+    },
+    "keyword": {
+      "add": "キーワードを追加",
+      "name": "キーワード",
+      "description": "説明",
+      "status": "ステータス",
+      "namePlaceholder": "キーワードを入力",
+      "descriptionPlaceholder": "オプションの説明",
+      "nameRequired": "キーワードは必須です",
+      "createTitle": "キーワードを作成",
+      "editTitle": "キーワードを編集",
+      "createSuccess": "キーワードが正常に作成されました",
+      "updateSuccess": "キーワードが正常に更新されました",
+      "deleteSuccess": "キーワードが正常に削除されました",
+      "confirmDelete": "キーワードを削除",
+      "confirmDeleteMessage": "キーワード\"{{name}}\"を削除してもよろしいですか？",
+      "empty": "キーワードはまだありません。最初のキーワードを追加してください。"
+    },
+    "common": {
+      "sortOrder": "並び順",
+      "active": "有効"
+    },
+    "bulkImport": {
+      "button": "インポート",
+      "title": "用語集の一括インポート",
+      "selectFile": "Excelファイル(.xlsx)を選択",
+      "fileFormat": "必須列: task_name, task_instruction, context_template, keyword。オプション: keyword_description",
+      "import": "インポート",
+      "noSheet": "Excelファイルにシートが見つかりません",
+      "emptyFile": "ファイルにデータがありません",
+      "missingColumns": "必須列がありません: {{cols}}",
+      "noValidRows": "有効な行が見つかりません",
+      "parseError": "Excelファイルの解析に失敗しました",
+      "success": "インポートが正常に完了しました",
+      "rowCount": "{{count}}行のインポート準備完了",
+      "resultSummary": "タスク作成: {{tasks}}、キーワード作成: {{keywords}}、スキップ: {{skipped}}",
+      "colTaskName": "タスク名",
+      "colTaskInstruction": "タスク指示",
+      "colContextTemplate": "コンテキストテンプレート",
+      "colKeyword": "キーワード",
+      "colKeywordDesc": "キーワードの説明"
+    },
+    "promptBuilder": {
+      "title": "プロンプトビルダー",
+      "selectTask": "タスクを選択",
+      "selectKeywords": "キーワードを選択",
+      "generatedPrompt": "生成されたプロンプト",
+      "generate": "生成",
+      "copy": "クリップボードにコピー",
+      "copied": "コピーしました！",
+      "insert": "チャットに挿入",
+      "noTask": "まずタスクを選択してください"
     }
   }
 }

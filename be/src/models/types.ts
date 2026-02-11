@@ -397,3 +397,91 @@ export interface BulkCreateResult {
     /** Any error messages */
     errors: string[];
 }
+
+/**
+ * GlossaryTask interface representing a task in the glossary management system.
+ * Tasks are the parent entity containing prompt template instructions.
+ */
+export interface GlossaryTask {
+    /** Unique UUID for the task */
+    id: string;
+    /** Task name (unique) */
+    name: string;
+    /** Description of the task */
+    description?: string | null;
+    /** Line 1: What the AI should do (task instruction only) */
+    task_instruction: string;
+    /** Line 2: Keyword and context template with {keyword} placeholder */
+    context_template: string;
+    /** Sort order for display */
+    sort_order: number;
+    /** Whether the task is active */
+    is_active: boolean;
+    /** User ID who created this record */
+    created_by?: string | null;
+    /** User ID who last updated this record */
+    updated_by?: string | null;
+    /** Timestamp of record creation */
+    created_at: Date;
+    /** Timestamp of last update */
+    updated_at: Date;
+}
+
+/**
+ * GlossaryKeyword interface representing a keyword belonging to a glossary task.
+ * Keywords are child entities in the hierarchical glossary structure.
+ */
+export interface GlossaryKeyword {
+    /** Unique UUID for the keyword */
+    id: string;
+    /** UUID of the parent glossary task */
+    task_id: string;
+    /** Keyword name (unique within task) */
+    name: string;
+    /** Description of the keyword */
+    description?: string | null;
+    /** Sort order for display */
+    sort_order: number;
+    /** Whether the keyword is active */
+    is_active: boolean;
+    /** User ID who created this record */
+    created_by?: string | null;
+    /** User ID who last updated this record */
+    updated_by?: string | null;
+    /** Timestamp of record creation */
+    created_at: Date;
+    /** Timestamp of last update */
+    updated_at: Date;
+}
+
+/**
+ * DTO for a single row in the glossary bulk import Excel file.
+ */
+export interface BulkImportGlossaryRow {
+    /** Name of the task (required) */
+    task_name: string;
+    /** Line 1: Task instruction for the AI */
+    task_instruction: string;
+    /** Line 2: Context template with {keyword} placeholder */
+    context_template: string;
+    /** Keyword name (required) */
+    keyword: string;
+    /** Keyword description (optional) */
+    keyword_description?: string;
+}
+
+/**
+ * Result of glossary bulk import operation.
+ */
+export interface BulkImportGlossaryResult {
+    /** Whether the operation completed successfully */
+    success: boolean;
+    /** Number of tasks created */
+    tasksCreated: number;
+    /** Number of keywords created */
+    keywordsCreated: number;
+    /** Number of items skipped (duplicates) */
+    skipped: number;
+    /** Any error messages */
+    errors: string[];
+}

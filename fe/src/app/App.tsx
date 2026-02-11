@@ -50,6 +50,7 @@ const BroadcastMessagePage = lazy(() => import('@/features/broadcast/pages/Broad
 
 const HistoriesPage = lazy(() => import('@/features/histories/pages/HistoriesPage'));
 const PromptsPage = lazy(() => import('@/features/prompts/pages/PromptsPage'));
+const GlossaryPage = lazy(() => import('@/features/glossary/pages/GlossaryPage'));
 const AdminDashboardPage = lazy(() => import('@/features/dashboard/pages/AdminDashboardPage'));
 
 // ============================================================================
@@ -175,6 +176,11 @@ function App() {
                             <Route path="knowledge-base/prompts" element={
                               <RoleRoute allowedRoles={['admin', 'leader']}>
                                 <PromptsPage />
+                              </RoleRoute>
+                            } />
+                            <Route path="knowledge-base/glossary" element={
+                              <RoleRoute allowedRoles={['admin', 'leader']}>
+                                <GlossaryPage />
                               </RoleRoute>
                             } />
 

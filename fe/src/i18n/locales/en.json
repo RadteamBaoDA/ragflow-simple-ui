@@ -100,7 +100,8 @@
     "dashboard": "Dashboard",
     "expandMenu": "Expand menu",
     "administrators": "Administrators",
-    "collapseMenu": "Collapse menu"
+    "collapseMenu": "Collapse menu",
+    "glossary": "Glossary"
   },
   "iam": {
     "title": "Identity & Access Management",
@@ -898,6 +899,87 @@
       "aiChat": "AI Chat",
       "aiSearch": "AI Search",
       "systemChat": "System Chat"
+    }
+  },
+  "glossary": {
+    "title": "Glossary Management",
+    "task": {
+      "add": "Add Task",
+      "name": "Task Name",
+      "description": "Description",
+      "taskInstruction": "Task Instruction",
+      "contextTemplate": "Context Template",
+      "searchPlaceholder": "Search tasks...",
+      "namePlaceholder": "Enter task name",
+      "descriptionPlaceholder": "Optional task description",
+      "taskInstructionPlaceholder": "Enter the instruction line (line 1 of prompt)",
+      "taskInstructionTooltip": "The first line of the generated prompt — describes what the AI should do",
+      "contextTemplatePlaceholder": "Enter the context template (line 2 of prompt). Use {{keywords}} as placeholder.",
+      "contextTemplateTooltip": "The second line of the generated prompt — provides context with {{keywords}} placeholder",
+      "nameRequired": "Task name is required",
+      "taskInstructionRequired": "Task instruction is required",
+      "contextTemplateRequired": "Context template is required",
+      "createTitle": "Create Glossary Task",
+      "editTitle": "Edit Glossary Task",
+      "createSuccess": "Task created successfully",
+      "updateSuccess": "Task updated successfully",
+      "deleteSuccess": "Task deleted successfully",
+      "confirmDelete": "Delete Task",
+      "confirmDeleteMessage": "Are you sure you want to delete task \"{{name}}\"? All keywords under this task will also be deleted.",
+      "selectPrompt": "Select a task from the left panel to view its keywords",
+      "promptPreview": "Prompt Template Preview"
+    },
+    "keyword": {
+      "add": "Add Keyword",
+      "name": "Keyword",
+      "description": "Description",
+      "status": "Status",
+      "namePlaceholder": "Enter keyword",
+      "descriptionPlaceholder": "Optional keyword description",
+      "nameRequired": "Keyword is required",
+      "createTitle": "Create Keyword",
+      "editTitle": "Edit Keyword",
+      "createSuccess": "Keyword created successfully",
+      "updateSuccess": "Keyword updated successfully",
+      "deleteSuccess": "Keyword deleted successfully",
+      "confirmDelete": "Delete Keyword",
+      "confirmDeleteMessage": "Are you sure you want to delete keyword \"{{name}}\"?",
+      "empty": "No keywords yet. Add your first keyword."
+    },
+    "common": {
+      "sortOrder": "Sort Order",
+      "active": "Active"
+    },
+    "bulkImport": {
+      "button": "Import",
+      "title": "Bulk Import Glossary",
+      "selectFile": "Click to select an Excel file (.xlsx)",
+      "fileFormat": "Required columns: task_name, task_instruction, context_template, keyword. Optional: keyword_description",
+      "import": "Import",
+      "noSheet": "No sheet found in the Excel file",
+      "emptyFile": "The file contains no data",
+      "missingColumns": "Missing required columns: {{cols}}",
+      "noValidRows": "No valid rows found with task_name and keyword filled in",
+      "parseError": "Failed to parse the Excel file",
+      "success": "Import completed successfully",
+      "rowCount": "{{count}} rows ready to import",
+      "resultSummary": "Tasks created: {{tasks}}, Keywords created: {{keywords}}, Skipped: {{skipped}}",
+      "colTaskName": "Task Name",
+      "colTaskInstruction": "Task Instruction",
+      "colContextTemplate": "Context Template",
+      "colKeyword": "Keyword",
+      "colKeywordDesc": "Keyword Description"
+    },
+    "promptBuilder": {
+      "title": "Prompt Builder",
+      "selectTask": "Select a task",
+      "selectKeywords": "Select keywords",
+      "generatedPrompt": "Generated Prompt",
+      "generate": "Generate",
+      "copy": "Copy to clipboard",
+      "copied": "Copied!",
+      "insert": "Insert into chat",
+      "noTask": "Please select a task first"
     }
   }
 }

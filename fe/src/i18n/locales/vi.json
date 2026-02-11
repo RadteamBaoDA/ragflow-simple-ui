@@ -100,7 +100,8 @@
     "dashboard": "Bảng thống kê",
     "expandMenu": "Mở rộng menu",
     "administrators": "Quản trị",
-    "collapseMenu": "Thu gọn menu"
+    "collapseMenu": "Thu gọn menu",
+    "glossary": "Từ điển"
   },
   "iam": {
     "title": "Quản lý Định danh & Truy cập",
@@ -899,6 +900,87 @@
       "aiChat": "AI Chat",
       "aiSearch": "AI Search",
       "systemChat": "Chat hệ thống"
+    }
+  },
+  "glossary": {
+    "title": "Quản lý Từ điển",
+    "task": {
+      "add": "Thêm Nhiệm vụ",
+      "name": "Tên Nhiệm vụ",
+      "description": "Mô tả",
+      "taskInstruction": "Hướng dẫn Nhiệm vụ",
+      "contextTemplate": "Mẫu Ngữ cảnh",
+      "searchPlaceholder": "Tìm kiếm nhiệm vụ...",
+      "namePlaceholder": "Nhập tên nhiệm vụ",
+      "descriptionPlaceholder": "Mô tả tùy chọn",
+      "taskInstructionPlaceholder": "Nhập dòng hướng dẫn (dòng 1 của prompt)",
+      "taskInstructionTooltip": "Dòng đầu tiên của prompt — mô tả nhiệm vụ AI cần làm",
+      "contextTemplatePlaceholder": "Nhập mẫu ngữ cảnh (dòng 2 của prompt). Sử dụng {{keywords}} làm placeholder.",
+      "contextTemplateTooltip": "Dòng thứ hai của prompt — cung cấp ngữ cảnh với placeholder {{keywords}}",
+      "nameRequired": "Tên nhiệm vụ là bắt buộc",
+      "taskInstructionRequired": "Hướng dẫn nhiệm vụ là bắt buộc",
+      "contextTemplateRequired": "Mẫu ngữ cảnh là bắt buộc",
+      "createTitle": "Tạo Nhiệm vụ Từ điển",
+      "editTitle": "Chỉnh sửa Nhiệm vụ Từ điển",
+      "createSuccess": "Đã tạo nhiệm vụ thành công",
+      "updateSuccess": "Đã cập nhật nhiệm vụ thành công",
+      "deleteSuccess": "Đã xóa nhiệm vụ thành công",
+      "confirmDelete": "Xóa Nhiệm vụ",
+      "confirmDeleteMessage": "Bạn có chắc muốn xóa nhiệm vụ \"{{name}}\"? Tất cả từ khóa sẽ bị xóa.",
+      "selectPrompt": "Chọn nhiệm vụ từ bảng bên trái để xem từ khóa",
+      "promptPreview": "Xem trước Mẫu Prompt"
+    },
+    "keyword": {
+      "add": "Thêm Từ khóa",
+      "name": "Từ khóa",
+      "description": "Mô tả",
+      "status": "Trạng thái",
+      "namePlaceholder": "Nhập từ khóa",
+      "descriptionPlaceholder": "Mô tả tùy chọn",
+      "nameRequired": "Từ khóa là bắt buộc",
+      "createTitle": "Tạo Từ khóa",
+      "editTitle": "Chỉnh sửa Từ khóa",
+      "createSuccess": "Đã tạo từ khóa thành công",
+      "updateSuccess": "Đã cập nhật từ khóa thành công",
+      "deleteSuccess": "Đã xóa từ khóa thành công",
+      "confirmDelete": "Xóa Từ khóa",
+      "confirmDeleteMessage": "Bạn có chắc muốn xóa từ khóa \"{{name}}\"?",
+      "empty": "Chưa có từ khóa. Thêm từ khóa đầu tiên."
+    },
+    "common": {
+      "sortOrder": "Thứ tự",
+      "active": "Kích hoạt"
+    },
+    "bulkImport": {
+      "button": "Nhập",
+      "title": "Nhập Từ điển Hàng loạt",
+      "selectFile": "Nhấn để chọn tệp Excel (.xlsx)",
+      "fileFormat": "Cột bắt buộc: task_name, task_instruction, context_template, keyword. Tùy chọn: keyword_description",
+      "import": "Nhập",
+      "noSheet": "Không tìm thấy sheet trong tệp Excel",
+      "emptyFile": "Tệp không chứa dữ liệu",
+      "missingColumns": "Thiếu cột bắt buộc: {{cols}}",
+      "noValidRows": "Không tìm thấy dòng hợp lệ",
+      "parseError": "Không thể phân tích tệp Excel",
+      "success": "Nhập hoàn tất thành công",
+      "rowCount": "{{count}} dòng sẵn sàng nhập",
+      "resultSummary": "Nhiệm vụ tạo: {{tasks}}, Từ khóa tạo: {{keywords}}, Bỏ qua: {{skipped}}",
+      "colTaskName": "Tên Nhiệm vụ",
+      "colTaskInstruction": "Hướng dẫn Nhiệm vụ",
+      "colContextTemplate": "Mẫu Ngữ cảnh",
+      "colKeyword": "Từ khóa",
+      "colKeywordDesc": "Mô tả Từ khóa"
+    },
+    "promptBuilder": {
+      "title": "Trình tạo Prompt",
+      "selectTask": "Chọn nhiệm vụ",
+      "selectKeywords": "Chọn từ khóa",
+      "generatedPrompt": "Prompt đã tạo",
+      "generate": "Tạo",
+      "copy": "Sao chép",
+      "copied": "Đã sao chép!",
+      "insert": "Chèn vào chat",
+      "noTask": "Vui lòng chọn nhiệm vụ trước"
     }
   }
 }

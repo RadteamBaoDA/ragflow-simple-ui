@@ -21,6 +21,8 @@ import { PromptModel } from '@/models/prompt.model.js';
 import { PromptInteractionModel } from '@/models/prompt-interaction.model.js';
 import { PromptTagModel } from '@/models/prompt-tag.model.js';
 import { PromptPermissionModel } from '@/models/prompt-permission.model.js';
+import { GlossaryTaskModel } from '@/models/glossary-task.model.js';
+import { GlossaryKeywordModel } from '@/models/glossary-keyword.model.js';
 
 /**
  * ModelFactory class implementing the Factory Pattern.
@@ -64,6 +66,12 @@ export class ModelFactory {
   private static promptInteractionModel: PromptInteractionModel;
   private static promptTagModel: PromptTagModel;
   private static promptPermissionModel: PromptPermissionModel;
+
+  // Glossary Models
+  /** Glossary task model singleton instance */
+  private static glossaryTaskModel: GlossaryTaskModel;
+  /** Glossary keyword model singleton instance */
+  private static glossaryKeywordModel: GlossaryKeywordModel;
 
   /**
    * Get the User model singleton.
@@ -250,5 +258,25 @@ export class ModelFactory {
   static get promptPermission() {
     if (!this.promptPermissionModel) this.promptPermissionModel = new PromptPermissionModel();
     return this.promptPermissionModel;
+  }
+
+  /**
+   * Get the GlossaryTask model singleton.
+   * Manages glossary tasks for prompt builder.
+   * @returns GlossaryTaskModel instance for task operations
+   */
+  static get glossaryTask() {
+    if (!this.glossaryTaskModel) this.glossaryTaskModel = new GlossaryTaskModel();
+    return this.glossaryTaskModel;
+  }
+
+  /**
+   * Get the GlossaryKeyword model singleton.
+   * Manages glossary keywords belonging to tasks.
+   * @returns GlossaryKeywordModel instance for keyword operations
+   */
+  static get glossaryKeyword() {
+    if (!this.glossaryKeywordModel) this.glossaryKeywordModel = new GlossaryKeywordModel();
+    return this.glossaryKeywordModel;
   }
 }

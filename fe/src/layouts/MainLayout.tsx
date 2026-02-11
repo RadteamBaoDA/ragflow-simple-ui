@@ -182,6 +182,8 @@ function Layout() {
         return t('knowledgeBaseConfig.title');
       case '/knowledge-base/prompts':
         return t('prompts.title');
+      case '/knowledge-base/glossary':
+        return t('glossary.title');
       case '/iam/users':
         return t('userManagement.title');
       case '/iam/teams':
@@ -205,7 +207,7 @@ function Layout() {
   };
 
   // Auto-expand parent menus when their children are active
-  const isKnowledgeBaseActive = ['/knowledge-base/config', '/knowledge-base/prompts'].includes(location.pathname);
+  const isKnowledgeBaseActive = ['/knowledge-base/config', '/knowledge-base/prompts', '/knowledge-base/glossary'].includes(location.pathname);
   const isIamActive = ['/iam/users', '/iam/teams'].includes(location.pathname);
   const isAdministratorsActive = ['/admin/audit-log', '/admin/system-tools', '/admin/system-monitor', '/admin/tokenizer', '/admin/broadcast-messages', '/admin/histories', '/admin/dashboard'].includes(location.pathname);
   const isChatActive = ['/chat', '/chat/history'].includes(location.pathname);
@@ -340,6 +342,10 @@ function Layout() {
                   <NavLink to="/knowledge-base/prompts" onClick={handleNavClick('/knowledge-base/prompts')} className={({ isActive }: { isActive: boolean }) => `sidebar-link ${isActive ? 'active' : ''}`} title={t('nav.prompts')}>
                     <BookOpen size={18} />
                     <span>{t('nav.prompts')}</span>
+                  </NavLink>
+                  <NavLink to="/knowledge-base/glossary" onClick={handleNavClick('/knowledge-base/glossary')} className={({ isActive }: { isActive: boolean }) => `sidebar-link ${isActive ? 'active' : ''}`} title={t('nav.glossary')}>
+                    <BookOpen size={18} />
+                    <span>{t('nav.glossary')}</span>
                   </NavLink>
                 </div>
               )}
