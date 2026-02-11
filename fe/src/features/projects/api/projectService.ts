@@ -53,6 +53,7 @@ export interface DocumentCategory {
   name: string
   description: string | null
   sort_order: number
+  dataset_config: Record<string, any> | null
   created_by: string | null
   created_at: string
   updated_at: string
@@ -181,6 +182,7 @@ export const createDocumentCategory = (projectId: string, data: {
   name: string
   description?: string
   sort_order?: number
+  dataset_config?: Record<string, any>
 }): Promise<DocumentCategory> =>
   api.post(`/api/projects/${projectId}/categories`, data)
 

@@ -14,6 +14,8 @@ export interface RagflowServer {
   api_key: string
   description: string | null
   is_active: boolean
+  embedding_models: string[] | null
+  chat_models: string[] | null
   created_by: string | null
   updated_by: string | null
   created_at: string
@@ -45,6 +47,8 @@ export const createRagflowServer = (data: {
   endpoint_url: string
   api_key: string
   description?: string
+  embedding_models?: string[]
+  chat_models?: string[]
 }): Promise<RagflowServer> =>
   api.post('/api/ragflow-servers', data)
 

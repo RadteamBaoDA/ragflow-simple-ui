@@ -15,6 +15,8 @@ export async function up(knex: Knex): Promise<void> {
             table.text('api_key').notNullable();
             table.text('description');
             table.boolean('is_active').defaultTo(true);
+            table.jsonb('embedding_models').defaultTo('[]');
+            table.jsonb('chat_models').defaultTo('[]');
             table.text('created_by');
             table.text('updated_by');
             table.timestamp('created_at', { useTz: true }).defaultTo(knex.fn.now());
@@ -75,6 +77,7 @@ export async function up(knex: Knex): Promise<void> {
             table.text('name').notNullable();
             table.text('description');
             table.integer('sort_order').defaultTo(0);
+            table.jsonb('dataset_config').defaultTo('{}');
             table.text('created_by');
             table.text('updated_by');
             table.timestamp('created_at', { useTz: true }).defaultTo(knex.fn.now());
