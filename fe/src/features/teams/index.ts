@@ -1,6 +1,19 @@
 /**
- * @fileoverview Team feature exports.
- * Provides components and services for managing teams and memberships.
+ * @fileoverview Barrel file for the teams feature.
+ * Exports page, types, and API for external consumption.
+ * @module features/teams
  */
-export { default as TeamManagementPage } from './pages/TeamManagementPage';
-export * from './api/teamService';
+
+// Page
+export { default as TeamManagementPage } from './pages/TeamManagementPage'
+
+// Types
+export type {
+    Team,
+    TeamMember,
+    CreateTeamDTO,
+    UpdateTeamDTO,
+} from './types/team.types'
+
+// API
+export { teamApi } from './api/teamApi'

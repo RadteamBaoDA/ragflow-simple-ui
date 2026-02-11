@@ -7,8 +7,8 @@ import { Card, Table, Button, Space, Tabs, Tooltip, Pagination as AntPagination,
 import { Dialog } from '@/components/Dialog';
 import { SourcePermissionsModal, PermissionsSelector } from '../components/SourcePermissionsModal';
 import { useConfirm } from '@/components/ConfirmDialog';
-import { teamService, Team } from '@/features/teams/api/teamService';
-import { userService } from '@/features/users/api/userService';
+import { teamApi, type Team } from '@/features/teams';
+import { userApi } from '@/features/users';
 import { User as UserType } from '@/features/auth';
 import { useFirstVisit, GuidelineDialog } from '@/features/guideline';
 
@@ -119,8 +119,8 @@ export default function KnowledgeBaseConfigPage() {
                 try {
                     // Parallel fetch of teams and users from their respective services
                     const [teamsList, usersList] = await Promise.all([
-                        teamService.getTeams(),
-                        userService.getUsers()
+                        teamApi.getTeams(),
+                        userApi.getUsers()
                     ]);
                     setTeams(teamsList);
                     setUsers(usersList);
