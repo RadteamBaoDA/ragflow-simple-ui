@@ -1,6 +1,6 @@
 
 import { describe, it, expect, vi, beforeEach } from 'vitest'
-import { ExternalHistoryController } from '../../src/controllers/external-history.controller.js'
+import { ExternalHistoryController } from '../../src/modules/external/external-history.controller.js'
 import { Request, Response } from 'express'
 
 // Mock external history service
@@ -17,11 +17,11 @@ const mockLog = vi.hoisted(() => ({
     error: vi.fn()
 }))
 
-vi.mock('@/services/external-history.service.js', () => ({
+vi.mock('@/modules/external/external-history.service.js', () => ({
     externalHistoryService: mockExternalHistoryService,
 }))
 
-vi.mock('@/services/logger.service.js', () => ({
+vi.mock('@/shared/services/logger.service.js', () => ({
     log: mockLog,
 }))
 

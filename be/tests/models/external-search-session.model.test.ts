@@ -3,7 +3,7 @@
  */
 
 import { describe, it, expect, vi, beforeEach } from 'vitest';
-import { ExternalSearchSessionModel } from '../../src/models/external/search-session.model.js';
+import { ExternalSearchSessionModel } from '../../src/modules/external/models/search-session.model.js';
 import { Knex } from 'knex';
 
 describe('ExternalSearchSessionModel', () => {

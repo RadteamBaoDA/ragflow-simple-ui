@@ -3,7 +3,7 @@
  */
 
 import { describe, it, expect, vi, beforeEach } from 'vitest'
-import { SystemToolsController } from '../../src/controllers/system-tools.controller.js'
+import { SystemToolsController } from '../../src/modules/system-tools/system-tools.controller.js'
 
 const mockService = vi.hoisted(() => ({
   getTools: vi.fn(),
@@ -15,11 +15,11 @@ const mockLog = vi.hoisted(() => ({
   error: vi.fn(),
 }))
 
-vi.mock('../../src/services/system-tools.service.js', () => ({
+vi.mock('../../src/modules/system-tools/system-tools.service.js', () => ({
   systemToolsService: mockService,
 }))
 
-vi.mock('../../src/services/logger.service.js', () => ({
+vi.mock('../../src/shared/services/logger.service.js', () => ({
   log: mockLog,
 }))
 

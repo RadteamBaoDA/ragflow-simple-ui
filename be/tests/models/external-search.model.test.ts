@@ -1,7 +1,7 @@
 import { describe, it, expect, vi } from 'vitest'
-import { ExternalSearchHistoryModel } from '@/models/external/search-history.model.js'
-import { ExternalSearchRecordModel } from '@/models/external/search-record.model.js'
-import { ExternalSearchSessionModel } from '@/models/external/search-session.model.js'
+import { ExternalSearchHistoryModel } from '@/modules/external/models/search-history.model.js'
+import { ExternalSearchRecordModel } from '@/modules/external/models/search-record.model.js'
+import { ExternalSearchSessionModel } from '@/modules/external/models/search-session.model.js'
 
 function makeBuilder(result: unknown) {
   const builder: any = {

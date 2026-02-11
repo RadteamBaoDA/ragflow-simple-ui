@@ -1,5 +1,5 @@
 import { describe, it, expect, vi, beforeEach } from 'vitest'
-import { ExternalChatHistoryModel } from '@/models/external/chat-history.model.js'
+import { ExternalChatHistoryModel } from '@/modules/external/models/chat-history.model.js'
 
 describe('ExternalChatHistoryModel', () => {
   let model: ExternalChatHistoryModel

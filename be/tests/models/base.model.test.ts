@@ -4,7 +4,7 @@
  */
 
 import { describe, it, expect, vi, beforeEach } from 'vitest';
-import { BaseModel, FindAllOptions } from '../../src/models/base.model.js';
+import { BaseModel, FindAllOptions } from '../../src/shared/models/base.model.js';
 import { Knex } from 'knex';
 
 // Test model implementation

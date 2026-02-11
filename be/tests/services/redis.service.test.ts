@@ -42,11 +42,11 @@ vi.mock('redis', () => ({
   createClient: mockCreateClient,
 }));
 
-vi.mock('../../src/services/logger.service.js', () => ({
+vi.mock('../../src/shared/services/logger.service.js', () => ({
   log: mockLog,
 }));
 
-vi.mock('../../src/config/index.js', () => ({
+vi.mock('../../src/shared/config/index.js', () => ({
   config: mockConfig,
 }));
 
@@ -67,7 +67,7 @@ describe.skip('RedisService', () => {
     mockConfig.sessionStore.type = 'redis';
     
     // Import service (mocks are already applied via vi.mock above)
-    redisService = await import('../../src/services/redis.service.js');
+    redisService = await import('../../src/shared/services/redis.service.js');
     
     // Reset singleton by calling shutdown
     await redisService.shutdownRedis();

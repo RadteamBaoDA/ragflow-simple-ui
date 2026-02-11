@@ -15,7 +15,7 @@ import {
   ALLOWED_DOCUMENT_EXTENSIONS,
   FILE_SIGNATURES,
   CONTENT_TYPE_EXTENSION_MAP,
-} from '../../src/config/file-upload.config.js';
+} from '../../src/shared/config/file-upload.config.js';
 
 describe('File Upload Configuration', () => {
   describe('Size Constants', () => {

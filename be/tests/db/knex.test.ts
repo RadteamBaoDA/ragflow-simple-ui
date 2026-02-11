@@ -9,11 +9,11 @@ describe('knex singleton (db)', () => {
   it('exports the same instance created by knex()', async () => {
     vi.mock('knex', () => ({ default: () => ({ name: 'knex-instance' }) }))
 
-    const { db } = await import('../../src/db/knex')
+    const { db } = await import('../../src/shared/db/knex')
     expect((db as any).name).toBe('knex-instance')
 
     // re-importing should return the same instance
-    const { db: db2 } = await import('../../src/db/knex')
+    const { db: db2 } = await import('../../src/shared/db/knex')
     expect((db2 as any).name).toBe('knex-instance')
   })
 })

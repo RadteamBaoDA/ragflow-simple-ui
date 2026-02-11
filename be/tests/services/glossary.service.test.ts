@@ -29,19 +29,19 @@ const mockGlossaryKeyword = vi.hoisted(() => ({
   bulkInsertChunk: vi.fn(),
 }))
 
-vi.mock('../../src/models/factory.js', () => ({
+vi.mock('../../src/shared/models/factory.js', () => ({
   ModelFactory: {
     glossaryTask: mockGlossaryTask,
     glossaryKeyword: mockGlossaryKeyword,
   },
 }))
 
-vi.mock('../../src/services/logger.service.js', () => ({
+vi.mock('../../src/shared/services/logger.service.js', () => ({
   log: { info: vi.fn(), warn: vi.fn(), error: vi.fn(), debug: vi.fn() },
 }))
 
 // Import after mocks are registered
-import { glossaryService } from '../../src/services/glossary.service.js'
+import { glossaryService } from '../../src/modules/glossary/glossary.service.js'
 
 // ============================================================================
 // Test fixtures

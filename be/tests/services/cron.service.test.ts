@@ -31,11 +31,11 @@ const mockCron = {
   schedule: vi.fn(),
 };
 
-vi.mock('../../src/services/logger.service.js', () => ({
+vi.mock('../../src/shared/services/logger.service.js', () => ({
   log: mockLog,
 }));
 
-vi.mock('../../src/config/index.js', () => ({
+vi.mock('../../src/shared/config/index.js', () => ({
   config: mockConfig,
 }));
 
@@ -60,7 +60,7 @@ describe('CronService', () => {
     vi.clearAllMocks();
     vi.resetModules();
     
-    const module = await import('../../src/services/cron.service.js');
+    const module = await import('../../src/shared/services/cron.service.js');
     cronService = module.cronService;
   });
 

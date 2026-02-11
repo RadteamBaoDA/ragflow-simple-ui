@@ -12,7 +12,7 @@ const ModelFactory = {
   }
 }
 
-vi.mock('../../src/models/factory.js', () => ({
+vi.mock('../../src/shared/models/factory.js', () => ({
   ModelFactory,
 }))
 

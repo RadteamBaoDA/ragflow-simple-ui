@@ -5,7 +5,7 @@
  */
 
 import { describe, it, expect, vi, beforeEach } from 'vitest'
-import { BroadcastMessageModel } from '../../src/models/broadcast-message.model.js'
+import { BroadcastMessageModel } from '../../src/modules/broadcast/broadcast-message.model.js'
 
 // Mock Knex query builder with proper chaining
 const makeBuilder = (rows: any[] = []) => {

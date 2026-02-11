@@ -3,7 +3,7 @@
  */
 
 import { describe, it, expect, vi, beforeEach } from 'vitest';
-import { ExternalChatSessionModel } from '../../src/models/external/chat-session.model.js';
+import { ExternalChatSessionModel } from '../../src/modules/external/models/chat-session.model.js';
 import { Knex } from 'knex';
 
 describe('ExternalChatSessionModel', () => {

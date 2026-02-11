@@ -1,25 +1,13 @@
 /**
  * @fileoverview Unit tests for preview service.
- * Tests file caching, bucket resolution, cache expiration, and error handling.
+ * Tests file caching, cache expiration, and error handling.
  */
 
 import { describe, it, expect, vi, beforeEach } from 'vitest';
-import path from 'path';
-import fsPromises from 'fs/promises';
-import { constants } from 'fs';
 
 // Mock MinIO client
 const mockMinioClient = {
   fGetObject: vi.fn(),
-};
-
-// Mock ModelFactory
-const mockMinioBucketModel = {
-  findById: vi.fn(),
-};
-
-const mockModelFactory = {
-  minioBucket: mockMinioBucketModel,
 };
 
 // Mock logger
@@ -43,19 +31,16 @@ const mockFsPromises = {
   utimes: vi.fn(),
 };
 
-vi.mock('../../src/models/external/minio.js', () => ({
+// Mock the dynamic minio import
+vi.mock('@/modules/external/models/minio.js', () => ({
   minioClient: mockMinioClient,
 }));
 
-vi.mock('../../src/models/factory.js', () => ({
-  ModelFactory: mockModelFactory,
-}));
-
-vi.mock('../../src/services/logger.service.js', () => ({
+vi.mock('../../src/shared/services/logger.service.js', () => ({
   log: mockLog,
 }));
 
-vi.mock('../../src/config/index.js', () => ({
+vi.mock('../../src/shared/config/index.js', () => ({
   config: mockConfig,
 }));
 
@@ -65,6 +50,10 @@ vi.mock('fs/promises', () => ({
   stat: vi.fn(),
   unlink: vi.fn(),
   utimes: vi.fn(),
+}));
+
+vi.mock('../../src/shared/models/factory.js', () => ({
+  ModelFactory: {},
 }));
 
 describe('PreviewService', () => {
@@ -89,7 +78,7 @@ describe('PreviewService', () => {
       mockMinioClient.fGetObject.mockResolvedValue(undefined);
       mockFsPromises.utimes.mockResolvedValue(undefined);
 
-      const { PreviewService } = await import('../../src/services/preview.service.js');
+      const { PreviewService } = await import('../../src/modules/preview/preview.service.js');
       const service = new PreviewService();
       
       const result = await service.generatePreview(bucketName, fileName);
@@ -125,7 +114,7 @@ describe('PreviewService', () => {
         mtimeMs: now - 1000, // 1 second old, well within TTL
       });
 
-      const { PreviewService } = await import('../../src/services/preview.service.js');
+      const { PreviewService } = await import('../../src/modules/preview/preview.service.js');
       const service = new PreviewService();
       
       const result = await service.generatePreview(bucketName, fileName);
@@ -157,7 +146,7 @@ describe('PreviewService', () => {
       mockMinioClient.fGetObject.mockResolvedValue(undefined);
       mockFsPromises.utimes.mockResolvedValue(undefined);
 
-      const { PreviewService } = await import('../../src/services/preview.service.js');
+      const { PreviewService } = await import('../../src/modules/preview/preview.service.js');
       const service = new PreviewService();
       
       const result = await service.generatePreview(bucketName, fileName);
@@ -188,7 +177,7 @@ describe('PreviewService', () => {
       mockMinioClient.fGetObject.mockResolvedValue(undefined);
       mockFsPromises.utimes.mockResolvedValue(undefined);
 
-      const { PreviewService } = await import('../../src/services/preview.service.js');
+      const { PreviewService } = await import('../../src/modules/preview/preview.service.js');
       const service = new PreviewService();
       
       const result = await service.generatePreview(bucketName, fileName);
@@ -206,37 +195,27 @@ describe('PreviewService', () => {
       expect(result).toContain('file-delete-error.pdf');
     });
 
-    it('should resolve bucket name from UUID', async () => {
-      const bucketId = 'a1b2c3d4-e5f6-7890-abcd-ef1234567890';
-      const fileName = 'uuid-bucket-file.pdf';
-      const actualBucketName = 'actual-bucket-name';
-      
-      // Mock bucket lookup
-      mockMinioBucketModel.findById.mockResolvedValue({
-        bucket_name: actualBucketName,
-      });
+    it('should use bucket name directly without UUID resolution', async () => {
+      const bucketName = 'my-bucket';
+      const fileName = 'file.pdf';
       
       mockFsPromises.access.mockRejectedValue(new Error('ENOENT'));
       mockMinioClient.fGetObject.mockResolvedValue(undefined);
       mockFsPromises.utimes.mockResolvedValue(undefined);
 
-      const { PreviewService } = await import('../../src/services/preview.service.js');
+      const { PreviewService } = await import('../../src/modules/preview/preview.service.js');
       const service = new PreviewService();
       
-      const result = await service.generatePreview(bucketId, fileName);
+      const result = await service.generatePreview(bucketName, fileName);
 
-      // Should look up bucket by ID
-      expect(mockMinioBucketModel.findById).toHaveBeenCalledWith(bucketId);
-      
-      // Should use actual bucket name for download
+      // Should use bucket name directly for download
       expect(mockMinioClient.fGetObject).toHaveBeenCalledWith(
-        actualBucketName,
+        bucketName,
         fileName,
         expect.any(String)
       );
       
-      // Should return path with actual bucket name
-      expect(result).toContain('actual-bucket-name');
+      expect(result).toContain('my-bucket');
     });
 
     it('should sanitize unsafe characters in file name', async () => {
@@ -247,7 +226,7 @@ describe('PreviewService', () => {
       mockMinioClient.fGetObject.mockResolvedValue(undefined);
       mockFsPromises.utimes.mockResolvedValue(undefined);
 
-      const { PreviewService } = await import('../../src/services/preview.service.js');
+      const { PreviewService } = await import('../../src/modules/preview/preview.service.js');
       const service = new PreviewService();
       
       const result = await service.generatePreview(bucketName, fileName);
@@ -267,7 +246,7 @@ describe('PreviewService', () => {
       mockMinioClient.fGetObject.mockResolvedValue(undefined);
       mockFsPromises.utimes.mockResolvedValue(undefined);
 
-      const { PreviewService } = await import('../../src/services/preview.service.js');
+      const { PreviewService } = await import('../../src/modules/preview/preview.service.js');
       const service = new PreviewService();
       
       const result = await service.generatePreview(bucketName, fileName);
@@ -285,7 +264,7 @@ describe('PreviewService', () => {
       mockFsPromises.access.mockRejectedValue(new Error('ENOENT'));
       mockMinioClient.fGetObject.mockRejectedValue(downloadError);
 
-      const { PreviewService } = await import('../../src/services/preview.service.js');
+      const { PreviewService } = await import('../../src/modules/preview/preview.service.js');
       const service = new PreviewService();
       
       // Should throw error
@@ -300,32 +279,6 @@ describe('PreviewService', () => {
           fileName,
         })
       );
-    });
-
-    it('should handle UUID bucket not found', async () => {
-      const bucketId = 'b2c3d4e5-f6a7-8901-bcde-f12345678901';
-      const fileName = 'file.pdf';
-      
-      // Bucket not found, returns null
-      mockMinioBucketModel.findById.mockResolvedValue(null);
-      
-      mockFsPromises.access.mockRejectedValue(new Error('ENOENT'));
-      mockMinioClient.fGetObject.mockResolvedValue(undefined);
-      mockFsPromises.utimes.mockResolvedValue(undefined);
-
-      const { PreviewService } = await import('../../src/services/preview.service.js');
-      const service = new PreviewService();
-      
-      const result = await service.generatePreview(bucketId, fileName);
-
-      // Should use original UUID as bucket name
-      expect(mockMinioClient.fGetObject).toHaveBeenCalledWith(
-        bucketId,
-        fileName,
-        expect.any(String)
-      );
-      
-      expect(result).toContain(bucketId);
     });
   });
 });

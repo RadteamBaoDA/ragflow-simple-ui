@@ -3,7 +3,7 @@
  */
 
 import { describe, it, expect, vi, beforeEach } from 'vitest'
-import { PreviewController } from '../../src/controllers/preview.controller.js'
+import { PreviewController } from '../../src/modules/preview/preview.controller.js'
 
 const mockService = vi.hoisted(() => ({
   generatePreview: vi.fn(),
@@ -14,11 +14,11 @@ const mockLog = vi.hoisted(() => ({
   debug: vi.fn(),
 }))
 
-vi.mock('../../src/services/preview.service.js', () => ({
+vi.mock('../../src/modules/preview/preview.service.js', () => ({
   previewService: mockService,
 }))
 
-vi.mock('../../src/services/logger.service.js', () => ({
+vi.mock('../../src/shared/services/logger.service.js', () => ({
   log: mockLog,
 }))
 

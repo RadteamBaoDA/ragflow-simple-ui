@@ -3,7 +3,7 @@
  */
 
 import { describe, it, expect, vi, beforeEach } from 'vitest'
-import { AuditController } from '../../src/controllers/audit.controller.js'
+import { AuditController } from '../../src/modules/audit/audit.controller.js'
 
 const mockService = vi.hoisted(() => ({
   getLogs: vi.fn(),
@@ -18,11 +18,11 @@ const mockLog = vi.hoisted(() => ({
   debug: vi.fn(),
 }))
 
-vi.mock('../../src/services/audit.service.js', () => ({
+vi.mock('../../src/modules/audit/audit.service.js', () => ({
   auditService: mockService,
 }))
 
-vi.mock('../../src/services/logger.service.js', () => ({
+vi.mock('../../src/shared/services/logger.service.js', () => ({
   log: mockLog,
 }))
 

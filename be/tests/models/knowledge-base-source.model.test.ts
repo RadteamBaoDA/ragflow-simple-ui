@@ -15,7 +15,7 @@ const ModelFactory = {
   }
 }
 
-vi.mock('../../src/models/factory.js', () => ({
+vi.mock('../../src/shared/models/factory.js', () => ({
   ModelFactory,
 }))
 
@@ -46,9 +46,9 @@ describe('KnowledgeBaseSourceModel', () => {
 })
 
 // Additional unit tests for direct model methods
-import { KnowledgeBaseSourceModel } from '@/models/knowledge-base-source.model.js'
-import { db } from '@/db/knex.js'
-vi.mock('@/db/knex.js', () => ({ db: vi.fn() }))
+import { KnowledgeBaseSourceModel } from '@/modules/knowledge-base/knowledge-base-source.model.js'
+import { db } from '@/shared/db/knex.js'
+vi.mock('@/shared/db/knex.js', () => ({ db: vi.fn() }))
 
 describe('KnowledgeBaseSourceModel direct methods', () => {
   let model: KnowledgeBaseSourceModel

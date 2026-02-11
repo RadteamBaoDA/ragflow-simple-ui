@@ -3,7 +3,7 @@
  */
 
 import { describe, it, expect, vi, beforeEach } from 'vitest'
-import { TeamController } from '../../src/controllers/team.controller.js'
+import { TeamController } from '../../src/modules/teams/teams.controller.js'
 
 const mockService = vi.hoisted(() => ({
   getAllTeams: vi.fn(),
@@ -20,11 +20,11 @@ const mockLog = vi.hoisted(() => ({
   error: vi.fn(),
 }))
 
-vi.mock('../../src/services/team.service.js', () => ({
+vi.mock('../../src/modules/teams/team.service.js', () => ({
   teamService: mockService,
 }))
 
-vi.mock('../../src/services/logger.service.js', () => ({
+vi.mock('../../src/shared/services/logger.service.js', () => ({
   log: mockLog,
 }))
 

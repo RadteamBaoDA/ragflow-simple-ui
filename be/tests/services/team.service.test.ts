@@ -4,7 +4,7 @@
  */
 
 import { describe, it, expect, vi, beforeEach } from 'vitest'
-import { TeamService } from '../../src/services/team.service.js'
+import { TeamService } from '../../src/modules/teams/team.service.js'
 
 vi.mock('uuid', () => ({ v4: () => 'uuid-1' }))
 
@@ -24,7 +24,7 @@ const mockLog = vi.hoisted(() => ({
     error: vi.fn(),
 }))
 
-vi.mock('../../src/services/logger.service.js', () => ({
+vi.mock('../../src/shared/services/logger.service.js', () => ({
     log: mockLog,
 }))
 
@@ -32,7 +32,7 @@ const mockAudit = vi.hoisted(() => ({
     log: vi.fn(),
 }))
 
-vi.mock('../../src/services/audit.service.js', () => ({
+vi.mock('../../src/modules/audit/audit.service.js', () => ({
     auditService: mockAudit,
     AuditAction: {
         CREATE_TEAM: 'create_team',
@@ -48,7 +48,7 @@ const mockUserService = vi.hoisted(() => ({
     updateUserPermissions: vi.fn(),
 }))
 
-vi.mock('../../src/services/user.service.js', () => ({
+vi.mock('../../src/modules/users/user.service.js', () => ({
     userService: mockUserService,
 }))
 
@@ -75,7 +75,7 @@ const mockModels = vi.hoisted(() => {
     }
 })
 
-vi.mock('../../src/models/factory.js', () => ({
+vi.mock('../../src/shared/models/factory.js', () => ({
     ModelFactory: mockModels,
 }))
 

@@ -3,7 +3,7 @@
  */
 
 import { describe, it, expect, vi, beforeEach } from 'vitest'
-import { SystemConfigModel } from '../../src/models/system-config.model.js'
+import { SystemConfigModel } from '../../src/shared/models/system-config.model.js'
 
 const makeBuilder = (rows: any[] = [], updateResult: any = undefined) => {
   const calls: any[] = []

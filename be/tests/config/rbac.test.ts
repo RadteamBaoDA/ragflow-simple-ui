@@ -12,7 +12,7 @@ import {
   ADMIN_ROLES,
   ROLE_PERMISSIONS,
   type Role,
-} from '../../src/config/rbac.js';
+} from '../../src/shared/config/rbac.js';
 
 describe('RBAC Configuration', () => {
   describe('DEFAULT_ROLE', () => {

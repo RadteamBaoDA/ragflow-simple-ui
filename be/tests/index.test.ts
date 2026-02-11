@@ -17,11 +17,11 @@ describe('entry point index.ts', () => {
     const getRedisClient = vi.fn().mockReturnValue({})
     const setupApiRoutes = vi.fn()
 
-    vi.mock('../../src/services/redis.service', () => ({ initRedis, getRedisClient, shutdownRedis: vi.fn() }))
-    vi.mock('../../src/routes/index', () => ({ setupApiRoutes }))
-    vi.mock('../../src/services/cron.service', () => ({ cronService: { startCleanupJob: vi.fn() } }))
-    vi.mock('../../src/services/knowledge-base.service', () => ({ knowledgeBaseService: { initialize: vi.fn() } }))
-    vi.mock('../../src/services/system-tools.service', () => ({ systemToolsService: { initialize: vi.fn() } }))
+    vi.mock('../../src/shared/services/redis.service', () => ({ initRedis, getRedisClient, shutdownRedis: vi.fn() }))
+    vi.mock('../../src/app/routes', () => ({ setupApiRoutes }))
+    vi.mock('../../src/shared/services/cron.service', () => ({ cronService: { startCleanupJob: vi.fn() } }))
+    vi.mock('../../src/modules/knowledge-base/knowledge-base.service', () => ({ knowledgeBaseService: { initialize: vi.fn() } }))
+    vi.mock('../../src/modules/system-tools/system-tools.service', () => ({ systemToolsService: { initialize: vi.fn() } }))
 
     const mod = await import('../../src/index')
 

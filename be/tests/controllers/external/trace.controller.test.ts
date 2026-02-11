@@ -3,7 +3,7 @@
  */
 
 import { describe, it, expect, vi, beforeEach } from 'vitest'
-import { ExternalTraceController } from '../../../src/controllers/external/trace.controller.js'
+import { ExternalTraceController } from '../../../src/modules/external/trace.controller.js'
 
 const mockService = vi.hoisted(() => ({
   processTrace: vi.fn(),
@@ -15,11 +15,11 @@ const mockLog = vi.hoisted(() => ({
   debug: vi.fn(),
 }))
 
-vi.mock('../../../src/services/external/trace.service.js', () => ({
+vi.mock('../../../src/modules/external/trace.service.js', () => ({
   externalTraceService: mockService,
 }))
 
-vi.mock('../../../src/services/logger.service.js', () => ({
+vi.mock('../../../src/shared/services/logger.service.js', () => ({
   log: mockLog,
 }))
 

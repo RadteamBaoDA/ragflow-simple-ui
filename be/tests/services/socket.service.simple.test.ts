@@ -38,11 +38,11 @@ vi.mock('socket.io', () => ({
   Server: MockServer,
 }));
 
-vi.mock('../../src/services/logger.service.js', () => ({
+vi.mock('../../src/shared/services/logger.service.js', () => ({
   log: mockLog,
 }));
 
-vi.mock('../../src/config/index.js', () => ({
+vi.mock('../../src/shared/config/index.js', () => ({
   config: mockConfig,
 }));
 
@@ -61,7 +61,7 @@ describe('Socket Service - Simple Tests', () => {
     MockServer.mockReturnValue(mockIo);
     
     // Reset the singleton by accessing and clearing internal state
-    const { socketService } = await import('../../src/services/socket.service.js');
+    const { socketService } = await import('../../src/shared/services/socket.service.js');
     // @ts-ignore - accessing private property for testing
     socketService['io'] = null;
     // @ts-ignore - accessing private property for testing
@@ -72,7 +72,7 @@ describe('Socket Service - Simple Tests', () => {
 
   // Basic initialization tests
   it('should initialize socket server', async () => {
-    const { socketService } = await import('../../src/services/socket.service.js');
+    const { socketService } = await import('../../src/shared/services/socket.service.js');
     const mockServer = {} as any;
     
     const io = socketService.initialize(mockServer);
@@ -82,7 +82,7 @@ describe('Socket Service - Simple Tests', () => {
   });
 
   it('should return null when not initialized', async () => {
-    const { socketService } = await import('../../src/services/socket.service.js');
+    const { socketService } = await import('../../src/shared/services/socket.service.js');
     
     const io = socketService.getIO();
     
@@ -90,7 +90,7 @@ describe('Socket Service - Simple Tests', () => {
   });
 
   it('should warn when emitting before initialization', async () => {
-    const { socketService } = await import('../../src/services/socket.service.js');
+    const { socketService } = await import('../../src/shared/services/socket.service.js');
     
     socketService.emit('test', {});
     
@@ -99,7 +99,7 @@ describe('Socket Service - Simple Tests', () => {
 
   // Emit operation tests
   it('should emit events after initialization', async () => {
-    const { socketService } = await import('../../src/services/socket.service.js');
+    const { socketService } = await import('../../src/shared/services/socket.service.js');
     const mockServer = {} as any;
     socketService.initialize(mockServer);
     
@@ -109,7 +109,7 @@ describe('Socket Service - Simple Tests', () => {
   });
 
   it('should emit to specific room', async () => {
-    const { socketService } = await import('../../src/services/socket.service.js');
+    const { socketService } = await import('../../src/shared/services/socket.service.js');
     const mockServer = {} as any;
     socketService.initialize(mockServer);
     
@@ -119,7 +119,7 @@ describe('Socket Service - Simple Tests', () => {
   });
 
   it('should emit to specific user', async () => {
-    const { socketService } = await import('../../src/services/socket.service.js');
+    const { socketService } = await import('../../src/shared/services/socket.service.js');
     const mockServer = {} as any;
     socketService.initialize(mockServer);
     
@@ -129,7 +129,7 @@ describe('Socket Service - Simple Tests', () => {
   });
 
   it('should warn when emitting to room before initialization', async () => {
-    const { socketService } = await import('../../src/services/socket.service.js');
+    const { socketService } = await import('../../src/shared/services/socket.service.js');
     
     socketService.emitToRoom('room123', 'event', {});
     
@@ -137,7 +137,7 @@ describe('Socket Service - Simple Tests', () => {
   });
 
   it('should warn when emitting to user before initialization', async () => {
-    const { socketService } = await import('../../src/services/socket.service.js');
+    const { socketService } = await import('../../src/shared/services/socket.service.js');
     
     socketService.emitToUser('user123', 'event', {});
     
@@ -146,7 +146,7 @@ describe('Socket Service - Simple Tests', () => {
 
   // Notification tests
   it('should send notification to all clients', async () => {
-    const { socketService } = await import('../../src/services/socket.service.js');
+    const { socketService } = await import('../../src/shared/services/socket.service.js');
     const mockServer = {} as any;
     socketService.initialize(mockServer);
     
@@ -159,7 +159,7 @@ describe('Socket Service - Simple Tests', () => {
   });
 
   it('should send notification to specific user', async () => {
-    const { socketService } = await import('../../src/services/socket.service.js');
+    const { socketService } = await import('../../src/shared/services/socket.service.js');
     const mockServer = {} as any;
     socketService.initialize(mockServer);
     
@@ -169,7 +169,7 @@ describe('Socket Service - Simple Tests', () => {
   });
 
   it('should send notification to specific room', async () => {
-    const { socketService } = await import('../../src/services/socket.service.js');
+    const { socketService } = await import('../../src/shared/services/socket.service.js');
     const mockServer = {} as any;
     socketService.initialize(mockServer);
     
@@ -180,7 +180,7 @@ describe('Socket Service - Simple Tests', () => {
 
   // Connection tracking tests
   it('should get connected count from engine', async () => {
-    const { socketService } = await import('../../src/services/socket.service.js');
+    const { socketService } = await import('../../src/shared/services/socket.service.js');
     const mockServer = {} as any;
     mockIo.engine.clientsCount = 10;
     socketService.initialize(mockServer);
@@ -191,7 +191,7 @@ describe('Socket Service - Simple Tests', () => {
   });
 
   it('should handle getConnectedCount when not initialized', async () => {
-    const { socketService } = await import('../../src/services/socket.service.js');
+    const { socketService } = await import('../../src/shared/services/socket.service.js');
     
     const count = socketService.getConnectedCount();
     
@@ -199,7 +199,7 @@ describe('Socket Service - Simple Tests', () => {
   });
 
   it('should check if user is connected', async () => {
-    const { socketService } = await import('../../src/services/socket.service.js');
+    const { socketService } = await import('../../src/shared/services/socket.service.js');
     const mockServer = {} as any;
     socketService.initialize(mockServer);
     
@@ -209,7 +209,7 @@ describe('Socket Service - Simple Tests', () => {
   });
 
   it('should return false for disconnected user', async () => {
-    const { socketService } = await import('../../src/services/socket.service.js');
+    const { socketService } = await import('../../src/shared/services/socket.service.js');
     const mockServer = {} as any;
     mockIo.sockets = { sockets: new Map() };
     socketService.initialize(mockServer);
@@ -221,7 +221,7 @@ describe('Socket Service - Simple Tests', () => {
 
   // Lifecycle tests
   it('should warn on duplicate initialization', async () => {
-    const { socketService } = await import('../../src/services/socket.service.js');
+    const { socketService } = await import('../../src/shared/services/socket.service.js');
     const mockServer = {} as any;
     
     socketService.initialize(mockServer);
@@ -231,7 +231,7 @@ describe('Socket Service - Simple Tests', () => {
   });
 
   it('should get IO instance after initialization', async () => {
-    const { socketService } = await import('../../src/services/socket.service.js');
+    const { socketService } = await import('../../src/shared/services/socket.service.js');
     const mockServer = {} as any;
     socketService.initialize(mockServer);
     
@@ -241,7 +241,7 @@ describe('Socket Service - Simple Tests', () => {
   });
 
   it('should handle shutdown gracefully', async () => {
-    const { socketService } = await import('../../src/services/socket.service.js');
+    const { socketService } = await import('../../src/shared/services/socket.service.js');
     const mockServer = {} as any;
     socketService.initialize(mockServer);
     
@@ -252,7 +252,7 @@ describe('Socket Service - Simple Tests', () => {
   });
 
   it('should handle shutdown when not initialized', async () => {
-    const { socketService } = await import('../../src/services/socket.service.js');
+    const { socketService } = await import('../../src/shared/services/socket.service.js');
     
     await socketService.shutdown();
     
@@ -261,7 +261,7 @@ describe('Socket Service - Simple Tests', () => {
 
   // Event handler setup tests
   it('should setup connection event handler', async () => {
-    const { socketService } = await import('../../src/services/socket.service.js');
+    const { socketService } = await import('../../src/shared/services/socket.service.js');
     const mockServer = {} as any;
     
     socketService.initialize(mockServer);
@@ -271,7 +271,7 @@ describe('Socket Service - Simple Tests', () => {
 
   // Socket connection event tests
   it('should handle socket connection events', async () => {
-    const { socketService } = await import('../../src/services/socket.service.js');
+    const { socketService } = await import('../../src/shared/services/socket.service.js');
     const mockServer = {} as any;
     
     const mockSocket = {
@@ -302,7 +302,7 @@ describe('Socket Service - Simple Tests', () => {
   });
 
   it('should handle subscribe event', async () => {
-    const { socketService } = await import('../../src/services/socket.service.js');
+    const { socketService } = await import('../../src/shared/services/socket.service.js');
     const mockServer = {} as any;
     
     const mockSocket = {
@@ -332,7 +332,7 @@ describe('Socket Service - Simple Tests', () => {
   });
 
   it('should handle unsubscribe event', async () => {
-    const { socketService } = await import('../../src/services/socket.service.js');
+    const { socketService } = await import('../../src/shared/services/socket.service.js');
     const mockServer = {} as any;
     
     const mockSocket = {
@@ -362,7 +362,7 @@ describe('Socket Service - Simple Tests', () => {
   });
 
   it('should handle ping event', async () => {
-    const { socketService } = await import('../../src/services/socket.service.js');
+    const { socketService } = await import('../../src/shared/services/socket.service.js');
     const mockServer = {} as any;
     
     const mockSocket = {
@@ -395,7 +395,7 @@ describe('Socket Service - Simple Tests', () => {
 
   // Authentication tests
   it('should handle authentication with API key', async () => {
-    const { socketService } = await import('../../src/services/socket.service.js');
+    const { socketService } = await import('../../src/shared/services/socket.service.js');
     const mockServer = {} as any;
     
     const mockSocket = {
@@ -423,7 +423,7 @@ describe('Socket Service - Simple Tests', () => {
   it('should reject invalid API key', async () => {
     mockConfig.websocket.apiKey = 'correct-key';
     
-    const { socketService } = await import('../../src/services/socket.service.js');
+    const { socketService } = await import('../../src/shared/services/socket.service.js');
     const mockServer = {} as any;
     
     const mockSocket = {
@@ -452,7 +452,7 @@ describe('Socket Service - Simple Tests', () => {
   });
 
   it('should handle user authentication', async () => {
-    const { socketService } = await import('../../src/services/socket.service.js');
+    const { socketService } = await import('../../src/shared/services/socket.service.js');
     const mockServer = {} as any;
     
     const mockSocket = {
@@ -479,7 +479,7 @@ describe('Socket Service - Simple Tests', () => {
 
   // Disconnection tests
   it('should handle disconnect event', async () => {
-    const { socketService } = await import('../../src/services/socket.service.js');
+    const { socketService } = await import('../../src/shared/services/socket.service.js');
     const mockServer = {} as any;
     
     const mockSocket = {
@@ -510,7 +510,7 @@ describe('Socket Service - Simple Tests', () => {
 
   // Error handling tests
   it('should handle socket error event', async () => {
-    const { socketService } = await import('../../src/services/socket.service.js');
+    const { socketService } = await import('../../src/shared/services/socket.service.js');
     const mockServer = {} as any;
     
     const mockSocket = {

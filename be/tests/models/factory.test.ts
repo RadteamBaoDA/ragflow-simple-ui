@@ -9,7 +9,7 @@ describe('ModelFactory', () => {
 
   beforeEach(async () => {
     // Clear module cache to ensure fresh imports
-    const module = await import('../../src/models/factory.js');
+    const module = await import('../../src/shared/models/factory.js');
     ModelFactory = module.ModelFactory;
   });
 
@@ -54,13 +54,6 @@ describe('ModelFactory', () => {
       expect(model.constructor.name).toBe('ChatMessageModel');
     });
 
-    it('should instantiate minioBucket model', () => {
-      const model = ModelFactory.minioBucket;
-
-      expect(model).toBeDefined();
-      expect(model.constructor.name).toBe('MinioBucketModel');
-    });
-
     it('should instantiate systemConfig model', () => {
       const model = ModelFactory.systemConfig;
 
@@ -89,13 +82,6 @@ describe('ModelFactory', () => {
       expect(model.constructor.name).toBe('UserIpHistoryModel');
     });
 
-    it('should instantiate documentPermission model', () => {
-      const model = ModelFactory.documentPermission;
-
-      expect(model).toBeDefined();
-      expect(model.constructor.name).toBe('DocumentPermissionModel');
-    });
-
     it('should instantiate broadcastMessage model', () => {
       const model = ModelFactory.broadcastMessage;
 
@@ -110,45 +96,51 @@ describe('ModelFactory', () => {
       expect(model.constructor.name).toBe('UserDismissedBroadcastModel');
     });
 
-    it('should instantiate external models and prompt models', () => {
+    it('should instantiate external models', () => {
       const ecs = ModelFactory.externalChatSession;
       const ecm = ModelFactory.externalChatMessage;
       const ess = ModelFactory.externalSearchSession;
       const esr = ModelFactory.externalSearchRecord;
-      const pm = ModelFactory.prompt;
-      const pim = ModelFactory.promptInteraction;
-      const pt = ModelFactory.promptTag;
-      const pp = ModelFactory.promptPermission;
 
       expect(ecs).toBeDefined();
       expect(ecm).toBeDefined();
       expect(ess).toBeDefined();
       expect(esr).toBeDefined();
-      expect(pm).toBeDefined();
-      expect(pim).toBeDefined();
-      expect(pt).toBeDefined();
-      expect(pp).toBeDefined();
 
       expect(ecs.constructor.name).toBe('ExternalChatSessionModel');
-      expect(pm.constructor.name).toBe('PromptModel');
+    });
+
+    it('should instantiate glossary models', () => {
+      const gt = ModelFactory.glossaryTask;
+      const gk = ModelFactory.glossaryKeyword;
+
+      expect(gt).toBeDefined();
+      expect(gk).toBeDefined();
+
+      expect(gt.constructor.name).toBe('GlossaryTaskModel');
+      expect(gk.constructor.name).toBe('GlossaryKeywordModel');
     });
   });
 
   describe('All models accessible', () => {
-    it('should provide access to all 13 model types', () => {
+    it('should provide access to all model types', () => {
       expect(ModelFactory.user).toBeDefined();
       expect(ModelFactory.team).toBeDefined();
       expect(ModelFactory.userTeam).toBeDefined();
       expect(ModelFactory.chatSession).toBeDefined();
       expect(ModelFactory.chatMessage).toBeDefined();
-      expect(ModelFactory.minioBucket).toBeDefined();
       expect(ModelFactory.systemConfig).toBeDefined();
       expect(ModelFactory.knowledgeBaseSource).toBeDefined();
       expect(ModelFactory.auditLog).toBeDefined();
       expect(ModelFactory.userIpHistory).toBeDefined();
-      expect(ModelFactory.documentPermission).toBeDefined();
       expect(ModelFactory.broadcastMessage).toBeDefined();
       expect(ModelFactory.userDismissedBroadcast).toBeDefined();
+      expect(ModelFactory.externalChatSession).toBeDefined();
+      expect(ModelFactory.externalChatMessage).toBeDefined();
+      expect(ModelFactory.externalSearchSession).toBeDefined();
+      expect(ModelFactory.externalSearchRecord).toBeDefined();
+      expect(ModelFactory.glossaryTask).toBeDefined();
+      expect(ModelFactory.glossaryKeyword).toBeDefined();
     });
 
     it('should not create duplicate instances', () => {
@@ -159,12 +151,10 @@ describe('ModelFactory', () => {
         ModelFactory.userTeam,
         ModelFactory.chatSession,
         ModelFactory.chatMessage,
-        ModelFactory.minioBucket,
         ModelFactory.systemConfig,
         ModelFactory.knowledgeBaseSource,
         ModelFactory.auditLog,
         ModelFactory.userIpHistory,
-        ModelFactory.documentPermission,
         ModelFactory.broadcastMessage,
         ModelFactory.userDismissedBroadcast,
       ];
@@ -176,12 +166,10 @@ describe('ModelFactory', () => {
         ModelFactory.userTeam,
         ModelFactory.chatSession,
         ModelFactory.chatMessage,
-        ModelFactory.minioBucket,
         ModelFactory.systemConfig,
         ModelFactory.knowledgeBaseSource,
         ModelFactory.auditLog,
         ModelFactory.userIpHistory,
-        ModelFactory.documentPermission,
         ModelFactory.broadcastMessage,
         ModelFactory.userDismissedBroadcast,
       ];

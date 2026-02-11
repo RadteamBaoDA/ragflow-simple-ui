@@ -32,11 +32,11 @@ vi.mock('redis', () => ({
   createClient: mockCreateClient,
 }));
 
-vi.mock('../../src/services/logger.service.js', () => ({
+vi.mock('../../src/shared/services/logger.service.js', () => ({
   log: mockLog,
 }));
 
-vi.mock('../../src/config/index.js', () => ({
+vi.mock('../../src/shared/config/index.js', () => ({
   config: mockConfig,
 }));
 
@@ -53,7 +53,7 @@ describe('Redis Service - Simple Tests', () => {
     
     // Reset modules to clear singleton
     vi.resetModules();
-    redis = await import('../../src/services/redis.service.js');
+    redis = await import('../../src/shared/services/redis.service.js');
   });
 
   it('should initialize Redis client when configured', async () => {

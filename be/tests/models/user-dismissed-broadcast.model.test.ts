@@ -3,7 +3,7 @@
  */
 
 import { describe, it, expect, vi, beforeEach } from 'vitest'
-import { UserDismissedBroadcastModel } from '../../src/models/user-dismissed-broadcast.model.js'
+import { UserDismissedBroadcastModel } from '../../src/modules/broadcast/user-dismissed-broadcast.model.js'
 
 const makeBuilder = () => {
   const builder: any = {

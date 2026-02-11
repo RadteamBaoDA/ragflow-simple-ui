@@ -20,7 +20,7 @@ const mockLog = vi.hoisted(() => ({
 }));
 
 const mockConfig = {
-  systemToolsConfigPath: undefined,
+  systemToolsConfigPath: undefined as string | undefined,
   database: { host: 'localhost' },
   redis: { url: 'redis://localhost:6379', host: 'localhost' },
   langfuse: { publicKey: '', secretKey: '', baseUrl: '' },
@@ -38,33 +38,21 @@ vi.mock('fs', () => ({
   constants: { F_OK: 0 },
 }));
 
-vi.mock('../../src/config/index.js', () => ({
+vi.mock('../../src/shared/config/index.js', () => ({
   config: mockConfig,
 }));
 
-vi.mock('../../src/services/logger.service.js', () => ({
+vi.mock('../../src/shared/services/logger.service.js', () => ({
   log: mockLog,
 }));
 
-vi.mock('../../src/db/knex.js', () => ({
+vi.mock('../../src/shared/db/knex.js', () => ({
   db: {
     raw: vi.fn(),
   },
 }));
 
-vi.mock('../../src/services/minio.service.js', () => ({
-  minioService: {
-    listBuckets: vi.fn(),
-  },
-}));
 
-const mockStorageService = vi.hoisted(() => ({
-  listBuckets: vi.fn(),
-}));
-
-vi.mock('../../src/services/storage/index.js', () => ({
-  storageService: mockStorageService,
-}));
 
 const mockRedisClient = vi.hoisted(() => ({
   connect: vi.fn().mockResolvedValue(undefined),
@@ -112,7 +100,6 @@ const validConfig = {
 describe('System Tools Service', () => {
   let service: any;
   let mockDb: any;
-  let mockMinioService: any;
 
   beforeEach(async () => {
     vi.clearAllMocks();
@@ -123,10 +110,10 @@ describe('System Tools Service', () => {
     mockFsPromises.readFile.mockResolvedValue(JSON.stringify(validConfig));
 
     // Import mocked modules
-    const dbModule = await import('../../src/db/knex.js');
+    const dbModule = await import('../../src/shared/db/knex.js');
     mockDb = dbModule.db;
 
-    const module = await import('../../src/services/system-tools.service.js');
+    const module = await import('../../src/modules/system-tools/system-tools.service.js');
     service = module.systemToolsService;
     await service.initialize();
   });
@@ -289,7 +276,6 @@ describe('System Tools Service', () => {
       expect(health).toHaveProperty('system');
       expect(health.services).toHaveProperty('database');
       expect(health.services).toHaveProperty('redis');
-      expect(health.services).toHaveProperty('minio');
       expect(health.services).toHaveProperty('langfuse');
     });
 
@@ -351,37 +337,6 @@ describe('System Tools Service', () => {
       expect(health.system.disk.available).toBe(4096 * 450000);
     });
 
-    it('should show minio as disconnected when not configured', async () => {
-      delete process.env.MINIO_ACCESS_KEY;
-      delete process.env.MINIO_SECRET_KEY;
-
-      const health = await service.getSystemHealth();
-
-      expect(health.services.minio.status).toBe('disconnected');
-      expect(health.services.minio.enabled).toBe(false);
-    });
-
-    it('should show minio as connected when listBuckets succeeds', async () => {
-      process.env.MINIO_ACCESS_KEY = 'test-key';
-      process.env.MINIO_SECRET_KEY = 'test-secret';
-      mockStorageService.listBuckets.mockResolvedValueOnce([]);
-
-      const health = await service.getSystemHealth();
-
-      expect(health.services.minio.status).toBe('connected');
-      expect(health.services.minio.enabled).toBe(true);
-    });
-
-    it('should show minio as disconnected when listBuckets fails', async () => {
-      process.env.MINIO_ACCESS_KEY = 'test-key';
-      process.env.MINIO_SECRET_KEY = 'test-secret';
-      mockStorageService.listBuckets.mockRejectedValueOnce(new Error('Connection failed'));
-
-      const health = await service.getSystemHealth();
-
-      expect(health.services.minio.status).toBe('disconnected');
-    });
-
     it('should show langfuse status as enabled when fully configured', async () => {
       mockConfig.langfuse.publicKey = 'pk-test';
       mockConfig.langfuse.secretKey = 'sk-test';
@@ -415,22 +370,6 @@ describe('System Tools Service', () => {
       const health = await service.getSystemHealth();
 
       expect(health.services.redis.host).toBe('localhost');
-    });
-
-    it('should include minio host from environment', async () => {
-      process.env.MINIO_ENDPOINT = 'minio.example.com';
-
-      const health = await service.getSystemHealth();
-
-      expect(health.services.minio.host).toBe('minio.example.com');
-    });
-
-    it('should default minio host to localhost when not set', async () => {
-      delete process.env.MINIO_ENDPOINT;
-
-      const health = await service.getSystemHealth();
-
-      expect(health.services.minio.host).toBe('localhost');
     });
 
     it('should have timestamp in ISO format', async () => {

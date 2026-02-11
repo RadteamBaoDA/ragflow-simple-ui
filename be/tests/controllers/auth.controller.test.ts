@@ -1,8 +1,8 @@
 import { describe, it, expect, vi, beforeEach } from 'vitest'
-import { AuthController } from '@/controllers/auth.controller.js'
-import { authService } from '@/services/auth.service.js'
-import { userService } from '@/services/user.service.js'
-import { config } from '@/config/index.js'
+import { AuthController } from '@/modules/auth/auth.controller.js'
+import { authService } from '@/modules/auth/auth.service.js'
+import { userService } from '@/modules/users/user.service.js'
+import { config } from '@/shared/config/index.js'
 
 const makeReq = (overrides: any = {}) => ({ session: {}, body: {}, query: {}, headers: {}, ip: '1.2.3.4', socket: { remoteAddress: '1.2.3.4' }, ...overrides }) as any
 const makeRes = () => {

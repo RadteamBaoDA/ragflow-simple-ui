@@ -3,7 +3,7 @@
  */
 
 import { describe, it, expect, vi, beforeEach, afterEach } from 'vitest'
-import { QueueService } from '../../src/services/queue.service.js'
+import { QueueService } from '../../src/shared/services/queue.service.js'
 
 const mockLog = vi.hoisted(() => ({
     info: vi.fn(),
@@ -26,11 +26,11 @@ vi.mock('bee-queue', () => ({
     default: mockBeeQueue,
 }))
 
-vi.mock('../../src/services/logger.service.js', () => ({
+vi.mock('../../src/shared/services/logger.service.js', () => ({
     log: mockLog,
 }))
 
-vi.mock('../../src/config/index.js', () => ({
+vi.mock('../../src/shared/config/index.js', () => ({
     config: {
         redis: {
             host: 'localhost',

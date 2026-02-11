@@ -4,13 +4,16 @@
  */
 
 import { describe, it, expect, vi, beforeEach } from 'vitest'
-import { KnowledgeBaseService } from '../../src/services/knowledge-base.service.js'
+import { KnowledgeBaseService } from '../../src/modules/knowledge-base/knowledge-base.service.js'
 
 // Define createQueryBuilder outside hoisted so it's available for mocking
 function createKBQueryBuilder() {
     const qb = {} as any;
-    // Set methods after creating the object to avoid "qb not initialized" error
+    // Set methods after creating the object to support chaining:
+    // .where().where().first() for create
+    // .where().where().whereNot().first() for update
     qb.where = vi.fn().mockReturnValue(qb);
+    qb.whereNot = vi.fn().mockReturnValue(qb);
     qb.first = vi.fn().mockResolvedValue(undefined);
     return qb;
 }
@@ -20,7 +23,7 @@ const mockLog = vi.hoisted(() => ({
     warn: vi.fn(),
 }))
 
-vi.mock('../../src/services/logger.service.js', () => ({
+vi.mock('../../src/shared/services/logger.service.js', () => ({
     log: mockLog,
 }))
 
@@ -28,7 +31,7 @@ const mockAudit = vi.hoisted(() => ({
     log: vi.fn(),
 }))
 
-vi.mock('../../src/services/audit.service.js', () => ({
+vi.mock('../../src/modules/audit/audit.service.js', () => ({
     auditService: mockAudit,
     AuditAction: {
         CREATE_SOURCE: 'create_source',
@@ -46,17 +49,11 @@ const mockTeamService = vi.hoisted(() => ({
     getUserTeams: vi.fn(),
 }))
 
-vi.mock('../../src/services/team.service.js', () => ({
+vi.mock('../../src/modules/teams/team.service.js', () => ({
     teamService: mockTeamService,
 }))
 
-const mockPromptPermissionService = vi.hoisted(() => ({
-    resolveUserPermission: vi.fn(),
-}))
-
-vi.mock('../../src/services/prompt-permission.service.js', () => ({
-    promptPermissionService: mockPromptPermissionService,
-}))
+// Prompt permission service was removed — no mock needed
 
 const mockModels = vi.hoisted(() => {
     return {
@@ -79,7 +76,7 @@ const mockModels = vi.hoisted(() => {
     }
 })
 
-vi.mock('../../src/models/factory.js', () => ({
+vi.mock('../../src/shared/models/factory.js', () => ({
     ModelFactory: mockModels,
 }))
 
@@ -100,7 +97,6 @@ const resetMocks = () => {
     mockModels.systemConfig.update.mockReset()
     
     mockTeamService.getUserTeams.mockReset()
-    mockPromptPermissionService.resolveUserPermission.mockReset()
     mockAudit.log.mockReset()
     mockLog.error.mockReset()
 }
@@ -202,8 +198,10 @@ describe('KnowledgeBaseService', () => {
         })
 
         it('throws when source name already exists', async () => {
-            // Simulate knex returning an existing record
-            mockModels.knowledgeBaseSource.getKnex.mockImplementationOnce(() => ({ where: () => ({ first: async () => ({ id: 'sExisting' }) }) }))
+            // Simulate knex returning an existing record via .where().where().first()
+            const qb = { where: vi.fn().mockReturnThis(), first: vi.fn().mockResolvedValue({ id: 'sExisting' }) } as any;
+            qb.where.mockReturnValue(qb);
+            mockModels.knowledgeBaseSource.getKnex.mockImplementationOnce(() => qb)
             await expect(service.createSource({ type: 'chat', name: 'Dup', url: 'http' })).rejects.toThrow(/already exists/)
             expect(mockLog.error).toHaveBeenCalled()
         })
@@ -234,8 +232,10 @@ describe('KnowledgeBaseService', () => {
 
         it('warns and rethrows on duplicate name during update', async () => {
             // current source has different name, and another exists with desired name
-            mockModels.knowledgeBaseSource.findById.mockResolvedValueOnce({ id: 's1', name: 'OldName' })
-            mockModels.knowledgeBaseSource.getKnex.mockImplementationOnce(() => ({ where: () => ({ whereNot: () => ({ first: async () => ({ id: 'other' }) }) }) }))
+            mockModels.knowledgeBaseSource.findById.mockResolvedValueOnce({ id: 's1', name: 'OldName', type: 'chat' })
+            const qb = { where: vi.fn().mockReturnThis(), whereNot: vi.fn().mockReturnThis(), first: vi.fn().mockResolvedValue({ id: 'other' }) } as any;
+            qb.where.mockReturnValue(qb);
+            mockModels.knowledgeBaseSource.getKnex.mockImplementationOnce(() => qb)
 
             await expect(service.updateSource('s1', { name: 'DupName' }, { id: 'u1', email: 'e' })).rejects.toThrow(/already exists/)
             expect(mockLog.warn).toHaveBeenCalledWith('Knowledge base source name already exists', expect.any(Object))
@@ -264,7 +264,7 @@ describe('KnowledgeBaseService', () => {
                 { id: 's1', type: 'search', name: 'Search', access_control: { public: true } },
             ])
             mockModels.systemConfig.findById.mockImplementation(async key => ({ key, value: `${key}-val` }))
-            mockPromptPermissionService.resolveUserPermission.mockResolvedValueOnce(0)
+            // Prompt permission service was removed — no mock needed
 
             const result = await service.getConfig({ id: 'u', role: 'user' })
 

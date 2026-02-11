@@ -3,7 +3,7 @@
  */
 
 import { describe, it, expect, vi, beforeEach } from 'vitest'
-import { UserController } from '../../src/controllers/user.controller.js'
+import { UserController } from '../../src/modules/users/users.controller.js'
 
 const mockUserService = vi.hoisted(() => ({
   getAllUsers: vi.fn(),
@@ -29,21 +29,21 @@ const mockLog = vi.hoisted(() => ({
 
 const mockGetClientIp = vi.hoisted(() => vi.fn().mockReturnValue('127.0.0.1'))
 
-vi.mock('../../src/services/user.service.js', () => ({
+vi.mock('../../src/modules/users/user.service.js', () => ({
   userService: mockUserService,
 }))
 
-vi.mock('../../src/services/audit.service.js', () => ({
+vi.mock('../../src/modules/audit/audit.service.js', () => ({
   auditService: mockAudit,
   AuditAction: { UPDATE_ROLE: 'update_role' },
   AuditResourceType: { USER: 'user' },
 }))
 
-vi.mock('../../src/services/logger.service.js', () => ({
+vi.mock('../../src/shared/services/logger.service.js', () => ({
   log: mockLog,
 }))
 
-vi.mock('../../src/utils/ip.js', () => ({
+vi.mock('../../src/shared/utils/ip.js', () => ({
   getClientIp: mockGetClientIp,
 }))
 

@@ -8,7 +8,7 @@ describe('debug_fts script', () => {
 
   it('runs FTS checks and handles no record gracefully', async () => {
     // Provide a static mocked db function
-    vi.mock('../../src/db/knex', () => ({
+    vi.mock('../../src/shared/db/knex', () => ({
       db: Object.assign(
         // callable function that behaves like a query builder
         ((..._args: any[]) => ({ where: () => ({ orWhere: () => ({ first: async () => undefined }) }), raw: async () => ({ rows: [{ q: 'q' }] }), whereRaw: () => ({ count: async () => [{ count: 0 }] }), insert: async () => {}, del: async () => {} })),

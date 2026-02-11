@@ -6,7 +6,7 @@
 import { describe, it, expect, vi, beforeEach } from 'vitest';
 
 // Mock logger
-vi.mock('../../src/services/logger.service.js', () => ({
+vi.mock('../../src/shared/services/logger.service.js', () => ({
     log: {
         info: vi.fn(),
         warn: vi.fn(),
@@ -22,7 +22,7 @@ describe('Admin Routes', () => {
 
     describe('Module exports', () => {
         it('should export a router', async () => {
-            const adminRoutes = await import('../../src/routes/admin.routes.js');
+            const adminRoutes = await import('../../src/modules/admin/admin.routes.js');
             expect(adminRoutes.default).toBeDefined();
         });
     });

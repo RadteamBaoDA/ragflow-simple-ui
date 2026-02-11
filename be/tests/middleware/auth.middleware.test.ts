@@ -17,7 +17,7 @@ import {
   updateAuthTimestamp,
   authorizationError,
   REAUTH_REQUIRED_ERROR,
-} from '../../src/middleware/auth.middleware.js';
+} from '../../src/shared/middleware/auth.middleware.js';
 import { createMockRequest, createMockResponse, createMockNext, createMockUser } from '../setup.js';
 
 describe('Auth Middleware', () => {
@@ -34,7 +34,7 @@ describe('Auth Middleware', () => {
       };
 
       // Mock dynamic import
-      vi.mock('../../src/services/user.service.js', () => ({
+      vi.mock('../../src/modules/users/user.service.js', () => ({
         userService: userServiceMock
       }));
 

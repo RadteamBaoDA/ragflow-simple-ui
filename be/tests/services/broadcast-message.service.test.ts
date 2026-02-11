@@ -33,11 +33,11 @@ const mockUserDismissedBroadcastModel = vi.hoisted(() => ({
 }));
 
 // Apply mocks
-vi.mock('../../src/services/logger.service.js', () => ({
+vi.mock('../../src/shared/services/logger.service.js', () => ({
   log: mockLog,
 }));
 
-vi.mock('../../src/services/audit.service.js', () => ({
+vi.mock('../../src/modules/audit/audit.service.js', () => ({
   auditService: mockAuditService,
   AuditAction: {
     CREATE_BROADCAST: 'create_broadcast',
@@ -50,7 +50,7 @@ vi.mock('../../src/services/audit.service.js', () => ({
   },
 }));
 
-vi.mock('../../src/models/factory.js', () => ({
+vi.mock('../../src/shared/models/factory.js', () => ({
   ModelFactory: {
     broadcastMessage: mockBroadcastMessageModel,
     userDismissedBroadcast: mockUserDismissedBroadcastModel,
@@ -70,7 +70,7 @@ describe('BroadcastMessageService', () => {
       ];
       mockBroadcastMessageModel.findActive.mockResolvedValue(activeMessages);
 
-      const { BroadcastMessageService } = await import('../../src/services/broadcast-message.service.js');
+      const { BroadcastMessageService } = await import('../../src/modules/broadcast/broadcast-message.service.js');
       const service = new BroadcastMessageService();
       const result = await service.getActiveMessages();
 
@@ -84,7 +84,7 @@ describe('BroadcastMessageService', () => {
       const activeMessages = [{ id: 'msg1', message: 'Not dismissed', is_active: true }];
       mockBroadcastMessageModel.findActiveExcludingDismissed.mockResolvedValue(activeMessages);
 
-      const { BroadcastMessageService } = await import('../../src/services/broadcast-message.service.js');
+      const { BroadcastMessageService } = await import('../../src/modules/broadcast/broadcast-message.service.js');
       const service = new BroadcastMessageService();
       const result = await service.getActiveMessages(userId);
 
@@ -96,7 +96,7 @@ describe('BroadcastMessageService', () => {
     it('should return empty array when no active messages', async () => {
       mockBroadcastMessageModel.findActive.mockResolvedValue([]);
 
-      const { BroadcastMessageService } = await import('../../src/services/broadcast-message.service.js');
+      const { BroadcastMessageService } = await import('../../src/modules/broadcast/broadcast-message.service.js');
       const service = new BroadcastMessageService();
       const result = await service.getActiveMessages();
 
@@ -107,7 +107,7 @@ describe('BroadcastMessageService', () => {
       const error = new Error('Database error');
       mockBroadcastMessageModel.findActive.mockRejectedValue(error);
 
-      const { BroadcastMessageService } = await import('../../src/services/broadcast-message.service.js');
+      const { BroadcastMessageService } = await import('../../src/modules/broadcast/broadcast-message.service.js');
       const service = new BroadcastMessageService();
 
       await expect(service.getActiveMessages()).rejects.toThrow('Database error');
@@ -122,7 +122,7 @@ describe('BroadcastMessageService', () => {
       const ipAddress = '192.168.1.1';
       mockUserDismissedBroadcastModel.upsertDismissal.mockResolvedValue(undefined);
 
-      const { BroadcastMessageService } = await import('../../src/services/broadcast-message.service.js');
+      const { BroadcastMessageService } = await import('../../src/modules/broadcast/broadcast-message.service.js');
       const service = new BroadcastMessageService();
       await service.dismissMessage(userId, broadcastId, userEmail, ipAddress);
 
@@ -143,7 +143,7 @@ describe('BroadcastMessageService', () => {
       const broadcastId = 'msg1';
       mockUserDismissedBroadcastModel.upsertDismissal.mockResolvedValue(undefined);
 
-      const { BroadcastMessageService } = await import('../../src/services/broadcast-message.service.js');
+      const { BroadcastMessageService } = await import('../../src/modules/broadcast/broadcast-message.service.js');
       const service = new BroadcastMessageService();
       await service.dismissMessage(userId, broadcastId);
 
@@ -156,7 +156,7 @@ describe('BroadcastMessageService', () => {
       const broadcastId = 'msg1';
       mockUserDismissedBroadcastModel.upsertDismissal.mockRejectedValue(error);
 
-      const { BroadcastMessageService } = await import('../../src/services/broadcast-message.service.js');
+      const { BroadcastMessageService } = await import('../../src/modules/broadcast/broadcast-message.service.js');
       const service = new BroadcastMessageService();
 
       await expect(service.dismissMessage(userId, broadcastId)).rejects.toThrow('Upsert failed');
@@ -172,7 +172,7 @@ describe('BroadcastMessageService', () => {
       ];
       mockBroadcastMessageModel.findAll.mockResolvedValue(allMessages);
 
-      const { BroadcastMessageService } = await import('../../src/services/broadcast-message.service.js');
+      const { BroadcastMessageService } = await import('../../src/modules/broadcast/broadcast-message.service.js');
       const service = new BroadcastMessageService();
       const result = await service.getAllMessages();
 
@@ -184,7 +184,7 @@ describe('BroadcastMessageService', () => {
       const error = new Error('Query failed');
       mockBroadcastMessageModel.findAll.mockRejectedValue(error);
 
-      const { BroadcastMessageService } = await import('../../src/services/broadcast-message.service.js');
+      const { BroadcastMessageService } = await import('../../src/modules/broadcast/broadcast-message.service.js');
       const service = new BroadcastMessageService();
 
       await expect(service.getAllMessages()).rejects.toThrow('Query failed');
@@ -202,7 +202,7 @@ describe('BroadcastMessageService', () => {
       const createdMessage = { id: 'msg1', ...messageData, color: '#E75E40', font_color: '#FFFFFF', is_active: true, is_dismissible: false };
       mockBroadcastMessageModel.create.mockResolvedValue(createdMessage);
 
-      const { BroadcastMessageService } = await import('../../src/services/broadcast-message.service.js');
+      const { BroadcastMessageService } = await import('../../src/modules/broadcast/broadcast-message.service.js');
       const service = new BroadcastMessageService();
       const result = await service.createMessage(messageData as any, user);
 
@@ -242,7 +242,7 @@ describe('BroadcastMessageService', () => {
       const createdMessage = { id: 'msg2', ...messageData };
       mockBroadcastMessageModel.create.mockResolvedValue(createdMessage);
 
-      const { BroadcastMessageService } = await import('../../src/services/broadcast-message.service.js');
+      const { BroadcastMessageService } = await import('../../src/modules/broadcast/broadcast-message.service.js');
       const service = new BroadcastMessageService();
       await service.createMessage(messageData as any);
 
@@ -263,7 +263,7 @@ describe('BroadcastMessageService', () => {
       const createdMessage = { id: 'msg3', ...messageData };
       mockBroadcastMessageModel.create.mockResolvedValue(createdMessage);
 
-      const { BroadcastMessageService } = await import('../../src/services/broadcast-message.service.js');
+      const { BroadcastMessageService } = await import('../../src/modules/broadcast/broadcast-message.service.js');
       const service = new BroadcastMessageService();
       await service.createMessage(messageData as any);
 
@@ -278,7 +278,7 @@ describe('BroadcastMessageService', () => {
       };
       mockBroadcastMessageModel.create.mockResolvedValue(null);
 
-      const { BroadcastMessageService } = await import('../../src/services/broadcast-message.service.js');
+      const { BroadcastMessageService } = await import('../../src/modules/broadcast/broadcast-message.service.js');
       const service = new BroadcastMessageService();
 
       await expect(service.createMessage(messageData as any)).rejects.toThrow('Failed to create broadcast message: No result returned');
@@ -294,7 +294,7 @@ describe('BroadcastMessageService', () => {
       const updatedMessage = { id, ...updateData };
       mockBroadcastMessageModel.update.mockResolvedValue(updatedMessage);
 
-      const { BroadcastMessageService } = await import('../../src/services/broadcast-message.service.js');
+      const { BroadcastMessageService } = await import('../../src/modules/broadcast/broadcast-message.service.js');
       const service = new BroadcastMessageService();
       const result = await service.updateMessage(id, updateData, user);
 
@@ -316,7 +316,7 @@ describe('BroadcastMessageService', () => {
       const updateData = {};
       const user = { id: 'user1', email: 'admin@example.com' };
 
-      const { BroadcastMessageService } = await import('../../src/services/broadcast-message.service.js');
+      const { BroadcastMessageService } = await import('../../src/modules/broadcast/broadcast-message.service.js');
       const service = new BroadcastMessageService();
       const result = await service.updateMessage(id, updateData, user);
 
@@ -338,7 +338,7 @@ describe('BroadcastMessageService', () => {
       };
       mockBroadcastMessageModel.update.mockResolvedValue({ id, ...updateData });
 
-      const { BroadcastMessageService } = await import('../../src/services/broadcast-message.service.js');
+      const { BroadcastMessageService } = await import('../../src/modules/broadcast/broadcast-message.service.js');
       const service = new BroadcastMessageService();
       await service.updateMessage(id, updateData);
 
@@ -350,7 +350,7 @@ describe('BroadcastMessageService', () => {
       const updateData = { message: 'Updated' };
       mockBroadcastMessageModel.update.mockResolvedValue({ id, ...updateData });
 
-      const { BroadcastMessageService } = await import('../../src/services/broadcast-message.service.js');
+      const { BroadcastMessageService } = await import('../../src/modules/broadcast/broadcast-message.service.js');
       const service = new BroadcastMessageService();
       await service.updateMessage(id, updateData);
 
@@ -363,7 +363,7 @@ describe('BroadcastMessageService', () => {
       const user = { id: 'user1', email: 'admin@example.com' };
       mockBroadcastMessageModel.update.mockResolvedValue(null);
 
-      const { BroadcastMessageService } = await import('../../src/services/broadcast-message.service.js');
+      const { BroadcastMessageService } = await import('../../src/modules/broadcast/broadcast-message.service.js');
       const service = new BroadcastMessageService();
       const result = await service.updateMessage(id, updateData, user);
 
@@ -380,7 +380,7 @@ describe('BroadcastMessageService', () => {
       mockBroadcastMessageModel.findById.mockResolvedValue(message);
       mockBroadcastMessageModel.delete.mockResolvedValue(undefined);
 
-      const { BroadcastMessageService } = await import('../../src/services/broadcast-message.service.js');
+      const { BroadcastMessageService } = await import('../../src/modules/broadcast/broadcast-message.service.js');
       const service = new BroadcastMessageService();
       const result = await service.deleteMessage(id, user);
 
@@ -403,7 +403,7 @@ describe('BroadcastMessageService', () => {
       mockBroadcastMessageModel.findById.mockResolvedValue({ id, message: 'Test' });
       mockBroadcastMessageModel.delete.mockResolvedValue(undefined);
 
-      const { BroadcastMessageService } = await import('../../src/services/broadcast-message.service.js');
+      const { BroadcastMessageService } = await import('../../src/modules/broadcast/broadcast-message.service.js');
       const service = new BroadcastMessageService();
       await service.deleteMessage(id);
 
@@ -416,7 +416,7 @@ describe('BroadcastMessageService', () => {
       mockBroadcastMessageModel.findById.mockResolvedValue({ id });
       mockBroadcastMessageModel.delete.mockRejectedValue(error);
 
-      const { BroadcastMessageService } = await import('../../src/services/broadcast-message.service.js');
+      const { BroadcastMessageService } = await import('../../src/modules/broadcast/broadcast-message.service.js');
       const service = new BroadcastMessageService();
 
       await expect(service.deleteMessage(id)).rejects.toThrow('Delete failed');
@@ -426,7 +426,7 @@ describe('BroadcastMessageService', () => {
 
   describe('broadcastMessageService singleton', () => {
     it('should export singleton instance', async () => {
-      const { broadcastMessageService } = await import('../../src/services/broadcast-message.service.js');
+      const { broadcastMessageService } = await import('../../src/modules/broadcast/broadcast-message.service.js');
       
       expect(broadcastMessageService).toBeDefined();
       expect(broadcastMessageService.getActiveMessages).toBeDefined();

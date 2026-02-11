@@ -19,12 +19,12 @@ const mockUserDismissedBroadcastModel = vi.hoisted(() => ({
 }));
 
 // Mock dependencies BEFORE importing the service
-vi.mock('../../src/db/index.js');
-vi.mock('../../src/services/logger.service.js', () => ({
+vi.mock('../../src/shared/db/index.js');
+vi.mock('../../src/shared/services/logger.service.js', () => ({
   log: mockLog,
 }));
 
-vi.mock('../../src/services/audit.service.js', () => ({
+vi.mock('../../src/modules/audit/audit.service.js', () => ({
   auditService: {
     log: mockAuditLog,
   },
@@ -39,7 +39,7 @@ vi.mock('../../src/services/audit.service.js', () => ({
   },
 }));
 
-vi.mock('../../src/models/factory.js', () => ({
+vi.mock('../../src/shared/models/factory.js', () => ({
   ModelFactory: {
     broadcastMessage: mockBroadcastMessageModel,
     userDismissedBroadcast: mockUserDismissedBroadcastModel,
@@ -51,7 +51,7 @@ describe('BroadcastMessageService - Comprehensive', () => {
 
     beforeEach(async () => {
         vi.clearAllMocks();
-        const module = await import('../../src/services/broadcast-message.service.js');
+        const module = await import('../../src/modules/broadcast/broadcast-message.service.js');
         service = module.broadcastMessageService;
     });
 

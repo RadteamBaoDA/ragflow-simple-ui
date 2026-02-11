@@ -13,7 +13,7 @@ const mockAuditService = {
     log: vi.fn(),
 };
 
-vi.mock('../../src/services/audit.service.js', () => ({
+vi.mock('../../src/modules/audit/audit.service.js', () => ({
     auditService: mockAuditService,
     AuditAction: {
         CREATE: 'CREATE',
@@ -28,7 +28,7 @@ vi.mock('../../src/services/audit.service.js', () => ({
 }));
 
 // Mock logger
-vi.mock('../../src/services/logger.service.js', () => ({
+vi.mock('../../src/shared/services/logger.service.js', () => ({
     log: {
         info: vi.fn(),
         warn: vi.fn(),
@@ -38,7 +38,7 @@ vi.mock('../../src/services/logger.service.js', () => ({
 }));
 
 // Mock auth middleware
-vi.mock('../../src/middleware/auth.middleware.js', () => ({
+vi.mock('../../src/shared/middleware/auth.middleware.js', () => ({
     requireAuth: vi.fn((_req: unknown, _res: unknown, next: () => void) => next()),
     requireRole: vi.fn(() => (_req: unknown, _res: unknown, next: () => void) => next()),
     getCurrentUser: vi.fn().mockReturnValue({
@@ -170,19 +170,19 @@ describe('Audit Routes', () => {
 
     describe('Middleware', () => {
         it('should have requireAuth middleware available', async () => {
-            const { requireAuth } = await import('../../src/middleware/auth.middleware.js');
+            const { requireAuth } = await import('../../src/shared/middleware/auth.middleware.js');
             expect(requireAuth).toBeDefined();
             expect(typeof requireAuth).toBe('function');
         });
 
         it('should have requireRole middleware available', async () => {
-            const { requireRole } = await import('../../src/middleware/auth.middleware.js');
+            const { requireRole } = await import('../../src/shared/middleware/auth.middleware.js');
             expect(requireRole).toBeDefined();
             expect(typeof requireRole).toBe('function');
         });
 
         it('should have requireRole available for admin configuration', async () => {
-            const { requireRole } = await import('../../src/middleware/auth.middleware.js');
+            const { requireRole } = await import('../../src/shared/middleware/auth.middleware.js');
 
             // requireRole should be a callable function
             expect(requireRole).toBeDefined();

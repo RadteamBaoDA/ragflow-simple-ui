@@ -20,7 +20,7 @@ vi.mock('dotenv', () => ({
 }));
 
 // Mock logger to avoid circular dependency
-vi.mock('../../src/services/logger.service.js', () => ({
+vi.mock('../../src/shared/services/logger.service.js', () => ({
     log: {
         info: vi.fn(),
         warn: vi.fn(),
@@ -47,7 +47,7 @@ describe('Config Module', () => {
 
     describe('Basic Configuration', () => {
         it('should export config object', async () => {
-            const { config } = await import('../../src/config/index.js');
+            const { config } = await import('../../src/shared/config/index.js');
 
             expect(config).toBeDefined();
             expect(typeof config.port).toBe('number');
@@ -57,7 +57,7 @@ describe('Config Module', () => {
         it('should use default port 3001', async () => {
             delete process.env.PORT;
 
-            const { config } = await import('../../src/config/index.js');
+            const { config } = await import('../../src/shared/config/index.js');
 
             expect(config.port).toBe(3001);
         });
@@ -65,7 +65,7 @@ describe('Config Module', () => {
         it('should use custom port from environment', async () => {
             process.env.PORT = '8080';
 
-            const { config } = await import('../../src/config/index.js');
+            const { config } = await import('../../src/shared/config/index.js');
 
             expect(config.port).toBe(8080);
         });
@@ -73,7 +73,7 @@ describe('Config Module', () => {
         it('should detect development environment', async () => {
             delete process.env.NODE_ENV;
 
-            const { config } = await import('../../src/config/index.js');
+            const { config } = await import('../../src/shared/config/index.js');
 
             expect(config.nodeEnv).toBe('development');
             expect(config.isProduction).toBe(false);
@@ -84,7 +84,7 @@ describe('Config Module', () => {
             // Provide required env vars for production
             process.env.SESSION_SECRET = 'test-production-secret';
 
-            const { config } = await import('../../src/config/index.js');
+            const { config } = await import('../../src/shared/config/index.js');
 
             expect(config.nodeEnv).toBe('production');
             expect(config.isProduction).toBe(true);
@@ -96,7 +96,7 @@ describe('Config Module', () => {
             process.env.HTTPS_ENABLED = 'true';
             vi.mocked(existsSync).mockReturnValue(false);
 
-            const { config } = await import('../../src/config/index.js');
+            const { config } = await import('../../src/shared/config/index.js');
 
             expect(config.https.enabled).toBe(false);
         });
@@ -105,7 +105,7 @@ describe('Config Module', () => {
             process.env.HTTPS_ENABLED = 'true';
             vi.mocked(existsSync).mockReturnValue(true);
 
-            const { config } = await import('../../src/config/index.js');
+            const { config } = await import('../../src/shared/config/index.js');
 
             expect(config.https.enabled).toBe(true);
         });
@@ -113,7 +113,7 @@ describe('Config Module', () => {
         it('should return null credentials when no certs exist', async () => {
             vi.mocked(existsSync).mockReturnValue(false);
 
-            const { config } = await import('../../src/config/index.js');
+            const { config } = await import('../../src/shared/config/index.js');
 
             expect(config.https.getCredentials()).toBeNull();
         });
@@ -124,7 +124,7 @@ describe('Config Module', () => {
                 .mockReturnValueOnce(Buffer.from('key-content'))
                 .mockReturnValueOnce(Buffer.from('cert-content'));
 
-            const { config } = await import('../../src/config/index.js');
+            const { config } = await import('../../src/shared/config/index.js');
             const creds = config.https.getCredentials();
 
             expect(creds).not.toBeNull();
@@ -135,7 +135,7 @@ describe('Config Module', () => {
 
     describe('Database Configuration', () => {
         it('should use default database connection values', async () => {
-            const { config } = await import('../../src/config/index.js');
+            const { config } = await import('../../src/shared/config/index.js');
 
             expect(config.database.host).toBe('localhost');
             expect(config.database.port).toBe(5432);
@@ -150,7 +150,7 @@ describe('Config Module', () => {
             process.env.DB_USER = 'custom_user';
             process.env.DB_PASSWORD = 'secret123';
 
-            const { config } = await import('../../src/config/index.js');
+            const { config } = await import('../../src/shared/config/index.js');
 
             expect(config.database.host).toBe('db.example.com');
             expect(config.database.port).toBe(5433);
@@ -162,7 +162,7 @@ describe('Config Module', () => {
 
     describe('Langfuse Configuration', () => {
         it('should use default Langfuse values', async () => {
-            const { config } = await import('../../src/config/index.js');
+            const { config } = await import('../../src/shared/config/index.js');
 
             expect(config.langfuse.secretKey).toBe('');
             expect(config.langfuse.publicKey).toBe('');
@@ -174,7 +174,7 @@ describe('Config Module', () => {
             process.env.LANGFUSE_PUBLIC_KEY = 'pk-test';
             process.env.LANGFUSE_BASE_URL = 'https://custom.langfuse.com';
 
-            const { config } = await import('../../src/config/index.js');
+            const { config } = await import('../../src/shared/config/index.js');
 
             expect(config.langfuse.secretKey).toBe('sk-test');
             expect(config.langfuse.publicKey).toBe('pk-test');
@@ -186,7 +186,7 @@ describe('Config Module', () => {
         it('should use empty defaults in development', async () => {
             delete process.env.NODE_ENV;
 
-            const { config } = await import('../../src/config/index.js');
+            const { config } = await import('../../src/shared/config/index.js');
 
             expect(config.azureAd.clientId).toBe('');
             expect(config.azureAd.clientSecret).toBe('');
@@ -199,7 +199,7 @@ describe('Config Module', () => {
             process.env.AZURE_AD_TENANT_ID = 'tenant-id-456';
             process.env.AZURE_AD_REDIRECT_URI = 'https://app.example.com/callback';
 
-            const { config } = await import('../../src/config/index.js');
+            const { config } = await import('../../src/shared/config/index.js');
 
             expect(config.azureAd.clientId).toBe('client-id-123');
             expect(config.azureAd.clientSecret).toBe('client-secret');
@@ -210,7 +210,7 @@ describe('Config Module', () => {
 
     describe('Redis Configuration', () => {
         it('should use default Redis values', async () => {
-            const { config } = await import('../../src/config/index.js');
+            const { config } = await import('../../src/shared/config/index.js');
 
             expect(config.redis.host).toBe('localhost');
             expect(config.redis.port).toBe(6379);
@@ -219,7 +219,7 @@ describe('Config Module', () => {
         });
 
         it('should generate Redis URL without password', async () => {
-            const { config } = await import('../../src/config/index.js');
+            const { config } = await import('../../src/shared/config/index.js');
 
             expect(config.redis.url).toBe('redis://localhost:6379/0');
         });
@@ -230,7 +230,7 @@ describe('Config Module', () => {
             process.env.REDIS_PORT = '6380';
             process.env.REDIS_DB = '1';
 
-            const { config } = await import('../../src/config/index.js');
+            const { config } = await import('../../src/shared/config/index.js');
 
             expect(config.redis.url).toBe('redis://:secret@redis.example.com:6380/1');
         });
@@ -241,7 +241,7 @@ describe('Config Module', () => {
             delete process.env.NODE_ENV;
             delete process.env.SESSION_SECRET;
 
-            const { config } = await import('../../src/config/index.js');
+            const { config } = await import('../../src/shared/config/index.js');
 
             expect(config.session.secret).toBe('change-me-in-production');
         });
@@ -249,7 +249,7 @@ describe('Config Module', () => {
         it('should calculate TTL in seconds from days', async () => {
             process.env.SESSION_TTL_DAYS = '1';
 
-            const { config } = await import('../../src/config/index.js');
+            const { config } = await import('../../src/shared/config/index.js');
 
             expect(config.session.ttlSeconds).toBe(86400); // 1 day in seconds
         });
@@ -257,7 +257,7 @@ describe('Config Module', () => {
         it('should use default 7 days TTL', async () => {
             delete process.env.SESSION_TTL_DAYS;
 
-            const { config } = await import('../../src/config/index.js');
+            const { config } = await import('../../src/shared/config/index.js');
 
             expect(config.session.ttlSeconds).toBe(7 * 24 * 60 * 60);
         });
@@ -265,7 +265,7 @@ describe('Config Module', () => {
 
     describe('Frontend Configuration', () => {
         it('should use default frontend URL', async () => {
-            const { config } = await import('../../src/config/index.js');
+            const { config } = await import('../../src/shared/config/index.js');
 
             expect(config.frontendUrl).toBe('http://localhost:5173');
         });
@@ -273,7 +273,7 @@ describe('Config Module', () => {
         it('should use custom frontend URL', async () => {
             process.env.FRONTEND_URL = 'https://app.example.com';
 
-            const { config } = await import('../../src/config/index.js');
+            const { config } = await import('../../src/shared/config/index.js');
 
             expect(config.frontendUrl).toBe('https://app.example.com');
         });
@@ -283,7 +283,7 @@ describe('Config Module', () => {
         it('should have root login disabled by default', async () => {
             delete process.env.ENABLE_ROOT_LOGIN;
 
-            const { config } = await import('../../src/config/index.js');
+            const { config } = await import('../../src/shared/config/index.js');
 
             expect(config.enableRootLogin).toBe(false);
         });
@@ -291,7 +291,7 @@ describe('Config Module', () => {
         it('should enable root login when flag is set', async () => {
             process.env.ENABLE_ROOT_LOGIN = 'true';
 
-            const { config } = await import('../../src/config/index.js');
+            const { config } = await import('../../src/shared/config/index.js');
 
             expect(config.enableRootLogin).toBe(true);
         });
@@ -302,7 +302,7 @@ describe('Config Module', () => {
             delete process.env.NODE_ENV;
             delete process.env.SESSION_STORE;
 
-            const { config } = await import('../../src/config/index.js');
+            const { config } = await import('../../src/shared/config/index.js');
 
             expect(config.sessionStore.type).toBe('memory');
         });
@@ -312,7 +312,7 @@ describe('Config Module', () => {
             delete process.env.SESSION_STORE;
             process.env.SESSION_SECRET = 'test-secret';
 
-            const { config } = await import('../../src/config/index.js');
+            const { config } = await import('../../src/shared/config/index.js');
 
             expect(config.sessionStore.type).toBe('redis');
         });
@@ -323,7 +323,7 @@ describe('Config Module', () => {
             delete process.env.CORS_ORIGINS;
             process.env.FRONTEND_URL = 'http://example.com';
 
-            const { config } = await import('../../src/config/index.js');
+            const { config } = await import('../../src/shared/config/index.js');
 
             expect(config.cors.origins).toEqual(['http://example.com']);
         });
@@ -331,7 +331,7 @@ describe('Config Module', () => {
         it('supports wildcard origins', async () => {
             process.env.CORS_ORIGINS = '*';
 
-            const { config } = await import('../../src/config/index.js');
+            const { config } = await import('../../src/shared/config/index.js');
 
             expect(config.cors.origins).toBe('*');
         });
@@ -339,7 +339,7 @@ describe('Config Module', () => {
         it('parses comma-separated origins', async () => {
             process.env.CORS_ORIGINS = 'http://one.com, https://two.com';
 
-            const { config } = await import('../../src/config/index.js');
+            const { config } = await import('../../src/shared/config/index.js');
 
             expect(config.cors.origins).toEqual(['http://one.com', 'https://two.com']);
         });
@@ -347,7 +347,7 @@ describe('Config Module', () => {
 
     describe('External Trace Configuration', () => {
         it('uses defaults when unset', async () => {
-            const { config } = await import('../../src/config/index.js');
+            const { config } = await import('../../src/shared/config/index.js');
 
             expect(config.externalTrace.enabled).toBe(false);
             expect(config.externalTrace.apiKey).toBe('');
@@ -361,7 +361,7 @@ describe('Config Module', () => {
             process.env.EXTERNAL_TRACE_CACHE_TTL = '120';
             process.env.EXTERNAL_TRACE_LOCK_TIMEOUT = '2000';
 
-            const { config } = await import('../../src/config/index.js');
+            const { config } = await import('../../src/shared/config/index.js');
 
             expect(config.externalTrace.enabled).toBe(true);
             expect(config.externalTrace.apiKey).toBe('trace-key');
@@ -372,7 +372,7 @@ describe('Config Module', () => {
 
     describe('WebSocket Configuration', () => {
         it('uses defaults when unset', async () => {
-            const { config } = await import('../../src/config/index.js');
+            const { config } = await import('../../src/shared/config/index.js');
 
             expect(config.websocket.enabled).toBe(true);
             expect(config.websocket.apiKey).toBe('');
@@ -388,7 +388,7 @@ describe('Config Module', () => {
             process.env.WEBSOCKET_PING_TIMEOUT = '12345';
             process.env.WEBSOCKET_PING_INTERVAL = '54321';
 
-            const { config } = await import('../../src/config/index.js');
+            const { config } = await import('../../src/shared/config/index.js');
 
             expect(config.websocket.enabled).toBe(false);
             expect(config.websocket.apiKey).toBe('ws-key');
@@ -402,13 +402,13 @@ describe('Config Module', () => {
         it('respects ignoreSelfSignedCerts flag', async () => {
             process.env.IGNORE_SELF_SIGNED_CERTS = 'true';
 
-            const { config } = await import('../../src/config/index.js');
+            const { config } = await import('../../src/shared/config/index.js');
 
             expect(config.ignoreSelfSignedCerts).toBe(true);
         });
 
         it('exposes root user defaults', async () => {
-            const { config } = await import('../../src/config/index.js');
+            const { config } = await import('../../src/shared/config/index.js');
 
             expect(config.rootUser).toBe('admin@localhost');
             expect(config.rootPassword).toBe('admin');
@@ -418,7 +418,7 @@ describe('Config Module', () => {
             process.env.RAGFLOW_CONFIG_PATH = '/tmp/ragflow.json';
             process.env.SYSTEM_TOOLS_CONFIG_PATH = '/tmp/system-tools.json';
 
-            const { config } = await import('../../src/config/index.js');
+            const { config } = await import('../../src/shared/config/index.js');
 
             expect(config.ragflowConfigPath).toBe('/tmp/ragflow.json');
             expect(config.systemToolsConfigPath).toBe('/tmp/system-tools.json');

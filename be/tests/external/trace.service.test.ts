@@ -1,28 +1,28 @@
 
 import { describe, it, expect, vi, beforeEach } from 'vitest';
-import { ExternalTraceService } from '@/services/external/trace.service';
-import { langfuseClient } from '@/models/external/langfuse';
+import { ExternalTraceService } from '@/modules/external/trace.service';
+import { langfuseClient } from '@/modules/external/models/langfuse';
 
 // Mock dependencies
-vi.mock('@/models/external/langfuse', () => ({
+vi.mock('@/modules/external/models/langfuse', () => ({
     langfuseClient: {
         score: vi.fn(),
         flushAsync: vi.fn().mockResolvedValue(undefined),
     },
 }));
 
-vi.mock('@/models/factory', () => ({
+vi.mock('@/shared/models/factory', () => ({
     ModelFactory: {},
 }));
 
-vi.mock('@/config/index', () => ({
+vi.mock('@/shared/config/index', () => ({
     config: {
         redis: { url: 'redis://localhost:6379' },
         externalTrace: { cacheTtlSeconds: 60, lockTimeoutMs: 1000 },
     },
 }));
 
-vi.mock('@/services/logger.service', () => ({
+vi.mock('@/shared/services/logger.service', () => ({
     log: {
         info: vi.fn(),
         warn: vi.fn(),

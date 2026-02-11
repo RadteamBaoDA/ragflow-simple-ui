@@ -3,7 +3,7 @@
  */
 
 import { describe, it, expect, vi, beforeEach } from 'vitest'
-import { UserModel } from '../../src/models/user.model.js'
+import { UserModel } from '../../src/modules/users/user.model.js'
 
 const makeBuilder = (rows: any[] = []) => {
   const builder: any = {

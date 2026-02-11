@@ -5,7 +5,7 @@
 
 import { describe, it, expect, vi, beforeEach } from 'vitest'
 
-vi.mock('../../src/services/logger.service.js', () => ({
+vi.mock('../../src/shared/services/logger.service.js', () => ({
   log: {
     info: vi.fn(),
     warn: vi.fn(),
@@ -21,14 +21,14 @@ describe('Preview Routes', () => {
 
   describe('Module exports', () => {
     it('should export a router', async () => {
-      const routes = await import('../../src/routes/preview.routes.js')
+      const routes = await import('../../src/modules/preview/preview.routes.js')
       expect(routes.default).toBeDefined()
     })
   })
 
   describe('Route middleware', () => {
     it('should apply requireAuth middleware', async () => {
-      const { requireAuth } = await import('../../src/middleware/auth.middleware.js')
+      const { requireAuth } = await import('../../src/shared/middleware/auth.middleware.js')
       expect(requireAuth).toBeDefined()
     })
   })

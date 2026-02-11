@@ -1,7 +1,7 @@
 import { describe, it, expect, vi, beforeEach } from 'vitest'
-import { AuditController } from '@/controllers/audit.controller.js'
-import { auditService } from '@/services/audit.service.js'
-import { log } from '@/services/logger.service.js'
+import { AuditController } from '@/modules/audit/audit.controller.js'
+import { auditService } from '@/modules/audit/audit.service.js'
+import { log } from '@/shared/services/logger.service.js'
 
 const makeRes = () => {
   const res: any = {}

@@ -3,8 +3,8 @@
  */
 
 import { describe, it, expect, vi, beforeEach, afterEach } from 'vitest';
-import { UserHistoryService } from '../../src/services/user-history.service.js';
-import { ModelFactory } from '../../src/models/factory.js';
+import { UserHistoryService } from '../../src/modules/user-history/user-history.service.js';
+import { ModelFactory } from '../../src/shared/models/factory.js';
 
 describe('UserHistoryService', () => {
     let service: UserHistoryService;

@@ -56,11 +56,11 @@ vi.mock('socket.io', () => ({
   Server: MockServer,
 }));
 
-vi.mock('../../src/services/logger.service.js', () => ({
+vi.mock('../../src/shared/services/logger.service.js', () => ({
   log: mockLog,
 }));
 
-vi.mock('../../src/config/index.js', () => ({
+vi.mock('../../src/shared/config/index.js', () => ({
   config: mockConfig,
 }));
 
@@ -75,7 +75,7 @@ describe.skip('SocketService', () => {
     mockSocket.data = {};
     mockIo.on.mockClear();
     
-    const module = await import('../../src/services/socket.service.js');
+    const module = await import('../../src/shared/services/socket.service.js');
     socketService = module.socketService;
     mockServer = {} as http.Server;
   });
@@ -308,7 +308,7 @@ describe.skip('SocketService', () => {
     it('should warn when emitting before initialization', () => {
       vi.clearAllMocks();
       vi.resetModules();
-      const { SocketService } = require('../../src/services/socket.service.js');
+      const { SocketService } = require('../../src/shared/services/socket.service.js');
       const service = new SocketService();
 
       service.emit('test', {});
@@ -406,7 +406,7 @@ describe.skip('SocketService', () => {
 
     it('should return 0 count when not initialized', () => {
       vi.resetModules();
-      const { SocketService } = require('../../src/services/socket.service.js');
+      const { SocketService } = require('../../src/shared/services/socket.service.js');
       const service = new SocketService();
 
       expect(service.getConnectedCount()).toBe(0);

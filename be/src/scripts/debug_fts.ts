@@ -1,4 +1,4 @@
-import { db } from '../db/knex.js';
+import { db } from '@/shared/db/knex.js';
 
 async function debugFts() {
     console.log('Debugging FTS...');

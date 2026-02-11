@@ -3,8 +3,8 @@
  */
 
 import { describe, it, expect, vi, beforeEach, afterEach } from 'vitest';
-import { adminHistoryService } from '../../src/services/admin-history.service.js';
-import { ModelFactory } from '../../src/models/factory.js';
+import { adminHistoryService } from '../../src/modules/admin/admin-history.service.js';
+import { ModelFactory } from '../../src/shared/models/factory.js';
 
 describe('AdminHistoryService', () => {
     let mockQuery: any;

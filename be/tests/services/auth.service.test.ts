@@ -36,18 +36,18 @@ const mockUserIpHistory = vi.hoisted(() => ({
 }))
 
 // Apply all mocks
-vi.mock('../../src/services/logger.service.js', () => ({
+vi.mock('../../src/shared/services/logger.service.js', () => ({
   log: mockLog,
 }))
 
-vi.mock('../../src/models/factory.js', () => ({
+vi.mock('../../src/shared/models/factory.js', () => ({
   ModelFactory: {
     user: mockUserModel,
     userIpHistory: mockUserIpHistory,
   },
 }))
 
-vi.mock('../../src/config/index.js', () => ({
+vi.mock('../../src/shared/config/index.js', () => ({
   config: {
     azureAd: {
       clientId: 'test-client-id',
@@ -61,7 +61,7 @@ vi.mock('../../src/config/index.js', () => ({
   },
 }))
 
-import { AuthService } from '../../src/services/auth.service.js'
+import { AuthService } from '../../src/modules/auth/auth.service.js'
 
 // Helper to build fresh service per test
 const createService = () => new AuthService()

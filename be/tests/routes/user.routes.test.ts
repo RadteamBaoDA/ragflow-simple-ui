@@ -6,7 +6,7 @@
 import { describe, it, expect, vi, beforeEach } from 'vitest';
 
 // Mock dependencies
-vi.mock('../../src/services/logger.service.js', () => ({
+vi.mock('../../src/shared/services/logger.service.js', () => ({
     log: {
         info: vi.fn(),
         warn: vi.fn(),
@@ -15,7 +15,7 @@ vi.mock('../../src/services/logger.service.js', () => ({
     },
 }));
 
-vi.mock('../../src/middleware/auth.middleware.js', () => ({
+vi.mock('../../src/shared/middleware/auth.middleware.js', () => ({
     requireAuth: vi.fn((_req: unknown, _res: unknown, next: () => void) => next()),
     requirePermission: vi.fn(() => (_req: unknown, _res: unknown, next: () => void) => next()),
     requireOwnership: vi.fn(() => (_req: unknown, _res: unknown, next: () => void) => next()),
@@ -49,7 +49,7 @@ const mockIpHistory = [
     { ip_address: '10.0.0.1', last_accessed_at: '2024-01-02T00:00:00Z' },
 ];
 
-vi.mock('../../src/services/user.service.js', () => ({
+vi.mock('../../src/modules/users/user.service.js', () => ({
     userService: {
         getAllUsers: vi.fn().mockResolvedValue(mockUsers),
         updateUserRole: vi.fn().mockResolvedValue({ ...mockUsers[2], role: 'manager' }),
@@ -63,7 +63,7 @@ vi.mock('../../src/services/user.service.js', () => ({
     },
 }));
 
-vi.mock('../../src/services/audit.service.js', () => ({
+vi.mock('../../src/modules/audit/audit.service.js', () => ({
     auditService: {
         log: vi.fn().mockResolvedValue(undefined),
     },
@@ -75,7 +75,7 @@ vi.mock('../../src/services/audit.service.js', () => ({
     },
 }));
 
-vi.mock('../../src/config/rbac.js', () => ({
+vi.mock('../../src/shared/config/rbac.js', () => ({
     isAdminRole: vi.fn((role: string) => role === 'admin'),
 }));
 
@@ -86,41 +86,41 @@ describe('User Routes', () => {
 
     describe('Module exports', () => {
         it('should export a router', async () => {
-            const userRoutes = await import('../../src/routes/user.routes.js');
+            const userRoutes = await import('../../src/modules/users/users.routes.js');
             expect(userRoutes.default).toBeDefined();
         });
     });
 
     describe('User service integration', () => {
         it('should have getAllUsers method', async () => {
-            const { userService } = await import('../../src/services/user.service.js');
+            const { userService } = await import('../../src/modules/users/user.service.js');
             expect(typeof userService.getAllUsers).toBe('function');
         });
 
         it('should have updateUserRole method', async () => {
-            const { userService } = await import('../../src/services/user.service.js');
+            const { userService } = await import('../../src/modules/users/user.service.js');
             expect(typeof userService.updateUserRole).toBe('function');
         });
 
         it('should have getUserIpHistory method', async () => {
-            const { userService } = await import('../../src/services/user.service.js');
+            const { userService } = await import('../../src/modules/users/user.service.js');
             expect(typeof userService.getUserIpHistory).toBe('function');
         });
 
         it('should verify getAllUsers method exists', async () => {
-            const { userService } = await import('../../src/services/user.service.js');
+            const { userService } = await import('../../src/modules/users/user.service.js');
 
             expect(typeof userService.getAllUsers).toBe('function');
         });
 
         it('should verify updateUserRole method exists', async () => {
-            const { userService } = await import('../../src/services/user.service.js');
+            const { userService } = await import('../../src/modules/users/user.service.js');
 
             expect(typeof userService.updateUserRole).toBe('function');
         });
 
         it('should verify getUserIpHistory method exists', async () => {
-            const { userService } = await import('../../src/services/user.service.js');
+            const { userService } = await import('../../src/modules/users/user.service.js');
 
             expect(typeof userService.getUserIpHistory).toBe('function');
         });
@@ -184,7 +184,7 @@ describe('User Routes', () => {
         });
 
         it('should prevent managers from promoting to admin', async () => {
-            const { isAdminRole } = await import('../../src/config/rbac.js');
+            const { isAdminRole } = await import('../../src/shared/config/rbac.js');
 
             expect(isAdminRole('admin')).toBe(true);
             expect(isAdminRole('manager')).toBe(false);
@@ -194,13 +194,13 @@ describe('User Routes', () => {
 
     describe('Middleware configuration', () => {
         it('should require manage_users permission', async () => {
-            const { requirePermission } = await import('../../src/middleware/auth.middleware.js');
+            const { requirePermission } = await import('../../src/shared/middleware/auth.middleware.js');
             expect(requirePermission).toBeDefined();
             expect(typeof requirePermission).toBe('function');
         });
 
         it('should require recent auth for role updates', async () => {
-            const { requireRecentAuth } = await import('../../src/middleware/auth.middleware.js');
+            const { requireRecentAuth } = await import('../../src/shared/middleware/auth.middleware.js');
             expect(requireRecentAuth).toBeDefined();
             expect(typeof requireRecentAuth).toBe('function');
         });

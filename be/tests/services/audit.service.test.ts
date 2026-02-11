@@ -8,7 +8,7 @@ import { describe, it, expect, vi, beforeEach } from 'vitest';
 import {
   AuditAction,
   AuditResourceType,
-} from '../../src/services/audit.service.js';
+} from '../../src/modules/audit/audit.service.js';
 
 const mockAuditLogModel = vi.hoisted(() => ({
   create: vi.fn(),
@@ -21,13 +21,13 @@ const mockLog = vi.hoisted(() => ({
   error: vi.fn(),
 }));
 
-vi.mock('../../src/models/factory.js', () => ({
+vi.mock('../../src/shared/models/factory.js', () => ({
   ModelFactory: {
     auditLog: mockAuditLogModel,
   },
 }));
 
-vi.mock('../../src/services/logger.service.js', () => ({
+vi.mock('../../src/shared/services/logger.service.js', () => ({
   log: mockLog,
 }));
 
@@ -36,7 +36,7 @@ describe('Audit Service', () => {
 
   beforeEach(async () => {
     vi.clearAllMocks();
-    const module = await import('../../src/services/audit.service.js');
+    const module = await import('../../src/modules/audit/audit.service.js');
     auditService = module.auditService;
   });
 

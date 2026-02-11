@@ -6,7 +6,7 @@
 import { describe, it, expect, vi, beforeEach } from 'vitest';
 
 // Mock dependencies
-vi.mock('../../src/services/logger.service.js', () => ({
+vi.mock('../../src/shared/services/logger.service.js', () => ({
     log: {
         info: vi.fn(),
         warn: vi.fn(),
@@ -15,7 +15,7 @@ vi.mock('../../src/services/logger.service.js', () => ({
     },
 }));
 
-vi.mock('../../src/config/index.js', () => ({
+vi.mock('../../src/shared/config/index.js', () => ({
     config: {
         nodeEnv: 'test',
         frontendUrl: 'http://localhost:5173',
@@ -31,14 +31,14 @@ vi.mock('../../src/config/index.js', () => ({
     },
 }));
 
-vi.mock('../../src/middleware/auth.middleware.js', () => ({
+vi.mock('../../src/shared/middleware/auth.middleware.js', () => ({
     getCurrentUser: vi.fn(),
     updateAuthTimestamp: vi.fn(),
     requireAuth: vi.fn((_req: unknown, _res: unknown, next: () => void) => next()),
     REAUTH_REQUIRED_ERROR: 'REAUTH_REQUIRED',
 }));
 
-vi.mock('../../src/services/auth.service.js', () => ({
+vi.mock('../../src/modules/auth/auth.service.js', () => ({
     getAuthorizationUrl: vi.fn().mockReturnValue('https://login.microsoft.com/auth'),
     exchangeCodeForTokens: vi.fn(),
     getUserProfile: vi.fn(),
@@ -47,14 +47,14 @@ vi.mock('../../src/services/auth.service.js', () => ({
     isTokenExpired: vi.fn(),
 }));
 
-vi.mock('../../src/services/user.service.js', () => ({
+vi.mock('../../src/modules/users/user.service.js', () => ({
     userService: {
         findOrCreateUser: vi.fn(),
         recordUserIp: vi.fn().mockResolvedValue(undefined),
     },
 }));
 
-vi.mock('../../src/services/audit.service.js', () => ({
+vi.mock('../../src/modules/audit/audit.service.js', () => ({
     auditService: {
         log: vi.fn().mockResolvedValue(undefined),
     },
@@ -74,48 +74,48 @@ describe('Auth Routes', () => {
 
     describe('Module exports', () => {
         it('should export a router', async () => {
-            const authRoutes = await import('../../src/routes/auth.routes.js');
+            const authRoutes = await import('../../src/modules/auth/auth.routes.js');
             expect(authRoutes.default).toBeDefined();
         });
     });
 
     describe('Auth service integration', () => {
         it('should have getAuthorizationUrl available', async () => {
-            const { getAuthorizationUrl } = await import('../../src/services/auth.service.js');
+            const { getAuthorizationUrl } = await import('../../src/modules/auth/auth.service.js');
             expect(typeof getAuthorizationUrl).toBe('function');
         });
 
         it('should have exchangeCodeForTokens available', async () => {
-            const { exchangeCodeForTokens } = await import('../../src/services/auth.service.js');
+            const { exchangeCodeForTokens } = await import('../../src/modules/auth/auth.service.js');
             expect(typeof exchangeCodeForTokens).toBe('function');
         });
 
         it('should have getUserProfile available', async () => {
-            const { getUserProfile } = await import('../../src/services/auth.service.js');
+            const { getUserProfile } = await import('../../src/modules/auth/auth.service.js');
             expect(typeof getUserProfile).toBe('function');
         });
 
         it('should have generateState available', async () => {
-            const { generateState } = await import('../../src/services/auth.service.js');
+            const { generateState } = await import('../../src/modules/auth/auth.service.js');
             expect(typeof generateState).toBe('function');
         });
     });
 
     describe('User service integration', () => {
         it('should have findOrCreateUser available', async () => {
-            const { userService } = await import('../../src/services/user.service.js');
+            const { userService } = await import('../../src/modules/users/user.service.js');
             expect(typeof userService.findOrCreateUser).toBe('function');
         });
 
         it('should have recordUserIp available', async () => {
-            const { userService } = await import('../../src/services/user.service.js');
+            const { userService } = await import('../../src/modules/users/user.service.js');
             expect(typeof userService.recordUserIp).toBe('function');
         });
     });
 
     describe('Configuration', () => {
         it('should access config values', async () => {
-            const { config } = await import('../../src/config/index.js');
+            const { config } = await import('../../src/shared/config/index.js');
             expect(config.nodeEnv).toBe('test');
             expect(config.frontendUrl).toBe('http://localhost:5173');
             expect(config.enableRootLogin).toBe(true);

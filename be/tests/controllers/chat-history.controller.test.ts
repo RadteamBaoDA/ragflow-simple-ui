@@ -1,12 +1,12 @@
 
 import { describe, it, expect, vi, beforeEach } from 'vitest'
-import { ChatHistoryController } from '../../src/controllers/chat-history.controller.js'
-import { ModelFactory } from '@/models/factory.js'
+import { ChatHistoryController } from '../../src/modules/chat/chat-history.controller.js'
+import { ModelFactory } from '@/shared/models/factory.js'
 import { Request, Response } from 'express'
-import { log } from '@/services/logger.service.js'
+import { log } from '@/shared/services/logger.service.js'
 
 // Mock ModelFactory
-vi.mock('@/models/factory.js', () => ({
+vi.mock('@/shared/models/factory.js', () => ({
     ModelFactory: {
         chatSession: {
             getKnex: vi.fn()
@@ -15,7 +15,7 @@ vi.mock('@/models/factory.js', () => ({
 }))
 
 // Mock logger
-vi.mock('@/services/logger.service.js', () => ({
+vi.mock('@/shared/services/logger.service.js', () => ({
     log: {
         info: vi.fn(),
         error: vi.fn()
@@ -115,7 +115,7 @@ describe('ChatHistoryController', () => {
 
         it('should return 500 and log error when service throws', async () => {
             const spy = vi.spyOn(log, 'error')
-            const svc = await import('../../src/services/chat-history.service.js')
+            const svc = await import('../../src/modules/chat/chat-history.service.js')
             vi.spyOn(svc.chatHistoryService, 'searchSessions' as any).mockRejectedValueOnce(new Error('boom'))
             await controller.searchSessions(req as Request, res as Response)
             expect(res.status).toHaveBeenCalledWith(500)
@@ -164,7 +164,7 @@ describe('ChatHistoryController', () => {
 
         it('should delete sessions and return count', async () => {
             req.body = { sessionIds: ['s1', 's2'], all: false }
-            const svc = await import('../../src/services/chat-history.service.js')
+            const svc = await import('../../src/modules/chat/chat-history.service.js')
             vi.spyOn(svc.chatHistoryService, 'deleteSessions' as any).mockResolvedValue(2)
 
             await controller.deleteSessions(req as Request, res as Response)
@@ -173,7 +173,7 @@ describe('ChatHistoryController', () => {
 
         it('should return 500 and log error when service throws', async () => {
             const spy = vi.spyOn(log, 'error')
-            const svc = await import('../../src/services/chat-history.service.js')
+            const svc = await import('../../src/modules/chat/chat-history.service.js')
             vi.spyOn(svc.chatHistoryService, 'deleteSessions' as any).mockRejectedValueOnce(new Error('boom'))
 
             req.body = { sessionIds: ['s1'], all: false }

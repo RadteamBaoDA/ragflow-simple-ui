@@ -3,7 +3,7 @@
  */
 
 import { describe, it, expect, vi, beforeEach } from 'vitest'
-import { AdminController } from '../../src/controllers/admin.controller.js'
+import { AdminController } from '../../src/modules/admin/admin.controller.js'
 
 const mockUserService = vi.hoisted(() => ({
   getAllUsers: vi.fn(),
@@ -13,11 +13,11 @@ const mockLog = vi.hoisted(() => ({
   error: vi.fn(),
 }))
 
-vi.mock('../../src/services/user.service.js', () => ({
+vi.mock('../../src/modules/users/user.service.js', () => ({
   userService: mockUserService,
 }))
 
-vi.mock('../../src/services/logger.service.js', () => ({
+vi.mock('../../src/shared/services/logger.service.js', () => ({
   log: mockLog,
 }))
 

@@ -42,27 +42,27 @@ const mockConfig = {
   rootPassword: 'test-root-pass',
 };
 
-vi.mock('../../src/services/auth.service.js', () => ({
+vi.mock('../../src/modules/auth/auth.service.js', () => ({
   authService: mockAuthService,
 }));
 
-vi.mock('../../src/services/user.service.js', () => ({
+vi.mock('../../src/modules/users/user.service.js', () => ({
   userService: mockUserService,
 }));
 
-vi.mock('../../src/services/logger.service.js', () => ({
+vi.mock('../../src/shared/services/logger.service.js', () => ({
   log: mockLog,
 }));
 
-vi.mock('../../src/utils/ip.js', () => ({
+vi.mock('../../src/shared/utils/ip.js', () => ({
   getClientIp: mockGetClientIp,
 }));
 
-vi.mock('../../src/config/index.js', () => ({
+vi.mock('../../src/shared/config/index.js', () => ({
   config: mockConfig,
 }));
 
-vi.mock('../../src/middleware/auth.middleware.js', () => ({
+vi.mock('../../src/shared/middleware/auth.middleware.js', () => ({
   updateAuthTimestamp: mockUpdateAuthTimestamp,
   getCurrentUser: mockGetCurrentUser,
 }));
@@ -75,7 +75,7 @@ describe('AuthController', () => {
   beforeEach(async () => {
     vi.clearAllMocks();
     
-    const module = await import('../../src/controllers/auth.controller.js');
+    const module = await import('../../src/modules/auth/auth.controller.js');
     controller = new module.AuthController();
 
     req = {

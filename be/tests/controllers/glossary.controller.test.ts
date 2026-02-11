@@ -4,7 +4,7 @@
  */
 
 import { describe, it, expect, vi, beforeEach } from 'vitest'
-import { GlossaryController } from '../../src/controllers/glossary.controller.js'
+import { GlossaryController } from '../../src/modules/glossary/glossary.controller.js'
 
 // ============================================================================
 // Hoisted mocks
@@ -26,7 +26,7 @@ const mockService = vi.hoisted(() => ({
   bulkImportKeywords: vi.fn(),
 }))
 
-vi.mock('../../src/services/glossary.service.js', () => ({
+vi.mock('../../src/modules/glossary/glossary.service.js', () => ({
   glossaryService: mockService,
 }))
 

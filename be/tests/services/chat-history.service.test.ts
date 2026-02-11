@@ -35,7 +35,7 @@ describe('ChatHistoryService', () => {
   })
 
   it('searchSessions returns sessions and total', async () => {
-    const { chatHistoryService } = await import('../../src/services/chat-history.service')
+    const { chatHistoryService } = await import('../../src/modules/chat/chat-history.service')
 
     const sessions = [{ id: 's1' }, { id: 's2' }]
     const sessionBuilder = makeBuilder(sessions)
@@ -46,7 +46,7 @@ describe('ChatHistoryService', () => {
       count: vi.fn().mockReturnValue({ first: () => Promise.resolve({ total: '2' }) })
     }
 
-    const factory = await import('../../src/models/factory')
+    const factory = await import('../../src/shared/models/factory')
     // mutate exported ModelFactory for the test: first call -> data query; second call -> count query
     factory.ModelFactory.chatSession.getKnex = vi.fn().mockImplementationOnce(() => sessionBuilder).mockImplementationOnce(() => countBuilder)
 
@@ -56,14 +56,14 @@ describe('ChatHistoryService', () => {
   })
 
   it('searchSessions applies search and date filters to both queries', async () => {
-    const { chatHistoryService } = await import('../../src/services/chat-history.service')
+    const { chatHistoryService } = await import('../../src/modules/chat/chat-history.service')
 
     const sessions = [{ id: 's3' }]
     const sessionBuilder = makeBuilder(sessions)
     const countBuilder = makeBuilder({})
     countBuilder.count = vi.fn().mockReturnValue({ first: () => Promise.resolve({ total: '1' }) })
 
-    const factory = await import('../../src/models/factory')
+    const factory = await import('../../src/shared/models/factory')
     factory.ModelFactory.chatSession.getKnex = vi.fn().mockImplementationOnce(() => sessionBuilder).mockImplementationOnce(() => countBuilder)
 
     const res = await chatHistoryService.searchSessions('u1', 5, 0, 'hello', '2020-01-01', '2020-02-01')
@@ -82,9 +82,9 @@ describe('ChatHistoryService', () => {
     expect(countBuilder.where).toHaveBeenCalledWith('created_at', '<=', '2020-02-01')
   })
   it('deleteSession returns true when delete count > 0', async () => {
-    const { chatHistoryService } = await import('../../src/services/chat-history.service')
+    const { chatHistoryService } = await import('../../src/modules/chat/chat-history.service')
     const builder = { from: vi.fn().mockReturnThis(), where: vi.fn().mockReturnThis(), delete: vi.fn().mockResolvedValue(1) }
-    const factory = await import('../../src/models/factory')
+    const factory = await import('../../src/shared/models/factory')
     factory.ModelFactory.chatSession.getKnex = vi.fn().mockReturnValue(builder)
 
     const ok = await chatHistoryService.deleteSession('u1', 's1')
@@ -92,9 +92,9 @@ describe('ChatHistoryService', () => {
   })
 
   it('deleteSession returns false when delete count is 0', async () => {
-    const { chatHistoryService } = await import('../../src/services/chat-history.service')
+    const { chatHistoryService } = await import('../../src/modules/chat/chat-history.service')
     const builder = { from: vi.fn().mockReturnThis(), where: vi.fn().mockReturnThis(), delete: vi.fn().mockResolvedValue(0) }
-    const factory = await import('../../src/models/factory')
+    const factory = await import('../../src/shared/models/factory')
     factory.ModelFactory.chatSession.getKnex = vi.fn().mockReturnValue(builder)
 
     const ok = await chatHistoryService.deleteSession('u1', 's1')
@@ -102,9 +102,9 @@ describe('ChatHistoryService', () => {
   })
 
   it('deleteSessions deletes all when all=true', async () => {
-    const { chatHistoryService } = await import('../../src/services/chat-history.service')
+    const { chatHistoryService } = await import('../../src/modules/chat/chat-history.service')
     const builder = { from: vi.fn().mockReturnThis(), where: vi.fn().mockReturnThis(), delete: vi.fn().mockResolvedValue(5) }
-    const factory = await import('../../src/models/factory')
+    const factory = await import('../../src/shared/models/factory')
     factory.ModelFactory.chatSession.getKnex = vi.fn().mockReturnValue(builder)
 
     const count = await chatHistoryService.deleteSessions('u1', [], true)
@@ -112,9 +112,9 @@ describe('ChatHistoryService', () => {
   })
 
   it('deleteSessions deletes by ids when provided', async () => {
-    const { chatHistoryService } = await import('../../src/services/chat-history.service')
+    const { chatHistoryService } = await import('../../src/modules/chat/chat-history.service')
     const builder = { from: vi.fn().mockReturnThis(), where: vi.fn().mockReturnThis(), whereIn: vi.fn().mockReturnThis(), delete: vi.fn().mockResolvedValue(2) }
-    const factory = await import('../../src/models/factory')
+    const factory = await import('../../src/shared/models/factory')
     factory.ModelFactory.chatSession.getKnex = vi.fn().mockReturnValue(builder)
 
     const count = await chatHistoryService.deleteSessions('u1', ['a','b'], false)
@@ -122,9 +122,9 @@ describe('ChatHistoryService', () => {
   })
 
   it('deleteSessions returns 0 when no ids and all=false', async () => {
-    const { chatHistoryService } = await import('../../src/services/chat-history.service')
+    const { chatHistoryService } = await import('../../src/modules/chat/chat-history.service')
     const builder = { from: vi.fn().mockReturnThis(), where: vi.fn().mockReturnThis(), delete: vi.fn().mockResolvedValue(0) }
-    const factory = await import('../../src/models/factory')
+    const factory = await import('../../src/shared/models/factory')
     factory.ModelFactory.chatSession.getKnex = vi.fn().mockReturnValue(builder)
 
     const count = await chatHistoryService.deleteSessions('u1', [], false)

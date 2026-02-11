@@ -1,6 +1,6 @@
 import { describe, it, expect, vi, beforeEach } from 'vitest'
-import { UserHistoryController } from '@/controllers/user-history.controller.js'
-import { userHistoryService } from '@/services/user-history.service.js'
+import { UserHistoryController } from '@/modules/user-history/user-history.controller.js'
+import { userHistoryService } from '@/modules/user-history/user-history.service.js'
 
 const makeReq = (overrides: any = {}) => ({ params: {}, query: {}, user: { email: 'u@x' }, ...overrides }) as any
 const makeRes = () => ({ status: vi.fn(() => ({ json: vi.fn() })), json: vi.fn() } as any)

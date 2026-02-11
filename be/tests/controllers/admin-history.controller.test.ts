@@ -1,9 +1,9 @@
 
 import { describe, it, expect, vi, beforeEach } from 'vitest'
-import { AdminHistoryController } from '../../src/controllers/admin-history.controller.js'
-import { ModelFactory } from '@/models/factory.js'
+import { AdminHistoryController } from '../../src/modules/admin/admin-history.controller.js'
+import { ModelFactory } from '@/shared/models/factory.js'
 import { Request, Response } from 'express'
-import { log } from '@/services/logger.service.js'
+import { log } from '@/shared/services/logger.service.js'
 
 // Mock adminHistoryService
 const mockAdminHistoryService = vi.hoisted(() => ({
@@ -12,12 +12,12 @@ const mockAdminHistoryService = vi.hoisted(() => ({
     getSystemChatHistory: vi.fn(),
 }))
 
-vi.mock('@/services/admin-history.service.js', () => ({
+vi.mock('@/modules/admin/admin-history.service.js', () => ({
     adminHistoryService: mockAdminHistoryService,
 }))
 
 // Mock ModelFactory
-vi.mock('@/models/factory.js', () => ({
+vi.mock('@/shared/models/factory.js', () => ({
     ModelFactory: {
         externalChatHistory: {
             getKnex: vi.fn()
@@ -32,7 +32,7 @@ vi.mock('@/models/factory.js', () => ({
 }))
 
 // Mock logger
-vi.mock('@/services/logger.service.js', () => ({
+vi.mock('@/shared/services/logger.service.js', () => ({
     log: {
         info: vi.fn(),
         error: vi.fn()
@@ -40,7 +40,7 @@ vi.mock('@/services/logger.service.js', () => ({
 }))
 
 // Mock db
-vi.mock('@/db/knex.js', () => ({
+vi.mock('@/shared/db/knex.js', () => ({
     db: {
         raw: vi.fn((val) => val)
     }

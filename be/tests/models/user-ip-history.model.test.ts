@@ -3,7 +3,7 @@
  */
 
 import { describe, it, expect, vi, beforeEach } from 'vitest'
-import { UserIpHistoryModel } from '../../src/models/user-ip-history.model.js'
+import { UserIpHistoryModel } from '../../src/modules/users/user-ip-history.model.js'
 
 const makeBuilder = (rows: any[] = []) => {
   const builder: any = {

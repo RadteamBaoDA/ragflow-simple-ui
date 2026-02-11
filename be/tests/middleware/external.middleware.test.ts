@@ -8,18 +8,18 @@ const mockLog = vi.hoisted(() => ({
   warn: vi.fn(),
 }))
 
-vi.mock('../../src/services/logger.service.js', () => ({
+vi.mock('../../src/shared/services/logger.service.js', () => ({
   log: mockLog,
 }))
 
-vi.mock('../../src/config/index.js', () => ({
+vi.mock('../../src/shared/config/index.js', () => ({
   config: {
     externalTrace: { enabled: false }
   }
 }))
 
-const mockedConfig = await import('../../src/config/index.js')
-const { checkEnabled } = await import('../../src/middleware/external.middleware.js')
+const mockedConfig = await import('../../src/shared/config/index.js')
+const { checkEnabled } = await import('../../src/modules/external/middleware/external.middleware.js')
 
 function buildReqRes() {
   const res: any = {

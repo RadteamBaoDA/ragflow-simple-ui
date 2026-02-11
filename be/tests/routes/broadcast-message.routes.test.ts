@@ -5,7 +5,7 @@
 
 import { describe, it, expect, vi, beforeEach } from 'vitest'
 
-vi.mock('../../src/services/logger.service.js', () => ({
+vi.mock('../../src/shared/services/logger.service.js', () => ({
   log: {
     info: vi.fn(),
     warn: vi.fn(),
@@ -21,14 +21,14 @@ describe('Broadcast Message Routes', () => {
 
   describe('Module exports', () => {
     it('should export a router', async () => {
-      const routes = await import('../../src/routes/broadcast-message.routes.js')
+      const routes = await import('../../src/modules/broadcast/broadcast-message.routes.js')
       expect(routes.default).toBeDefined()
     })
   })
 
   describe('Route middleware', () => {
     it('should apply requirePermission middleware for admin routes', async () => {
-      const { requirePermission } = await import('../../src/middleware/auth.middleware.js')
+      const { requirePermission } = await import('../../src/shared/middleware/auth.middleware.js')
       expect(requirePermission).toBeDefined()
     })
   })

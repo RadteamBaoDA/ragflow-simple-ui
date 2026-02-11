@@ -45,7 +45,7 @@ describe('LoggerService', () => {
 
     describe('log object', () => {
         it('should export log object with standard methods', async () => {
-            const { log } = await import('../../src/services/logger.service.js');
+            const { log } = await import('../../src/shared/services/logger.service.js');
 
             expect(log).toBeDefined();
             expect(typeof log.debug).toBe('function');
@@ -55,7 +55,7 @@ describe('LoggerService', () => {
         });
 
         it('should call debug method', async () => {
-            const { log } = await import('../../src/services/logger.service.js');
+            const { log } = await import('../../src/shared/services/logger.service.js');
 
             log.debug('Test debug message', { key: 'value' });
 
@@ -63,7 +63,7 @@ describe('LoggerService', () => {
         });
 
         it('should call info method', async () => {
-            const { log } = await import('../../src/services/logger.service.js');
+            const { log } = await import('../../src/shared/services/logger.service.js');
 
             log.info('Test info message');
 
@@ -71,7 +71,7 @@ describe('LoggerService', () => {
         });
 
         it('should call warn method', async () => {
-            const { log } = await import('../../src/services/logger.service.js');
+            const { log } = await import('../../src/shared/services/logger.service.js');
 
             log.warn('Test warning', { context: 'test' });
 
@@ -79,7 +79,7 @@ describe('LoggerService', () => {
         });
 
         it('should call error method', async () => {
-            const { log } = await import('../../src/services/logger.service.js');
+            const { log } = await import('../../src/shared/services/logger.service.js');
             const error = new Error('Test error');
 
             log.error('Error occurred', { error: error.message });
@@ -90,13 +90,13 @@ describe('LoggerService', () => {
 
     describe('Module structure', () => {
         it('should export log as named export', async () => {
-            const loggerModule = await import('../../src/services/logger.service.js');
+            const loggerModule = await import('../../src/shared/services/logger.service.js');
 
             expect(loggerModule.log).toBeDefined();
         });
 
         it('should have all required log level methods', async () => {
-            const { log } = await import('../../src/services/logger.service.js');
+            const { log } = await import('../../src/shared/services/logger.service.js');
 
             const requiredMethods = ['debug', 'info', 'warn', 'error'];
 

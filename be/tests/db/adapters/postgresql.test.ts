@@ -1,6 +1,6 @@
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest'
 
-import type { PostgreSQLAdapter } from '../../../src/db/adapters/postgresql'
+import type { PostgreSQLAdapter } from '../../../src/shared/db/adapters/postgresql'
 
 // Create a fake PG pool class used by the adapter
 class FakePool {
@@ -29,7 +29,7 @@ describe('PostgreSQLAdapter', () => {
   })
 
   it('query returns rows', async () => {
-    const { PostgreSQLAdapter } = await import('../../../src/db/adapters/postgresql')
+    const { PostgreSQLAdapter } = await import('../../../src/shared/db/adapters/postgresql')
     const fake = new FakePool()
     fake.query.mockResolvedValue({ rows: [{ id: 1 }] })
     currentFakePool = fake
@@ -40,7 +40,7 @@ describe('PostgreSQLAdapter', () => {
   })
 
   it('queryOne returns first row or undefined', async () => {
-    const { PostgreSQLAdapter } = await import('../../../src/db/adapters/postgresql')
+    const { PostgreSQLAdapter } = await import('../../../src/shared/db/adapters/postgresql')
     const fake = new FakePool()
     fake.query.mockResolvedValue({ rows: [{ id: 2 }] })
     currentFakePool = fake
@@ -55,7 +55,7 @@ describe('PostgreSQLAdapter', () => {
   })
 
   it('getClient returns wrapper with query and release', async () => {
-    const { PostgreSQLAdapter } = await import('../../../src/db/adapters/postgresql')
+    const { PostgreSQLAdapter } = await import('../../../src/shared/db/adapters/postgresql')
     const fake = new FakePool()
     const client = { query: vi.fn().mockResolvedValue({ rows: [{ x: 1 }] }), release: vi.fn() }
     fake.connect.mockResolvedValue(client)
@@ -70,7 +70,7 @@ describe('PostgreSQLAdapter', () => {
   })
 
   it('close calls pool.end', async () => {
-    const { PostgreSQLAdapter } = await import('../../../src/db/adapters/postgresql')
+    const { PostgreSQLAdapter } = await import('../../../src/shared/db/adapters/postgresql')
     const fake = new FakePool()
     fake.end.mockResolvedValue(undefined)
     currentFakePool = fake
@@ -81,7 +81,7 @@ describe('PostgreSQLAdapter', () => {
   })
 
   it('checkConnection true on success and false on failure', async () => {
-    const { PostgreSQLAdapter } = await import('../../../src/db/adapters/postgresql')
+    const { PostgreSQLAdapter } = await import('../../../src/shared/db/adapters/postgresql')
     const fake = new FakePool()
     fake.query.mockResolvedValue({ rows: [] })
     currentFakePool = fake

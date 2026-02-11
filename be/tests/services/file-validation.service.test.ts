@@ -14,7 +14,7 @@ import {
   sanitizeObjectPath,
   sanitizeFolderPath,
   validateUploadedFile,
-} from '../../src/services/file-validation.service.js';
+} from '../../src/shared/services/file-validation.service.js';
 
 describe('File Validation Service', () => {
   describe('validateFileExtension', () => {

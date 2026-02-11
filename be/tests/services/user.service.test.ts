@@ -10,7 +10,7 @@ const mockLog = vi.hoisted(() => ({
   error: vi.fn(),
 }))
 
-vi.mock('../../src/services/logger.service.js', () => ({
+vi.mock('../../src/shared/services/logger.service.js', () => ({
   log: mockLog,
 }))
 
@@ -18,7 +18,7 @@ const mockAudit = vi.hoisted(() => ({
   log: vi.fn(),
 }))
 
-vi.mock('../../src/services/audit.service.js', () => ({
+vi.mock('../../src/modules/audit/audit.service.js', () => ({
   auditService: mockAudit,
   AuditAction: {
     CREATE_USER: 'CREATE_USER',
@@ -46,14 +46,14 @@ const mockUserIpHistory = vi.hoisted(() => ({
   create: vi.fn(),
 }))
 
-vi.mock('../../src/models/factory.js', () => ({
+vi.mock('../../src/shared/models/factory.js', () => ({
   ModelFactory: {
     user: mockUserModel,
     userIpHistory: mockUserIpHistory,
   },
 }))
 
-vi.mock('../../src/config/index.js', () => ({
+vi.mock('../../src/shared/config/index.js', () => ({
   config: {
     rootUser: 'admin@localhost',
     rootPassword: 'admin',
@@ -61,7 +61,7 @@ vi.mock('../../src/config/index.js', () => ({
   },
 }))
 
-import { UserService } from '../../src/services/user.service.js'
+import { UserService } from '../../src/modules/users/user.service.js'
 
 const service = new UserService()
 

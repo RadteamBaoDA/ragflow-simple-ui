@@ -1,6 +1,6 @@
 
-import { getAdapter } from '../db/index.js';
-import { log } from '../services/logger.service.js';
+import { getAdapter } from '@/shared/db/index.js';
+import { log } from '@/shared/services/logger.service.js';
 
 async function verifyMockData() {
     const db = await getAdapter();

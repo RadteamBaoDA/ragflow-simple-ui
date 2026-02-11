@@ -17,7 +17,7 @@ vi.mock('langfuse', () => ({
 }));
 
 // Mock config
-vi.mock('../../src/config/index.js', () => ({
+vi.mock('../../src/shared/config/index.js', () => ({
     config: {
         langfuse: {
             secretKey: 'test-secret-key',
@@ -28,7 +28,7 @@ vi.mock('../../src/config/index.js', () => ({
 }));
 
 // Mock logger
-vi.mock('../../src/services/logger.service.js', () => ({
+vi.mock('../../src/shared/services/logger.service.js', () => ({
     log: {
         info: vi.fn(),
         warn: vi.fn(),
@@ -44,12 +44,12 @@ describe('LangfuseService', () => {
 
     describe('Module exports', () => {
         it('should export getLangfuseClient function', async () => {
-            const langfuseService = await import('../../src/services/langfuse.service.js');
+            const langfuseService = await import('../../src/shared/services/langfuse.service.js');
             expect(typeof langfuseService.getLangfuseClient).toBe('function');
         });
 
         it('should export shutdownLangfuse function', async () => {
-            const langfuseService = await import('../../src/services/langfuse.service.js');
+            const langfuseService = await import('../../src/shared/services/langfuse.service.js');
             expect(typeof langfuseService.shutdownLangfuse).toBe('function');
         });
     });
@@ -57,7 +57,7 @@ describe('LangfuseService', () => {
     describe('getLangfuseClient', () => {
         it('should create a Langfuse client with config', async () => {
             const { Langfuse } = await import('langfuse');
-            const { getLangfuseClient } = await import('../../src/services/langfuse.service.js');
+            const { getLangfuseClient } = await import('../../src/shared/services/langfuse.service.js');
 
             const client = getLangfuseClient();
 
@@ -70,7 +70,7 @@ describe('LangfuseService', () => {
         });
 
         it('should return the same client instance on subsequent calls (singleton)', async () => {
-            const { getLangfuseClient } = await import('../../src/services/langfuse.service.js');
+            const { getLangfuseClient } = await import('../../src/shared/services/langfuse.service.js');
 
             const client1 = getLangfuseClient();
             const client2 = getLangfuseClient();
@@ -79,8 +79,8 @@ describe('LangfuseService', () => {
         });
 
         it('should log debug message on initialization', async () => {
-            const { log } = await import('../../src/services/logger.service.js');
-            await import('../../src/services/langfuse.service.js');
+            const { log } = await import('../../src/shared/services/logger.service.js');
+            await import('../../src/shared/services/langfuse.service.js');
 
             // Log should have been called during module import/init
             expect(log.debug).toBeDefined();
@@ -96,7 +96,7 @@ describe('LangfuseService', () => {
             vi.doMock('langfuse', () => ({
                 Langfuse: vi.fn().mockImplementation(() => mockLangfuseInstance),
             }));
-            vi.doMock('../../src/config/index.js', () => ({
+            vi.doMock('../../src/shared/config/index.js', () => ({
                 config: {
                     langfuse: {
                         secretKey: 'test-secret-key',
@@ -106,8 +106,8 @@ describe('LangfuseService', () => {
                 },
             }));
             
-            const { getLangfuseClient, shutdownLangfuse } = await import('../../src/services/langfuse.service.js');
-            const { log } = await import('../../src/services/logger.service.js');
+            const { getLangfuseClient, shutdownLangfuse } = await import('../../src/shared/services/langfuse.service.js');
+            const { log } = await import('../../src/shared/services/logger.service.js');
             
             // Initialize client
             const client = getLangfuseClient();
@@ -124,7 +124,7 @@ describe('LangfuseService', () => {
             vi.resetModules();
             vi.clearAllMocks();
             
-            const { shutdownLangfuse } = await import('../../src/services/langfuse.service.js');
+            const { shutdownLangfuse } = await import('../../src/shared/services/langfuse.service.js');
             
             // Should not throw when no client is initialized
             await expect(shutdownLangfuse()).resolves.toBeUndefined();
@@ -139,7 +139,7 @@ describe('LangfuseService', () => {
         });
 
         it('should return false when Langfuse not configured', async () => {
-            vi.doMock('../../src/config/index.js', () => ({
+            vi.doMock('../../src/shared/config/index.js', () => ({
                 config: {
                     langfuse: {
                         secretKey: '',
@@ -149,14 +149,14 @@ describe('LangfuseService', () => {
                 },
             }));
 
-            const { checkHealth } = await import('../../src/services/langfuse.service.js');
+            const { checkHealth } = await import('../../src/shared/services/langfuse.service.js');
             const result = await checkHealth();
 
             expect(result).toBe(false);
         });
 
         it('should return true when API returns ok', async () => {
-            vi.doMock('../../src/config/index.js', () => ({
+            vi.doMock('../../src/shared/config/index.js', () => ({
                 config: {
                     langfuse: {
                         secretKey: 'test-secret-key',
@@ -171,7 +171,7 @@ describe('LangfuseService', () => {
 
             (global.fetch as any).mockResolvedValue({ ok: true, status: 200 });
 
-            const { checkHealth, getLangfuseClient } = await import('../../src/services/langfuse.service.js');
+            const { checkHealth, getLangfuseClient } = await import('../../src/shared/services/langfuse.service.js');
             
             // Initialize client first
             getLangfuseClient();
@@ -191,7 +191,7 @@ describe('LangfuseService', () => {
         });
 
         it('should return true when API returns 400 (auth passed)', async () => {
-            vi.doMock('../../src/config/index.js', () => ({
+            vi.doMock('../../src/shared/config/index.js', () => ({
                 config: {
                     langfuse: {
                         secretKey: 'test-secret-key',
@@ -206,7 +206,7 @@ describe('LangfuseService', () => {
 
             (global.fetch as any).mockResolvedValue({ ok: false, status: 400 });
 
-            const { checkHealth, getLangfuseClient } = await import('../../src/services/langfuse.service.js');
+            const { checkHealth, getLangfuseClient } = await import('../../src/shared/services/langfuse.service.js');
             
             // Initialize client first
             getLangfuseClient();
@@ -217,7 +217,7 @@ describe('LangfuseService', () => {
         });
 
         it('should return false when API returns 401', async () => {
-            vi.doMock('../../src/config/index.js', () => ({
+            vi.doMock('../../src/shared/config/index.js', () => ({
                 config: {
                     langfuse: {
                         secretKey: 'test-secret-key',
@@ -232,7 +232,7 @@ describe('LangfuseService', () => {
 
             (global.fetch as any).mockResolvedValue({ ok: false, status: 401 });
 
-            const { checkHealth, getLangfuseClient } = await import('../../src/services/langfuse.service.js');
+            const { checkHealth, getLangfuseClient } = await import('../../src/shared/services/langfuse.service.js');
             
             // Initialize client first
             getLangfuseClient();
@@ -243,7 +243,7 @@ describe('LangfuseService', () => {
         });
 
         it('should return false on network error', async () => {
-            vi.doMock('../../src/config/index.js', () => ({
+            vi.doMock('../../src/shared/config/index.js', () => ({
                 config: {
                     langfuse: {
                         secretKey: 'test-secret-key',
@@ -258,8 +258,8 @@ describe('LangfuseService', () => {
 
             (global.fetch as any).mockRejectedValue(new Error('Network error'));
 
-            const { checkHealth, getLangfuseClient } = await import('../../src/services/langfuse.service.js');
-            const { log } = await import('../../src/services/logger.service.js');
+            const { checkHealth, getLangfuseClient } = await import('../../src/shared/services/langfuse.service.js');
+            const { log } = await import('../../src/shared/services/logger.service.js');
             
             // Initialize client first
             getLangfuseClient();

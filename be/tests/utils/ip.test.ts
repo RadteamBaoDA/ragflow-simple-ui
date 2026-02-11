@@ -3,7 +3,7 @@
  */
 
 import { describe, it, expect } from 'vitest'
-import { getClientIp } from '../../src/utils/ip.js'
+import { getClientIp } from '../../src/shared/utils/ip.js'
 
 function buildRequest(overrides: Partial<Record<string, any>> = {}) {
   return {

@@ -1,5 +1,5 @@
 import knex from 'knex';
-import dbConfig from '../db/knexfile.js';
+import dbConfig from '@/shared/db/knexfile.js';
 
 async function makeMigration() {
     const name = process.argv[2];

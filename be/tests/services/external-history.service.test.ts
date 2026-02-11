@@ -7,10 +7,10 @@ describe('ExternalHistoryService', () => {
   })
 
   it('saveChatHistory creates session and message within transaction', async () => {
-    const { externalHistoryService } = await import('../../src/services/external-history.service')
-    const { db } = await import('../../src/db/knex')
-    const factory = await import('../../src/models/factory')
-    const { log } = await import('../../src/services/logger.service')
+    const { externalHistoryService } = await import('../../src/modules/external/external-history.service')
+    const { db } = await import('../../src/shared/db/knex')
+    const factory = await import('../../src/shared/models/factory')
+    const { log } = await import('../../src/shared/services/logger.service')
 
     // fake trx object
     const trx: any = { id: 'trx1' }
@@ -54,10 +54,10 @@ describe('ExternalHistoryService', () => {
   })
 
   it('saveChatHistory logs error and rethrows when create fails', async () => {
-    const { externalHistoryService } = await import('../../src/services/external-history.service')
-    const { db } = await import('../../src/db/knex')
-    const factory = await import('../../src/models/factory')
-    const { log } = await import('../../src/services/logger.service')
+    const { externalHistoryService } = await import('../../src/modules/external/external-history.service')
+    const { db } = await import('../../src/shared/db/knex')
+    const factory = await import('../../src/shared/models/factory')
+    const { log } = await import('../../src/shared/services/logger.service')
 
     const trx: any = { id: 'trx2' }
     vi.spyOn(db, 'transaction' as any).mockImplementation(async (fn: any) => {
@@ -77,10 +77,10 @@ describe('ExternalHistoryService', () => {
   })
 
   it('saveSearchHistory creates session and record and uses fallback session_id', async () => {
-    const { externalHistoryService } = await import('../../src/services/external-history.service')
-    const { db } = await import('../../src/db/knex')
-    const factory = await import('../../src/models/factory')
-    const { log } = await import('../../src/services/logger.service')
+    const { externalHistoryService } = await import('../../src/modules/external/external-history.service')
+    const { db } = await import('../../src/shared/db/knex')
+    const factory = await import('../../src/shared/models/factory')
+    const { log } = await import('../../src/shared/services/logger.service')
 
     // control Date.now to ensure deterministic session id
     vi.spyOn(Date, 'now').mockReturnValue(12345 as any)
@@ -107,10 +107,10 @@ describe('ExternalHistoryService', () => {
   })
 
   it('saveSearchHistory logs error and rethrows when record create fails', async () => {
-    const { externalHistoryService } = await import('../../src/services/external-history.service')
-    const { db } = await import('../../src/db/knex')
-    const factory = await import('../../src/models/factory')
-    const { log } = await import('../../src/services/logger.service')
+    const { externalHistoryService } = await import('../../src/modules/external/external-history.service')
+    const { db } = await import('../../src/shared/db/knex')
+    const factory = await import('../../src/shared/models/factory')
+    const { log } = await import('../../src/shared/services/logger.service')
 
     const trx: any = { id: 'trx4' }
     vi.spyOn(db, 'transaction' as any).mockImplementation(async (fn: any) => {
