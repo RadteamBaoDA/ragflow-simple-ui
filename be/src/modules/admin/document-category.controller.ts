@@ -34,7 +34,7 @@ export class DocumentCategoryController {
    */
   static async createCategory(req: Request, res: Response) {
     try {
-      const { name, description, sort_order } = req.body
+      const { name, description, sort_order, dataset_config } = req.body
       if (!name) {
         res.status(400).json({ error: 'Category name is required' })
         return
@@ -45,7 +45,8 @@ export class DocumentCategoryController {
         project_id: req.params.projectId,
         name,
         description,
-        sort_order
+        sort_order,
+        dataset_config
       }, userId)
       res.status(201).json(category)
     } catch (error: any) {
