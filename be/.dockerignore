@@ -3,12 +3,10 @@
 
 # Except these files and directories
 !package.json
-!node_modules
 !package-lock.json
 !tsconfig.json
 !src/
 !public/
-!dist/
 
 # Ignore these within allowed directories
 src/**/*.test.ts

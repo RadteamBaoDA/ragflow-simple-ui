@@ -25,7 +25,11 @@
       "@/*": [
         "./src/*"
       ]
-    }
+    },
+    "types": [
+      "vitest/globals",
+      "node"
+    ]
   },
   "include": [
     "src/**/*"

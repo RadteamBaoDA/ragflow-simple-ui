@@ -76,8 +76,9 @@ services:
       - "3001"
     volumes:
       - backend_logs:/app/logs
-      # Mount custom config directory (optional - uncomment to customize)
-      # - ./config:/app/config:ro
+      - backend_data:/app/.data
+      # Mount config directory for system-tools.config.json & ragflow.config.json
+      - ./config:/app/config:ro
     healthcheck:
       test: ["CMD", "wget", "--no-verbose", "--tries=1", "--spider", "http://localhost:3001/health"]
       interval: 30s
@@ -103,4 +104,6 @@ volumes:
   redis_data:
     driver: local
   backend_logs:
+    driver: local
+  backend_data:
     driver: local

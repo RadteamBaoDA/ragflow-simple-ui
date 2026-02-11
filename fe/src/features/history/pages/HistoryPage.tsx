@@ -1,121 +1,33 @@
 /**
  * @fileoverview Chat history page component with i18n support.
- * 
+ *
  * Displays user's chat session history with:
  * - Full-text search across messages
  * - Date range filtering
  * - Bulk selection and deletion
  * - Individual session deletion
  * - All text internationalized via i18next
- * 
+ *
  * Uses React Query for data fetching and mutations.
- * 
+ *
  * @module pages/HistoryPage
  */
 
-import { useState } from 'react';
-import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
-import { useTranslation } from 'react-i18next';
-import { apiFetch } from '@/lib/api';
-import { Dialog } from '@/components/Dialog';
-import { Checkbox } from '@/components/Checkbox';
-import { DatePicker } from 'antd';
-import dayjs from 'dayjs';
+import { useState } from 'react'
+import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query'
+import { useTranslation } from 'react-i18next'
+import { Dialog } from '@/components/Dialog'
+import { Checkbox } from '@/components/Checkbox'
+import { DatePicker } from 'antd'
+import dayjs from 'dayjs'
 
-// ============================================================================
-// Types
-// ============================================================================
-
-/** Chat session with messages */
-interface ChatSession {
-  /** Unique session identifier */
-  id: string;
-  /** Session title (usually first message summary) */
-  title: string;
-  /** ISO timestamp when session was created */
-  createdAt: string;
-  /** ISO timestamp when session was last updated */
-  updatedAt: string;
-  /** Array of messages in the session */
-  messages: Array<{
-    id: string;
-    role: 'user' | 'assistant';
-    content: string;
-    timestamp: string;
-  }>;
-}
-
-/** Search results with pagination info */
-interface SearchResult {
-  sessions: ChatSession[];
-  total: number;
-}
-
-/** Search query parameters */
-interface SearchParams {
-  q?: string | undefined;
-  startDate?: string | undefined;
-  endDate?: string | undefined;
-  limit?: number | undefined;
-  offset?: number | undefined;
-}
-
-// ============================================================================
-// API Functions
-// ============================================================================
-
-/**
- * Search chat sessions with filters.
- * 
- * @param params - Search parameters (query, dates, pagination)
- * @returns Search results with sessions and total count
- */
-async function searchChatSessions(params: SearchParams): Promise<SearchResult> {
-  const searchParams = new URLSearchParams();
-  if (params.q) searchParams.set('q', params.q);
-  if (params.startDate) searchParams.set('startDate', params.startDate);
-  if (params.endDate) searchParams.set('endDate', params.endDate);
-  if (params.limit) searchParams.set('limit', params.limit.toString());
-  if (params.offset) searchParams.set('offset', params.offset.toString());
-
-  return apiFetch<SearchResult>(`/api/chat/sessions/search?${searchParams.toString()}`);
-}
-
-/**
- * Delete a single chat session.
- * 
- * @param sessionId - ID of session to delete
- */
-async function deleteChatSession(sessionId: string): Promise<void> {
-  await apiFetch(`/api/chat/sessions/${sessionId}`, {
-    method: 'DELETE',
-  });
-}
-
-/**
- * Delete multiple chat sessions.
- * 
- * @param sessionIds - Array of session IDs to delete
- * @returns Count of deleted sessions
- */
-async function deleteChatSessions(sessionIds: string[]): Promise<{ deleted: number }> {
-  return apiFetch<{ deleted: number }>('/api/chat/sessions', {
-    method: 'DELETE',
-    body: JSON.stringify({ sessionIds }),
-  });
-}
-
-/**
- * Delete all sessions for the current user.
- * 
- * @returns Count of deleted sessions
- */
-async function deleteAllSessions(): Promise<{ deleted: number }> {
-  return apiFetch<{ deleted: number }>('/api/chat/sessions', {
-    method: 'DELETE',
-    body: JSON.stringify({ all: true }),
-  });
-}
+import {
+  type SearchParams,
+  searchChatSessions,
+  deleteChatSession,
+  deleteChatSessions,
+  deleteAllSessions,
+} from '../api/historyService'
 
 // ============================================================================
 // Component
@@ -123,7 +35,7 @@ async function deleteAllSessions(): Promise<{ deleted: number }> {
 
 /**
  * Chat history page with search, filtering, and bulk actions.
- * 
+ *
  * Features:
  * - Full-text search across message content
  * - Date range filtering (start/end dates)
@@ -133,30 +45,30 @@ async function deleteAllSessions(): Promise<{ deleted: number }> {
  * - Localized date formatting
  */
 function HistoryPage() {
-  const { t, i18n } = useTranslation();
-  const queryClient = useQueryClient();
+  const { t, i18n } = useTranslation()
+  const queryClient = useQueryClient()
 
   // Search and filter state
-  const [searchQuery, setSearchQuery] = useState('');
-  const [startDate, setStartDate] = useState('');
-  const [endDate, setEndDate] = useState('');
+  const [searchQuery, setSearchQuery] = useState('')
+  const [startDate, setStartDate] = useState('')
+  const [endDate, setEndDate] = useState('')
 
   // Selection state
-  const [selectedSessions, setSelectedSessions] = useState<Set<string>>(new Set());
+  const [selectedSessions, setSelectedSessions] = useState<Set<string>>(new Set())
 
   // Dialog state
-  const [showDeleteConfirm, setShowDeleteConfirm] = useState(false);
-  const [deleteAllConfirm, setDeleteAllConfirm] = useState(false);
+  const [showDeleteConfirm, setShowDeleteConfirm] = useState(false)
+  const [deleteAllConfirm, setDeleteAllConfirm] = useState(false)
 
   // Get locale for date formatting based on current language
-  const dateLocale = i18n.language === 'vi' ? 'vi-VN' : i18n.language === 'ja' ? 'ja-JP' : 'en-US';
+  const dateLocale = i18n.language === 'vi' ? 'vi-VN' : i18n.language === 'ja' ? 'ja-JP' : 'en-US'
 
   const searchParams: SearchParams = {
     q: searchQuery || undefined,
     startDate: startDate || undefined,
     endDate: endDate || undefined,
     limit: 50,
-  };
+  }
 
   const {
     data: result,
@@ -166,109 +78,106 @@ function HistoryPage() {
   } = useQuery({
     queryKey: ['chatSessions', searchParams],
     queryFn: () => searchChatSessions(searchParams),
-  });
+  })
 
   const deleteMutation = useMutation({
     mutationKey: ['delete', 'chatSession'],
     mutationFn: deleteChatSession,
     onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: ['chatSessions'] });
+      queryClient.invalidateQueries({ queryKey: ['chatSessions'] })
     },
     meta: { successMessage: t('history.deleteSuccess') }
-  });
+  })
 
   const bulkDeleteMutation = useMutation({
     mutationKey: ['delete', 'chatSessions', 'bulk'],
     mutationFn: deleteChatSessions,
     onSuccess: () => {
-      setSelectedSessions(new Set());
-      queryClient.invalidateQueries({ queryKey: ['chatSessions'] });
+      setSelectedSessions(new Set())
+      queryClient.invalidateQueries({ queryKey: ['chatSessions'] })
     },
     meta: { successMessage: t('history.bulkDeleteSuccess') }
-  });
+  })
 
   const deleteAllMutation = useMutation({
     mutationKey: ['delete', 'chatSessions', 'all'],
     mutationFn: deleteAllSessions,
     onSuccess: () => {
-      setSelectedSessions(new Set());
-      setDeleteAllConfirm(false);
-      queryClient.invalidateQueries({ queryKey: ['chatSessions'] });
+      setSelectedSessions(new Set())
+      setDeleteAllConfirm(false)
+      queryClient.invalidateQueries({ queryKey: ['chatSessions'] })
     },
     meta: { successMessage: t('history.deleteAllSuccess') }
-  });
+  })
 
   /**
    * Handle search form submission.
-   * Prevents default form submission and triggers a refetch of search results.
-   * @param e - Form submission event
+   * @param e - Form submission event.
    */
   const handleSearch = (e: React.FormEvent) => {
-    e.preventDefault();
-    refetch();
-  };
+    e.preventDefault()
+    refetch()
+  }
 
   /**
    * Clear all search filters and reset search state.
    */
   const handleClearFilters = () => {
-    setSearchQuery('');
-    setStartDate('');
-    setEndDate('');
-  };
+    setSearchQuery('')
+    setStartDate('')
+    setEndDate('')
+  }
 
   /**
    * Toggle selection state for a single session.
-   * @param sessionId - ID of the session to toggle
+   * @param sessionId - ID of the session to toggle.
    */
   const toggleSessionSelection = (sessionId: string) => {
-    const newSelected = new Set(selectedSessions);
+    const newSelected = new Set(selectedSessions)
     if (newSelected.has(sessionId)) {
-      newSelected.delete(sessionId);
+      newSelected.delete(sessionId)
     } else {
-      newSelected.add(sessionId);
+      newSelected.add(sessionId)
     }
-    setSelectedSessions(newSelected);
-  };
+    setSelectedSessions(newSelected)
+  }
 
   /**
    * Toggle select all sessions in the current view.
-   * If all are selected, unselects all. Otherwise, selects all currently visible.
    */
   const toggleSelectAll = () => {
-    if (!result?.sessions) return;
+    if (!result?.sessions) return
 
     if (selectedSessions.size === result.sessions.length) {
-      setSelectedSessions(new Set());
+      setSelectedSessions(new Set())
     } else {
-      setSelectedSessions(new Set(result.sessions.map(s => s.id)));
+      setSelectedSessions(new Set(result.sessions.map(s => s.id)))
     }
-  };
+  }
 
   /**
    * Execute bulk deletion of selected sessions.
-   * Closes confirmation dialog upon initiation.
    */
   const handleBulkDelete = () => {
     if (selectedSessions.size > 0) {
-      bulkDeleteMutation.mutate(Array.from(selectedSessions));
-      setShowDeleteConfirm(false);
+      bulkDeleteMutation.mutate(Array.from(selectedSessions))
+      setShowDeleteConfirm(false)
     }
-  };
+  }
 
   /**
    * Execute deletion of ALL user sessions.
    */
   const handleDeleteAll = () => {
-    deleteAllMutation.mutate();
-  };
+    deleteAllMutation.mutate()
+  }
 
   if (isLoading) {
     return (
       <div className="flex justify-center items-center h-48 text-slate-500 dark:text-slate-400">
         {t('history.loading')}
       </div>
-    );
+    )
   }
 
   if (error) {
@@ -276,10 +185,10 @@ function HistoryPage() {
       <div className="bg-red-50 dark:bg-red-900/30 border border-red-200 dark:border-red-800 text-red-600 dark:text-red-400 p-4 rounded-lg">
         {t('history.errorLoading')}: {error instanceof Error ? error.message : t('common.error')}
       </div>
-    );
+    )
   }
 
-  const sessions = result?.sessions ?? [];
+  const sessions = result?.sessions ?? []
 
   return (
     <div className="space-y-6">
@@ -477,7 +386,7 @@ function HistoryPage() {
         <p>{t('history.deleteAllMessage')}</p>
       </Dialog>
     </div>
-  );
+  )
 }
 
-export default HistoryPage;
+export default HistoryPage

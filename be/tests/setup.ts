@@ -14,7 +14,7 @@ import { vi, beforeEach, afterEach } from 'vitest';
 // ============================================================================
 
 // Mock logger service to prevent console output during tests
-vi.mock('../src/services/logger.service.js', () => ({
+vi.mock('../src/shared/services/logger.service.js', () => ({
   log: {
     info: vi.fn(),
     warn: vi.fn(),
@@ -24,7 +24,7 @@ vi.mock('../src/services/logger.service.js', () => ({
 }));
 
 // Mock database module
-vi.mock('../src/db/index.js', () => ({
+vi.mock('../src/shared/db/index.js', () => ({
   query: vi.fn(),
   queryOne: vi.fn(),
   getClient: vi.fn(),

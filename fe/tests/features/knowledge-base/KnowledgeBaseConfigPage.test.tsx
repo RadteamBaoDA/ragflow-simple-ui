@@ -16,7 +16,26 @@ vi.mock('../../../src/features/knowledge-base/api/knowledgeBaseService', () => (
   updateSource: vi_mockKBService.updateSource,
   deleteSource: vi_mockKBService.deleteSource
 }))
-vi.mock('react-i18next', () => ({ useTranslation: () => ({ t: (k: string) => k }), initReactI18next: { type: '3rdParty', init: () => {} } }))
+vi.mock('@/features/auth', () => ({
+  useAuth: () => ({
+    user: { id: 'admin-1', email: 'admin@test.com', role: 'admin' },
+    isAuthenticated: true,
+  })
+}))
+vi.mock('@/features/guideline', () => ({
+  useFirstVisit: () => ({ isFirstVisit: false }),
+  GuidelineDialog: () => <div data-testid="guideline-dialog" />
+}))
+vi.mock('@/features/users', () => ({
+  userApi: {
+    getUsers: vi.fn(() => Promise.resolve([])),
+  }
+}))
+vi.mock('@/features/teams', () => ({
+  teamApi: {
+    getTeams: vi.fn(() => Promise.resolve([])),
+  }
+}))
 let __mockQueryData: Record<string, any> = {}
 vi.mock('@tanstack/react-query', () => ({
   useQuery: (opts: any) => {
@@ -35,7 +54,7 @@ const vi_confirm = vi.hoisted(() => vi.fn(() => Promise.resolve(true)))
 vi.mock('@/components/ConfirmDialog', () => ({
   useConfirm: () => vi_confirm
 }))
-vi.mock('../../../src/features/documents/components/SourcePermissionsModal', () => ({
+vi.mock('../../../src/features/knowledge-base/components/SourcePermissionsModal', () => ({
   SourcePermissionsModal: () => <div />,
   PermissionsSelector: ({ isPublic }: any) => (
     <div>
@@ -53,7 +72,16 @@ vi.mock('lucide-react', () => ({
   Trash2: () => <div data-testid="trash-icon" />,
   Save: () => <div />,
   ExternalLink: () => <div />,
-  Shield: () => <div />
+  Shield: () => <div />,
+  Play: () => <div />,
+  CheckCircle2: () => <div />,
+  Book: () => <div />,
+  HelpCircle: () => <div />,
+  Clock: () => <div />,
+  User: () => <div />,
+  Users: () => <div />,
+  Lock: () => <div />,
+  Globe: () => <div />,
 }))
 
 import KnowledgeBaseConfigPage from '../../../src/features/knowledge-base/pages/KnowledgeBaseConfigPage'

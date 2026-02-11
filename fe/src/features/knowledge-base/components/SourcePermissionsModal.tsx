@@ -4,8 +4,8 @@ import { Switch, Button, Select, Table } from 'antd';
 import { Globe, Lock, Users, User, Trash2 } from 'lucide-react';
 import { Dialog } from '@/components/Dialog';
 import { AccessControl, KnowledgeBaseSource } from '../api/knowledgeBaseService';
-import { teamService, Team } from '@/features/teams/api/teamService';
-import { userService } from '@/features/users/api/userService';
+import { teamApi, type Team } from '@/features/teams';
+import { userApi } from '@/features/users';
 import { User as UserType } from '@/features/auth';
 
 export interface PermissionsSelectorProps {
@@ -296,8 +296,8 @@ export const SourcePermissionsModal: React.FC<SourcePermissionsModalProps> = ({
         setIsLoadingData(true);
         try {
           const [teamsList, usersList] = await Promise.all([
-            teamService.getTeams(),
-            userService.getUsers()
+            teamApi.getTeams(),
+            userApi.getUsers()
           ]);
           setTeams(teamsList);
           setUsers(usersList);

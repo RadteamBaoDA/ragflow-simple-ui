@@ -1,0 +1,112 @@
+
+[1m[7m[36m RUN [39m[27m[22m [36mv2.1.9 [39m[90mD:/Project/RAG/ragflow-simple-ui -main/be[39m
+
+ [31m❯[39m tests/teams/teams.controller.test.ts [2m([22m[2m8 tests[22m[2m | [22m[31m2 failed[39m[2m)[22m[90m 10[2mms[22m[39m
+[31m   [31m×[31m TeamController[2m > [22maddMembers[2m > [22madds multiple members successfully[90m 4[2mms[22m[31m[39m
+[31m     → expected "spy" to be called with arguments: [ 't1', [ 'u1', 'u2' ], Anything ][90m
+
+Received: 
+
+[1m  1st spy call:
+
+[22m[2m  Array [[22m
+[2m    "t1",[22m
+[2m    Array [[22m
+[2m      "u1",[22m
+[2m      "u2",[22m
+[2m    ],[22m
+[32m-   Anything,[90m
+[31m+   undefined,[90m
+[2m  ][22m
+[31m[90m
+
+Number of calls: [1m1[22m
+[31m[39m
+[31m   [31m×[31m TeamController[2m > [22mgrantPermissions[2m > [22mgrants permissions successfully[90m 1[2mms[22m[31m[39m
+[31m     → expected "spy" to be called with arguments: [ 't1', [ 'read', 'write' ], Anything ][90m
+
+Received: 
+
+[1m  1st spy call:
+
+[22m[2m  Array [[22m
+[2m    "t1",[22m
+[2m    Array [[22m
+[2m      "read",[22m
+[2m      "write",[22m
+[2m    ],[22m
+[32m-   Anything,[90m
+[31m+   undefined,[90m
+[2m  ][22m
+[31m[90m
+
+Number of calls: [1m1[22m
+[31m[39m
+
+[31m⎯⎯⎯⎯⎯⎯⎯[1m[7m Failed Tests 2 [27m[22m⎯⎯⎯⎯⎯⎯⎯[39m
+
+[31m[1m[7m FAIL [27m[22m[39m tests/teams/teams.controller.test.ts[2m > [22mTeamController[2m > [22maddMembers[2m > [22madds multiple members successfully
+[31m[1mAssertionError[22m: expected "spy" to be called with arguments: [ 't1', [ 'u1', 'u2' ], Anything ][90m
+
+Received: 
+
+[1m  1st spy call:
+
+[22m[2m  Array [[22m
+[2m    "t1",[22m
+[2m    Array [[22m
+[2m      "u1",[22m
+[2m      "u2",[22m
+[2m    ],[22m
+[32m-   Anything,[90m
+[31m+   undefined,[90m
+[2m  ][22m
+[31m[90m
+
+Number of calls: [1m1[22m
+[31m[39m
+[36m [2m❯[22m tests/teams/teams.controller.test.ts:[2m127:60[22m[39m
+    [90m125| [39m      [35mawait[39m controller[33m.[39m[34maddMembers[39m(req[33m,[39m res)
+    [90m126| [39m
+    [90m127| [39m      [34mexpect[39m(mocks[33m.[39mmockTeamService[33m.[39maddMembersWithAutoRole)[33m.[39m[34mtoHaveBeenC[39m…
+    [90m   | [39m                                                           [31m^[39m
+    [90m128| [39m        [32m't1'[39m[33m,[39m
+    [90m129| [39m        [[32m'u1'[39m[33m,[39m [32m'u2'[39m][33m,[39m
+
+[31m[2m⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯[1/2]⎯[22m[39m
+
+[31m[1m[7m FAIL [27m[22m[39m tests/teams/teams.controller.test.ts[2m > [22mTeamController[2m > [22mgrantPermissions[2m > [22mgrants permissions successfully
+[31m[1mAssertionError[22m: expected "spy" to be called with arguments: [ 't1', [ 'read', 'write' ], Anything ][90m
+
+Received: 
+
+[1m  1st spy call:
+
+[22m[2m  Array [[22m
+[2m    "t1",[22m
+[2m    Array [[22m
+[2m      "read",[22m
+[2m      "write",[22m
+[2m    ],[22m
+[32m-   Anything,[90m
+[31m+   undefined,[90m
+[2m  ][22m
+[31m[90m
+
+Number of calls: [1m1[22m
+[31m[39m
+[36m [2m❯[22m tests/teams/teams.controller.test.ts:[2m155:60[22m[39m
+    [90m153| [39m      [35mawait[39m controller[33m.[39m[34mgrantPermissions[39m(req[33m,[39m res)
+    [90m154| [39m
+    [90m155| [39m      [34mexpect[39m(mocks[33m.[39mmockTeamService[33m.[39mgrantPermissionsToTeam)[33m.[39m[34mtoHaveBeenC[39m…
+    [90m   | [39m                                                           [31m^[39m
+    [90m156| [39m        [32m't1'[39m[33m,[39m
+    [90m157| [39m        [[32m'read'[39m[33m,[39m [32m'write'[39m][33m,[39m
+
+[31m[2m⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯[2/2]⎯[22m[39m
+
+[2m Test Files [22m [1m[31m1 failed[39m[22m[90m (1)[39m
+[2m      Tests [22m [1m[31m2 failed[39m[22m[2m | [22m[1m[32m6 passed[39m[22m[90m (8)[39m
+[2m   Start at [22m 22:44:15
+[2m   Duration [22m 288ms[2m (transform 42ms, setup 26ms, collect 40ms, tests 10ms, environment 0ms, prepare 83ms)[22m
+

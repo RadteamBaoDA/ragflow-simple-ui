@@ -1,17 +1,16 @@
 /**
- * @file index.ts
- * @description Barrel file for exporting AI feature components and pages.
- * Centralizes exports for easier imports across the application.
+ * @fileoverview Barrel file for the AI feature.
+ * Exports pages, types, and components for external consumption.
+ * @module features/ai
  */
 
-// Export the AI Chat page component
-export { default as AiChatPage } from './pages/AiChatPage';
+// Pages
+export { default as AiChatPage } from './pages/AiChatPage'
+export { default as AiSearchPage } from './pages/AiSearchPage'
+export { default as TokenizerPage } from './pages/TokenizerPage'
 
-// Export the AI Search page component
-export { default as AiSearchPage } from './pages/AiSearchPage';
+// Components
+export { default as RagflowIframe } from './components/RagflowIframe'
 
-// Export the Tokenizer page component for text processing
-export { default as TokenizerPage } from './pages/TokenizerPage';
-
-// Export the reusable Ragflow Iframe component
-export { default as RagflowIframe } from './components/RagflowIframe';
+// Types
+export type { RagflowIframeProps, IframeError } from './types/ai.types'
