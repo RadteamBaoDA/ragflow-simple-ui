@@ -42,6 +42,7 @@ export const TaskManagementTab: React.FC<TaskManagementTabProps> = ({
     // Row selection state for bulk delete
     const [selectedRowKeys, setSelectedRowKeys] = useState<React.Key[]>([])
     const [bulkDeleting, setBulkDeleting] = useState(false)
+    const [pageSize, setPageSize] = useState(20)
 
     const {
         filteredTasks,
@@ -215,7 +216,7 @@ export const TaskManagementTab: React.FC<TaskManagementTabProps> = ({
 
             {/* Tasks Table */}
             <Card
-                className="dark:bg-slate-800 dark:border-slate-700 flex-1 min-h-0 overflow-hidden"
+                className="dark:bg-slate-800 dark:border-slate-700 flex-1 min-h-0"
                 styles={{ body: { padding: 0, height: '100%', display: 'flex', flexDirection: 'column' } }}
             >
                 <div className="flex-1 overflow-auto">
@@ -225,7 +226,12 @@ export const TaskManagementTab: React.FC<TaskManagementTabProps> = ({
                         rowKey="id"
                         loading={loading}
                         rowSelection={rowSelection}
-                        pagination={{ pageSize: 20, showSizeChanger: true, showTotal: (total: number) => `${total} items` }}
+                        pagination={{
+                            pageSize,
+                            showSizeChanger: true,
+                            onShowSizeChange: (_current: number, size: number) => setPageSize(size),
+                            showTotal: (total: number) => `${total} items`,
+                        }}
                         scroll={{ x: true, y: 'calc(100vh - 320px)' }}
                         locale={{ emptyText: t('common.noData') }}
                     />
@@ -239,7 +245,7 @@ export const TaskManagementTab: React.FC<TaskManagementTabProps> = ({
                 onCancel={closeModal}
                 footer={null}
                 width={700}
-                destroyOnClose
+                destroyOnHidden
             >
                 <Form
                     form={form}

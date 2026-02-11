@@ -41,6 +41,7 @@ export const KeywordManagementTab: React.FC<KeywordManagementTabProps> = ({
     // Row selection state for bulk delete
     const [selectedRowKeys, setSelectedRowKeys] = useState<React.Key[]>([])
     const [bulkDeleting, setBulkDeleting] = useState(false)
+    const [pageSize, setPageSize] = useState(20)
 
     const {
         filteredKeywords,
@@ -199,7 +200,12 @@ export const KeywordManagementTab: React.FC<KeywordManagementTabProps> = ({
                         rowKey="id"
                         loading={loading}
                         rowSelection={rowSelection}
-                        pagination={{ pageSize: 20, showSizeChanger: true, showTotal: (total: number) => `${total} items` }}
+                        pagination={{
+                            pageSize,
+                            showSizeChanger: true,
+                            onShowSizeChange: (_current: number, size: number) => setPageSize(size),
+                            showTotal: (total: number) => `${total} items`,
+                        }}
                         scroll={{ x: true, y: 'calc(100vh - 320px)' }}
                         locale={{ emptyText: t('glossary.keyword.empty') }}
                     />
@@ -213,7 +219,7 @@ export const KeywordManagementTab: React.FC<KeywordManagementTabProps> = ({
                 onCancel={closeModal}
                 footer={null}
                 width={500}
-                destroyOnClose
+                destroyOnHidden
             >
                 <Form
                     form={form}
