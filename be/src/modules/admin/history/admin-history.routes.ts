@@ -3,7 +3,7 @@
  * Admin History Routes
  */
 import { Router } from 'express';
-import { AdminHistoryController } from '@/modules/admin/admin-history.controller.js';
+import { AdminHistoryController } from '@/modules/admin/history/admin-history.controller.js';
 import { requireAuth, requireRole } from '@/shared/middleware/auth.middleware.js';
 
 const router = Router();

@@ -3,8 +3,8 @@
  * DocumentCategoryController: Handles HTTP requests for document categories and versions.
  */
 import { Request, Response } from 'express'
-import { documentCategoryService } from '@/services/document-category.service.js'
-import { ModelFactory } from '@/models/factory.js'
+import { documentCategoryService } from '@/modules/projects/document-category/document-category.service.js'
+import { ModelFactory } from '@/shared/models/factory.js'
 
 /**
  * Controller for document category and version API endpoints.
@@ -20,7 +20,7 @@ export class DocumentCategoryController {
    */
   static async listCategories(req: Request, res: Response) {
     try {
-      const categories = await documentCategoryService.listByProject(req.params.projectId)
+      const categories = await documentCategoryService.listByProject(req.params.projectId as string)
       res.json(categories)
     } catch (error) {
       console.error('Error listing categories:', error)
@@ -42,7 +42,7 @@ export class DocumentCategoryController {
       // @ts-ignore
       const userId = req.user?.id
       const category = await documentCategoryService.createCategory({
-        project_id: req.params.projectId,
+        project_id: req.params.projectId as string,
         name,
         description,
         sort_order,
@@ -68,7 +68,7 @@ export class DocumentCategoryController {
       // @ts-ignore
       const userId = req.user?.id
       const category = await documentCategoryService.updateCategory(
-        req.params.categoryId, req.body, userId
+        req.params.categoryId as string, req.body, userId
       )
       res.json(category)
     } catch (error: any) {
@@ -88,9 +88,9 @@ export class DocumentCategoryController {
   static async deleteCategory(req: Request, res: Response) {
     try {
       // Get project's ragflow server ID for cleanup
-      const project = await ModelFactory.project.findById(req.params.projectId)
+      const project = await ModelFactory.project.findById(req.params.projectId as string)
       await documentCategoryService.deleteCategory(
-        req.params.categoryId,
+        req.params.categoryId as string,
         project?.ragflow_server_id || undefined
       )
       res.status(204).send()
@@ -114,7 +114,7 @@ export class DocumentCategoryController {
    */
   static async listVersions(req: Request, res: Response) {
     try {
-      const versions = await documentCategoryService.listVersions(req.params.categoryId)
+      const versions = await documentCategoryService.listVersions(req.params.categoryId as string)
       res.json(versions)
     } catch (error) {
       console.error('Error listing versions:', error)
@@ -135,7 +135,7 @@ export class DocumentCategoryController {
       }
 
       // Resolve project for server ID and defaults
-      const project = await ModelFactory.project.findById(req.params.projectId)
+      const project = await ModelFactory.project.findById(req.params.projectId as string)
       if (!project?.ragflow_server_id) {
         res.status(400).json({ error: 'Project must have a RAGFlow server assigned' })
         return
@@ -144,10 +144,10 @@ export class DocumentCategoryController {
       // @ts-ignore
       const userId = req.user?.id
       const version = await documentCategoryService.createVersion(
-        { category_id: req.params.categoryId, version_label },
+        { category_id: req.params.categoryId as string, version_label },
         project.ragflow_server_id,
         {
-          embedding_model: project.default_embedding_model || undefined,
+          ...(project.default_embedding_model ? { embedding_model: project.default_embedding_model } : {}),
           chunk_method: project.default_chunk_method,
           parser_config: project.default_parser_config
         },
@@ -170,13 +170,13 @@ export class DocumentCategoryController {
    */
   static async syncVersion(req: Request, res: Response) {
     try {
-      const project = await ModelFactory.project.findById(req.params.projectId)
+      const project = await ModelFactory.project.findById(req.params.projectId as string)
       if (!project?.ragflow_server_id) {
         res.status(400).json({ error: 'Project must have a RAGFlow server assigned' })
         return
       }
       const version = await documentCategoryService.syncVersion(
-        req.params.versionId, project.ragflow_server_id
+        req.params.versionId as string, project.ragflow_server_id
       )
       res.json(version)
     } catch (error: any) {
@@ -193,7 +193,7 @@ export class DocumentCategoryController {
     try {
       // @ts-ignore
       const userId = req.user?.id
-      const version = await documentCategoryService.archiveVersion(req.params.versionId, userId)
+      const version = await documentCategoryService.archiveVersion(req.params.versionId as string, userId)
       res.json(version)
     } catch (error: any) {
       console.error('Error archiving version:', error)
@@ -211,7 +211,7 @@ export class DocumentCategoryController {
       const userId = req.user?.id
       const { version_label } = req.body
       const version = await documentCategoryService.updateVersion(
-        req.params.versionId,
+        req.params.versionId as string,
         { version_label },
         userId
       )
@@ -232,9 +232,9 @@ export class DocumentCategoryController {
    */
   static async deleteVersion(req: Request, res: Response) {
     try {
-      const project = await ModelFactory.project.findById(req.params.projectId)
+      const project = await ModelFactory.project.findById(req.params.projectId as string)
       await documentCategoryService.deleteVersion(
-        req.params.versionId,
+        req.params.versionId as string,
         project?.ragflow_server_id || undefined
       )
       res.status(204).send()
@@ -261,9 +261,9 @@ export class DocumentCategoryController {
       }
 
       const result = await documentCategoryService.uploadDocument(
-        req.params.projectId,
-        req.params.categoryId,
-        req.params.versionId,
+        req.params.projectId as string,
+        req.params.categoryId as string,
+        req.params.versionId as string,
         req.file.buffer,
         req.file.originalname
       )
@@ -281,9 +281,9 @@ export class DocumentCategoryController {
   static async listDocuments(req: Request, res: Response) {
     try {
       const docs = await documentCategoryService.listDocuments(
-        req.params.projectId,
-        req.params.categoryId,
-        req.params.versionId,
+        req.params.projectId as string,
+        req.params.categoryId as string,
+        req.params.versionId as string,
         {
           page: parseInt(req.query.page as string) || 1,
           page_size: parseInt(req.query.page_size as string) || 30,

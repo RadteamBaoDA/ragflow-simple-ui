@@ -3,8 +3,8 @@
  * ProjectChatController: Handles HTTP requests for project chat assistants.
  */
 import { Request, Response } from 'express'
-import { projectChatService } from '@/services/project-chat.service.js'
-import { ModelFactory } from '@/models/factory.js'
+import { projectChatService } from '@/modules/projects/project-chat/project-chat.service.js'
+import { ModelFactory } from '@/shared/models/factory.js'
 
 /**
  * Controller for project chat assistant API endpoints.
@@ -16,7 +16,7 @@ export class ProjectChatController {
    */
   static async list(req: Request, res: Response) {
     try {
-      const chats = await projectChatService.listByProject(req.params.projectId)
+      const chats = await projectChatService.listByProject(req.params.projectId as string)
       res.json(chats)
     } catch (error) {
       console.error('Error listing project chats:', error)
@@ -30,7 +30,7 @@ export class ProjectChatController {
    */
   static async getById(req: Request, res: Response) {
     try {
-      const chat = await projectChatService.getById(req.params.chatId)
+      const chat = await projectChatService.getById(req.params.chatId as string)
       if (!chat) {
         res.status(404).json({ error: 'Chat assistant not found' })
         return
@@ -55,7 +55,7 @@ export class ProjectChatController {
       }
 
       // Resolve project's RAGFlow server
-      const project = await ModelFactory.project.findById(req.params.projectId)
+      const project = await ModelFactory.project.findById(req.params.projectId as string)
       if (!project?.ragflow_server_id) {
         res.status(400).json({ error: 'Project must have a RAGFlow server assigned' })
         return
@@ -64,7 +64,7 @@ export class ProjectChatController {
       // @ts-ignore
       const userId = req.user?.id
       const chat = await projectChatService.create({
-        project_id: req.params.projectId,
+        project_id: req.params.projectId as string,
         name,
         dataset_ids,
         ragflow_dataset_ids,
@@ -84,7 +84,7 @@ export class ProjectChatController {
    */
   static async update(req: Request, res: Response) {
     try {
-      const project = await ModelFactory.project.findById(req.params.projectId)
+      const project = await ModelFactory.project.findById(req.params.projectId as string)
       if (!project?.ragflow_server_id) {
         res.status(400).json({ error: 'Project must have a RAGFlow server assigned' })
         return
@@ -93,7 +93,7 @@ export class ProjectChatController {
       // @ts-ignore
       const userId = req.user?.id
       const chat = await projectChatService.update(
-        req.params.chatId, req.body, project.ragflow_server_id, userId
+        req.params.chatId as string, req.body, project.ragflow_server_id, userId
       )
       res.json(chat)
     } catch (error: any) {
@@ -112,9 +112,9 @@ export class ProjectChatController {
    */
   static async remove(req: Request, res: Response) {
     try {
-      const project = await ModelFactory.project.findById(req.params.projectId)
+      const project = await ModelFactory.project.findById(req.params.projectId as string)
       await projectChatService.remove(
-        req.params.chatId,
+        req.params.chatId as string,
         project?.ragflow_server_id || undefined
       )
       res.status(204).send()
@@ -134,12 +134,12 @@ export class ProjectChatController {
    */
   static async sync(req: Request, res: Response) {
     try {
-      const project = await ModelFactory.project.findById(req.params.projectId)
+      const project = await ModelFactory.project.findById(req.params.projectId as string)
       if (!project?.ragflow_server_id) {
         res.status(400).json({ error: 'Project must have a RAGFlow server assigned' })
         return
       }
-      const chat = await projectChatService.sync(req.params.chatId, project.ragflow_server_id)
+      const chat = await projectChatService.sync(req.params.chatId as string, project.ragflow_server_id)
       res.json(chat)
     } catch (error: any) {
       console.error('Error syncing project chat:', error)

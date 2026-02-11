@@ -2,9 +2,9 @@
 /**
  * Project model: manages centralized project records.
  */
-import { BaseModel } from '@/models/base.model.js'
-import { db } from '@/db/knex.js'
-import { Project } from '@/models/types.js'
+import { BaseModel } from '@/shared/models/base.model.js'
+import { db } from '@/shared/db/knex.js'
+import { Project } from '@/shared/models/types.js'
 
 /**
  * ProjectModel

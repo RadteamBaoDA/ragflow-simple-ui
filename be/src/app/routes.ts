@@ -13,23 +13,24 @@ import { log } from '@/shared/services/logger.service.js';
 // Route imports
 import authRoutes from '@/modules/auth/auth.routes.js';
 import knowledgeBaseRoutes from '@/modules/knowledge-base/knowledge-base.routes.js';
-import adminRoutes from '@/modules/admin/admin.routes.js';
+// import adminRoutes from '@/modules/admin/dashboard/admin.routes.js'; // Removed unused
+
 import userRoutes from '@/modules/users/users.routes.js';
 import teamRoutes from '@/modules/teams/teams.routes.js';
 import systemToolsRoutes from '@/modules/system-tools/system-tools.routes.js';
 import auditRoutes from '@/modules/audit/audit.routes.js';
 import externalRoutes from '@/modules/external/routes/index.js';
 import broadcastMessageRoutes from '@/modules/broadcast/broadcast-message.routes.js';
-import adminHistoryRoutes from '@/modules/admin/admin-history.routes.js';
+import adminHistoryRoutes from '@/modules/admin/history/admin-history.routes.js';
 import chatHistoryRoutes from '@/modules/chat/chat-history.routes.js';
 import userHistoryRoutes from '@/modules/user-history/user-history.routes.js';
 
 import dashboardRoutes from '@/modules/dashboard/dashboard.routes.js';
 import glossaryRoutes from '@/modules/glossary/glossary.routes.js';
-import ragflowServerRoutes from '@/modules/admin/ragflow-server.routes.js';
-import projectRoutes from '@/modules/admin/project.routes.js';
-import documentCategoryRoutes from '@/modules/admin/document-category.routes.js';
-import projectChatRoutes from '@/modules/admin/project-chat.routes.js';
+import ragflowServerRoutes from '@/modules/admin/ragflow-servers/ragflow-server.routes.js';
+import projectRoutes from '@/modules/projects/project.routes.js';
+import documentCategoryRoutes from '@/modules/projects/document-category/document-category.routes.js';
+import projectChatRoutes from '@/modules/projects/project-chat/project-chat.routes.js';
 
 // ============================================================================
 // Rate Limiters
@@ -105,7 +106,8 @@ function registerRoutes(apiRouter: Router): void {
     apiRouter.use('/knowledge-base', knowledgeBaseRoutes);
 
     // Admin routes
-    apiRouter.use('/admin', adminRoutes);
+    // apiRouter.use('/admin', adminRoutes); // Removed unused admin dashboard route
+
     apiRouter.use('/admin/history', adminHistoryRoutes);
     apiRouter.use('/admin/dashboard', dashboardRoutes);
 
