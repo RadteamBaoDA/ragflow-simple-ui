@@ -6,6 +6,7 @@ import { useFirstVisit, GuidelineDialog } from '@/features/guideline';
  * @description AI Chat Page Component.
  * This component serves as a wrapper for the RagflowIframe, configured specifically for the "chat" functionality.
  * It renders the chat interface within the application.
+ * The Prompt Builder FAB is now inside RagflowIframe (chat mode) for direct iframe postMessage access.
  *
  * @returns {JSX.Element} The rendered AI Chat page containing the Ragflow iframe.
  */

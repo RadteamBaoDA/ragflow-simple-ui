@@ -94,13 +94,13 @@
     "tokenizer": "Tokenizer",
     "signOut": "Sign Out",
     "knowledgeBase": "Knowledge Base",
-    "prompts": "Prompts",
     "broadcastMessages": "Broadcast Messages",
     "histories": "Histories",
     "dashboard": "Dashboard",
     "expandMenu": "Expand menu",
     "administrators": "Administrators",
-    "collapseMenu": "Collapse menu"
+    "collapseMenu": "Collapse menu",
+    "glossary": "Glossary"
   },
   "iam": {
     "title": "Identity & Access Management",
@@ -502,10 +502,7 @@
       "create_source": "Create Source",
       "update_source": "Update Source",
       "delete_source": "Delete Source",
-      "batch_delete": "Batch Delete",
-      "create_prompt": "Create Prompt",
-      "update_prompt": "Update Prompt",
-      "delete_prompt": "Delete Prompt"
+      "batch_delete": "Batch Delete"
     },
     "resourceTypes": {
       "user": "User",
@@ -518,8 +515,7 @@
       "role": "Role",
       "broadcast_message": "Broadcast Message",
       "permission": "Permission",
-      "knowledge_base_source": "Knowledge Base Source",
-      "prompt": "Prompt"
+      "knowledge_base_source": "Knowledge Base Source"
     }
   },
   "storage": {
@@ -707,116 +703,6 @@
     "filterTitle": "Filter History",
     "applyFilter": "Apply Filters"
   },
-  "prompts": {
-    "title": "Prompt Management",
-    "description": "Manage and organize your prompts",
-    "install": "Add New Prompt",
-    "addNew": "Add New Prompt",
-    "searchPlaceholder": "Search prompts...",
-    "noPrompts": "No prompts found",
-    "fields": {
-      "prompt": "Prompt",
-      "description": "Description",
-      "tags": "Tags",
-      "source": "Source",
-      "actions": "Actions",
-      "active": "Active",
-      "inactive": "Inactive",
-      "feedback": "Feedback"
-    },
-    "filter": {
-      "allTags": "All Tags",
-      "tag": "Tag",
-      "source": "Source",
-      "allSources": "All Sources"
-    },
-    "form": {
-      "createTitle": "Add New Prompt",
-      "editTitle": "Edit Prompt",
-      "promptRequired": "Prompt text is required",
-      "promptPlaceholder": "Enter your prompt here...",
-      "descriptionPlaceholder": "Enter description",
-      "save": "Add",
-      "success": "Prompt added successfully",
-      "selectTags": "Select tags",
-      "searchTags": "Search or create tags...",
-      "createTag": "Create tag",
-      "tagNotFound": "Tag not found, click to create",
-      "allTag": "All"
-    },
-    "feedback": {
-      "like": "Like",
-      "dislike": "Dislike",
-      "comment": "Comment",
-      "title": "Feedback Details",
-      "filterByUser": "Filter by user",
-      "promptSnapshot": "Prompt at time of feedback"
-    },
-    "permissions": {
-      "title": "Prompt Permissions",
-      "manage": "Manage Permissions",
-      "leaderNoteTitle": "Leader Permissions",
-      "leaderNote": "Granting permissions to a Team will apply those permissions to all Leaders of that team.",
-      "selectEntity": "Select User or Team"
-    },
-    "library": {
-      "title": "Prompt Library",
-      "searchPlaceholder": "Search prompts...",
-      "copied": "Copied to clipboard",
-      "clickToCopy": "Click on a prompt to copy it to clipboard",
-      "feedback": "Feedback",
-      "feedbackPlaceholder": "Why did you dislike this prompt? (Optional, max 500 chars)",
-      "submitFeedback": "Submit",
-      "feedbackSuccess": "Thanks for your feedback"
-    },
-    "tags": {
-      "manageTitle": "Manage Tags",
-      "manageButton": "Manage Tags",
-      "searchPlaceholder": "Search tags...",
-      "create": "Create",
-      "namePlaceholder": "Tag name",
-      "nameRequired": "Tag name is required",
-      "duplicateName": "Tag name already exists",
-      "notFound": "Tag not found",
-      "inUse": "Cannot delete tag because it is in use",
-      "deleteConfirm": "Delete this tag?",
-      "deleteWarning": "Tags in use cannot be deleted."
-    },
-    "bulkImport": {
-      "button": "Import",
-      "title": "Bulk Import Prompts",
-      "downloadTemplate": "Download Template",
-      "import": "Import",
-      "instructions": "Excel Import Instructions",
-      "instructionColumns": "Required column: {{required}}. Optional: {{optional}}",
-      "instructionTags": "Separate tags with commas (e.g., \"tag1,tag2\")",
-      "instructionAutoTags": "Missing tags will be automatically created",
-      "dropzone": "Click or drag Excel file here",
-      "dropzoneHint": "Supports .xlsx and .xls files (max 1000 rows, 5MB)",
-      "parseError": "Failed to Parse File",
-      "fileLoaded": "File loaded: {{name}}",
-      "validRows": "{{count}} valid",
-      "errorRows": "{{count}} errors",
-      "resultTitle": "Import Complete",
-      "resultMessage": "Imported {{imported}} prompts, skipped {{skipped}} duplicates.",
-      "success": "Imported {{imported}} prompts, skipped {{skipped}} duplicates",
-      "errors": {
-        "fileTooLarge": "File size exceeds {{max}}MB limit",
-        "missingColumns": "Missing required columns: {{columns}}",
-        "tooManyRows": "File contains more than {{max}} rows",
-        "missingPrompt": "Row {{row}}: Prompt is required",
-        "noValidData": "No valid data to import",
-        "emptyFile": "File is empty or has no sheets",
-        "noData": "No data found in the file"
-      }
-    },
-    "bulkDelete": {
-      "button": "Delete ({{count}})",
-      "confirmTitle": "Delete {{count}} Prompts",
-      "confirmMessage": "Are you sure you want to delete {{count}} selected prompts? This action cannot be undone.",
-      "success": "Successfully deleted {{count}} prompts"
-    }
-  },
   "errors": {
     "REAUTH_REQUIRED": "Re-authentication required"
   },
@@ -836,9 +722,6 @@
       },
       "kb-config": {
         "title": "Knowledge Base Config"
-      },
-      "kb-prompts": {
-        "title": "Prompt Library"
       },
       "iam": {
         "title": "Identity & Access Management"
@@ -898,6 +781,142 @@
       "aiChat": "AI Chat",
       "aiSearch": "AI Search",
       "systemChat": "System Chat"
+    }
+  },
+  "glossary": {
+    "title": "Glossary Management",
+    "tabs": {
+      "tasks": "Task Management",
+      "keywords": "Keyword Management"
+    },
+    "task": {
+      "add": "Add Task",
+      "name": "Task Name",
+      "description": "Description",
+      "taskInstruction": "Task Instruction",
+      "taskInstructionEn": "Task Instruction (EN)",
+      "taskInstructionJa": "Task Instruction (JA)",
+      "taskInstructionVi": "Task Instruction (VI)",
+      "contextTemplate": "Context Template",
+      "searchPlaceholder": "Search tasks...",
+      "namePlaceholder": "Enter task name",
+      "descriptionPlaceholder": "Optional task description",
+      "taskInstructionPlaceholder": "Enter the instruction line (line 1 of prompt)",
+      "taskInstructionPlaceholderEn": "Enter task instruction in English",
+      "taskInstructionPlaceholderJa": "Enter task instruction in Japanese (optional)",
+      "taskInstructionPlaceholderVi": "Enter task instruction in Vietnamese (optional)",
+      "taskInstructionTooltip": "The first line of the generated prompt — describes what the AI should do",
+      "contextTemplatePlaceholder": "Enter the context template (line 2 of prompt). Use {{keywords}} as placeholder.",
+      "contextTemplateTooltip": "The second line of the generated prompt — provides context with {{keywords}} placeholder",
+      "nameRequired": "Task name is required",
+      "taskInstructionRequired": "Task instruction (EN) is required",
+      "contextTemplateRequired": "Context template is required",
+      "createTitle": "Create Glossary Task",
+      "editTitle": "Edit Glossary Task",
+      "createSuccess": "Task created successfully",
+      "updateSuccess": "Task updated successfully",
+      "deleteSuccess": "Task deleted successfully",
+      "confirmDelete": "Delete Task",
+      "confirmDeleteMessage": "Are you sure you want to delete task \"{{name}}\"? All keywords under this task will also be deleted.",
+      "deleteSelected": "Delete Selected ({{count}})",
+      "bulkDeleteTitle": "Delete Tasks",
+      "bulkDeleteMessage": "Are you sure you want to delete {{count}} selected task(s)? This action cannot be undone.",
+      "bulkDeleteSuccess": "{{count}} task(s) deleted successfully",
+      "selectPrompt": "Select a task from the left panel to view its keywords",
+      "promptPreview": "Prompt Template Preview"
+    },
+    "keyword": {
+      "add": "Add Keyword",
+      "name": "Keyword",
+      "description": "Description",
+      "status": "Status",
+      "taskName": "Task",
+      "allTasks": "All Tasks",
+      "selectTask": "Select a task",
+      "taskRequired": "Task is required",
+      "searchPlaceholder": "Search keywords...",
+      "enKeyword": "En-Keyword",
+      "enKeywordPlaceholder": "Enter English keyword",
+      "namePlaceholder": "Enter keyword",
+      "descriptionPlaceholder": "Optional keyword description",
+      "nameRequired": "Keyword is required",
+      "createTitle": "Create Keyword",
+      "editTitle": "Edit Keyword",
+      "createSuccess": "Keyword created successfully",
+      "updateSuccess": "Keyword updated successfully",
+      "deleteSuccess": "Keyword deleted successfully",
+      "confirmDelete": "Delete Keyword",
+      "confirmDeleteMessage": "Are you sure you want to delete keyword \"{{name}}\"?",
+      "deleteSelected": "Delete Selected ({{count}})",
+      "bulkDeleteTitle": "Delete Keywords",
+      "bulkDeleteMessage": "Are you sure you want to delete {{count}} selected keyword(s)? This action cannot be undone.",
+      "bulkDeleteSuccess": "{{count}} keyword(s) deleted successfully",
+      "empty": "No keywords yet. Add your first keyword."
+    },
+    "common": {
+      "sortOrder": "Sort Order",
+      "active": "Active"
+    },
+    "bulkImport": {
+      "button": "Import",
+      "title": "Bulk Import Glossary",
+      "selectFile": "Click to select an Excel file (.xlsx)",
+      "fileFormat": "Required columns: task_name, task_instruction_en, context_template. Optional: task_instruction_ja, task_instruction_vi",
+      "import": "Import",
+      "noSheet": "No sheet found in the Excel file",
+      "emptyFile": "The file contains no data",
+      "missingColumns": "Missing required columns: {{cols}}",
+      "noValidRows": "No valid rows found with task_name and keyword filled in",
+      "parseError": "Failed to parse the Excel file",
+      "success": "Import completed successfully",
+      "rowCount": "{{count}} rows ready to import",
+      "resultSummary": "Tasks created: {{tasks}}, Skipped: {{skipped}}",
+      "colTaskName": "Task Name",
+      "colTaskInstruction": "Task Instruction",
+      "colTaskInstructionEn": "Instruction (EN)",
+      "colTaskInstructionJa": "Instruction (JA)",
+      "colTaskInstructionVi": "Instruction (VI)",
+      "colContextTemplate": "Context Template",
+      "colKeyword": "Keyword",
+      "colKeywordDesc": "Keyword Description",
+      "downloadTemplate": "Download Template"
+    },
+    "keywordImport": {
+      "button": "Import Keywords",
+      "title": "Bulk Import Keywords",
+      "selectFile": "Click to select an Excel file (.xlsx)",
+      "fileFormat": "Required column: name. Optional: en_keyword, description",
+      "import": "Import",
+      "noSheet": "No sheet found in the Excel file",
+      "emptyFile": "The file contains no data",
+      "missingColumns": "Missing required columns: {{cols}}",
+      "noValidRows": "No valid rows found with name filled in",
+      "parseError": "Failed to parse the Excel file",
+      "success": "Keywords imported successfully",
+      "rowCount": "{{count}} rows ready to import",
+      "resultSummary": "Created: {{created}}, Skipped: {{skipped}}",
+      "downloadTemplate": "Download Template"
+    },
+    "promptBuilder": {
+      "title": "Prompt Builder",
+      "stepLanguage": "Language",
+      "stepTask": "Task",
+      "stepKeyword": "Keyword",
+      "selectLanguage": "Prompt Language",
+      "selectTask": "Select a task",
+      "selectKeyword": "Select or type a keyword",
+      "instructionPreview": "Instruction",
+      "contextLabel": "Context",
+      "contextPlaceholder": "Enter context for this keyword...",
+      "pressEnterToUse": "Press Enter to use \"{{keyword}}\"",
+      "generatedPrompt": "Generated Prompt",
+      "generate": "Generate",
+      "copy": "Copy to clipboard",
+      "copied": "Copied!",
+      "insert": "Insert into chat",
+      "applyToChat": "Apply to Chat",
+      "appliedToChat": "Prompt copied! Paste it into the chat input.",
+      "noTask": "Please select a task first"
     }
   }
 }

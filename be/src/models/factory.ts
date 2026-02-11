@@ -17,10 +17,9 @@ import { ExternalChatSessionModel } from '@/models/external/chat-session.model.j
 import { ExternalChatMessageModel } from '@/models/external/chat-message.model.js';
 import { ExternalSearchSessionModel } from '@/models/external/search-session.model.js';
 import { ExternalSearchRecordModel } from '@/models/external/search-record.model.js';
-import { PromptModel } from '@/models/prompt.model.js';
-import { PromptInteractionModel } from '@/models/prompt-interaction.model.js';
-import { PromptTagModel } from '@/models/prompt-tag.model.js';
-import { PromptPermissionModel } from '@/models/prompt-permission.model.js';
+
+import { GlossaryTaskModel } from '@/models/glossary-task.model.js';
+import { GlossaryKeywordModel } from '@/models/glossary-keyword.model.js';
 
 /**
  * ModelFactory class implementing the Factory Pattern.
@@ -59,11 +58,14 @@ export class ModelFactory {
   private static externalSearchSessionModel: ExternalSearchSessionModel;
   private static externalSearchRecordModel: ExternalSearchRecordModel;
 
-  // Prompt Models
-  private static promptModel: PromptModel;
-  private static promptInteractionModel: PromptInteractionModel;
-  private static promptTagModel: PromptTagModel;
-  private static promptPermissionModel: PromptPermissionModel;
+
+
+
+  // Glossary Models
+  /** Glossary task model singleton instance */
+  private static glossaryTaskModel: GlossaryTaskModel;
+  /** Glossary keyword model singleton instance */
+  private static glossaryKeywordModel: GlossaryKeywordModel;
 
   /**
    * Get the User model singleton.
@@ -218,37 +220,26 @@ export class ModelFactory {
     return this.externalSearchRecordModel;
   }
 
+
+
+
   /**
-   * Get the Prompt model singleton.
+   * Get the GlossaryTask model singleton.
+   * Manages glossary tasks for prompt builder.
+   * @returns GlossaryTaskModel instance for task operations
    */
-  static get prompt() {
-    if (!this.promptModel) this.promptModel = new PromptModel();
-    return this.promptModel;
+  static get glossaryTask() {
+    if (!this.glossaryTaskModel) this.glossaryTaskModel = new GlossaryTaskModel();
+    return this.glossaryTaskModel;
   }
 
   /**
-   * Get the PromptInteraction model singleton.
+   * Get the GlossaryKeyword model singleton.
+   * Manages glossary keywords belonging to tasks.
+   * @returns GlossaryKeywordModel instance for keyword operations
    */
-  static get promptInteraction() {
-    if (!this.promptInteractionModel) this.promptInteractionModel = new PromptInteractionModel();
-    return this.promptInteractionModel;
-  }
-
-  /**
-   * Get the PromptTag model singleton.
-   * Manages reusable tags with colors for prompts.
-   * @returns PromptTagModel instance for tag operations
-   */
-  static get promptTag() {
-    if (!this.promptTagModel) this.promptTagModel = new PromptTagModel();
-    return this.promptTagModel;
-  }
-
-  /**
-   * Get the PromptPermission model singleton.
-   */
-  static get promptPermission() {
-    if (!this.promptPermissionModel) this.promptPermissionModel = new PromptPermissionModel();
-    return this.promptPermissionModel;
+  static get glossaryKeyword() {
+    if (!this.glossaryKeywordModel) this.glossaryKeywordModel = new GlossaryKeywordModel();
+    return this.glossaryKeywordModel;
   }
 }

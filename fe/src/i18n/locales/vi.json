@@ -94,13 +94,13 @@
     "tokenizer": "Bộ đếm Token",
     "signOut": "Đăng xuất",
     "knowledgeBase": "Cơ sở tri thức",
-    "prompts": "Prompts",
     "broadcastMessages": "Thông báo",
     "histories": "Lịch sử hệ thống",
     "dashboard": "Bảng thống kê",
     "expandMenu": "Mở rộng menu",
     "administrators": "Quản trị",
-    "collapseMenu": "Thu gọn menu"
+    "collapseMenu": "Thu gọn menu",
+    "glossary": "Từ điển"
   },
   "iam": {
     "title": "Quản lý Định danh & Truy cập",
@@ -503,10 +503,7 @@
       "create_source": "Tạo Nguồn",
       "update_source": "Cập Nhật Nguồn",
       "delete_source": "Xóa Nguồn",
-      "batch_delete": "Xóa Hàng Loạt",
-      "create_prompt": "Tạo Prompt",
-      "update_prompt": "Cập Nhật Prompt",
-      "delete_prompt": "Xóa Prompt"
+      "batch_delete": "Xóa Hàng Loạt"
     },
     "resourceTypes": {
       "user": "Người dùng",
@@ -519,8 +516,7 @@
       "role": "Vai trò",
       "broadcast_message": "Thông Báo Hệ Thống",
       "permission": "Quyền Hạn",
-      "knowledge_base_source": "Nguồn Kiến Thức",
-      "prompt": "Prompt"
+      "knowledge_base_source": "Nguồn Kiến Thức"
     }
   },
   "storage": {
@@ -708,116 +704,6 @@
     "filterTitle": "Lọc lịch sử",
     "applyFilter": "Áp dụng bộ lọc"
   },
-  "prompts": {
-    "title": "Quản lý Prompts",
-    "description": "Quản lý và tổ chức các Prompt của bạn",
-    "install": "Thêm Prompt Mới",
-    "addNew": "Thêm Prompt Mới",
-    "searchPlaceholder": "Tìm kiếm Prompt...",
-    "noPrompts": "Không tìm thấy Prompt",
-    "fields": {
-      "prompt": "Prompt",
-      "description": "Mô tả",
-      "tags": "Thẻ",
-      "source": "Nguồn",
-      "actions": "Thao tác",
-      "active": "Hoạt động",
-      "inactive": "Không hoạt động",
-      "feedback": "Phản hồi"
-    },
-    "filter": {
-      "allTags": "Tất cả Thẻ",
-      "tag": "Thẻ",
-      "source": "Nguồn",
-      "allSources": "Tất cả Nguồn"
-    },
-    "form": {
-      "createTitle": "Thêm Prompt Mới",
-      "editTitle": "Chỉnh sửa Prompt",
-      "promptRequired": "Vui lòng nhập nội dung Prompt",
-      "promptPlaceholder": "Nhập nội dung Prompt tại đây...",
-      "descriptionPlaceholder": "Nhập mô tả",
-      "save": "Thêm",
-      "success": "Thêm Prompt thành công",
-      "selectTags": "Chọn thẻ",
-      "searchTags": "Tìm hoặc tạo thẻ...",
-      "createTag": "Tạo thẻ",
-      "tagNotFound": "Không tìm thấy thẻ, nhấp để tạo",
-      "allTag": "Tất cả"
-    },
-    "feedback": {
-      "like": "Thích",
-      "dislike": "Không thích",
-      "comment": "Bình luận",
-      "title": "Chi tiết Phản hồi",
-      "filterByUser": "Lọc theo người dùng",
-      "promptSnapshot": "Prompt tại thời điểm phản hồi"
-    },
-    "permissions": {
-      "title": "Phân quyền Prompt",
-      "manage": "Quản lý Phân quyền",
-      "leaderNoteTitle": "Quyền của Trưởng nhóm",
-      "leaderNote": "Cấp quyền cho một Nhóm sẽ áp dụng các quyền đó cho tất cả các Trưởng nhóm của nhóm đó.",
-      "selectEntity": "Chọn Người dùng hoặc Nhóm"
-    },
-    "library": {
-      "title": "Thư viện Prompts",
-      "searchPlaceholder": "Tìm kiếm prompt...",
-      "copied": "Đã sao chép vào bộ nhớ tạm",
-      "clickToCopy": "Nhấp vào prompt để sao chép",
-      "feedback": "Góp ý",
-      "feedbackPlaceholder": "Tại sao bạn không thích prompt này? (Tùy chọn, tối đa 500 ký tự)",
-      "submitFeedback": "Gửi",
-      "feedbackSuccess": "Cảm ơn góp ý của bạn"
-    },
-    "tags": {
-      "manageTitle": "Quản lý Thẻ",
-      "manageButton": "Quản lý Thẻ",
-      "searchPlaceholder": "Tìm kiếm thẻ...",
-      "create": "Tạo mới",
-      "namePlaceholder": "Tên thẻ",
-      "nameRequired": "Tên thẻ là bắt buộc",
-      "duplicateName": "Tên thẻ đã tồn tại",
-      "notFound": "Không tìm thấy thẻ",
-      "inUse": "Không thể xóa thẻ vì đang được sử dụng",
-      "deleteConfirm": "Xóa thẻ này?",
-      "deleteWarning": "Không thể xóa thẻ đang được sử dụng."
-    },
-    "bulkImport": {
-      "button": "Nhập",
-      "title": "Nhập Prompt Hàng loạt",
-      "downloadTemplate": "Tải Template",
-      "import": "Nhập",
-      "instructions": "Hướng dẫn Nhập Excel",
-      "instructionColumns": "Cột bắt buộc: {{required}}. Tuỳ chọn: {{optional}}",
-      "instructionTags": "Phân cách thẻ bằng dấu phẩy (vd: \"tag1,tag2\")",
-      "instructionAutoTags": "Các thẻ chưa tồn tại sẽ được tự động tạo mới",
-      "dropzone": "Nhấp hoặc kéo tệp Excel vào đây",
-      "dropzoneHint": "Hỗ trợ .xlsx và .xls (tối đa 1000 dòng, 5MB)",
-      "parseError": "Không thể phân tích tệp",
-      "fileLoaded": "Đã tải tệp: {{name}}",
-      "validRows": "{{count}} hợp lệ",
-      "errorRows": "{{count}} lỗi",
-      "resultTitle": "Nhập Hoàn tất",
-      "resultMessage": "Đã nhập {{imported}} prompt, bỏ qua {{skipped}} trùng lặp.",
-      "success": "Đã nhập {{imported}} prompt, bỏ qua {{skipped}} trùng lặp",
-      "errors": {
-        "fileTooLarge": "Kích thước tệp vượt quá giới hạn {{max}}MB",
-        "missingColumns": "Thiếu cột bắt buộc: {{columns}}",
-        "tooManyRows": "Tệp chứa nhiều hơn {{max}} dòng",
-        "missingPrompt": "Dòng {{row}}: Prompt là bắt buộc",
-        "noValidData": "Không có dữ liệu hợp lệ để nhập",
-        "emptyFile": "Tệp trống hoặc không có sheet",
-        "noData": "Không tìm thấy dữ liệu trong tệp"
-      }
-    },
-    "bulkDelete": {
-      "button": "Xóa ({{count}})",
-      "confirmTitle": "Xóa {{count}} Prompt",
-      "confirmMessage": "Bạn có chắc chắn muốn xóa {{count}} prompt đã chọn? Hành động này không thể hoàn tác.",
-      "success": "Đã xóa thành công {{count}} prompt"
-    }
-  },
   "errors": {
     "REAUTH_REQUIRED": "Yêu cầu xác thực lại"
   },
@@ -837,9 +723,6 @@
       },
       "kb-config": {
         "title": "Cấu hình Cơ sở Kiến thức"
-      },
-      "kb-prompts": {
-        "title": "Thư viện Gợi ý"
       },
       "iam": {
         "title": "Quản lý Định danh & Truy cập"
@@ -899,6 +782,115 @@
       "aiChat": "AI Chat",
       "aiSearch": "AI Search",
       "systemChat": "Chat hệ thống"
+    }
+  },
+  "glossary": {
+    "title": "Quản lý Từ điển",
+    "tabs": {
+      "tasks": "Quản lý Nhiệm vụ",
+      "keywords": "Quản lý Từ khóa"
+    },
+    "task": {
+      "add": "Thêm Nhiệm vụ",
+      "name": "Tên Nhiệm vụ",
+      "description": "Mô tả",
+      "taskInstruction": "Hướng dẫn Nhiệm vụ",
+      "contextTemplate": "Mẫu Ngữ cảnh",
+      "searchPlaceholder": "Tìm kiếm nhiệm vụ...",
+      "namePlaceholder": "Nhập tên nhiệm vụ",
+      "descriptionPlaceholder": "Mô tả tùy chọn",
+      "taskInstructionPlaceholder": "Nhập dòng hướng dẫn (dòng 1 của prompt)",
+      "taskInstructionTooltip": "Dòng đầu tiên của prompt — mô tả nhiệm vụ AI cần làm",
+      "contextTemplatePlaceholder": "Nhập mẫu ngữ cảnh (dòng 2 của prompt). Sử dụng {{keywords}} làm placeholder.",
+      "contextTemplateTooltip": "Dòng thứ hai của prompt — cung cấp ngữ cảnh với placeholder {{keywords}}",
+      "nameRequired": "Tên nhiệm vụ là bắt buộc",
+      "taskInstructionRequired": "Hướng dẫn nhiệm vụ là bắt buộc",
+      "contextTemplateRequired": "Mẫu ngữ cảnh là bắt buộc",
+      "createTitle": "Tạo Nhiệm vụ Từ điển",
+      "editTitle": "Chỉnh sửa Nhiệm vụ Từ điển",
+      "createSuccess": "Đã tạo nhiệm vụ thành công",
+      "updateSuccess": "Đã cập nhật nhiệm vụ thành công",
+      "deleteSuccess": "Đã xóa nhiệm vụ thành công",
+      "confirmDelete": "Xóa Nhiệm vụ",
+      "confirmDeleteMessage": "Bạn có chắc muốn xóa nhiệm vụ \"{{name}}\"? Tất cả từ khóa sẽ bị xóa.",
+      "selectPrompt": "Chọn nhiệm vụ từ bảng bên trái để xem từ khóa",
+      "promptPreview": "Xem trước Mẫu Prompt"
+    },
+    "keyword": {
+      "add": "Thêm Từ khóa",
+      "name": "Từ khóa",
+      "description": "Mô tả",
+      "status": "Trạng thái",
+      "taskName": "Nhiệm vụ",
+      "allTasks": "Tất cả Nhiệm vụ",
+      "selectTask": "Chọn nhiệm vụ",
+      "taskRequired": "Nhiệm vụ là bắt buộc",
+      "searchPlaceholder": "Tìm kiếm từ khóa...",
+      "enKeyword": "Từ khóa tiếng Anh",
+      "enKeywordPlaceholder": "Nhập từ khóa tiếng Anh",
+      "namePlaceholder": "Nhập từ khóa",
+      "descriptionPlaceholder": "Mô tả tùy chọn",
+      "nameRequired": "Từ khóa là bắt buộc",
+      "createTitle": "Tạo Từ khóa",
+      "editTitle": "Chỉnh sửa Từ khóa",
+      "createSuccess": "Đã tạo từ khóa thành công",
+      "updateSuccess": "Đã cập nhật từ khóa thành công",
+      "deleteSuccess": "Đã xóa từ khóa thành công",
+      "confirmDelete": "Xóa Từ khóa",
+      "confirmDeleteMessage": "Bạn có chắc muốn xóa từ khóa \"{{name}}\"?",
+      "empty": "Chưa có từ khóa. Thêm từ khóa đầu tiên."
+    },
+    "common": {
+      "sortOrder": "Thứ tự",
+      "active": "Kích hoạt"
+    },
+    "bulkImport": {
+      "button": "Nhập",
+      "title": "Nhập Từ điển Hàng loạt",
+      "selectFile": "Nhấn để chọn tệp Excel (.xlsx)",
+      "fileFormat": "Cột bắt buộc: task_name, task_instruction, context_template, keyword. Tùy chọn: keyword_description",
+      "import": "Nhập",
+      "noSheet": "Không tìm thấy sheet trong tệp Excel",
+      "emptyFile": "Tệp không chứa dữ liệu",
+      "missingColumns": "Thiếu cột bắt buộc: {{cols}}",
+      "noValidRows": "Không tìm thấy dòng hợp lệ",
+      "parseError": "Không thể phân tích tệp Excel",
+      "success": "Nhập hoàn tất thành công",
+      "rowCount": "{{count}} dòng sẵn sàng nhập",
+      "resultSummary": "Nhiệm vụ tạo: {{tasks}}, Bỏ qua: {{skipped}}",
+      "colTaskName": "Tên Nhiệm vụ",
+      "colTaskInstruction": "Hướng dẫn Nhiệm vụ",
+      "colContextTemplate": "Mẫu Ngữ cảnh",
+      "colKeyword": "Từ khóa",
+      "colKeywordDesc": "Mô tả Từ khóa",
+      "downloadTemplate": "Tải mẫu"
+    },
+    "keywordImport": {
+      "button": "Nhập Từ khóa",
+      "title": "Nhập Từ khóa Hàng loạt",
+      "selectFile": "Nhấn để chọn tệp Excel (.xlsx)",
+      "fileFormat": "Cột bắt buộc: name. Tùy chọn: en_keyword, description",
+      "import": "Nhập",
+      "noSheet": "Không tìm thấy sheet trong tệp Excel",
+      "emptyFile": "Tệp không chứa dữ liệu",
+      "missingColumns": "Thiếu cột bắt buộc: {{cols}}",
+      "noValidRows": "Không tìm thấy dòng hợp lệ có cột name",
+      "parseError": "Không thể phân tích tệp Excel",
+      "success": "Nhập từ khóa thành công",
+      "rowCount": "{{count}} dòng sẵn sàng nhập",
+      "resultSummary": "Đã tạo: {{created}}, Bỏ qua: {{skipped}}",
+      "downloadTemplate": "Tải mẫu"
+    },
+    "promptBuilder": {
+      "title": "Trình tạo Prompt",
+      "selectTask": "Chọn nhiệm vụ",
+      "selectKeywords": "Chọn từ khóa",
+      "generatedPrompt": "Prompt đã tạo",
+      "generate": "Tạo",
+      "copy": "Sao chép",
+      "copied": "Đã sao chép!",
+      "insert": "Chèn vào chat",
+      "noTask": "Vui lòng chọn nhiệm vụ trước"
     }
   }
 }

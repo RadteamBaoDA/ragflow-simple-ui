@@ -397,3 +397,93 @@ export interface BulkCreateResult {
     /** Any error messages */
     errors: string[];
 }
+
+/**
+ * GlossaryTask interface representing a task in the glossary management system.
+ * Tasks are the parent entity containing prompt template instructions.
+ */
+export interface GlossaryTask {
+    /** Unique UUID for the task */
+    id: string;
+    /** Task name (unique) */
+    name: string;
+    /** Description of the task */
+    description?: string | null;
+    /** Task instruction in English (required) */
+    task_instruction_en: string;
+    /** Task instruction in Japanese (optional) */
+    task_instruction_ja?: string | null;
+    /** Task instruction in Vietnamese (optional) */
+    task_instruction_vi?: string | null;
+    /** Keyword and context template with {keyword} placeholder */
+    context_template: string;
+    /** Sort order for display */
+    sort_order: number;
+    /** Whether the task is active */
+    is_active: boolean;
+    /** User ID who created this record */
+    created_by?: string | null;
+    /** User ID who last updated this record */
+    updated_by?: string | null;
+    /** Timestamp of record creation */
+    created_at: Date;
+    /** Timestamp of last update */
+    updated_at: Date;
+}
+
+/**
+ * GlossaryKeyword interface representing a standalone keyword entity.
+ * Keywords are independent entries in the glossary system.
+ */
+export interface GlossaryKeyword {
+    /** Unique UUID for the keyword */
+    id: string;
+    /** Keyword name (globally unique) */
+    name: string;
+    /** English translation of the keyword */
+    en_keyword?: string | null;
+    /** Description of the keyword */
+    description?: string | null;
+    /** Sort order for display */
+    sort_order: number;
+    /** Whether the keyword is active */
+    is_active: boolean;
+    /** User ID who created this record */
+    created_by?: string | null;
+    /** User ID who last updated this record */
+    updated_by?: string | null;
+    /** Timestamp of record creation */
+    created_at: Date;
+    /** Timestamp of last update */
+    updated_at: Date;
+}
+
+/**
+ * DTO for a single row in the glossary bulk import Excel file.
+ */
+export interface BulkImportGlossaryRow {
+    /** Name of the task (required) */
+    task_name: string;
+    /** Task instruction in English (required) */
+    task_instruction_en: string;
+    /** Task instruction in Japanese (optional) */
+    task_instruction_ja?: string;
+    /** Task instruction in Vietnamese (optional) */
+    task_instruction_vi?: string;
+    /** Context template with {keyword} placeholder */
+    context_template: string;
+}
+
+/**
+ * Result of glossary bulk import operation.
+ */
+export interface BulkImportGlossaryResult {
+    /** Whether the operation completed successfully */
+    success: boolean;
+    /** Number of tasks created */
+    tasksCreated: number;
+    /** Number of items skipped (duplicates) */
+    skipped: number;
+    /** Any error messages */
+    errors: string[];
+}
