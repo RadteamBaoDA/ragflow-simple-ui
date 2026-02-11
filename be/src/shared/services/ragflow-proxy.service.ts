@@ -87,6 +87,7 @@ export class RagflowProxyService {
    */
   async createDataset(serverId: string, params: {
     name: string
+    language?: string
     embedding_model?: string
     chunk_method?: string
     parser_config?: Record<string, any>

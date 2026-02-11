@@ -37,6 +37,8 @@ interface DocumentsTabProps {
   projectId: string
   /** Initial category list fetched by the parent */
   initialCategories: DocumentCategory[]
+  /** Available embedding models from the project's RAGFlow server */
+  embeddingModels?: string[]
 }
 
 // ============================================================================
@@ -49,7 +51,7 @@ interface DocumentsTabProps {
  * @param {DocumentsTabProps} props - Component props
  * @returns {JSX.Element} The rendered documents tab content
  */
-const DocumentsTab = ({ projectId, initialCategories }: DocumentsTabProps) => {
+const DocumentsTab = ({ projectId, initialCategories, embeddingModels }: DocumentsTabProps) => {
   const { t } = useTranslation()
 
   // ── State ──────────────────────────────────────────────────────────────
@@ -384,6 +386,7 @@ const DocumentsTab = ({ projectId, initialCategories }: DocumentsTabProps) => {
         open={categoryModalOpen}
         form={categoryForm}
         saving={saving}
+        embeddingModels={embeddingModels}
         onOk={handleCreateCategory}
         onCancel={() => setCategoryModalOpen(false)}
       />

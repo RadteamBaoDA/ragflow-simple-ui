@@ -447,6 +447,10 @@ export interface RagflowServer {
     description?: string | null;
     /** Whether the server is active */
     is_active: boolean;
+    /** List of available embedding model names configured by admin */
+    embedding_models?: string[] | null;
+    /** List of available chat/LLM model names configured by admin */
+    chat_models?: string[] | null;
     /** User ID who created this record */
     created_by?: string | null;
     /** User ID who last updated this record */
@@ -588,6 +592,8 @@ export interface DocumentCategory {
     description?: string | null;
     /** Sort order for display */
     sort_order: number;
+    /** RAGFlow dataset configuration (language, embedding_model, chunk_method, parser_config) */
+    dataset_config?: Record<string, any> | null;
     /** User ID who created this record */
     created_by?: string | null;
     /** User ID who last updated this record */

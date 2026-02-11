@@ -25,6 +25,7 @@ import {
   type ProjectChat,
   type ProjectPermission,
 } from '../api/projectService'
+import { getRagflowServerById } from '../../ragflow-servers/api/ragflowServerService'
 import DocumentsTab from '../components/DocumentsTab'
 import ChatTab from '../components/ChatTab'
 import SettingsTab from '../components/SettingsTab'
@@ -51,6 +52,9 @@ const ProjectDetailPage = () => {
   const [categories, setCategories] = useState<DocumentCategory[]>([])
   const [chats, setChats] = useState<ProjectChat[]>([])
   const [permissions, setPermissions] = useState<ProjectPermission[]>([])
+  // Server-level model config
+  const [embeddingModels, setEmbeddingModels] = useState<string[]>([])
+  const [_chatModels, _setChatModels] = useState<string[]>([])
 
   /**
    * Fetch the project and its sub-resources.
@@ -69,6 +73,17 @@ const ProjectDetailPage = () => {
       setCategories(categoryData)
       setChats(chatData)
       setPermissions(permData)
+
+      // Fetch server's model config if linked
+      if (projectData.ragflow_server_id) {
+        try {
+          const server = await getRagflowServerById(projectData.ragflow_server_id)
+          setEmbeddingModels(server.embedding_models || [])
+          _setChatModels(server.chat_models || [])
+        } catch {
+          // Non-critical: models will fall back to text input
+        }
+      }
     } catch (err) {
       console.error('Failed to load project:', err)
       message.error(String(err))
@@ -141,6 +156,7 @@ const ProjectDetailPage = () => {
                   <DocumentsTab
                     projectId={projectId!}
                     initialCategories={categories}
+                    embeddingModels={embeddingModels}
                   />
                 ),
               },

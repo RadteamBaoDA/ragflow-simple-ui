@@ -55,9 +55,11 @@ export class DocumentCategoryService {
     name: string
     description?: string
     sort_order?: number
+    dataset_config?: Record<string, any>
   }, userId?: string): Promise<DocumentCategory> {
     return ModelFactory.documentCategory.create({
       ...data,
+      dataset_config: data.dataset_config || {},
       created_by: userId ?? null,
       updated_by: userId ?? null
     } as Partial<DocumentCategory>)
@@ -137,22 +139,32 @@ export class DocumentCategoryService {
     chunk_method?: string
     parser_config?: Record<string, any>
   }, userId?: string): Promise<DocumentCategoryVersion> {
-    // Resolve category name for dataset naming
+    // Resolve category for naming and dataset_config
     const category = await ModelFactory.documentCategory.findById(data.category_id)
     if (!category) throw new Error('Category not found')
+
+    // Category-level config takes priority over project defaults
+    const catCfg = (category.dataset_config || {}) as Record<string, any>
 
     // Build dataset name: "ProjectCategory - VersionLabel"
     const project = await ModelFactory.project.findById(category.project_id)
     const datasetName = `${project?.name || 'Project'}_${category.name}_${data.version_label}`
 
-    // Create RAGFlow dataset
+    // Merge parser_config: category overrides project defaults
+    const mergedParserConfig = {
+      ...(projectDefaults.parser_config || {}),
+      ...(catCfg.parser_config || {})
+    }
+
+    // Create RAGFlow dataset using category config with project fallback
     let ragflowDataset: any = null
     try {
       ragflowDataset = await ragflowProxyService.createDataset(serverId, {
         name: datasetName,
-        embedding_model: projectDefaults.embedding_model || 'bge-m3',
-        chunk_method: projectDefaults.chunk_method || 'naive',
-        parser_config: projectDefaults.parser_config || {}
+        language: catCfg.language || undefined,
+        embedding_model: catCfg.embedding_model || projectDefaults.embedding_model || 'bge-m3',
+        chunk_method: catCfg.chunk_method || projectDefaults.chunk_method || 'naive',
+        parser_config: mergedParserConfig
       })
     } catch (err) {
       console.error('Failed to create RAGFlow dataset:', err)
