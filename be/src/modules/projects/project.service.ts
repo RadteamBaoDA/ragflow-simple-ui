@@ -4,8 +4,8 @@
  * Handles CRUD, permission resolution, and RAGFlow server binding.
  * Implements Singleton pattern.
  */
-import { ModelFactory } from '@/models/factory.js'
-import { Project, ProjectPermission } from '@/models/types.js'
+import { ModelFactory } from '@/shared/models/factory.js'
+import { Project, ProjectPermission } from '@/shared/models/types.js'
 
 /**
  * Service managing project lifecycle and permissions.
@@ -51,7 +51,7 @@ export class ProjectService {
     if (projectIds.size === 0) return []
 
     // Fetch projects by IDs
-    return ModelFactory.project.query().whereIn('id', Array.from(projectIds))
+    return (ModelFactory.project as any).query().whereIn('id', Array.from(projectIds))
   }
 
   /**
@@ -109,7 +109,7 @@ export class ProjectService {
       if (!server) throw new Error('RAGFlow server not found')
     }
 
-    return ModelFactory.project.update(id, { ...data, updated_by: userId })
+    return ModelFactory.project.update(id, { ...data, updated_by: userId } as Partial<Project>) as Promise<Project>
   }
 
   /**
@@ -153,7 +153,7 @@ export class ProjectService {
       ...data,
       created_by: userId,
       updated_by: userId
-    })
+    } as Partial<ProjectPermission>)
   }
 
   /**

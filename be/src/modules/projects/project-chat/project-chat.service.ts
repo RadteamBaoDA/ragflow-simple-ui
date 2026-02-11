@@ -4,9 +4,9 @@
  * Handles CRUD with RAGFlow chat assistant sync.
  * Implements Singleton pattern.
  */
-import { ModelFactory } from '@/models/factory.js'
-import { ProjectChat } from '@/models/types.js'
-import { ragflowProxyService } from '@/services/ragflow-proxy.service.js'
+import { ModelFactory } from '@/shared/models/factory.js'
+import { ProjectChat } from '@/shared/models/types.js'
+import { ragflowProxyService } from '@/shared/services/ragflow-proxy.service.js'
 
 /**
  * Service managing project chat assistants.
@@ -65,8 +65,8 @@ export class ProjectChatService {
       ragflowChat = await ragflowProxyService.createChatAssistant(serverId, {
         name: data.name,
         dataset_ids: data.ragflow_dataset_ids || [],
-        llm: data.llm_config,
-        prompt: data.prompt_config
+        ...(data.llm_config ? { llm: data.llm_config } : {}),
+        ...(data.prompt_config ? { prompt: data.prompt_config } : {})
       })
     } catch (err) {
       console.error('Failed to create RAGFlow chat assistant:', err)
@@ -124,7 +124,7 @@ export class ProjectChatService {
       ...data,
       last_synced_at: new Date(),
       updated_by: userId
-    })
+    } as Partial<ProjectChat>) as Promise<ProjectChat>
   }
 
   /**
@@ -173,7 +173,7 @@ export class ProjectChatService {
       llm_config: assistant.llm || existing.llm_config,
       prompt_config: assistant.prompt || existing.prompt_config,
       last_synced_at: new Date()
-    })
+    }) as Promise<ProjectChat>
   }
 }
 

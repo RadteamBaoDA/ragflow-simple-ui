@@ -20,12 +20,12 @@ import { ExternalSearchRecordModel } from '@/modules/external/models/search-reco
 
 import { GlossaryTaskModel } from '@/modules/glossary/glossary-task.model.js';
 import { GlossaryKeywordModel } from '@/modules/glossary/glossary-keyword.model.js';
-import { RagflowServerModel } from '@/shared/models/ragflow-server.model.js';
-import { ProjectModel } from '@/shared/models/project.model.js';
-import { ProjectPermissionModel } from '@/shared/models/project-permission.model.js';
-import { DocumentCategoryModel } from '@/shared/models/document-category.model.js';
-import { DocumentCategoryVersionModel } from '@/shared/models/document-category-version.model.js';
-import { ProjectChatModel } from '@/shared/models/project-chat.model.js';
+import { RagflowServerModel } from '@/modules/admin/ragflow-servers/ragflow-server.model.js';
+import { ProjectModel } from '@/modules/projects/project.model.js';
+import { ProjectPermissionModel } from '@/modules/projects/project-permission.model.js';
+import { DocumentCategoryModel } from '@/modules/projects/document-category/document-category.model.js';
+import { DocumentCategoryVersionModel } from '@/modules/projects/document-category/document-category-version.model.js';
+import { ProjectChatModel } from '@/modules/projects/project-chat/project-chat.model.js';
 
 /**
  * ModelFactory class implementing the Factory Pattern.

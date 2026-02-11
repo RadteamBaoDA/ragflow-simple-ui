@@ -7,10 +7,10 @@
  * NOTE: Files are saved locally to {UPLOAD_DIR}/{projectId}/{categoryId}/{versionId}/.
  * A future task converter will transform and push them to RAGFlow.
  */
-import { ModelFactory } from '@/models/factory.js'
-import { DocumentCategory, DocumentCategoryVersion } from '@/models/types.js'
-import { ragflowProxyService } from '@/services/ragflow-proxy.service.js'
-import { config } from '@/config/index.js'
+import { ModelFactory } from '@/shared/models/factory.js'
+import { DocumentCategory, DocumentCategoryVersion } from '@/shared/models/types.js'
+import { ragflowProxyService } from '@/shared/services/ragflow-proxy.service.js'
+import { config } from '@/shared/config/index.js'
 import { promises as fs } from 'fs'
 import path from 'path'
 

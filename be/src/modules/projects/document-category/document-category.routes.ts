@@ -4,8 +4,8 @@
  * Nested under /api/projects/:projectId/categories.
  */
 import { Router } from 'express'
-import { DocumentCategoryController } from '@/controllers/document-category.controller.js'
-import { requireAuth } from '@/middleware/auth.middleware.js'
+import { DocumentCategoryController } from '@/modules/projects/document-category/document-category.controller.js'
+import { requireAuth } from '@/shared/middleware/auth.middleware.js'
 import multer from 'multer'
 
 // Configure multer for file upload (memory storage for buffer access)
