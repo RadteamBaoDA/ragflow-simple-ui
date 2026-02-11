@@ -899,13 +899,23 @@
     },
     "promptBuilder": {
       "title": "Prompt Builder",
+      "stepLanguage": "Language",
+      "stepTask": "Task",
+      "stepKeyword": "Keyword",
+      "selectLanguage": "Prompt Language",
       "selectTask": "Select a task",
-      "selectKeywords": "Select keywords",
+      "selectKeyword": "Select or type a keyword",
+      "instructionPreview": "Instruction",
+      "contextLabel": "Context",
+      "contextPlaceholder": "Enter context for this keyword...",
+      "pressEnterToUse": "Press Enter to use \"{{keyword}}\"",
       "generatedPrompt": "Generated Prompt",
       "generate": "Generate",
       "copy": "Copy to clipboard",
       "copied": "Copied!",
       "insert": "Insert into chat",
+      "applyToChat": "Apply to Chat",
+      "appliedToChat": "Prompt copied! Paste it into the chat input.",
       "noTask": "Please select a task first"
     }
   }

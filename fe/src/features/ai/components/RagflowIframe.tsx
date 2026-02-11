@@ -18,10 +18,12 @@ import { useSharedUser } from '@/features/users';
 import { useTranslation } from 'react-i18next';
 import { useKnowledgeBase } from '@/features/knowledge-base/context/KnowledgeBaseContext';
 import { useSettings } from '@/app/contexts/SettingsContext';
-import { AlertCircle, RefreshCw, RotateCcw, WifiOff, Lock, FileQuestion, ServerCrash, Maximize2, Minimize2 } from 'lucide-react';
+import { AlertCircle, RefreshCw, RotateCcw, WifiOff, Lock, FileQuestion, ServerCrash, Maximize2, Minimize2, Sparkles } from 'lucide-react';
 import { Tooltip } from 'antd';
 
 import { ChatWidgetEmbed } from './ChatWidgetEmbed';
+import { PromptBuilderModal } from '@/features/glossary/components/PromptBuilderModal';
+
 
 // ============================================================================
 // Types
@@ -74,6 +76,7 @@ function RagflowIframe({ path }: RagflowIframeProps) {
   const [urlChecked, setUrlChecked] = useState(false);
   const [isFullScreen, setIsFullScreen] = useState(false);
   const [sessionKey, setSessionKey] = useState<number>(Date.now());
+  const [showPromptBuilder, setShowPromptBuilder] = useState(false);
 
 
   // Get user and Knowledge Base configuration
@@ -526,6 +529,35 @@ function RagflowIframe({ path }: RagflowIframeProps) {
         {/* Chat Widget for Search Mode */}
         {path === 'search' && chatWidgetUrl && (
           <ChatWidgetEmbed widgetUrl={chatWidgetUrl} />
+        )}
+
+        {/* Prompt Builder for Chat Mode — FAB + Modal */}
+        {path === 'chat' && (
+          <>
+            <Tooltip title={t('glossary.promptBuilder.title')} placement="left">
+              <button
+                onClick={() => setShowPromptBuilder(true)}
+                className="absolute right-6 p-3 bg-primary text-white rounded-full shadow-lg hover:bg-primary-hover transition-all duration-200 z-[100] cursor-pointer"
+                style={{ bottom: '5.5rem' }}
+              >
+                <Sparkles className="w-6 h-6" />
+                <span className="sr-only">{t('glossary.promptBuilder.title')}</span>
+              </button>
+            </Tooltip>
+            <PromptBuilderModal
+              open={showPromptBuilder}
+              onClose={() => setShowPromptBuilder(false)}
+              onApply={(text) => {
+                if (iframeRef.current?.contentWindow) {
+                  iframeRef.current.contentWindow.postMessage(
+                    { type: 'INSERT_PROMPT', payload: text },
+                    '*'
+                  );
+                  console.log('[RagflowIframe] Sent prompt to iframe:', text.substring(0, 50) + '...');
+                }
+              }}
+            />
+          </>
         )}
 
 
