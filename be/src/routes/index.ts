@@ -23,9 +23,7 @@ import broadcastMessageRoutes from '@/routes/broadcast-message.routes.js';
 import adminHistoryRoutes from '@/routes/admin-history.routes.js';
 import chatHistoryRoutes from '@/routes/chat-history.routes.js';
 import userHistoryRoutes from '@/routes/user-history.routes.js';
-import promptRoutes from '@/routes/prompt.routes.js';
-import promptTagRoutes from '@/routes/prompt-tag.routes.js';
-import promptPermissionRoutes from '@/routes/prompt-permission.routes.js';
+
 import dashboardRoutes from '@/routes/dashboard.routes.js';
 import glossaryRoutes from '@/routes/glossary.routes.js';
 
@@ -129,14 +127,7 @@ function registerRoutes(apiRouter: Router): void {
     // Chat history
     apiRouter.use('/chat', chatHistoryRoutes);
 
-    // Prompts management
-    apiRouter.use('/prompts', promptRoutes);
 
-    // Prompt tags management
-    apiRouter.use('/prompt-tags', promptTagRoutes);
-
-    // Prompt permissions management
-    apiRouter.use('/prompts/permissions', promptPermissionRoutes);
 
     // Glossary management (tasks, keywords, prompt builder)
     apiRouter.use('/glossary', glossaryRoutes);

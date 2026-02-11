@@ -94,7 +94,6 @@
     "tokenizer": "Tokenizer",
     "signOut": "Sign Out",
     "knowledgeBase": "Knowledge Base",
-    "prompts": "Prompts",
     "broadcastMessages": "Broadcast Messages",
     "histories": "Histories",
     "dashboard": "Dashboard",
@@ -503,10 +502,7 @@
       "create_source": "Create Source",
       "update_source": "Update Source",
       "delete_source": "Delete Source",
-      "batch_delete": "Batch Delete",
-      "create_prompt": "Create Prompt",
-      "update_prompt": "Update Prompt",
-      "delete_prompt": "Delete Prompt"
+      "batch_delete": "Batch Delete"
     },
     "resourceTypes": {
       "user": "User",
@@ -519,8 +515,7 @@
       "role": "Role",
       "broadcast_message": "Broadcast Message",
       "permission": "Permission",
-      "knowledge_base_source": "Knowledge Base Source",
-      "prompt": "Prompt"
+      "knowledge_base_source": "Knowledge Base Source"
     }
   },
   "storage": {
@@ -708,116 +703,6 @@
     "filterTitle": "Filter History",
     "applyFilter": "Apply Filters"
   },
-  "prompts": {
-    "title": "Prompt Management",
-    "description": "Manage and organize your prompts",
-    "install": "Add New Prompt",
-    "addNew": "Add New Prompt",
-    "searchPlaceholder": "Search prompts...",
-    "noPrompts": "No prompts found",
-    "fields": {
-      "prompt": "Prompt",
-      "description": "Description",
-      "tags": "Tags",
-      "source": "Source",
-      "actions": "Actions",
-      "active": "Active",
-      "inactive": "Inactive",
-      "feedback": "Feedback"
-    },
-    "filter": {
-      "allTags": "All Tags",
-      "tag": "Tag",
-      "source": "Source",
-      "allSources": "All Sources"
-    },
-    "form": {
-      "createTitle": "Add New Prompt",
-      "editTitle": "Edit Prompt",
-      "promptRequired": "Prompt text is required",
-      "promptPlaceholder": "Enter your prompt here...",
-      "descriptionPlaceholder": "Enter description",
-      "save": "Add",
-      "success": "Prompt added successfully",
-      "selectTags": "Select tags",
-      "searchTags": "Search or create tags...",
-      "createTag": "Create tag",
-      "tagNotFound": "Tag not found, click to create",
-      "allTag": "All"
-    },
-    "feedback": {
-      "like": "Like",
-      "dislike": "Dislike",
-      "comment": "Comment",
-      "title": "Feedback Details",
-      "filterByUser": "Filter by user",
-      "promptSnapshot": "Prompt at time of feedback"
-    },
-    "permissions": {
-      "title": "Prompt Permissions",
-      "manage": "Manage Permissions",
-      "leaderNoteTitle": "Leader Permissions",
-      "leaderNote": "Granting permissions to a Team will apply those permissions to all Leaders of that team.",
-      "selectEntity": "Select User or Team"
-    },
-    "library": {
-      "title": "Prompt Library",
-      "searchPlaceholder": "Search prompts...",
-      "copied": "Copied to clipboard",
-      "clickToCopy": "Click on a prompt to copy it to clipboard",
-      "feedback": "Feedback",
-      "feedbackPlaceholder": "Why did you dislike this prompt? (Optional, max 500 chars)",
-      "submitFeedback": "Submit",
-      "feedbackSuccess": "Thanks for your feedback"
-    },
-    "tags": {
-      "manageTitle": "Manage Tags",
-      "manageButton": "Manage Tags",
-      "searchPlaceholder": "Search tags...",
-      "create": "Create",
-      "namePlaceholder": "Tag name",
-      "nameRequired": "Tag name is required",
-      "duplicateName": "Tag name already exists",
-      "notFound": "Tag not found",
-      "inUse": "Cannot delete tag because it is in use",
-      "deleteConfirm": "Delete this tag?",
-      "deleteWarning": "Tags in use cannot be deleted."
-    },
-    "bulkImport": {
-      "button": "Import",
-      "title": "Bulk Import Prompts",
-      "downloadTemplate": "Download Template",
-      "import": "Import",
-      "instructions": "Excel Import Instructions",
-      "instructionColumns": "Required column: {{required}}. Optional: {{optional}}",
-      "instructionTags": "Separate tags with commas (e.g., \"tag1,tag2\")",
-      "instructionAutoTags": "Missing tags will be automatically created",
-      "dropzone": "Click or drag Excel file here",
-      "dropzoneHint": "Supports .xlsx and .xls files (max 1000 rows, 5MB)",
-      "parseError": "Failed to Parse File",
-      "fileLoaded": "File loaded: {{name}}",
-      "validRows": "{{count}} valid",
-      "errorRows": "{{count}} errors",
-      "resultTitle": "Import Complete",
-      "resultMessage": "Imported {{imported}} prompts, skipped {{skipped}} duplicates.",
-      "success": "Imported {{imported}} prompts, skipped {{skipped}} duplicates",
-      "errors": {
-        "fileTooLarge": "File size exceeds {{max}}MB limit",
-        "missingColumns": "Missing required columns: {{columns}}",
-        "tooManyRows": "File contains more than {{max}} rows",
-        "missingPrompt": "Row {{row}}: Prompt is required",
-        "noValidData": "No valid data to import",
-        "emptyFile": "File is empty or has no sheets",
-        "noData": "No data found in the file"
-      }
-    },
-    "bulkDelete": {
-      "button": "Delete ({{count}})",
-      "confirmTitle": "Delete {{count}} Prompts",
-      "confirmMessage": "Are you sure you want to delete {{count}} selected prompts? This action cannot be undone.",
-      "success": "Successfully deleted {{count}} prompts"
-    }
-  },
   "errors": {
     "REAUTH_REQUIRED": "Re-authentication required"
   },
@@ -837,9 +722,6 @@
       },
       "kb-config": {
         "title": "Knowledge Base Config"
-      },
-      "kb-prompts": {
-        "title": "Prompt Library"
       },
       "iam": {
         "title": "Identity & Access Management"

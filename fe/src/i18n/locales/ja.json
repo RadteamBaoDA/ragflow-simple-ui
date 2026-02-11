@@ -94,7 +94,6 @@
     "tokenizer": "トークナイザー",
     "signOut": "サインアウト",
     "knowledgeBase": "ナレッジベース",
-    "prompts": "Prompts",
     "broadcastMessages": "一斉通知",
     "histories": "履歴一覧",
     "dashboard": "ダッシュボード",
@@ -503,10 +502,7 @@
       "create_source": "ソース作成",
       "update_source": "ソース更新",
       "delete_source": "ソース削除",
-      "batch_delete": "一括削除",
-      "create_prompt": "プロンプト作成",
-      "update_prompt": "プロンプト更新",
-      "delete_prompt": "プロンプト削除"
+      "batch_delete": "一括削除"
     },
     "resourceTypes": {
       "user": "ユーザー",
@@ -519,8 +515,7 @@
       "role": "役割",
       "broadcast_message": "一斉通知",
       "permission": "権限",
-      "knowledge_base_source": "ナレッジベースソース",
-      "prompt": "プロンプト"
+      "knowledge_base_source": "ナレッジベースソース"
     }
   },
   "storage": {
@@ -694,116 +689,6 @@
     "filterTitle": "履歴をフィルター",
     "applyFilter": "フィルターを適用"
   },
-  "prompts": {
-    "title": "Prompts管理",
-    "description": "Promptsを管理・整理する",
-    "install": "新規Promptを追加",
-    "addNew": "新規Promptを追加",
-    "searchPlaceholder": "Promptを検索...",
-    "noPrompts": "Promptが見つかりません",
-    "fields": {
-      "prompt": "Prompt",
-      "description": "説明",
-      "tags": "タグ",
-      "source": "ソース",
-      "actions": "操作",
-      "active": "有効",
-      "inactive": "無効",
-      "feedback": "フィードバック"
-    },
-    "filter": {
-      "allTags": "すべてのタグ",
-      "tag": "タグ",
-      "source": "ソース",
-      "allSources": "すべてのソース"
-    },
-    "form": {
-      "createTitle": "新規Promptを追加",
-      "editTitle": "Promptを編集",
-      "promptRequired": "Promptを入力してください",
-      "promptPlaceholder": "ここにPromptを入力してください...",
-      "descriptionPlaceholder": "説明を入力してください",
-      "save": "追加",
-      "success": "Promptを追加しました",
-      "selectTags": "タグを選択",
-      "searchTags": "タグを検索または作成...",
-      "createTag": "タグを作成",
-      "tagNotFound": "タグが見つかりません。クリックして作成",
-      "allTag": "すべて"
-    },
-    "feedback": {
-      "like": "いいね",
-      "dislike": "よくない",
-      "comment": "コメント",
-      "title": "フィードバック詳細",
-      "filterByUser": "ユーザーでフィルタ",
-      "promptSnapshot": "フィードバック時のプロンプト"
-    },
-    "permissions": {
-      "title": "プロンプト権限",
-      "manage": "権限管理",
-      "leaderNoteTitle": "リーダー権限",
-      "leaderNote": "チームに権限を付与すると、そのチームのすべてのリーダーに権限が適用されます。",
-      "selectEntity": "ユーザーまたはチームを選択"
-    },
-    "library": {
-      "title": "Promptsライブラリ",
-      "searchPlaceholder": "プロンプトを検索...",
-      "copied": "クリップボードにコピーしました",
-      "clickToCopy": "プロンプトをクリックしてコピー",
-      "feedback": "フィードバック",
-      "feedbackPlaceholder": "このプロンプトが気に入らない理由は何ですか？（任意、最大500文字）",
-      "submitFeedback": "送信",
-      "feedbackSuccess": "フィードバックありがとうございます"
-    },
-    "tags": {
-      "manageTitle": "タグ管理",
-      "manageButton": "タグ管理",
-      "searchPlaceholder": "タグを検索...",
-      "create": "作成",
-      "namePlaceholder": "タグ名",
-      "nameRequired": "タグ名は必須です",
-      "duplicateName": "タグ名は既に存在します",
-      "notFound": "タグが見つかりません",
-      "inUse": "使用中のタグは削除できません",
-      "deleteConfirm": "このタグを削除しますか？",
-      "deleteWarning": "使用中のタグは削除できません。"
-    },
-    "bulkImport": {
-      "button": "インポート",
-      "title": "Promptsを一括インポート",
-      "downloadTemplate": "テンプレートをダウンロード",
-      "import": "インポート",
-      "instructions": "Excelインポートの説明",
-      "instructionColumns": "必須列: {{required}}。オプション: {{optional}}",
-      "instructionTags": "タグはカンマで区切ります（例: \"tag1,tag2\"）",
-      "instructionAutoTags": "存在しないタグは自動的に作成されます",
-      "dropzone": "Excelファイルをここにドロップするかクリック",
-      "dropzoneHint": ".xlsxと.xlsファイル対応（最大1000行、5MB）",
-      "parseError": "ファイルの解析に失敗しました",
-      "fileLoaded": "ファイル読み込み済み: {{name}}",
-      "validRows": "{{count}}件の有効",
-      "errorRows": "{{count}}件のエラー",
-      "resultTitle": "インポート完了",
-      "resultMessage": "{{imported}}件のプロンプトをインポートしました。{{skipped}}件が重複でスキップされました。",
-      "success": "{{imported}}件のプロンプトをインポートしました。{{skipped}}件が重複でスキップされました",
-      "errors": {
-        "fileTooLarge": "ファイルサイズが{{max}}MBの制限を超えています",
-        "missingColumns": "必須列がありません: {{columns}}",
-        "tooManyRows": "ファイルに{{max}}行以上含まれています",
-        "missingPrompt": "{{row}}行目: プロンプトは必須です",
-        "noValidData": "インポート可能な有効なデータがありません",
-        "emptyFile": "ファイルが空であるか、シートがありません",
-        "noData": "ファイルにデータが見つかりません"
-      }
-    },
-    "bulkDelete": {
-      "button": "削除 ({{count}})",
-      "confirmTitle": "{{count}}件のプロンプトを削除",
-      "confirmMessage": "選択した{{count}}件のプロンプトを削除してもよろしいですか？この操作は元に戻せません。",
-      "success": "{{count}}件のプロンプトを正常に削除しました"
-    }
-  },
   "errors": {
     "REAUTH_REQUIRED": "再認証が必要です"
   },
@@ -823,9 +708,6 @@
       },
       "kb-config": {
         "title": "ナレッジベース設定"
-      },
-      "kb-prompts": {
-        "title": "プロンプトライブラリ"
       },
       "iam": {
         "title": "ID管理とアクセス制御"
