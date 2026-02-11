@@ -1,0 +1,4 @@
+[1m[43m DEPRECATED [49m[22m [33m"cache.dir" is deprecated, use Vite's "cacheDir" instead if you want to change the cache director. Note caches will be written to "cacheDir/vitest"[39m
+
+[1m[46m RUN [49m[22m [36mv3.2.4 [39m[90mD:/Project/RAG/ragflow-simple-ui -main/fe[39m
+

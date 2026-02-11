@@ -1,104 +1,107 @@
 import { describe, it, expect, vi, beforeEach } from 'vitest'
-import { render, screen, fireEvent, waitFor } from '@testing-library/react'
-import { renderHook } from '@testing-library/react'
-
-const mockSharedStorage = vi.hoisted(() => {
-  const getUser = vi.fn()
-  const setUser = vi.fn()
-  const clearUser = vi.fn()
-  const subscribeToUserInfoChanges = vi.fn()
-  return { getUser, setUser, storeUser: setUser, clearUser, subscribeToUserInfoChanges, subscribe: subscribeToUserInfoChanges }
-})
-
-const vi_mockUserPreferences = vi.hoisted(() => {
-  const get = vi.fn()
-  const set = vi.fn()
-  const remove = vi.fn()
-  const getAll = vi.fn()
-  return { get, set, remove, getAll, getPreference: get, setPreference: set, removePreference: remove, getAllPreferences: getAll }
-})
-
-vi.mock('../../../src/features/documents/api/shared-storage.service', () => ({
-  sharedStorage: mockSharedStorage,
-  subscribeToUserInfoChanges: mockSharedStorage.subscribeToUserInfoChanges
-}))
-vi.mock('../../../src/features/users/api/userPreferences', () => ({
-  userPreferences: vi_mockUserPreferences
-}))
-
-import { useSharedUser } from '../../../src/features/users/hooks/useSharedUser'
+import { renderHook, waitFor } from '@testing-library/react'
+import { useSharedUser, SharedUserInfo } from '../../../src/features/users/hooks/useSharedUser'
 
 describe('useSharedUser', () => {
+  const mockUser: SharedUserInfo = { id: '1', email: 'user@test.com', name: 'Test User', role: 'admin' }
+  const STORAGE_KEY = 'kb-user'
+
   beforeEach(() => {
     vi.clearAllMocks()
-    global.fetch = vi.fn(() => Promise.resolve(new Response(JSON.stringify({})))) as any
-    // sharedStorage.getUser is synchronous in implementation; return value should be immediate
-    mockSharedStorage.getUser.mockReturnValue({ id: '1', email: 'user@e.com', name: 'User' })
-    mockSharedStorage.subscribeToUserInfoChanges.mockReturnValue(vi.fn())
+    localStorage.clear()
+    vi.stubGlobal('fetch', vi.fn())
+    vi.stubEnv('VITE_API_BASE_URL', '')
   })
 
-  it('returns null initially', async () => {
-    mockSharedStorage.getUser.mockImplementationOnce(() => new Promise(() => {}))
+  it('fetches user from backend if not in cache', async () => {
+    const fetchMock = vi.fn().mockResolvedValue({
+      ok: true,
+      json: () => Promise.resolve(mockUser)
+    })
+    vi.stubGlobal('fetch', fetchMock)
+
     const { result } = renderHook(() => useSharedUser())
-    expect(result.current.isLoading).toBe(true)
+    
+    await waitFor(() => {
+      expect(result.current.user).toEqual(mockUser)
+      expect(result.current.isLoading).toBe(false)
+    }, { timeout: 3000 })
+
+    expect(localStorage.getItem(STORAGE_KEY)).toBe(JSON.stringify(mockUser))
   })
 
-  it('shows loading state', () => {
-    mockSharedStorage.getUser.mockImplementationOnce(() => new Promise(() => {}))
-    const { result } = renderHook(() => useSharedUser())
-    expect(result.current.isLoading).toBe(true)
-  })
+  it('uses cached user if available and refreshes in background', async () => {
+    const cachedUser = { ...mockUser, name: 'Cached User' }
+    localStorage.setItem(STORAGE_KEY, JSON.stringify(cachedUser))
+    
+    const fetchMock = vi.fn().mockResolvedValue({
+      ok: true,
+      json: () => Promise.resolve(mockUser)
+    })
+    vi.stubGlobal('fetch', fetchMock)
 
-  it('fetches user on mount', async () => {
-    mockSharedStorage.getUser.mockResolvedValue({ id: '1', email: 'user@e.com', name: 'User' })
     const { result } = renderHook(() => useSharedUser())
-    await waitFor(() => expect(result.current.user).toBeTruthy())
+    
+    // Initially uses cache
+    await waitFor(() => {
+      expect(result.current.user).toEqual(cachedUser)
+    }, { timeout: 3000 })
+
+    // Background refresh should update state eventually
+    await waitFor(() => {
+      expect(result.current.user?.name).toBe('Test User')
+    }, { timeout: 5000 })
+    
+    expect(localStorage.getItem(STORAGE_KEY)).toBe(JSON.stringify(mockUser))
   })
 
   it('handles fetch errors', async () => {
-    // getUser throws synchronously in this scenario
-    mockSharedStorage.getUser.mockImplementationOnce(() => { throw new Error('Network error') })
+    const fetchMock = vi.fn().mockRejectedValue(new Error('Network error'))
+    vi.stubGlobal('fetch', fetchMock)
+
     const { result } = renderHook(() => useSharedUser())
-    await waitFor(() => expect(result.current.error).toBeTruthy())
+    
+    await waitFor(() => {
+      expect(result.current.error).toBe('Network error')
+      expect(result.current.isLoading).toBe(false)
+    }, { timeout: 3000 })
   })
 
-  it('subscribed to user changes', async () => {
-    renderHook(() => useSharedUser())
-    await waitFor(() => expect(mockSharedStorage.subscribeToUserInfoChanges).toHaveBeenCalled())
-  })
-
-  it('refreshes user data', async () => {
-    mockSharedStorage.getUser.mockReturnValue({ id: '1', email: 'user@e.com', name: 'User' })
-    const { result } = renderHook(() => useSharedUser())
-    await waitFor(() => result.current.user)
-    await result.current.refresh()
-    await waitFor(() => expect(mockSharedStorage.getUser).toHaveBeenCalled())
-  })
-
-  it('clears user data', async () => {
-    mockSharedStorage.getUser.mockResolvedValue({ id: '1', email: 'user@e.com', name: 'User' })
-    const { result } = renderHook(() => useSharedUser())
-    await waitFor(() => result.current.user)
-    result.current.clear()
-    await waitFor(() => expect(result.current.user).toBeNull())
-  })
-
-  it('updates on broadcast message', async () => {
-    let unsubscribe: any
-    mockSharedStorage.subscribeToUserInfoChanges.mockImplementation((callback: any) => {
-      unsubscribe = () => {}
-      return unsubscribe
+  it('handles 401 Unauthorized by clearing cache', async () => {
+    localStorage.setItem(STORAGE_KEY, JSON.stringify(mockUser))
+    
+    const fetchMock = vi.fn().mockResolvedValue({
+      ok: false,
+      status: 401
     })
+    vi.stubGlobal('fetch', fetchMock)
+
     const { result } = renderHook(() => useSharedUser())
-    await waitFor(() => expect(mockSharedStorage.subscribeToUserInfoChanges).toHaveBeenCalled())
+    
+    await waitFor(() => {
+      expect(result.current.user).toBeNull()
+      expect(localStorage.getItem(STORAGE_KEY)).toBeNull()
+    }, { timeout: 3000 })
   })
 
-  it('handles null user response', async () => {
-    mockSharedStorage.getUser.mockReturnValue(null)
-    // Simulate backend returning non-ok response so no user is set
-    global.fetch = vi.fn(() => Promise.resolve(new Response(null, { status: 404 }))) as any
+  it('clears user data via clear function', async () => {
+    localStorage.setItem(STORAGE_KEY, JSON.stringify(mockUser))
+    
+    const fetchMock = vi.fn().mockResolvedValue({
+      ok: true,
+      json: () => Promise.resolve(mockUser)
+    })
+    vi.stubGlobal('fetch', fetchMock)
+
     const { result } = renderHook(() => useSharedUser())
-    await waitFor(() => expect(result.current.isLoading).toBe(false))
-    expect(result.current.user).toBeNull()
+    
+    await waitFor(() => expect(result.current.user).toBeTruthy(), { timeout: 3000 })
+    
+    result.current.clear()
+    
+    await waitFor(() => {
+      expect(result.current.user).toBeNull()
+      expect(localStorage.getItem(STORAGE_KEY)).toBeNull()
+    }, { timeout: 3000 })
   })
 })
