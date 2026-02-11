@@ -4,7 +4,7 @@
  * Admin-only endpoints.
  */
 import { Request, Response } from 'express'
-import { ragflowServerService } from '@/services/ragflow-server.service.js'
+import { ragflowServerService } from '@/modules/admin/ragflow-servers/ragflow-server.service.js'
 
 /**
  * Controller class for RAGFlow server API endpoints.
@@ -35,7 +35,7 @@ export class RagflowServerController {
    */
   static async getById(req: Request, res: Response) {
     try {
-      const server = await ragflowServerService.getById(req.params.id)
+      const server = await ragflowServerService.getById(req.params.id as string)
       if (!server) {
         res.status(404).json({ error: 'Server not found' })
         return
@@ -87,7 +87,7 @@ export class RagflowServerController {
       // @ts-ignore
       const userId = req.user?.id
       const server = await ragflowServerService.update(
-        req.params.id,
+        req.params.id as string,
         { name, endpoint_url, api_key, description, is_active },
         userId
       )
@@ -108,7 +108,7 @@ export class RagflowServerController {
    */
   static async remove(req: Request, res: Response) {
     try {
-      await ragflowServerService.remove(req.params.id)
+      await ragflowServerService.remove(req.params.id as string)
       res.status(204).send()
     } catch (error: any) {
       console.error('Error deleting RAGFlow server:', error)

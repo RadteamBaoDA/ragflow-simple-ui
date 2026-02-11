@@ -3,9 +3,9 @@
  * RagflowServerService: Business logic for RAGFlow server management.
  * Implements Singleton pattern.
  */
-import { ModelFactory } from '@/models/factory.js'
-import { RagflowServer } from '@/models/types.js'
-import { ragflowProxyService } from '@/services/ragflow-proxy.service.js'
+import { ModelFactory } from '@/shared/models/factory.js'
+import { RagflowServer } from '@/shared/models/types.js'
+import { ragflowProxyService } from '@/shared/services/ragflow-proxy.service.js'
 
 /**
  * Service managing RAGFlow server CRUD and connection testing.
@@ -75,7 +75,7 @@ export class RagflowServerService {
     return ModelFactory.ragflowServer.update(id, {
       ...data,
       updated_by: userId
-    })
+    } as Partial<RagflowServer>) as Promise<RagflowServer>
   }
 
   /**
@@ -87,7 +87,7 @@ export class RagflowServerService {
     if (!existing) throw new Error('Server not found')
 
     // Check if any projects reference this server
-    const projects = await ModelFactory.project.query().where({ ragflow_server_id: id })
+    const projects = await (ModelFactory.project as any).query().where({ ragflow_server_id: id })
     if (projects.length > 0) {
       throw new Error(`Cannot delete: ${projects.length} project(s) still reference this server`)
     }

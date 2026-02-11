@@ -4,7 +4,7 @@
  */
 import { Request, Response } from 'express';
 import { log } from '@/shared/services/logger.service.js';
-import { adminHistoryService } from '@/modules/admin/admin-history.service.js';
+import { adminHistoryService } from '@/modules/admin/history/admin-history.service.js';
 
 export class AdminHistoryController {
     /**

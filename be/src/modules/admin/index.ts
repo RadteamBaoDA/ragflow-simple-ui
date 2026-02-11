@@ -1,3 +1,3 @@
-export { default as adminRoutes } from './admin.routes.js'
-export { default as adminHistoryRoutes } from './admin-history.routes.js'
-export { adminHistoryService } from './admin-history.service.js'
+
+export { default as adminHistoryRoutes } from './history/admin-history.routes.js'
+export { adminHistoryService } from './history/admin-history.service.js'
