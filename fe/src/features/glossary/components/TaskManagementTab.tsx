@@ -6,8 +6,8 @@
 
 import React, { useState } from 'react'
 import { useTranslation } from 'react-i18next'
-import { Plus, Edit2, Trash2, Search, Upload, BookOpen } from 'lucide-react'
-import { Card, Input, Button, Space, Modal, Form, Switch, Table, Tooltip, Badge } from 'antd'
+import { Plus, Edit2, Trash2, Search, Upload } from 'lucide-react'
+import { Card, Input, Button, Space, Modal, Form, Switch, Table, Tooltip } from 'antd'
 import type { ColumnsType } from 'antd/es/table'
 import type { GlossaryTask } from '../api/glossaryApi'
 import { glossaryApi } from '../api/glossaryApi'
@@ -102,54 +102,57 @@ export const TaskManagementTab: React.FC<TaskManagementTabProps> = ({
         onChange: (keys: React.Key[]) => setSelectedRowKeys(keys),
     } : undefined
 
+    /** Shared style for columns that should wrap long text. */
+    const wrapCellStyle = { whiteSpace: 'normal' as const, wordBreak: 'break-word' as const }
+
     /** Column definitions for the task table. */
     const columns: ColumnsType<GlossaryTask> = [
         {
             title: t('glossary.task.name'),
             dataIndex: 'name',
             key: 'name',
-            width: '25%',
+            width: 120,
             render: (name: string) => (
-                <span className="flex items-center gap-2">
-                    <BookOpen size={14} className="text-slate-400 flex-shrink-0" />
-                    <span className="font-medium">{name}</span>
-                </span>
+                <span className="font-medium" style={wrapCellStyle}>{name}</span>
             ),
         },
         {
             title: t('glossary.task.description'),
             dataIndex: 'description',
             key: 'description',
-            ellipsis: true,
+            width: 180,
+            onCell: () => ({ style: wrapCellStyle }),
         },
         {
             title: t('glossary.task.taskInstructionEn'),
             dataIndex: 'task_instruction_en',
             key: 'task_instruction_en',
-            ellipsis: true,
+            width: 160,
+            onCell: () => ({ style: wrapCellStyle }),
         },
         {
             title: t('glossary.task.taskInstructionJa'),
             dataIndex: 'task_instruction_ja',
             key: 'task_instruction_ja',
-            ellipsis: true,
+            width: 160,
+            onCell: () => ({ style: wrapCellStyle }),
         },
         {
             title: t('glossary.task.taskInstructionVi'),
             dataIndex: 'task_instruction_vi',
             key: 'task_instruction_vi',
-            ellipsis: true,
+            width: 160,
+            onCell: () => ({ style: wrapCellStyle }),
         },
         {
             title: t('glossary.keyword.status'),
             dataIndex: 'is_active',
             key: 'is_active',
-            width: 100,
+            width: 60,
             render: (active: boolean) => (
-                <Badge
-                    status={active ? 'success' : 'default'}
-                    text={active ? t('common.active') : t('common.inactive')}
-                />
+                <span style={{ color: active ? '#52c41a' : '#8c8c8c' }}>
+                    {active ? t('common.active') : t('common.inactive')}
+                </span>
             ),
         },
         // Conditionally add actions column for admin users
@@ -157,12 +160,12 @@ export const TaskManagementTab: React.FC<TaskManagementTabProps> = ({
             ? [{
                 title: t('common.actions'),
                 key: 'actions',
-                width: 100,
+                width: 20,
                 render: (_: unknown, record: GlossaryTask) => (
-                    <Space>
-                        <Button type="text" icon={<Edit2 size={14} />} onClick={() => openModal(record)} />
-                        <Button type="text" danger icon={<Trash2 size={14} />} onClick={() => handleDelete(record)} />
-                    </Space>
+                    <span style={{ display: 'inline-flex', gap: 0 }}>
+                        <Button type="text" size="small" icon={<Edit2 size={12} />} onClick={() => openModal(record)} style={{ padding: '0 2px' }} />
+                        <Button type="text" size="small" danger icon={<Trash2 size={12} />} onClick={() => handleDelete(record)} style={{ padding: '0 2px' }} />
+                    </span>
                 ),
             }]
             : []),

@@ -9,9 +9,13 @@
  * Prompt output = 2 lines:
  *   Line 1: task instruction (in selected language)
  *   Line 2: context template with {keyword} replaced by selected keywords
+ *
+ * Keyword select uses:
+ *   - Server-side paginated search (lazy load on scroll)
+ *   - Debounced search input (300ms) to reduce API calls
  */
 
-import { useState, useEffect, useCallback, useMemo } from 'react'
+import { useState, useEffect, useCallback, useMemo, useRef } from 'react'
 import { useTranslation } from 'react-i18next'
 import {
     Modal, Select, Button, Empty, Spin, Steps, Input
@@ -23,6 +27,17 @@ import {
     type GlossaryKeyword,
 } from '../api/glossaryApi'
 import { globalMessage } from '@/app/App'
+
+
+// ============================================================================
+// Constants
+// ============================================================================
+
+/** Number of keywords to fetch per page in the lazy-loaded select */
+const KEYWORD_PAGE_SIZE = 20
+
+/** Debounce delay in ms for keyword search input */
+const DEBOUNCE_DELAY = 300
 
 
 // ============================================================================
@@ -93,7 +108,6 @@ export const PromptBuilderModal = ({ open, onClose, onApply }: PromptBuilderModa
 
     // ── State ──────────────────────────────────────────────────────────────
     const [tasks, setTasks] = useState<GlossaryTask[]>([])
-    const [keywords, setKeywords] = useState<GlossaryKeyword[]>([])
     const [loading, setLoading] = useState(false)
 
     // Step 1: language
@@ -111,6 +125,18 @@ export const PromptBuilderModal = ({ open, onClose, onApply }: PromptBuilderModa
     const [generatedPrompt, setGeneratedPrompt] = useState('')
     const [copied, setCopied] = useState(false)
 
+    // ── Keyword lazy-load state ────────────────────────────────────────────
+    const [keywordItems, setKeywordItems] = useState<GlossaryKeyword[]>([])
+    const [keywordPage, setKeywordPage] = useState(1)
+    const [keywordTotal, setKeywordTotal] = useState(0)
+    const [keywordLoading, setKeywordLoading] = useState(false)
+
+    /** Ref for debounce timer to clear on unmount or new input */
+    const debounceTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null)
+
+    /** Ref to track current search term for stale-request prevention */
+    const searchTermRef = useRef('')
+
     // ── Language options ────────────────────────────────────────────────────
     const langOptions: LangOption[] = useMemo(() => [
         { value: 'en', label: 'English (EN)' },
@@ -118,18 +144,50 @@ export const PromptBuilderModal = ({ open, onClose, onApply }: PromptBuilderModa
         { value: 'vi', label: 'Tiếng Việt (VI)' },
     ], [])
 
+    // ── Keyword Fetch (paginated + server-side search) ─────────────────────
+
+    /**
+     * Fetch keywords from server with pagination.
+     * @param search - Search query string
+     * @param page - Page number (1-indexed)
+     * @param append - If true, append results to existing. If false, replace.
+     */
+    const fetchKeywords = useCallback(async (search: string, page: number, append: boolean) => {
+        setKeywordLoading(true)
+        try {
+            const result = await glossaryApi.searchKeywords({
+                q: search,
+                page,
+                pageSize: KEYWORD_PAGE_SIZE,
+            })
+
+            // Guard against stale responses (search term changed since request)
+            if (search !== searchTermRef.current) return
+
+            if (append) {
+                // Infinite scroll: append new items to existing list
+                setKeywordItems((prev) => [...prev, ...result.data])
+            } else {
+                // New search: replace items entirely
+                setKeywordItems(result.data)
+            }
+            setKeywordTotal(result.total)
+            setKeywordPage(page)
+        } catch (error) {
+            console.error('Error fetching keywords:', error)
+        } finally {
+            setKeywordLoading(false)
+        }
+    }, [])
+
     // ── Data Fetching ──────────────────────────────────────────────────────
 
-    /** Fetch tasks and keywords on open */
+    /** Fetch tasks on open (keywords are lazy-loaded separately) */
     const fetchData = useCallback(async () => {
         setLoading(true)
         try {
-            const [tasksData, keywordsData] = await Promise.all([
-                glossaryApi.listTasks(),
-                glossaryApi.listKeywords(),
-            ])
+            const tasksData = await glossaryApi.listTasks()
             setTasks(tasksData)
-            setKeywords(keywordsData)
         } catch (error) {
             console.error('Error fetching glossary data:', error)
         } finally {
@@ -149,19 +207,34 @@ export const PromptBuilderModal = ({ open, onClose, onApply }: PromptBuilderModa
             setContextInput('')
             setGeneratedPrompt('')
             setCopied(false)
+
+            // Reset keyword lazy-load state and fetch first page
+            setKeywordItems([])
+            setKeywordPage(1)
+            setKeywordTotal(0)
+            searchTermRef.current = ''
+            fetchKeywords('', 1, false)
         }
-    }, [open, fetchData, i18n.language])
+
+        // Cleanup debounce timer on close
+        return () => {
+            if (debounceTimerRef.current) {
+                clearTimeout(debounceTimerRef.current)
+                debounceTimerRef.current = null
+            }
+        }
+    }, [open, fetchData, fetchKeywords, i18n.language])
 
     // ── Derived Data ───────────────────────────────────────────────────────
-
-    /** Active keywords available for selection */
-    const activeKeywords = keywords.filter((k) => k.is_active)
 
     /** Currently selected task */
     const selectedTask = tasks.find((t) => t.id === selectedTaskId)
 
     /** Current step index for the Steps component */
     const currentStep = !selectedTaskId ? 1 : 2
+
+    /** Whether there are more keyword pages to load */
+    const hasMoreKeywords = keywordItems.length < keywordTotal
 
     // ── Task search across all columns ─────────────────────────────────────
 
@@ -188,6 +261,26 @@ export const PromptBuilderModal = ({ open, onClose, onApply }: PromptBuilderModa
         [tasks],
     )
 
+    // ── Keyword Options (built from paginated server data) ──────────────────
+
+    /** Build keyword options with rich template: name, en_keyword, description */
+    const keywordOptions = useMemo(() => {
+        return keywordItems.map((k) => ({
+            value: k.name,
+            label: (
+                <div className="flex flex-col py-1">
+                    <span className="font-medium text-sm">{k.name}</span>
+                    {(k.en_keyword || k.description) && (
+                        <span className="text-xs text-slate-400 truncate">
+                            {k.en_keyword && <span className="mr-2">{k.en_keyword}</span>}
+                            {k.description && <span>— {k.description}</span>}
+                        </span>
+                    )}
+                </div>
+            ),
+        }))
+    }, [keywordItems])
+
     // ── Handlers ───────────────────────────────────────────────────────────
 
     /** Step 1: Language changed */
@@ -211,9 +304,41 @@ export const PromptBuilderModal = ({ open, onClose, onApply }: PromptBuilderModa
         setGeneratedPrompt('')
     }
 
-    /** Handle search text change in keyword select */
+    /**
+     * Handle search text change in keyword select — debounced server-side search.
+     * Clears previous timer and sets a new one to avoid excessive API calls.
+     */
     const handleKeywordSearch = (value: string) => {
         setKeywordSearchText(value)
+
+        // Clear any pending debounce timer
+        if (debounceTimerRef.current) {
+            clearTimeout(debounceTimerRef.current)
+        }
+
+        // Update the ref immediately so stale responses are ignored
+        searchTermRef.current = value
+
+        // Debounce the actual API call
+        debounceTimerRef.current = setTimeout(() => {
+            // Reset to page 1 for new search, replace results
+            fetchKeywords(value, 1, false)
+        }, DEBOUNCE_DELAY)
+    }
+
+    /**
+     * Handle infinite scroll: when user scrolls near the bottom of the
+     * keyword dropdown, fetch the next page and append results.
+     */
+    const handleKeywordPopupScroll = (e: React.UIEvent<HTMLDivElement>) => {
+        const target = e.target as HTMLDivElement
+        // Trigger when user is within 20px of the bottom
+        const nearBottom = target.scrollHeight - target.scrollTop - target.clientHeight < 20
+
+        if (nearBottom && hasMoreKeywords && !keywordLoading) {
+            const nextPage = keywordPage + 1
+            fetchKeywords(searchTermRef.current, nextPage, true)
+        }
     }
 
     /**
@@ -222,7 +347,7 @@ export const PromptBuilderModal = ({ open, onClose, onApply }: PromptBuilderModa
     const handleKeywordInputKeyDown = (e: React.KeyboardEvent) => {
         if (e.key === 'Enter' && keywordSearchText.trim()) {
             // Check if any option matches exactly
-            const exactMatch = activeKeywords.find(
+            const exactMatch = keywordItems.find(
                 (k) => k.name.toLowerCase() === keywordSearchText.trim().toLowerCase(),
             )
             if (!exactMatch) {
@@ -246,25 +371,6 @@ export const PromptBuilderModal = ({ open, onClose, onApply }: PromptBuilderModa
             setGeneratedPrompt('')
         }
     }
-
-    /** Build keyword options with rich template: name, en_keyword, description */
-    const keywordOptions = useMemo(() => {
-        return activeKeywords.map((k) => ({
-            value: k.name,
-            label: (
-                <div className="flex flex-col py-1">
-                    <span className="font-medium text-sm">{k.name}</span>
-                    {(k.en_keyword || k.description) && (
-                        <span className="text-xs text-slate-400 truncate">
-                            {k.en_keyword && <span className="mr-2">{k.en_keyword}</span>}
-                            {k.description && <span>— {k.description}</span>}
-                        </span>
-                    )}
-                </div>
-            ),
-            searchText: `${k.name} ${k.en_keyword || ''} ${k.description || ''}`.toLowerCase(),
-        }))
-    }, [activeKeywords])
 
     /**
      * Build prompt client-side from selected task, language, and keyword + context.
@@ -403,12 +509,16 @@ export const PromptBuilderModal = ({ open, onClose, onApply }: PromptBuilderModa
                                 options={keywordOptions}
                                 showSearch
                                 allowClear
-                                filterOption={(input: string, option: any) =>
-                                    option?.searchText?.includes(input.toLowerCase()) ?? false
-                                }
+                                filterOption={false}
+                                onPopupScroll={handleKeywordPopupScroll}
                                 optionLabelProp="value"
+                                loading={keywordLoading}
                                 notFoundContent={
-                                    keywordSearchText.trim() ? (
+                                    keywordLoading ? (
+                                        <div className="flex justify-center py-2">
+                                            <Spin size="small" />
+                                        </div>
+                                    ) : keywordSearchText.trim() ? (
                                         <div className="text-xs text-slate-400 py-2 text-center">
                                             {t('glossary.promptBuilder.pressEnterToUse', { keyword: keywordSearchText.trim() })}
                                         </div>
