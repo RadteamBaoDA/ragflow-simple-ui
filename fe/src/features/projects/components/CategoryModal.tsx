@@ -4,7 +4,7 @@
  */
 
 import { useTranslation } from 'react-i18next'
-import { Modal, Form, Input, Select, InputNumber, Switch, Divider, Typography } from 'antd'
+import { Modal, Form, Input, Select, InputNumber, Switch, Slider, Divider, Typography } from 'antd'
 import type { FormInstance } from 'antd'
 
 const { Text } = Typography
@@ -16,7 +16,8 @@ const { Text } = Typography
 /** Available language options for RAGFlow datasets */
 const LANGUAGE_OPTIONS = [
   { label: 'English', value: 'English' },
-  { label: 'Chinese', value: 'Chinese' },
+  { label: 'Vietnamese', value: 'Vietnamese' },
+  { label: 'Japanese', value: 'Japanese' },
 ]
 
 /** Available chunk method options for RAGFlow datasets */
@@ -33,6 +34,12 @@ const CHUNK_METHOD_OPTIONS = [
   { label: 'Q&A', value: 'qa' },
   { label: 'Table', value: 'table' },
   { label: 'Tag', value: 'tag' },
+]
+
+/** Available PDF parser options for RAGFlow datasets */
+const PDF_PARSER_OPTIONS = [
+  { label: 'DeepDOC', value: 'DeepDOC' },
+  { label: 'PlainText', value: 'PlainText' },
 ]
 
 // ============================================================================
@@ -76,7 +83,7 @@ const CategoryModal = ({ open, form, saving, embeddingModels, onOk, onCancel }: 
       onCancel={onCancel}
       confirmLoading={saving}
       destroyOnHidden
-      width={600}
+      width={700}
     >
       <Form form={form} layout="vertical" className="mt-4">
         {/* Category name */}
@@ -151,15 +158,6 @@ const CategoryModal = ({ open, form, saving, embeddingModels, onOk, onCancel }: 
           <Input />
         </Form.Item>
 
-        {/* Layout recognize */}
-        <Form.Item
-          name={['dataset_config', 'parser_config', 'layout_recognize']}
-          label={t('projectManagement.categories.datasetConfig.layoutRecognize')}
-          valuePropName="checked"
-          initialValue={true}
-        >
-          <Switch />
-        </Form.Item>
 
         {/* HTML for Excel */}
         <Form.Item
@@ -169,6 +167,33 @@ const CategoryModal = ({ open, form, saving, embeddingModels, onOk, onCancel }: 
           initialValue={false}
         >
           <Switch />
+        </Form.Item>
+
+        {/* Layout Recognize (PDF Parser) */}
+        <Form.Item
+          name={['dataset_config', 'parser_config', 'layout_recognize']}
+          label={t('projectManagement.categories.datasetConfig.pdfParser')}
+          initialValue="DeepDOC"
+        >
+          <Select options={PDF_PARSER_OPTIONS} />
+        </Form.Item>
+
+        {/* Auto-keywords */}
+        <Form.Item
+          name={['dataset_config', 'parser_config', 'auto_keywords']}
+          label={t('projectManagement.categories.datasetConfig.autoKeyword')}
+          initialValue={0}
+        >
+          <Slider min={0} max={32} />
+        </Form.Item>
+
+        {/* Auto-questions */}
+        <Form.Item
+          name={['dataset_config', 'parser_config', 'auto_questions']}
+          label={t('projectManagement.categories.datasetConfig.autoQuestion')}
+          initialValue={0}
+        >
+          <Slider min={0} max={10} />
         </Form.Item>
       </Form>
     </Modal>

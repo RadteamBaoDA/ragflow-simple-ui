@@ -799,7 +799,22 @@
       "namePlaceholder": "カテゴリ名を入力",
       "deleteConfirm": "このカテゴリとすべてのバージョンを削除しますか？",
       "noCategories": "カテゴリがまだありません",
-      "noCategoriesHint": "ドキュメントを整理するためにカテゴリを追加してください。"
+      "noCategoriesHint": "ドキュメントを整理するためにカテゴリを追加してください。",
+      "datasetConfig": {
+        "title": "データセット設定",
+        "description": "バージョン作成時に使用されるRAGFlowデータセット設定。空白のままにするとプロジェクトのデフォルトが使用されます。",
+        "language": "言語",
+        "embeddingModel": "埋め込みモデル",
+        "embeddingModelPlaceholder": "例: BAAI/bge-large-zh-v1.5@BAAI",
+        "chunkMethod": "チャンク方法（組み込み）",
+        "chunkTokenNum": "チャンクトークンサイズ",
+        "delimiter": "区切り文字",
+        "layoutRecognize": "レイアウト認識",
+        "html4excel": "Excel用HTML",
+        "pdfParser": "PDFパーサー",
+        "autoKeyword": "自動キーワード",
+        "autoQuestion": "自動質問"
+      }
     },
     "versions": {
       "title": "バージョン",

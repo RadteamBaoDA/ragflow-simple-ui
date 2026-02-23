@@ -832,7 +832,10 @@
         "chunkTokenNum": "Chunk Token Size",
         "delimiter": "Delimiter",
         "layoutRecognize": "Layout Recognize",
-        "html4excel": "HTML for Excel"
+        "html4excel": "HTML for Excel",
+        "pdfParser": "PDF Parser",
+        "autoKeyword": "Auto-keyword",
+        "autoQuestion": "Auto-question"
       }
     },
     "versions": {

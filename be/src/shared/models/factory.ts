@@ -1,25 +1,31 @@
-
 /**
  * Lazy-loaded singletons for all data models to keep connection sharing consistent.
  */
-import { UserModel } from '@/modules/users/user.model.js';
-import { TeamModel } from '@/modules/teams/team.model.js';
-import { UserTeamModel } from '@/modules/teams/user-team.model.js';
-import { ChatSessionModel } from '@/modules/chat/chat-session.model.js';
-import { ChatMessageModel } from '@/modules/chat/chat-message.model.js';
-import { SystemConfigModel } from '@/shared/models/system-config.model.js';
-import { KnowledgeBaseSourceModel } from '@/modules/knowledge-base/knowledge-base-source.model.js';
-import { AuditLogModel } from '@/modules/audit/audit-log.model.js';
-import { UserIpHistoryModel } from '@/modules/users/user-ip-history.model.js';
-import { BroadcastMessageModel } from '@/modules/broadcast/broadcast-message.model.js';
-import { UserDismissedBroadcastModel } from '@/modules/broadcast/user-dismissed-broadcast.model.js';
-import { ExternalChatSessionModel } from '@/modules/external/models/chat-session.model.js';
-import { ExternalChatMessageModel } from '@/modules/external/models/chat-message.model.js';
-import { ExternalSearchSessionModel } from '@/modules/external/models/search-session.model.js';
-import { ExternalSearchRecordModel } from '@/modules/external/models/search-record.model.js';
+import { UserModel } from "@/modules/users/user.model.js";
+import { TeamModel } from "@/modules/teams/team.model.js";
+import { UserTeamModel } from "@/modules/teams/user-team.model.js";
+import { ChatSessionModel } from "@/modules/chat/chat-session.model.js";
+import { ChatMessageModel } from "@/modules/chat/chat-message.model.js";
+import { SystemConfigModel } from "@/shared/models/system-config.model.js";
+import { KnowledgeBaseSourceModel } from "@/modules/knowledge-base/knowledge-base-source.model.js";
+import { AuditLogModel } from "@/modules/audit/audit-log.model.js";
+import { UserIpHistoryModel } from "@/modules/users/user-ip-history.model.js";
+import { BroadcastMessageModel } from "@/modules/broadcast/broadcast-message.model.js";
+import { UserDismissedBroadcastModel } from "@/modules/broadcast/user-dismissed-broadcast.model.js";
+import { ExternalChatSessionModel } from "@/modules/external/models/chat-session.model.js";
+import { ExternalChatMessageModel } from "@/modules/external/models/chat-message.model.js";
+import { ExternalSearchSessionModel } from "@/modules/external/models/search-session.model.js";
+import { ExternalSearchRecordModel } from "@/modules/external/models/search-record.model.js";
 
-import { GlossaryTaskModel } from '@/modules/glossary/glossary-task.model.js';
-import { GlossaryKeywordModel } from '@/modules/glossary/glossary-keyword.model.js';
+import { GlossaryTaskModel } from "@/modules/glossary/glossary-task.model.js";
+import { GlossaryKeywordModel } from "@/modules/glossary/glossary-keyword.model.js";
+
+import { RagflowServerModel } from "@/modules/admin/ragflow-servers/ragflow-server.model.js";
+import { ProjectModel } from "@/modules/projects/project.model.js";
+import { ProjectPermissionModel } from "@/modules/projects/project-permission.model.js";
+import { DocumentCategoryModel } from "@/modules/projects/document-category/document-category.model.js";
+import { DocumentCategoryVersionModel } from "@/modules/projects/document-category/document-category-version.model.js";
+import { ProjectChatModel } from "@/modules/projects/project-chat/project-chat.model.js";
 
 /**
  * ModelFactory class implementing the Factory Pattern.
@@ -58,14 +64,25 @@ export class ModelFactory {
   private static externalSearchSessionModel: ExternalSearchSessionModel;
   private static externalSearchRecordModel: ExternalSearchRecordModel;
 
-
-
-
   // Glossary Models
   /** Glossary task model singleton instance */
   private static glossaryTaskModel: GlossaryTaskModel;
   /** Glossary keyword model singleton instance */
   private static glossaryKeywordModel: GlossaryKeywordModel;
+
+  // Project Management Models
+  /** RAGFlow server model singleton instance */
+  private static ragflowServerModel: RagflowServerModel;
+  /** Project model singleton instance */
+  private static projectModel: ProjectModel;
+  /** Project permission model singleton instance */
+  private static projectPermissionModel: ProjectPermissionModel;
+  /** Document category model singleton instance */
+  private static documentCategoryModel: DocumentCategoryModel;
+  /** Document category version model singleton instance */
+  private static documentCategoryVersionModel: DocumentCategoryVersionModel;
+  /** Project chat model singleton instance */
+  private static projectChatModel: ProjectChatModel;
 
   /**
    * Get the User model singleton.
@@ -129,7 +146,8 @@ export class ModelFactory {
    */
   static get systemConfig() {
     // Create instance on first access (lazy initialization)
-    if (!this.systemConfigModel) this.systemConfigModel = new SystemConfigModel();
+    if (!this.systemConfigModel)
+      this.systemConfigModel = new SystemConfigModel();
     return this.systemConfigModel;
   }
 
@@ -140,7 +158,8 @@ export class ModelFactory {
    */
   static get knowledgeBaseSource() {
     // Create instance on first access (lazy initialization)
-    if (!this.knowledgeBaseSourceModel) this.knowledgeBaseSourceModel = new KnowledgeBaseSourceModel();
+    if (!this.knowledgeBaseSourceModel)
+      this.knowledgeBaseSourceModel = new KnowledgeBaseSourceModel();
     return this.knowledgeBaseSourceModel;
   }
 
@@ -162,7 +181,8 @@ export class ModelFactory {
    */
   static get userIpHistory() {
     // Create instance on first access (lazy initialization)
-    if (!this.userIpHistoryModel) this.userIpHistoryModel = new UserIpHistoryModel();
+    if (!this.userIpHistoryModel)
+      this.userIpHistoryModel = new UserIpHistoryModel();
     return this.userIpHistoryModel;
   }
 
@@ -173,7 +193,8 @@ export class ModelFactory {
    */
   static get broadcastMessage() {
     // Create instance on first access (lazy initialization)
-    if (!this.broadcastMessageModel) this.broadcastMessageModel = new BroadcastMessageModel();
+    if (!this.broadcastMessageModel)
+      this.broadcastMessageModel = new BroadcastMessageModel();
     return this.broadcastMessageModel;
   }
 
@@ -184,7 +205,8 @@ export class ModelFactory {
    */
   static get userDismissedBroadcast() {
     // Create instance on first access (lazy initialization)
-    if (!this.userDismissedBroadcastModel) this.userDismissedBroadcastModel = new UserDismissedBroadcastModel();
+    if (!this.userDismissedBroadcastModel)
+      this.userDismissedBroadcastModel = new UserDismissedBroadcastModel();
     return this.userDismissedBroadcastModel;
   }
 
@@ -192,7 +214,8 @@ export class ModelFactory {
    * Get the ExternalChatSession model singleton.
    */
   static get externalChatSession() {
-    if (!this.externalChatSessionModel) this.externalChatSessionModel = new ExternalChatSessionModel();
+    if (!this.externalChatSessionModel)
+      this.externalChatSessionModel = new ExternalChatSessionModel();
     return this.externalChatSessionModel;
   }
 
@@ -200,7 +223,8 @@ export class ModelFactory {
    * Get the ExternalChatMessage model singleton.
    */
   static get externalChatMessage() {
-    if (!this.externalChatMessageModel) this.externalChatMessageModel = new ExternalChatMessageModel();
+    if (!this.externalChatMessageModel)
+      this.externalChatMessageModel = new ExternalChatMessageModel();
     return this.externalChatMessageModel;
   }
 
@@ -208,7 +232,8 @@ export class ModelFactory {
    * Get the ExternalSearchSession model singleton.
    */
   static get externalSearchSession() {
-    if (!this.externalSearchSessionModel) this.externalSearchSessionModel = new ExternalSearchSessionModel();
+    if (!this.externalSearchSessionModel)
+      this.externalSearchSessionModel = new ExternalSearchSessionModel();
     return this.externalSearchSessionModel;
   }
 
@@ -216,12 +241,10 @@ export class ModelFactory {
    * Get the ExternalSearchRecord model singleton.
    */
   static get externalSearchRecord() {
-    if (!this.externalSearchRecordModel) this.externalSearchRecordModel = new ExternalSearchRecordModel();
+    if (!this.externalSearchRecordModel)
+      this.externalSearchRecordModel = new ExternalSearchRecordModel();
     return this.externalSearchRecordModel;
   }
-
-
-
 
   /**
    * Get the GlossaryTask model singleton.
@@ -229,7 +252,8 @@ export class ModelFactory {
    * @returns GlossaryTaskModel instance for task operations
    */
   static get glossaryTask() {
-    if (!this.glossaryTaskModel) this.glossaryTaskModel = new GlossaryTaskModel();
+    if (!this.glossaryTaskModel)
+      this.glossaryTaskModel = new GlossaryTaskModel();
     return this.glossaryTaskModel;
   }
 
@@ -239,7 +263,50 @@ export class ModelFactory {
    * @returns GlossaryKeywordModel instance for keyword operations
    */
   static get glossaryKeyword() {
-    if (!this.glossaryKeywordModel) this.glossaryKeywordModel = new GlossaryKeywordModel();
+    if (!this.glossaryKeywordModel)
+      this.glossaryKeywordModel = new GlossaryKeywordModel();
     return this.glossaryKeywordModel;
+  }
+
+  // ── Project Management Model Getters ──────────────────────────────────
+
+  /** Get the RagflowServer model singleton. */
+  static get ragflowServer() {
+    if (!this.ragflowServerModel)
+      this.ragflowServerModel = new RagflowServerModel();
+    return this.ragflowServerModel;
+  }
+
+  /** Get the Project model singleton. */
+  static get project() {
+    if (!this.projectModel) this.projectModel = new ProjectModel();
+    return this.projectModel;
+  }
+
+  /** Get the ProjectPermission model singleton. */
+  static get projectPermission() {
+    if (!this.projectPermissionModel)
+      this.projectPermissionModel = new ProjectPermissionModel();
+    return this.projectPermissionModel;
+  }
+
+  /** Get the DocumentCategory model singleton. */
+  static get documentCategory() {
+    if (!this.documentCategoryModel)
+      this.documentCategoryModel = new DocumentCategoryModel();
+    return this.documentCategoryModel;
+  }
+
+  /** Get the DocumentCategoryVersion model singleton. */
+  static get documentCategoryVersion() {
+    if (!this.documentCategoryVersionModel)
+      this.documentCategoryVersionModel = new DocumentCategoryVersionModel();
+    return this.documentCategoryVersionModel;
+  }
+
+  /** Get the ProjectChat model singleton. */
+  static get projectChat() {
+    if (!this.projectChatModel) this.projectChatModel = new ProjectChatModel();
+    return this.projectChatModel;
   }
 }

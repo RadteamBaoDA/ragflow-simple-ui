@@ -814,7 +814,22 @@
       "namePlaceholder": "Nhập tên danh mục",
       "deleteConfirm": "Xóa danh mục này và tất cả phiên bản?",
       "noCategories": "Chưa có danh mục nào",
-      "noCategoriesHint": "Thêm danh mục để tổ chức tài liệu."
+      "noCategoriesHint": "Thêm danh mục để tổ chức tài liệu.",
+      "datasetConfig": {
+        "title": "Cấu hình Dataset",
+        "description": "Cấu hình dataset RAGFlow được sử dụng khi tạo phiên bản. Để trống để sử dụng mặc định của dự án.",
+        "language": "Ngôn ngữ",
+        "embeddingModel": "Mô hình Embedding",
+        "embeddingModelPlaceholder": "vd: BAAI/bge-large-zh-v1.5@BAAI",
+        "chunkMethod": "Phương pháp Chunk (Tích hợp)",
+        "chunkTokenNum": "Kích thước Token Chunk",
+        "delimiter": "Ký tự phân cách",
+        "layoutRecognize": "Nhận dạng Bố cục",
+        "html4excel": "HTML cho Excel",
+        "pdfParser": "Bộ phân tích PDF",
+        "autoKeyword": "Tự động Từ khóa",
+        "autoQuestion": "Tự động Câu hỏi"
+      }
     },
     "versions": {
       "title": "Phiên bản",
