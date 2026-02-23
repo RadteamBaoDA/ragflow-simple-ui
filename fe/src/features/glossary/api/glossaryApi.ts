@@ -49,9 +49,6 @@ export interface CreateTaskDto {
   task_instruction_en: string;
   task_instruction_ja?: string;
   task_instruction_vi?: string;
-  context_template: string;
-  sort_order?: number;
-  is_active?: boolean;
 }
 
 /** DTO for creating/updating a keyword */
@@ -69,7 +66,6 @@ export interface BulkImportRow {
   task_instruction_en: string;
   task_instruction_ja?: string;
   task_instruction_vi?: string;
-  context_template: string;
 }
 
 /** Result of task bulk import */

@@ -2,7 +2,7 @@
  * @fileoverview Glossary Bulk Import Modal
  *
  * Parses Excel files with columns:
- *   task_name, task_instruction_en, task_instruction_ja, task_instruction_vi, context_template
+ *   task_name, task_instruction_en, task_instruction_ja, task_instruction_vi
  * Previews data in a table, then sends to the bulk-import API.
  */
 
@@ -68,7 +68,7 @@ export const GlossaryBulkImportModal = ({ open, onClose, onSuccess }: GlossaryBu
                 }
 
                 const firstRow = jsonData[0]!
-                const requiredCols = ['task_name', 'task_instruction_en', 'context_template']
+                const requiredCols = ['task_name', 'task_instruction_en']
                 const missingCols = requiredCols.filter((col) => !(col in firstRow))
                 if (missingCols.length > 0) {
                     setParseError(t('glossary.bulkImport.missingColumns', { cols: missingCols.join(', ') }))
@@ -82,7 +82,6 @@ export const GlossaryBulkImportModal = ({ open, onClose, onSuccess }: GlossaryBu
                         task_instruction_en: row.task_instruction_en?.trim() || '',
                         task_instruction_ja: row.task_instruction_ja?.trim() || '',
                         task_instruction_vi: row.task_instruction_vi?.trim() || '',
-                        context_template: row.context_template?.trim() || '',
                     }))
 
                 if (rows.length === 0) {
@@ -157,9 +156,9 @@ export const GlossaryBulkImportModal = ({ open, onClose, onSuccess }: GlossaryBu
     /** Generate and download a sample Excel template with example rows. */
     const downloadTemplate = useCallback(() => {
         const sampleRows = [
-            { task_name: 'Document Search', task_instruction_en: 'Use these terms to improve document search accuracy', task_instruction_ja: 'これらのキーワードを使って文書検索の精度を向上させてください', task_instruction_vi: 'Sử dụng các từ khóa này để cải thiện độ chính xác tìm kiếm tài liệu', context_template: 'Search for {keyword} related information' },
-            { task_name: 'FAQ Generation', task_instruction_en: 'Generate FAQ pairs for common questions', task_instruction_ja: 'よくある質問に対するFAQペアを生成してください', task_instruction_vi: 'Tạo các cặp FAQ cho những câu hỏi phổ biến', context_template: 'Generate FAQ about {keyword}' },
-            { task_name: 'Knowledge Base', task_instruction_en: 'Build and maintain knowledge base entries', task_instruction_ja: 'ナレッジベースのエントリを作成・維持してください', task_instruction_vi: 'Xây dựng và duy trì các mục cơ sở kiến thức', context_template: 'Create knowledge base entry for {keyword}' },
+            { task_name: 'Document Search', task_instruction_en: 'Use these terms to improve document search accuracy', task_instruction_ja: 'これらのキーワードを使って文書検索の精度を向上させてください', task_instruction_vi: 'Sử dụng các từ khóa này để cải thiện độ chính xác tìm kiếm tài liệu' },
+            { task_name: 'FAQ Generation', task_instruction_en: 'Generate FAQ pairs for common questions', task_instruction_ja: 'よくある質問に対するFAQペアを生成してください', task_instruction_vi: 'Tạo các cặp FAQ cho những câu hỏi phổ biến' },
+            { task_name: 'Knowledge Base', task_instruction_en: 'Build and maintain knowledge base entries', task_instruction_ja: 'ナレッジベースのエントリを作成・維持してください', task_instruction_vi: 'Xây dựng và duy trì các mục cơ sở kiến thức' },
         ]
         const ws = XLSX.utils.json_to_sheet(sampleRows)
         const wb = XLSX.utils.book_new()
@@ -210,7 +209,6 @@ export const GlossaryBulkImportModal = ({ open, onClose, onSuccess }: GlossaryBu
         { title: t('glossary.bulkImport.colTaskInstructionEn'), dataIndex: 'task_instruction_en', key: 'task_instruction_en', ellipsis: true },
         { title: t('glossary.bulkImport.colTaskInstructionJa'), dataIndex: 'task_instruction_ja', key: 'task_instruction_ja', ellipsis: true },
         { title: t('glossary.bulkImport.colTaskInstructionVi'), dataIndex: 'task_instruction_vi', key: 'task_instruction_vi', ellipsis: true },
-        { title: t('glossary.bulkImport.colContextTemplate'), dataIndex: 'context_template', key: 'context_template', ellipsis: true },
     ]
 
     // ========================================================================

@@ -7,7 +7,7 @@
 import React, { useState } from 'react'
 import { useTranslation } from 'react-i18next'
 import { Plus, Edit2, Trash2, Search, Upload } from 'lucide-react'
-import { Card, Input, Button, Space, Modal, Form, Switch, Table, Tooltip } from 'antd'
+import { Card, Input, Button, Space, Modal, Form, Table, Tooltip } from 'antd'
 import type { ColumnsType } from 'antd/es/table'
 import type { GlossaryTask } from '../api/glossaryApi'
 import { glossaryApi } from '../api/glossaryApi'
@@ -116,13 +116,7 @@ export const TaskManagementTab: React.FC<TaskManagementTabProps> = ({
                 <span className="font-medium" style={wrapCellStyle}>{name}</span>
             ),
         },
-        {
-            title: t('glossary.task.description'),
-            dataIndex: 'description',
-            key: 'description',
-            width: 180,
-            onCell: () => ({ style: wrapCellStyle }),
-        },
+
         {
             title: t('glossary.task.taskInstructionEn'),
             dataIndex: 'task_instruction_en',
@@ -144,17 +138,7 @@ export const TaskManagementTab: React.FC<TaskManagementTabProps> = ({
             width: 160,
             onCell: () => ({ style: wrapCellStyle }),
         },
-        {
-            title: t('glossary.keyword.status'),
-            dataIndex: 'is_active',
-            key: 'is_active',
-            width: 60,
-            render: (active: boolean) => (
-                <span style={{ color: active ? '#52c41a' : '#8c8c8c' }}>
-                    {active ? t('common.active') : t('common.inactive')}
-                </span>
-            ),
-        },
+
         // Conditionally add actions column for admin users
         ...(isAdmin
             ? [{
@@ -292,23 +276,7 @@ export const TaskManagementTab: React.FC<TaskManagementTabProps> = ({
                         <Input.TextArea rows={2} placeholder={t('glossary.task.taskInstructionPlaceholderVi')} />
                     </Form.Item>
 
-                    <Form.Item
-                        name="context_template"
-                        label={t('glossary.task.contextTemplate')}
-                        rules={[{ required: true, message: t('glossary.task.contextTemplateRequired') }]}
-                        tooltip={t('glossary.task.contextTemplateTooltip')}
-                    >
-                        <Input.TextArea rows={3} placeholder={t('glossary.task.contextTemplatePlaceholder')} />
-                    </Form.Item>
 
-                    <div className="flex gap-4">
-                        <Form.Item name="sort_order" label={t('glossary.common.sortOrder')} className="w-32">
-                            <Input type="number" min={0} />
-                        </Form.Item>
-                        <Form.Item name="is_active" label={t('glossary.common.active')} valuePropName="checked">
-                            <Switch />
-                        </Form.Item>
-                    </div>
 
                     <div className="flex justify-end gap-2">
                         <Button onClick={closeModal}>{t('common.cancel')}</Button>

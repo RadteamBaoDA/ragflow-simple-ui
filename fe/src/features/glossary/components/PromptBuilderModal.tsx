@@ -254,8 +254,7 @@ export const PromptBuilderModal = ({ open, onClose, onApply }: PromptBuilderModa
                 (task.description || '').toLowerCase().includes(search) ||
                 task.task_instruction_en.toLowerCase().includes(search) ||
                 (task.task_instruction_ja || '').toLowerCase().includes(search) ||
-                (task.task_instruction_vi || '').toLowerCase().includes(search) ||
-                task.context_template.toLowerCase().includes(search)
+                (task.task_instruction_vi || '').toLowerCase().includes(search)
             )
         },
         [tasks],
@@ -474,13 +473,23 @@ export const PromptBuilderModal = ({ open, onClose, onApply }: PromptBuilderModa
                             value={selectedTaskId}
                             onChange={handleTaskChange}
                             options={tasks
-                                .filter((task) => task.is_active)
                                 .map((task) => ({
                                     value: task.id,
                                     label: task.name,
+                                    instruction: getInstructionByLang(task, selectedLang),
                                 }))}
                             showSearch
                             filterOption={taskFilterOption}
+                            optionRender={(option: { label?: React.ReactNode; data: { instruction?: string } }) => (
+                                <div className="flex flex-col py-1">
+                                    <span className="font-medium text-sm">{option.label}</span>
+                                    {option.data.instruction && (
+                                        <span className="text-xs text-slate-400 truncate">
+                                            {option.data.instruction}
+                                        </span>
+                                    )}
+                                </div>
+                            )}
                         />
                         {/* Show selected task instruction preview */}
                         {selectedTask && (
