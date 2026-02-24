@@ -1,0 +1,7 @@
+typer>=0.9.0
+rich>=13.0.0
+loguru>=0.7.0
+pyyaml>=6.0.0
+pywin32>=306
+pypdf>=3.0.0
+pdfminer.six>=20221105

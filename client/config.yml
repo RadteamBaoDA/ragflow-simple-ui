@@ -1,0 +1,383 @@
+# ============================================================================
+# doc2pdf Configuration File
+# ============================================================================
+# This file controls all aspects of document-to-PDF conversion.
+# Each section is documented with available options and default values.
+# ============================================================================
+
+# ============================================================================
+# TIMEOUT CONFIGURATION
+# ============================================================================
+# Controls timeout limits for long-running operations during conversion.
+timeout:
+  # Document parsing timeout (in seconds)
+  # Maximum time allowed for converting a single document (Word, Excel, PowerPoint) to PDF
+  # Default: 3600 seconds (1 hour)
+  # Set to null or 0 to disable timeout
+  document_parsing: 3600
+
+  # Excel trim timeout (in seconds)
+  # Maximum time allowed for trimming whitespace from Excel-generated PDFs
+  # Default: 3600 seconds (1 hour)
+  # Set to null or 0 to disable timeout
+  excel_trim: 3600
+
+# ============================================================================
+# LOGGING CONFIGURATION
+# ============================================================================
+# Controls how the application logs information during conversion.
+logging:
+  # Log level - controls verbosity of output
+  # Options: DEBUG (most verbose), INFO, WARNING, ERROR, CRITICAL (least verbose)
+  level: DEBUG
+
+  # Enable/disable console output
+  # Values: true | false
+  console: true
+
+  # File logging configuration
+  file:
+    # Enable/disable file logging
+    # Values: true | false
+    enabled: true
+
+    # Log file path with timestamp placeholder
+    # {time:FORMAT} - Use Python datetime format codes
+    # Example: "logs/doc2pdf_{time:YYYYMMDDHHmmss}.log"
+    path: "logs/doc2pdf_{time:YYYYMMDDHHmmss}.log"
+
+    # Maximum log file size before rotation
+    # Format: "<number> <unit>" where unit is KB, MB, GB
+    # Example: "10 MB", "500 KB", "1 GB"
+    rotation: "10 MB"
+
+    # How long to keep old log files
+    # Format: "<number> <unit>" where unit is days, weeks, months
+    # Example: "10 days", "2 weeks", "1 month"
+    retention: "10 days"
+
+# ============================================================================
+# PDF POST-PROCESSING
+# ============================================================================
+# Settings applied to PDFs after conversion.
+post_processing:
+  # Trim whitespace from PDF edges
+  trim_whitespace:
+    # Enable/disable whitespace trimming
+    # Values: true | false
+    enabled: true
+
+    # Padding around content after trimming (in points, 1 point = 1/72 inch)
+    # Example: 10 = ~0.14 inch margin, 36 = 0.5 inch margin
+    margin: 10
+
+    # File types to apply trimming to
+    # Options: "word", "excel", "powerpoint" (as list)
+    # Example: ["excel"] or ["word", "excel", "powerpoint"]
+    include: ["excel"]
+
+# ============================================================================
+# PDF FILENAME SUFFIX
+# ============================================================================
+# Suffix added to output PDF filenames by document type.
+# Useful for distinguishing source document type in output folder.
+suffix:
+  # Suffix for Word documents (.doc, .docx)
+  # Example: "_d" -> "report_d.pdf"
+  word: "_d"
+
+  # Suffix for PowerPoint documents (.ppt, .pptx)
+  # Example: "_p" -> "presentation_p.pdf"
+  powerpoint: "_p"
+
+  # Suffix for Excel documents (.xls, .xlsx, .xlsm, .xlsb)
+  # Example: "_x" -> "spreadsheet_x.pdf"
+  excel: "_x"
+
+# ============================================================================
+# REPORTING AND ERROR HANDLING
+# ============================================================================
+# Controls generation of conversion reports and error handling.
+reporting:
+  # Enable/disable all reporting features
+  # Values: true | false
+  enabled: true
+
+  # Directory for report files (relative to current working directory)
+  reports_dir: "reports"
+
+  # Summary report - conversion statistics
+  summary:
+    # Enable/disable summary report generation
+    # Values: true | false
+    enabled: true
+
+    # Filename format for summary report
+    # {timestamp} is replaced with YYYYMMDDHHmmss format
+    format: "summary_{timestamp}.txt"
+
+  # Error log - detailed list of failed conversions
+  error_log:
+    # Enable/disable error log generation
+    # Values: true | false
+    enabled: true
+
+    # Filename format for error log
+    # {timestamp} is replaced with YYYYMMDDHHmmss format
+    format: "error_{timestamp}.txt"
+
+  # Copy failed source files to separate folder for manual review
+  copy_error_files:
+    # Enable/disable copying of failed source files
+    # Values: true | false
+    enabled: false
+
+    # Target directory for error files (relative to output folder)
+    # Folder structure from input is preserved
+    target_dir: "errors"
+
+  # PDF file handling (when input contains existing PDF files)
+  pdf_handling:
+    # Copy existing PDF files from input to output folder
+    # Values: true | false
+    # If false, PDF files in input are logged but not copied
+    copy_to_output: false
+
+# ============================================================================
+# PDF CONVERSION SETTINGS
+# ============================================================================
+# Document-specific conversion settings using pattern-priority matching.
+#
+# HOW PATTERN MATCHING WORKS:
+# 1. Rules are matched against file path (Word/PowerPoint) or sheet name (Excel)
+# 2. Multiple rules can match - they are sorted by priority (ascending)
+# 3. Settings from lower priority rules are overridden by higher priority rules
+# 4. Use "*" to match all, "**" for recursive directory matching
+#
+# PRIORITY GUIDELINES:
+# - 10: Default/base settings (applied to everything)
+# - 50: Category-specific overrides (e.g., reports, summaries)
+# - 100: High-priority overrides (e.g., confidential files)
+# ============================================================================
+pdf_settings:
+  # --------------------------------------------------------------------------
+  # WORD DOCUMENT SETTINGS (.doc, .docx)
+  # --------------------------------------------------------------------------
+  word:
+    # Default rule - applies to all Word documents
+    - pattern: "*"
+      priority: 10
+      settings:
+        # Conversion scope
+        # Options: "all" (entire document), "selection" (selected text), "range" (page range)
+        scope: "all"
+
+        # Page layout settings
+        layout:
+          # Page orientation
+          # Options: "portrait" | "landscape"
+          orientation: "portrait"
+
+          # Number of document pages per PDF page
+          # Values: 1, 2, 4, 6, 9, 16
+          pages_per_sheet: 1
+
+          # Page margins preset
+          # Options: "normal", "narrow", "moderate", "wide", "mirrored"
+          margins: "normal"
+
+        # Document metadata settings
+        metadata:
+          # Include document properties (author, title, etc.)
+          # Values: true | false
+          include_properties: true
+
+          # Include document tags
+          # Values: true | false
+          include_tags: true
+
+        # PDF bookmarks/navigation
+        # Options: "headings" (from heading styles), "bookmarks" (from Word bookmarks), "none"
+        bookmarks: "headings"
+
+        # PDF compliance standard
+        # Options: "pdfa" (PDF/A archival format), "standard" (regular PDF)
+        compliance: "pdfa"
+
+        # Image optimization settings
+        optimization:
+          # Image quality level
+          # Options: "high", "medium", "low"
+          image_quality: "high"
+
+          # Convert text to bitmap (reduces file size but loses text searchability)
+          # Values: true | false
+          bitmap_text: false
+
+    # Example: Override for confidential files - strip metadata
+    - pattern: "**/CONFIDENTIAL/**"
+      priority: 100
+      settings:
+        metadata:
+          include_properties: false
+
+    # Example: Reports need bookmarks from Word bookmarks
+    - pattern: "*report*"
+      priority: 50
+      settings:
+        bookmarks: "bookmarks"
+
+  # --------------------------------------------------------------------------
+  # EXCEL DOCUMENT SETTINGS (.xls, .xlsx, .xlsm, .xlsb)
+  # --------------------------------------------------------------------------
+  # Excel rules can match by:
+  # - sheet_name: Pattern to match Excel sheet names (e.g., "*Summary*")
+  # - pattern: Pattern to match file path (e.g., "*Confidential*")
+  # Both can be combined for fine-grained control.
+  # --------------------------------------------------------------------------
+  excel:
+    # Default rule - applies to all sheets in all Excel files
+    - sheet_name: "*"
+      priority: 10
+      settings:
+        # Page orientation
+        # Options: "portrait" | "landscape"
+        # Recommendation: "landscape" for most spreadsheets
+        orientation: "landscape"
+
+        # Row pagination control - how to split sheets across pages
+        # Values:
+        #   null (or omit): Auto-determine based on content
+        #   0: Fit entire sheet on ONE page (may shrink significantly)
+        #   N (positive integer): Fixed N rows per page
+        # Example: 10 means each page contains 10 rows of data
+        row_dimensions: 10
+
+        # Print metadata header on each page
+        # Values: true | false
+        # When true, adds header with: Sheet Name | Row Range | Filename
+        metadata_header: true
+
+        # Minimum shrink factor before considering sheet "oversized"
+        # Values: 0.0 to 1.0 (decimal representing percentage)
+        # Example: 0.3 = 30% means content can shrink to 30% of original size
+        # Lower values = more aggressive shrinking allowed
+        # Higher values = less shrinking, may trigger oversized_action sooner
+        min_shrink_factor: 0.3
+
+        # Insert sheet name as large text label in first row for OCR
+        # Values: true | false
+        # When true: Inserts new row at top with sheet name (font size 23, bold)
+        # Useful for: OCR systems that need clear sheet identification
+        ocr_sheet_name_label: true
+
+        # Action when sheet exceeds printable size (shrink factor < min_shrink_factor)
+        # Options:
+        #   "error": Raise error and FAIL the entire file conversion
+        #   "skip": SKIP only the oversized sheet, continue with other sheets
+        #   "warn": Log WARNING but try to print anyway (content may be unreadable)
+        oversized_action: "skip"
+
+        # Insert file path before last row of sheet
+        # Values: true | false
+        # When true: Inserts new row before last row with absolute file path (centered)
+        # Useful for: Traceability - knowing which file a PDF page came from
+        is_write_file_path: false
+
+        # Page shrink threshold for paper size selection
+        # Values: 0.0 to 1.0 (decimal representing percentage)
+        # When content slightly exceeds a paper size within this threshold,
+        # the smaller paper is chosen and content is shrunk to fit.
+        # This avoids jumping to a much larger paper and wasting space.
+        # Example: 0.10 = 10% means content 35.46" will choose Arch D (34")
+        #          instead of Arch E (44"), because 35.46/34 = 1.043 (4.3% over, within 10%)
+        # Set to 0 to disable (always use exact-fit or next larger paper)
+        page_shrink_threshold: 0.10
+
+    # Example: Summary sheets - fit on one page with file path
+    - sheet_name: "*Summary*"
+      priority: 50
+      settings:
+        row_dimensions: 0
+        is_write_file_path: true
+
+    # Example: Data sheets - fixed rows per page
+    - sheet_name: "*Data*"
+      priority: 50
+      settings:
+        row_dimensions: 10
+
+    # Example: Folder-based override for confidential files
+    - pattern: "*appendix*"
+      sheet_name: "*"
+      priority: 100
+      settings:
+        oversized_action: "skip"
+
+  # --------------------------------------------------------------------------
+  # POWERPOINT DOCUMENT SETTINGS (.ppt, .pptx)
+  # --------------------------------------------------------------------------
+  powerpoint:
+    # Default rule - applies to all PowerPoint files
+    - pattern: "*"
+      priority: 10
+      settings:
+        # Conversion scope
+        # Options: "all" (entire presentation), "range" (slide range)
+        scope: "all"
+
+        # PowerPoint-specific settings
+        powerpoint:
+          # Color mode for output
+          # Options: "color", "grayscale", "bw" (black & white)
+          color_mode: "color"
+
+          # Slide range (only used when scope: "range")
+          # slide_from: Starting slide number (1-based)
+          # slide_to: Ending slide number (1-based)
+          # Set to null or omit for scope: "all"
+          slide_from: null
+          slide_to: null
+
+        # Page layout settings
+        layout:
+          # Page orientation
+          # Options: "portrait" | "landscape"
+          # Recommendation: "landscape" for most presentations
+          orientation: "landscape"
+
+          # Slides per PDF page
+          # Values: 1, 2, 3, 4, 6, 9
+          pages_per_sheet: 1
+
+          # Page margins preset
+          # Options: "normal", "narrow", "moderate", "wide", "mirrored"
+          margins: "normal"
+
+        # Document metadata settings
+        metadata:
+          # Include document properties
+          # Values: true | false
+          include_properties: true
+
+          # Include document tags
+          # Values: true | false
+          include_tags: true
+
+        # PDF bookmarks (usually not needed for presentations)
+        # Options: "none", "headings", "bookmarks"
+        bookmarks: "none"
+
+        # PDF compliance standard
+        # Options: "pdfa", "standard"
+        compliance: "pdfa"
+
+        # Image optimization
+        optimization:
+          # Image quality level
+          # Options: "high", "medium", "low"
+          image_quality: "high"
+
+          # Convert text to bitmap
+          # Values: true | false
+          bitmap_text: false
