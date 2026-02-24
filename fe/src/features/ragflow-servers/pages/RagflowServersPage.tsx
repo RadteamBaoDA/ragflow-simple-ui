@@ -12,7 +12,7 @@
  * @module features/ragflow-servers/pages/RagflowServersPage
  */
 
-import { useEffect, useState, useCallback } from 'react'
+import { useEffect, useState, useCallback, useMemo } from 'react'
 import { useTranslation } from 'react-i18next'
 import {
   Table,
@@ -47,6 +47,7 @@ import {
   testRagflowConnection,
   type RagflowServer,
 } from '../api/ragflowServerService'
+import { MODEL_FACTORY_OPTIONS } from '../constants/modelFactoryOptions'
 
 // ============================================================================
 // Component
@@ -73,6 +74,34 @@ const RagflowServersPage = () => {
 
   // Connection test state (keyed by server ID)
   const [testingMap, setTestingMap] = useState<Record<string, boolean>>({})
+
+  // Model input search state for @provider autocomplete
+  const [embeddingSearch, setEmbeddingSearch] = useState('')
+  const [chatSearch, setChatSearch] = useState('')
+
+  /**
+   * Build dropdown options for model Select fields.
+   * When user types '@', shows matching provider suggestions.
+   * @param searchValue - Current search input
+   * @returns Array of Select options
+   */
+  const buildModelOptions = useMemo(() => {
+    return (searchValue: string) => {
+      // If search contains '@', extract the part after '@' and filter providers
+      const atIndex = searchValue.lastIndexOf('@')
+      if (atIndex >= 0) {
+        const prefix = searchValue.substring(0, atIndex)
+        const providerFilter = searchValue.substring(atIndex + 1).toLowerCase()
+        return MODEL_FACTORY_OPTIONS
+          .filter((p) => p.toLowerCase().includes(providerFilter))
+          .map((provider) => ({
+            label: `${prefix || '<model_name>'}@${provider}`,
+            value: `${prefix}@${provider}`,
+          }))
+      }
+      return []
+    }
+  }, [])
 
   /**
    * Fetch all RAGFlow servers from the API.
@@ -204,26 +233,67 @@ const RagflowServersPage = () => {
       title: t('ragflowServers.name'),
       dataIndex: 'name',
       key: 'name',
+      width: 150,
+      ellipsis: true,
       sorter: (a, b) => a.name.localeCompare(b.name),
     },
     {
       title: t('ragflowServers.endpointUrl'),
       dataIndex: 'endpoint_url',
       key: 'endpoint_url',
+      width: 180,
       ellipsis: true,
     },
     {
       title: t('ragflowServers.descriptionLabel'),
       dataIndex: 'description',
       key: 'description',
+      width: 120,
       ellipsis: true,
       render: (text: string) => text || '—',
+    },
+    {
+      title: t('ragflowServers.modelConfig.embeddingModels'),
+      dataIndex: 'embedding_models',
+      key: 'embedding_models',
+      width: 320,
+      render: (models: string[] | null) => {
+        if (!models || models.length === 0) return '—'
+        return (
+          <Space size={[0, 4]} wrap>
+            {models.map((m) => (
+              <Tooltip key={m} title={m}>
+                <Tag color="blue" style={{ fontSize: 11, maxWidth: '100%', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>{m}</Tag>
+              </Tooltip>
+            ))}
+          </Space>
+        )
+      },
+    },
+    {
+      title: t('ragflowServers.modelConfig.chatModels'),
+      dataIndex: 'chat_models',
+      key: 'chat_models',
+      width: 320,
+      render: (models: string[] | null) => {
+        if (!models || models.length === 0) return '—'
+        return (
+          <Space size={[0, 4]} wrap>
+            {models.map((m) => (
+              <Tooltip key={m} title={m}>
+                <Tag color="cyan" style={{ fontSize: 11, maxWidth: '100%', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>{m}</Tag>
+              </Tooltip>
+            ))}
+          </Space>
+        )
+      },
     },
     {
       title: t('projectManagement.status'),
       dataIndex: 'is_active',
       key: 'is_active',
       width: 100,
+      fixed: 'right' as const,
       render: (active: boolean) => (
         <Tag color={active ? 'green' : 'default'}>
           {active ? t('ragflowServers.active') : t('ragflowServers.inactive')}
@@ -233,7 +303,8 @@ const RagflowServersPage = () => {
     {
       title: '',
       key: 'actions',
-      width: 200,
+      width: 150,
+      fixed: 'right' as const,
       render: (_: unknown, record: RagflowServer) => (
         <Space size="small">
           <Tooltip title={t('ragflowServers.testConnection')}>
@@ -270,7 +341,7 @@ const RagflowServersPage = () => {
   return (
     <div className="w-full h-full flex flex-col overflow-hidden">
       <div className="flex-1 overflow-auto p-6">
-        <div className="max-w-6xl mx-auto">
+        <div className="mx-auto">
           {/* Header */}
           <div className="mb-6 flex items-center justify-between">
             <div>
@@ -300,6 +371,7 @@ const RagflowServersPage = () => {
             dataSource={servers}
             loading={loading}
             pagination={{ pageSize: 10, showSizeChanger: true }}
+            scroll={{ x: 1600 }}
             locale={{
               emptyText: (
                 <div className="py-12 text-center">
@@ -386,24 +458,58 @@ const RagflowServersPage = () => {
           <Form.Item
             name="embedding_models"
             label={t('ragflowServers.modelConfig.embeddingModels')}
+            rules={[{
+              validator: (_, value: string[] | undefined) => {
+                if (!value) return Promise.resolve()
+                for (const v of value) {
+                  if (v.length > 255) return Promise.reject(t('ragflowServers.modelConfig.maxLength'))
+                  if (!v.includes('@')) return Promise.reject(t('ragflowServers.modelConfig.formatHint'))
+                }
+                return Promise.resolve()
+              },
+            }]}
           >
             <Select
               mode="tags"
               placeholder={t('ragflowServers.modelConfig.embeddingModelsPlaceholder')}
               tokenSeparators={[',']}
+              onSearch={setEmbeddingSearch}
+              options={buildModelOptions(embeddingSearch)}
+              filterOption={false}
+              notFoundContent={null}
             />
           </Form.Item>
+          <Typography.Text type="secondary" style={{ fontSize: 11, display: 'block', marginTop: -12, marginBottom: 12 }}>
+            {t('ragflowServers.modelConfig.formatHint')}
+          </Typography.Text>
 
           <Form.Item
             name="chat_models"
             label={t('ragflowServers.modelConfig.chatModels')}
+            rules={[{
+              validator: (_, value: string[] | undefined) => {
+                if (!value) return Promise.resolve()
+                for (const v of value) {
+                  if (v.length > 255) return Promise.reject(t('ragflowServers.modelConfig.maxLength'))
+                  if (!v.includes('@')) return Promise.reject(t('ragflowServers.modelConfig.formatHint'))
+                }
+                return Promise.resolve()
+              },
+            }]}
           >
             <Select
               mode="tags"
               placeholder={t('ragflowServers.modelConfig.chatModelsPlaceholder')}
               tokenSeparators={[',']}
+              onSearch={setChatSearch}
+              options={buildModelOptions(chatSearch)}
+              filterOption={false}
+              notFoundContent={null}
             />
           </Form.Item>
+          <Typography.Text type="secondary" style={{ fontSize: 11, display: 'block', marginTop: -12, marginBottom: 12 }}>
+            {t('ragflowServers.modelConfig.formatHint')}
+          </Typography.Text>
         </Form>
       </Modal>
     </div>

@@ -23,6 +23,7 @@ import {
   type DocumentCategory,
   type DocumentCategoryVersion,
 } from '../api/projectService'
+import { createDataset } from '../api/ragflowService'
 import CategoryModal from './CategoryModal'
 import VersionModal from './VersionModal'
 import EditVersionModal from './EditVersionModal'
@@ -117,11 +118,45 @@ const DocumentsTab = ({ projectId, initialCategories, embeddingModels }: Documen
 
 
 
-  /** Create a new category */
+  /**
+   * Create a new category.
+   * Also creates a RAGFlow dataset if dataset_config is provided,
+   * and stores the dataset ID back in the category's dataset_config.
+   */
   const handleCreateCategory = async () => {
     try {
       const values = await categoryForm.validateFields()
       setSaving(true)
+
+      // Extract dataset_config if present for RAGFlow dataset creation
+      const dsConfig = values.dataset_config || {}
+      let ragflowDatasetId: string | undefined
+
+      // Create RAGFlow dataset if category has dataset config with meaningful settings
+      if (dsConfig.language || dsConfig.embedding_model || dsConfig.chunk_method) {
+        try {
+          const dataset = await createDataset(projectId, {
+            name: values.name,
+            language: dsConfig.language,
+            embedding_model: dsConfig.embedding_model,
+            chunk_method: dsConfig.chunk_method || 'naive',
+            parser_config: dsConfig.parser_config,
+          })
+          ragflowDatasetId = dataset.id
+        } catch (dsErr) {
+          console.error('Failed to create RAGFlow dataset:', dsErr)
+          // Continue with category creation even if dataset creation fails
+        }
+      }
+
+      // Store the RAGFlow dataset ID in category config if created
+      if (ragflowDatasetId) {
+        values.dataset_config = {
+          ...dsConfig,
+          ragflow_dataset_id: ragflowDatasetId,
+        }
+      }
+
       await createDocumentCategory(projectId, values)
       setCategoryModalOpen(false)
       categoryForm.resetFields()

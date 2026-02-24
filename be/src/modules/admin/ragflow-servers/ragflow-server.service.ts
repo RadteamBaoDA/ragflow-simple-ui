@@ -1,17 +1,16 @@
-
 /**
  * RagflowServerService: Business logic for RAGFlow server management.
  * Implements Singleton pattern.
  */
-import { ModelFactory } from '@/shared/models/factory.js'
-import { RagflowServer } from '@/shared/models/types.js'
-import { ragflowProxyService } from '@/shared/services/ragflow-proxy.service.js'
+import { ModelFactory } from "@/shared/models/factory.js";
+import { RagflowServer } from "@/shared/models/types.js";
+import { ragflowProxyService } from "@/shared/services/ragflow-proxy.service.js";
 
 /**
  * Service managing RAGFlow server CRUD and connection testing.
  */
 export class RagflowServerService {
-  private static instance: RagflowServerService
+  private static instance: RagflowServerService;
 
   /**
    * Get the shared singleton instance.
@@ -19,9 +18,9 @@ export class RagflowServerService {
    */
   static getSharedInstance(): RagflowServerService {
     if (!this.instance) {
-      this.instance = new RagflowServerService()
+      this.instance = new RagflowServerService();
     }
-    return this.instance
+    return this.instance;
   }
 
   /**
@@ -29,7 +28,7 @@ export class RagflowServerService {
    * @returns Array of server records
    */
   async list(): Promise<RagflowServer[]> {
-    return ModelFactory.ragflowServer.findAll()
+    return ModelFactory.ragflowServer.findAll();
   }
 
   /**
@@ -38,7 +37,7 @@ export class RagflowServerService {
    * @returns Server record or undefined
    */
   async getById(id: string): Promise<RagflowServer | undefined> {
-    return ModelFactory.ragflowServer.findById(id)
+    return ModelFactory.ragflowServer.findById(id);
   }
 
   /**
@@ -47,18 +46,23 @@ export class RagflowServerService {
    * @param userId - ID of the user performing the action
    * @returns Created server record
    */
-  async create(data: {
-    name: string
-    endpoint_url: string
-    api_key: string
-    description?: string
-  }, userId?: string): Promise<RagflowServer> {
+  async create(
+    data: {
+      name: string;
+      endpoint_url: string;
+      api_key: string;
+      description?: string;
+      embedding_models?: string[];
+      chat_models?: string[];
+    },
+    userId?: string,
+  ): Promise<RagflowServer> {
     return ModelFactory.ragflowServer.create({
       ...data,
       is_active: true,
       created_by: userId,
-      updated_by: userId
-    } as Partial<RagflowServer>)
+      updated_by: userId,
+    } as Partial<RagflowServer>);
   }
 
   /**
@@ -68,14 +72,18 @@ export class RagflowServerService {
    * @param userId - ID of the user performing the action
    * @returns Updated server record
    */
-  async update(id: string, data: Partial<RagflowServer>, userId?: string): Promise<RagflowServer> {
-    const existing = await ModelFactory.ragflowServer.findById(id)
-    if (!existing) throw new Error('Server not found')
+  async update(
+    id: string,
+    data: Partial<RagflowServer>,
+    userId?: string,
+  ): Promise<RagflowServer> {
+    const existing = await ModelFactory.ragflowServer.findById(id);
+    if (!existing) throw new Error("Server not found");
 
     return ModelFactory.ragflowServer.update(id, {
       ...data,
-      updated_by: userId
-    } as Partial<RagflowServer>) as Promise<RagflowServer>
+      updated_by: userId,
+    } as Partial<RagflowServer>) as Promise<RagflowServer>;
   }
 
   /**
@@ -83,16 +91,20 @@ export class RagflowServerService {
    * @param id - Server UUID
    */
   async remove(id: string): Promise<void> {
-    const existing = await ModelFactory.ragflowServer.findById(id)
-    if (!existing) throw new Error('Server not found')
+    const existing = await ModelFactory.ragflowServer.findById(id);
+    if (!existing) throw new Error("Server not found");
 
     // Check if any projects reference this server
-    const projects = await (ModelFactory.project as any).query().where({ ragflow_server_id: id })
+    const projects = await (ModelFactory.project as any)
+      .query()
+      .where({ ragflow_server_id: id });
     if (projects.length > 0) {
-      throw new Error(`Cannot delete: ${projects.length} project(s) still reference this server`)
+      throw new Error(
+        `Cannot delete: ${projects.length} project(s) still reference this server`,
+      );
     }
 
-    await ModelFactory.ragflowServer.delete(id)
+    await ModelFactory.ragflowServer.delete(id);
   }
 
   /**
@@ -102,17 +114,24 @@ export class RagflowServerService {
    * @param apiKey - Direct API key (for ad-hoc test)
    * @returns True if connection is successful
    */
-  async testConnection(id?: string, endpointUrl?: string, apiKey?: string): Promise<boolean> {
+  async testConnection(
+    id?: string,
+    endpointUrl?: string,
+    apiKey?: string,
+  ): Promise<boolean> {
     if (id) {
-      const server = await ModelFactory.ragflowServer.findById(id)
-      if (!server) throw new Error('Server not found')
-      return ragflowProxyService.testConnection(server.endpoint_url, server.api_key)
+      const server = await ModelFactory.ragflowServer.findById(id);
+      if (!server) throw new Error("Server not found");
+      return ragflowProxyService.testConnection(
+        server.endpoint_url,
+        server.api_key,
+      );
     }
     if (endpointUrl && apiKey) {
-      return ragflowProxyService.testConnection(endpointUrl, apiKey)
+      return ragflowProxyService.testConnection(endpointUrl, apiKey);
     }
-    throw new Error('Either server ID or endpoint/apiKey pair is required')
+    throw new Error("Either server ID or endpoint/apiKey pair is required");
   }
 }
 
-export const ragflowServerService = RagflowServerService.getSharedInstance()
+export const ragflowServerService = RagflowServerService.getSharedInstance();

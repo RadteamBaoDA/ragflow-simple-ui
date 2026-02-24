@@ -775,7 +775,17 @@
     "endpointRequired": "URL endpoint là bắt buộc",
     "apiKeyRequired": "API key là bắt buộc",
     "noServers": "Chưa có máy chủ RAGFlow nào",
-    "noServersHint": "Thêm máy chủ để bắt đầu tích hợp RAGFlow."
+    "noServersHint": "Thêm máy chủ để bắt đầu tích hợp RAGFlow.",
+    "modelConfig": {
+      "title": "Cấu hình Model",
+      "description": "Cấu hình model khả dụng cho embedding và chat. Nhập tên model rồi nhấn Enter.",
+      "embeddingModels": "Model Embedding",
+      "embeddingModelsPlaceholder": "Nhập tên model rồi nhấn Enter (vd: BAAI/bge-large-zh-v1.5@Xinference)",
+      "chatModels": "Model Chat",
+      "chatModelsPlaceholder": "Nhập tên model rồi nhấn Enter (vd: deepseek-chat@DeepSeek)",
+      "formatHint": "Phải theo định dạng model_name@model_factory (nhập @ để xem danh sách nhà cung cấp)",
+      "maxLength": "Tối đa 255 ký tự"
+    }
   },
   "projectManagement": {
     "title": "Dự án",
@@ -897,6 +907,29 @@
       "deleteConfirm": "Xóa trợ lý chat này?",
       "noChats": "Chưa có trợ lý chat nào",
       "noChatsHint": "Tạo trợ lý chat liên kết với dataset dự án."
+    },
+    "dataset": {
+      "title": "Dataset",
+      "createDataset": "Tạo Dataset",
+      "editDataset": "Sửa Dataset",
+      "deleteConfirm": "Bạn có chắc chắn muốn xóa dataset đã chọn?",
+      "name": "Tên Dataset",
+      "namePlaceholder": "Nhập tên dataset",
+      "description": "Mô tả",
+      "descriptionPlaceholder": "Mô tả dataset (tùy chọn)",
+      "language": "Ngôn ngữ",
+      "embeddingModel": "Mô hình Embedding",
+      "embeddingModelPlaceholder": "vd: BAAI/bge-large-zh-v1.5@BAAI",
+      "chunkMethod": "Phương pháp Chunk",
+      "permission": "Quyền truy cập",
+      "permissionMe": "Riêng tư",
+      "permissionTeam": "Nhóm",
+      "parserConfig": "Cấu hình Parser",
+      "createSuccess": "Tạo dataset thành công",
+      "updateSuccess": "Cập nhật dataset thành công",
+      "deleteSuccess": "Xóa dataset thành công",
+      "noDatasets": "Không tìm thấy dataset",
+      "noDatasetsHint": "Tạo dataset để bắt đầu."
     },
     "permissions": {
       "title": "Phân quyền Dự án",

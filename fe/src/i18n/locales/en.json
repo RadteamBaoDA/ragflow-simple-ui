@@ -781,7 +781,9 @@
       "embeddingModels": "Embedding Models",
       "embeddingModelsPlaceholder": "Type model name and press Enter (e.g. BAAI/bge-large-zh-v1.5@Xinference)",
       "chatModels": "Chat Models",
-      "chatModelsPlaceholder": "Type model name and press Enter (e.g. deepseek-chat@VolcEngine)"
+      "chatModelsPlaceholder": "Type model name and press Enter (e.g. deepseek-chat@DeepSeek)",
+      "formatHint": "Must follow model_name@model_factory format (type @ to see providers)",
+      "maxLength": "Maximum 255 characters"
     }
   },
   "projectManagement": {
@@ -905,6 +907,29 @@
       "deleteConfirm": "Delete this chat assistant?",
       "noChats": "No chat assistants configured",
       "noChatsHint": "Create a chat assistant linked to your project datasets."
+    },
+    "dataset": {
+      "title": "Datasets",
+      "createDataset": "Create Dataset",
+      "editDataset": "Edit Dataset",
+      "deleteConfirm": "Are you sure you want to delete the selected dataset(s)?",
+      "name": "Dataset Name",
+      "namePlaceholder": "Enter dataset name",
+      "description": "Description",
+      "descriptionPlaceholder": "Optional dataset description",
+      "language": "Language",
+      "embeddingModel": "Embedding Model",
+      "embeddingModelPlaceholder": "e.g. BAAI/bge-large-zh-v1.5@BAAI",
+      "chunkMethod": "Chunk Method",
+      "permission": "Permission",
+      "permissionMe": "Private",
+      "permissionTeam": "Team",
+      "parserConfig": "Parser Configuration",
+      "createSuccess": "Dataset created successfully",
+      "updateSuccess": "Dataset updated successfully",
+      "deleteSuccess": "Dataset(s) deleted successfully",
+      "noDatasets": "No datasets found",
+      "noDatasetsHint": "Create a dataset to get started."
     },
     "permissions": {
       "title": "Project Permissions",

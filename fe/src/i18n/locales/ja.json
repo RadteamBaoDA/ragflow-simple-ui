@@ -760,7 +760,17 @@
     "endpointRequired": "エンドポイントURLは必須です",
     "apiKeyRequired": "APIキーは必須です",
     "noServers": "RAGFlowサーバーが設定されていません",
-    "noServersHint": "RAGFlow統合を開始するにはサーバーを追加してください。"
+    "noServersHint": "RAGFlow統合を開始するにはサーバーを追加してください。",
+    "modelConfig": {
+      "title": "モデル設定",
+      "description": "埋め込みとチャット用のモデルを設定します。モデル名を入力してEnterを押してください。",
+      "embeddingModels": "埋め込みモデル",
+      "embeddingModelsPlaceholder": "モデル名を入力してEnter（例: BAAI/bge-large-zh-v1.5@Xinference）",
+      "chatModels": "チャットモデル",
+      "chatModelsPlaceholder": "モデル名を入力してEnter（例: deepseek-chat@DeepSeek）",
+      "formatHint": "model_name@model_factory 形式で入力してください（@を入力するとプロバイダー一覧が表示されます）",
+      "maxLength": "最大255文字"
+    }
   },
   "projectManagement": {
     "title": "プロジェクト",
@@ -882,6 +892,29 @@
       "deleteConfirm": "このチャットアシスタントを削除しますか？",
       "noChats": "チャットアシスタントが設定されていません",
       "noChatsHint": "プロジェクトデータセットにリンクされたチャットアシスタントを作成してください。"
+    },
+    "dataset": {
+      "title": "データセット",
+      "createDataset": "データセットを作成",
+      "editDataset": "データセットを編集",
+      "deleteConfirm": "選択したデータセットを削除してもよろしいですか？",
+      "name": "データセット名",
+      "namePlaceholder": "データセット名を入力",
+      "description": "説明",
+      "descriptionPlaceholder": "データセットの説明（任意）",
+      "language": "言語",
+      "embeddingModel": "埋め込みモデル",
+      "embeddingModelPlaceholder": "例: BAAI/bge-large-zh-v1.5@BAAI",
+      "chunkMethod": "チャンク方法",
+      "permission": "権限",
+      "permissionMe": "プライベート",
+      "permissionTeam": "チーム",
+      "parserConfig": "パーサー設定",
+      "createSuccess": "データセットを作成しました",
+      "updateSuccess": "データセットを更新しました",
+      "deleteSuccess": "データセットを削除しました",
+      "noDatasets": "データセットが見つかりません",
+      "noDatasetsHint": "データセットを作成して開始しましょう。"
     },
     "permissions": {
       "title": "プロジェクト権限",

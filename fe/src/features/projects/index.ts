@@ -31,5 +31,16 @@ export {
   type ProjectPermission,
   type DocumentCategory,
   type DocumentCategoryVersion,
-  type ProjectChat
-} from './api/projectService'
+  type ProjectChat,
+} from "./api/projectService";
+
+export {
+  createDataset,
+  listDatasets,
+  updateDataset,
+  deleteDatasets,
+  type Dataset,
+  type CreateDatasetParams,
+  type UpdateDatasetParams,
+  type ListDatasetsParams,
+} from "./api/ragflowService";
