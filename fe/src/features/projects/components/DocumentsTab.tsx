@@ -15,6 +15,7 @@ import { Plus, Trash2, Pencil, Archive, FolderOpen } from 'lucide-react'
 import {
   getDocumentCategories,
   createDocumentCategory,
+  updateDocumentCategory,
   deleteDocumentCategory,
   getCategoryVersions,
   createCategoryVersion,
@@ -23,7 +24,7 @@ import {
   type DocumentCategory,
   type DocumentCategoryVersion,
 } from '../api/projectService'
-import { createDataset } from '../api/ragflowService'
+
 import CategoryModal from './CategoryModal'
 import VersionModal from './VersionModal'
 import EditVersionModal from './EditVersionModal'
@@ -65,6 +66,7 @@ const DocumentsTab = ({ projectId, initialCategories, embeddingModels }: Documen
   const [versionForm] = Form.useForm()
   const [saving, setSaving] = useState(false)
   const [loadingVersions, setLoadingVersions] = useState(false)
+  const [editingCategory, setEditingCategory] = useState<DocumentCategory | null>(null)
 
   // Edit version modal state
   const [editVersionModalOpen, setEditVersionModalOpen] = useState(false)
@@ -120,48 +122,53 @@ const DocumentsTab = ({ projectId, initialCategories, embeddingModels }: Documen
 
   /**
    * Create a new category.
-   * Also creates a RAGFlow dataset if dataset_config is provided,
-   * and stores the dataset ID back in the category's dataset_config.
+   * Saves category with dataset_config to DB. The actual RAGFlow dataset
+   * is created later when a version is created via the backend.
    */
   const handleCreateCategory = async () => {
     try {
       const values = await categoryForm.validateFields()
       setSaving(true)
-
-      // Extract dataset_config if present for RAGFlow dataset creation
-      const dsConfig = values.dataset_config || {}
-      let ragflowDatasetId: string | undefined
-
-      // Create RAGFlow dataset if category has dataset config with meaningful settings
-      if (dsConfig.language || dsConfig.embedding_model || dsConfig.chunk_method) {
-        try {
-          const dataset = await createDataset(projectId, {
-            name: values.name,
-            language: dsConfig.language,
-            embedding_model: dsConfig.embedding_model,
-            chunk_method: dsConfig.chunk_method || 'naive',
-            parser_config: dsConfig.parser_config,
-          })
-          ragflowDatasetId = dataset.id
-        } catch (dsErr) {
-          console.error('Failed to create RAGFlow dataset:', dsErr)
-          // Continue with category creation even if dataset creation fails
-        }
-      }
-
-      // Store the RAGFlow dataset ID in category config if created
-      if (ragflowDatasetId) {
-        values.dataset_config = {
-          ...dsConfig,
-          ragflow_dataset_id: ragflowDatasetId,
-        }
-      }
-
       await createDocumentCategory(projectId, values)
       setCategoryModalOpen(false)
       categoryForm.resetFields()
       const catData = await getDocumentCategories(projectId)
       setCategories(catData)
+    } catch (err) {
+      if (err && typeof err === 'object' && 'errorFields' in err) return
+      message.error(String(err))
+    } finally {
+      setSaving(false)
+    }
+  }
+
+  /** Open edit modal for a category, pre-filling form with its data */
+  const handleOpenEditCategory = (cat: DocumentCategory) => {
+    setEditingCategory(cat)
+    categoryForm.setFieldsValue({
+      name: cat.name,
+      dataset_config: cat.dataset_config || {},
+    })
+    setCategoryModalOpen(true)
+  }
+
+  /** Update an existing category */
+  const handleUpdateCategory = async () => {
+    if (!editingCategory) return
+    try {
+      const values = await categoryForm.validateFields()
+      setSaving(true)
+      await updateDocumentCategory(projectId, editingCategory.id, values)
+      setCategoryModalOpen(false)
+      setEditingCategory(null)
+      categoryForm.resetFields()
+      const catData = await getDocumentCategories(projectId)
+      setCategories(catData)
+      // Refresh selected category if it was the one edited
+      if (selectedCategory?.id === editingCategory.id) {
+        const updated = catData.find((c) => c.id === editingCategory.id)
+        if (updated) setSelectedCategory(updated)
+      }
     } catch (err) {
       if (err && typeof err === 'object' && 'errorFields' in err) return
       message.error(String(err))
@@ -237,7 +244,14 @@ const DocumentsTab = ({ projectId, initialCategories, embeddingModels }: Documen
       }
 
       setSaving(true)
-      await createCategoryVersion(projectId, selectedCategory.id, { version_label })
+      await createCategoryVersion(projectId, selectedCategory.id, {
+        version_label,
+        pagerank: values.pagerank ?? 0,
+        pipeline_id: values.pipeline_id?.trim() || undefined,
+        parse_type: values.parse_type ?? undefined,
+        chunk_method: values.chunk_method,
+        parser_config: values.parser_config,
+      })
       setVersionModalOpen(false)
       versionForm.resetFields()
       await refreshVersions()
@@ -287,19 +301,30 @@ const DocumentsTab = ({ projectId, initialCategories, embeddingModels }: Documen
                     }`}
                 >
                   <span className="truncate">{cat.name}</span>
-                  <Popconfirm
-                    title={t('projectManagement.categories.deleteConfirm')}
-                    onConfirm={(e?: React.MouseEvent) => { e?.stopPropagation(); handleDeleteCategory(cat.id) }}
-                  >
-                    <Button
-                      type="text"
-                      size="small"
-                      danger
-                      icon={<Trash2 size={12} />}
-                      onClick={(e: React.MouseEvent) => e.stopPropagation()}
-                      className="opacity-0 group-hover:opacity-100"
-                    />
-                  </Popconfirm>
+                  <div className="flex items-center gap-0.5">
+                    <Tooltip title={t('projectManagement.categories.edit')}>
+                      <Button
+                        type="text"
+                        size="small"
+                        icon={<Pencil size={12} />}
+                        onClick={(e: React.MouseEvent) => { e.stopPropagation(); handleOpenEditCategory(cat) }}
+                        className="opacity-0 group-hover:opacity-100"
+                      />
+                    </Tooltip>
+                    <Popconfirm
+                      title={t('projectManagement.categories.deleteConfirm')}
+                      onConfirm={(e?: React.MouseEvent) => { e?.stopPropagation(); handleDeleteCategory(cat.id) }}
+                    >
+                      <Button
+                        type="text"
+                        size="small"
+                        danger
+                        icon={<Trash2 size={12} />}
+                        onClick={(e: React.MouseEvent) => e.stopPropagation()}
+                        className="opacity-0 group-hover:opacity-100"
+                      />
+                    </Popconfirm>
+                  </div>
                 </div>
               ))}
             </div>
@@ -403,6 +428,7 @@ const DocumentsTab = ({ projectId, initialCategories, embeddingModels }: Documen
                     projectId={projectId}
                     categoryId={selectedCategory.id}
                     versionId={selectedVersion.id}
+                    versionLabel={selectedVersion.version_label}
                   />
                 </>
               )}
@@ -421,14 +447,16 @@ const DocumentsTab = ({ projectId, initialCategories, embeddingModels }: Documen
         open={categoryModalOpen}
         form={categoryForm}
         saving={saving}
+        editMode={!!editingCategory}
         embeddingModels={embeddingModels}
-        onOk={handleCreateCategory}
-        onCancel={() => setCategoryModalOpen(false)}
+        onOk={editingCategory ? handleUpdateCategory : handleCreateCategory}
+        onCancel={() => { setCategoryModalOpen(false); setEditingCategory(null); categoryForm.resetFields() }}
       />
       <VersionModal
         open={versionModalOpen}
         form={versionForm}
         saving={saving}
+        categoryConfig={selectedCategory?.dataset_config as Record<string, any> | undefined}
         onOk={handleSubmitVersion}
         onCancel={() => setVersionModalOpen(false)}
       />
@@ -438,6 +466,7 @@ const DocumentsTab = ({ projectId, initialCategories, embeddingModels }: Documen
         projectId={projectId}
         categoryId={selectedCategory?.id || ''}
         saving={saving}
+        categoryConfig={selectedCategory?.dataset_config as Record<string, any> | undefined}
         onSavingChange={setSaving}
         onSaved={() => {
           setEditVersionModalOpen(false)

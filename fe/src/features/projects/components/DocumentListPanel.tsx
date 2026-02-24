@@ -57,6 +57,8 @@ interface DocumentListPanelProps {
   categoryId: string
   /** Selected version ID */
   versionId: string
+  /** Display label for the selected version */
+  versionLabel?: string
   /** Trigger counter — increment to force a refresh (e.g. after upload) */
   refreshKey?: number
 }
@@ -71,7 +73,7 @@ interface DocumentListPanelProps {
  * @param {DocumentListPanelProps} props - Component props
  * @returns {JSX.Element} The rendered document list panel
  */
-const DocumentListPanel = ({ projectId, categoryId, versionId, refreshKey }: DocumentListPanelProps) => {
+const DocumentListPanel = ({ projectId, categoryId, versionId, versionLabel, refreshKey }: DocumentListPanelProps) => {
   const { t } = useTranslation()
   const [documents, setDocuments] = useState<VersionDocument[]>([])
   const [loading, setLoading] = useState(false)
@@ -173,6 +175,9 @@ const DocumentListPanel = ({ projectId, categoryId, versionId, refreshKey }: Doc
       <div className="flex items-center justify-between mb-3">
         <h4 className="text-sm font-semibold text-gray-700 dark:text-gray-300">
           {t('projectManagement.documents.title')}
+          {versionLabel && (
+            <Tag color="blue" style={{ marginLeft: 8, fontSize: 12 }}>{versionLabel}</Tag>
+          )}
           {!loading && documents.length > 0 && (
             <span className="ml-2 text-xs font-normal text-gray-400">
               ({documents.length} {t('projectManagement.documents.totalFiles')})

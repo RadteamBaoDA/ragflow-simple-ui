@@ -822,8 +822,20 @@
         "layoutRecognize": "レイアウト認識",
         "html4excel": "Excel用HTML",
         "pdfParser": "PDFパーサー",
+        "childChunk": "子チャンクを検索に使用",
+        "childChunkDelimiter": "テキスト区切り文字",
+        "pageIndex": "ページインデックス",
+        "pageIndexTip": "各チャンクにページ番号をメタデータとして追加",
+        "imageContextSize": "画像・表のコンテキストウィンドウ",
+        "imageContextSizeTip": "画像と表のコンテキストとして使用される周囲のトークン数",
+        "autoMetadata": "自動メタデータ",
+        "autoMetadataTip": "ドキュメントからメタデータを自動抽出",
+        "overlappedPercent": "重複率 (%)",
         "autoKeyword": "自動キーワード",
-        "autoQuestion": "自動質問"
+        "autoKeywordTip": "チャンクごとに自動抽出するキーワード数",
+        "autoQuestion": "自動質問",
+        "autoQuestionTip": "チャンクごとに自動生成する質問数",
+        "html4excelTip": "ExcelファイルをHTMLテーブルとして解析"
       }
     },
     "versions": {
@@ -848,7 +860,19 @@
       "updateSuccess": "バージョンを更新しました",
       "deactivate": "無効化",
       "deactivateConfirm": "このバージョンを無効化しますか？アーカイブされます。",
-      "deactivateSuccess": "バージョンを無効化しました"
+      "deactivateSuccess": "バージョンを無効化しました",
+      "pageRank": "ページランク",
+      "pageRankTip": "このデータセットの検索関連性ランキングを向上させます（0〜100）。値が高いほど検索結果での優先度が上がります。",
+      "pipelineSection": "取り込みパイプライン",
+      "pipelineSectionTip": "組み込みのチャンク方法の代わりに取り込みパイプラインを使用します。設定すると、カテゴリのchunk_methodとparser_configは無視されます。",
+      "pipelineId": "パイプラインID",
+      "pipelineIdPlaceholder": "32桁の16進数ID、例: d0bebe30ae2211f0...",
+      "parseType": "解析タイプ",
+      "parseTypeBuiltIn": "ビルトイン",
+      "parseTypeChoosePipeline": "パイプラインを選択",
+      "parseTypeNum": "パーサー数",
+      "parseTypePlaceholder": "パイプライン内のパーサーの数",
+      "builtInHint": "カテゴリ設定のチャンク方法とパーサー設定を使用します。"
     },
     "documents": {
       "title": "ドキュメント",

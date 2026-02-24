@@ -239,6 +239,11 @@ export const createCategoryVersion = (
   categoryId: string,
   data: {
     version_label: string;
+    pagerank?: number;
+    pipeline_id?: string;
+    parse_type?: number;
+    chunk_method?: string;
+    parser_config?: Record<string, any>;
   },
 ): Promise<DocumentCategoryVersion> =>
   api.post(
@@ -277,7 +282,14 @@ export const updateCategoryVersion = (
   projectId: string,
   categoryId: string,
   versionId: string,
-  data: { version_label?: string },
+  data: {
+    version_label?: string;
+    pagerank?: number;
+    pipeline_id?: string;
+    parse_type?: number;
+    chunk_method?: string;
+    parser_config?: Record<string, any>;
+  },
 ): Promise<DocumentCategoryVersion> =>
   api.put(
     `/api/projects/${projectId}/categories/${categoryId}/versions/${versionId}`,

@@ -95,10 +95,22 @@ export class RagflowProxyService {
       chunk_method?: string;
       parser_config?: Record<string, any>;
       permission?: string;
+      pipeline_id?: string;
+      parse_type?: number;
     },
   ): Promise<any> {
     const client = await this.buildClient(serverId);
+    // Debug: log the exact payload being sent to RAGFlow
+    console.log(
+      "[RAGFlow createDataset] Payload:",
+      JSON.stringify(params, null, 2),
+    );
     const res = await client.post("/api/v1/datasets", params);
+    // Debug: log the full RAGFlow response
+    console.log(
+      "[RAGFlow createDataset] Response:",
+      JSON.stringify(res.data, null, 2),
+    );
     log.info("RAGFlow dataset created", { serverId, name: params.name });
     return this.unwrap(res);
   }
@@ -116,7 +128,19 @@ export class RagflowProxyService {
     params: Record<string, any>,
   ): Promise<any> {
     const client = await this.buildClient(serverId);
+    // Debug: log the exact payload being sent to RAGFlow
+    console.log(
+      "[RAGFlow updateDataset] datasetId:",
+      datasetId,
+      "Payload:",
+      JSON.stringify(params, null, 2),
+    );
     const res = await client.put(`/api/v1/datasets/${datasetId}`, params);
+    // Debug: log the full RAGFlow response
+    console.log(
+      "[RAGFlow updateDataset] Response:",
+      JSON.stringify(res.data, null, 2),
+    );
     return this.unwrap(res);
   }
 

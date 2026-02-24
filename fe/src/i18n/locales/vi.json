@@ -837,8 +837,20 @@
         "layoutRecognize": "Nhận dạng Bố cục",
         "html4excel": "HTML cho Excel",
         "pdfParser": "Bộ phân tích PDF",
+        "childChunk": "Chunk con được sử dụng để truy xuất",
+        "childChunkDelimiter": "Ký tự phân cách văn bản",
+        "pageIndex": "Chỉ mục trang",
+        "pageIndexTip": "Thêm số trang cho mỗi chunk dưới dạng siêu dữ liệu",
+        "imageContextSize": "Cửa sổ ngữ cảnh hình ảnh & bảng",
+        "imageContextSizeTip": "Số lượng token xung quanh được sử dụng làm ngữ cảnh cho hình ảnh và bảng",
+        "autoMetadata": "Siêu dữ liệu tự động",
+        "autoMetadataTip": "Tự động trích xuất siêu dữ liệu từ tài liệu",
+        "overlappedPercent": "Tỷ lệ chồng lấn (%)",
         "autoKeyword": "Tự động Từ khóa",
-        "autoQuestion": "Tự động Câu hỏi"
+        "autoKeywordTip": "Số từ khóa tự động trích xuất cho mỗi chunk",
+        "autoQuestion": "Tự động Câu hỏi",
+        "autoQuestionTip": "Số câu hỏi tự động tạo cho mỗi chunk",
+        "html4excelTip": "Phân tích tệp Excel dưới dạng bảng HTML"
       }
     },
     "versions": {
@@ -863,7 +875,19 @@
       "updateSuccess": "Cập nhật phiên bản thành công",
       "deactivate": "Vô hiệu hóa",
       "deactivateConfirm": "Vô hiệu hóa phiên bản này? Nó sẽ được lưu trữ.",
-      "deactivateSuccess": "Đã vô hiệu hóa phiên bản"
+      "deactivateSuccess": "Đã vô hiệu hóa phiên bản",
+      "pageRank": "Xếp hạng Trang",
+      "pageRankTip": "Tăng mức độ liên quan khi tìm kiếm cho dataset này (0–100). Giá trị cao hơn sẽ tăng ưu tiên trong kết quả tìm kiếm.",
+      "pipelineSection": "Pipeline Xử lý",
+      "pipelineSectionTip": "Sử dụng pipeline xử lý thay vì phương pháp chunk tích hợp. Khi được thiết lập, chunk_method và parser_config từ danh mục sẽ bị bỏ qua.",
+      "pipelineId": "ID Pipeline",
+      "pipelineIdPlaceholder": "Mã hex 32 ký tự, vd: d0bebe30ae2211f0...",
+      "parseType": "Loại Phân tích",
+      "parseTypeBuiltIn": "Tích hợp",
+      "parseTypeChoosePipeline": "Chọn pipeline",
+      "parseTypeNum": "Số lượng Bộ phân tích",
+      "parseTypePlaceholder": "Số lượng bộ phân tích trong pipeline",
+      "builtInHint": "Sử dụng phương pháp chunk và cấu hình parser từ cài đặt danh mục."
     },
     "documents": {
       "title": "Tài liệu",

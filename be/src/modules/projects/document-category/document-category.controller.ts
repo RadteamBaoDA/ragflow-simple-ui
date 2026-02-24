@@ -1,10 +1,9 @@
-
 /**
  * DocumentCategoryController: Handles HTTP requests for document categories and versions.
  */
-import { Request, Response } from 'express'
-import { documentCategoryService } from '@/modules/projects/document-category/document-category.service.js'
-import { ModelFactory } from '@/shared/models/factory.js'
+import { Request, Response } from "express";
+import { documentCategoryService } from "@/modules/projects/document-category/document-category.service.js";
+import { ModelFactory } from "@/shared/models/factory.js";
 
 /**
  * Controller for document category and version API endpoints.
@@ -20,11 +19,13 @@ export class DocumentCategoryController {
    */
   static async listCategories(req: Request, res: Response) {
     try {
-      const categories = await documentCategoryService.listByProject(req.params.projectId as string)
-      res.json(categories)
+      const categories = await documentCategoryService.listByProject(
+        req.params.projectId as string,
+      );
+      res.json(categories);
     } catch (error) {
-      console.error('Error listing categories:', error)
-      res.status(500).json({ error: 'Failed to list categories' })
+      console.error("Error listing categories:", error);
+      res.status(500).json({ error: "Failed to list categories" });
     }
   }
 
@@ -34,28 +35,33 @@ export class DocumentCategoryController {
    */
   static async createCategory(req: Request, res: Response) {
     try {
-      const { name, description, sort_order, dataset_config } = req.body
+      const { name, description, sort_order, dataset_config } = req.body;
       if (!name) {
-        res.status(400).json({ error: 'Category name is required' })
-        return
+        res.status(400).json({ error: "Category name is required" });
+        return;
       }
       // @ts-ignore
-      const userId = req.user?.id
-      const category = await documentCategoryService.createCategory({
-        project_id: req.params.projectId as string,
-        name,
-        description,
-        sort_order,
-        dataset_config
-      }, userId)
-      res.status(201).json(category)
+      const userId = req.user?.id;
+      const category = await documentCategoryService.createCategory(
+        {
+          project_id: req.params.projectId as string,
+          name,
+          description,
+          sort_order,
+          dataset_config,
+        },
+        userId,
+      );
+      res.status(201).json(category);
     } catch (error: any) {
-      console.error('Error creating category:', error)
-      if (error.message?.includes('unique')) {
-        res.status(409).json({ error: 'Category name already exists in this project' })
-        return
+      console.error("Error creating category:", error);
+      if (error.message?.includes("unique")) {
+        res
+          .status(409)
+          .json({ error: "Category name already exists in this project" });
+        return;
       }
-      res.status(500).json({ error: 'Failed to create category' })
+      res.status(500).json({ error: "Failed to create category" });
     }
   }
 
@@ -66,18 +72,20 @@ export class DocumentCategoryController {
   static async updateCategory(req: Request, res: Response) {
     try {
       // @ts-ignore
-      const userId = req.user?.id
+      const userId = req.user?.id;
       const category = await documentCategoryService.updateCategory(
-        req.params.categoryId as string, req.body, userId
-      )
-      res.json(category)
+        req.params.categoryId as string,
+        req.body,
+        userId,
+      );
+      res.json(category);
     } catch (error: any) {
-      console.error('Error updating category:', error)
-      if (error.message === 'Category not found') {
-        res.status(404).json({ error: 'Category not found' })
-        return
+      console.error("Error updating category:", error);
+      if (error.message === "Category not found") {
+        res.status(404).json({ error: "Category not found" });
+        return;
       }
-      res.status(500).json({ error: 'Failed to update category' })
+      res.status(500).json({ error: "Failed to update category" });
     }
   }
 
@@ -88,19 +96,21 @@ export class DocumentCategoryController {
   static async deleteCategory(req: Request, res: Response) {
     try {
       // Get project's ragflow server ID for cleanup
-      const project = await ModelFactory.project.findById(req.params.projectId as string)
+      const project = await ModelFactory.project.findById(
+        req.params.projectId as string,
+      );
       await documentCategoryService.deleteCategory(
         req.params.categoryId as string,
-        project?.ragflow_server_id || undefined
-      )
-      res.status(204).send()
+        project?.ragflow_server_id || undefined,
+      );
+      res.status(204).send();
     } catch (error: any) {
-      console.error('Error deleting category:', error)
-      if (error.message === 'Category not found') {
-        res.status(404).json({ error: 'Category not found' })
-        return
+      console.error("Error deleting category:", error);
+      if (error.message === "Category not found") {
+        res.status(404).json({ error: "Category not found" });
+        return;
       }
-      res.status(500).json({ error: 'Failed to delete category' })
+      res.status(500).json({ error: "Failed to delete category" });
     }
   }
 
@@ -114,11 +124,13 @@ export class DocumentCategoryController {
    */
   static async listVersions(req: Request, res: Response) {
     try {
-      const versions = await documentCategoryService.listVersions(req.params.categoryId as string)
-      res.json(versions)
+      const versions = await documentCategoryService.listVersions(
+        req.params.categoryId as string,
+      );
+      res.json(versions);
     } catch (error) {
-      console.error('Error listing versions:', error)
-      res.status(500).json({ error: 'Failed to list versions' })
+      console.error("Error listing versions:", error);
+      res.status(500).json({ error: "Failed to list versions" });
     }
   }
 
@@ -128,39 +140,66 @@ export class DocumentCategoryController {
    */
   static async createVersion(req: Request, res: Response) {
     try {
-      const { version_label } = req.body
+      const {
+        version_label,
+        pagerank,
+        pipeline_id,
+        parse_type,
+        chunk_method,
+        parser_config,
+      } = req.body;
       if (!version_label) {
-        res.status(400).json({ error: 'version_label is required' })
-        return
+        res.status(400).json({ error: "version_label is required" });
+        return;
       }
 
       // Resolve project for server ID and defaults
-      const project = await ModelFactory.project.findById(req.params.projectId as string)
+      const project = await ModelFactory.project.findById(
+        req.params.projectId as string,
+      );
       if (!project?.ragflow_server_id) {
-        res.status(400).json({ error: 'Project must have a RAGFlow server assigned' })
-        return
+        res
+          .status(400)
+          .json({ error: "Project must have a RAGFlow server assigned" });
+        return;
       }
 
       // @ts-ignore
-      const userId = req.user?.id
+      const userId = req.user?.id;
       const version = await documentCategoryService.createVersion(
-        { category_id: req.params.categoryId as string, version_label },
+        {
+          category_id: req.params.categoryId as string,
+          version_label,
+          ...(pagerank !== undefined ? { pagerank: Number(pagerank) } : {}),
+          ...(pipeline_id ? { pipeline_id } : {}),
+          ...(parse_type !== undefined
+            ? { parse_type: Number(parse_type) }
+            : {}),
+          ...(chunk_method ? { chunk_method } : {}),
+          ...(parser_config ? { parser_config } : {}),
+        },
         project.ragflow_server_id,
         {
-          ...(project.default_embedding_model ? { embedding_model: project.default_embedding_model } : {}),
+          ...(project.default_embedding_model
+            ? { embedding_model: project.default_embedding_model }
+            : {}),
           chunk_method: project.default_chunk_method,
-          parser_config: project.default_parser_config
+          parser_config: project.default_parser_config,
         },
-        userId
-      )
-      res.status(201).json(version)
+        userId,
+      );
+      res.status(201).json(version);
     } catch (error: any) {
-      console.error('Error creating version:', error)
-      if (error.message?.includes('unique')) {
-        res.status(409).json({ error: 'Version label already exists for this category' })
-        return
+      console.error("Error creating version:", error);
+      if (error.message?.includes("unique")) {
+        res
+          .status(409)
+          .json({ error: "Version label already exists for this category" });
+        return;
       }
-      res.status(500).json({ error: error.message || 'Failed to create version' })
+      res
+        .status(500)
+        .json({ error: error.message || "Failed to create version" });
     }
   }
 
@@ -170,18 +209,25 @@ export class DocumentCategoryController {
    */
   static async syncVersion(req: Request, res: Response) {
     try {
-      const project = await ModelFactory.project.findById(req.params.projectId as string)
+      const project = await ModelFactory.project.findById(
+        req.params.projectId as string,
+      );
       if (!project?.ragflow_server_id) {
-        res.status(400).json({ error: 'Project must have a RAGFlow server assigned' })
-        return
+        res
+          .status(400)
+          .json({ error: "Project must have a RAGFlow server assigned" });
+        return;
       }
       const version = await documentCategoryService.syncVersion(
-        req.params.versionId as string, project.ragflow_server_id
-      )
-      res.json(version)
+        req.params.versionId as string,
+        project.ragflow_server_id,
+      );
+      res.json(version);
     } catch (error: any) {
-      console.error('Error syncing version:', error)
-      res.status(500).json({ error: error.message || 'Failed to sync version' })
+      console.error("Error syncing version:", error);
+      res
+        .status(500)
+        .json({ error: error.message || "Failed to sync version" });
     }
   }
 
@@ -192,12 +238,17 @@ export class DocumentCategoryController {
   static async archiveVersion(req: Request, res: Response) {
     try {
       // @ts-ignore
-      const userId = req.user?.id
-      const version = await documentCategoryService.archiveVersion(req.params.versionId as string, userId)
-      res.json(version)
+      const userId = req.user?.id;
+      const version = await documentCategoryService.archiveVersion(
+        req.params.versionId as string,
+        userId,
+      );
+      res.json(version);
     } catch (error: any) {
-      console.error('Error archiving version:', error)
-      res.status(500).json({ error: error.message || 'Failed to archive version' })
+      console.error("Error archiving version:", error);
+      res
+        .status(500)
+        .json({ error: error.message || "Failed to archive version" });
     }
   }
 
@@ -208,21 +259,46 @@ export class DocumentCategoryController {
   static async updateVersion(req: Request, res: Response) {
     try {
       // @ts-ignore
-      const userId = req.user?.id
-      const { version_label } = req.body
+      const userId = req.user?.id;
+      const {
+        version_label,
+        pagerank,
+        pipeline_id,
+        parse_type,
+        chunk_method,
+        parser_config,
+      } = req.body;
+
+      // Resolve project for server ID (needed for RAGFlow sync)
+      const project = await ModelFactory.project.findById(
+        req.params.projectId as string,
+      );
+
       const version = await documentCategoryService.updateVersion(
         req.params.versionId as string,
-        { version_label },
-        userId
-      )
-      res.json(version)
+        {
+          version_label,
+          ...(pagerank !== undefined ? { pagerank: Number(pagerank) } : {}),
+          ...(pipeline_id ? { pipeline_id } : {}),
+          ...(parse_type !== undefined
+            ? { parse_type: Number(parse_type) }
+            : {}),
+          ...(chunk_method ? { chunk_method } : {}),
+          ...(parser_config ? { parser_config } : {}),
+        },
+        project?.ragflow_server_id || undefined,
+        userId,
+      );
+      res.json(version);
     } catch (error: any) {
-      console.error('Error updating version:', error)
-      if (error.message === 'Version not found') {
-        res.status(404).json({ error: 'Version not found' })
-        return
+      console.error("Error updating version:", error);
+      if (error.message === "Version not found") {
+        res.status(404).json({ error: "Version not found" });
+        return;
       }
-      res.status(500).json({ error: error.message || 'Failed to update version' })
+      res
+        .status(500)
+        .json({ error: error.message || "Failed to update version" });
     }
   }
 
@@ -232,15 +308,19 @@ export class DocumentCategoryController {
    */
   static async deleteVersion(req: Request, res: Response) {
     try {
-      const project = await ModelFactory.project.findById(req.params.projectId as string)
+      const project = await ModelFactory.project.findById(
+        req.params.projectId as string,
+      );
       await documentCategoryService.deleteVersion(
         req.params.versionId as string,
-        project?.ragflow_server_id || undefined
-      )
-      res.status(204).send()
+        project?.ragflow_server_id || undefined,
+      );
+      res.status(204).send();
     } catch (error: any) {
-      console.error('Error deleting version:', error)
-      res.status(500).json({ error: error.message || 'Failed to delete version' })
+      console.error("Error deleting version:", error);
+      res
+        .status(500)
+        .json({ error: error.message || "Failed to delete version" });
     }
   }
 
@@ -256,8 +336,8 @@ export class DocumentCategoryController {
     try {
       // Handle multipart file upload
       if (!req.file) {
-        res.status(400).json({ error: 'File is required' })
-        return
+        res.status(400).json({ error: "File is required" });
+        return;
       }
 
       const result = await documentCategoryService.uploadDocument(
@@ -265,12 +345,14 @@ export class DocumentCategoryController {
         req.params.categoryId as string,
         req.params.versionId as string,
         req.file.buffer,
-        req.file.originalname
-      )
-      res.json(result)
+        req.file.originalname,
+      );
+      res.json(result);
     } catch (error: any) {
-      console.error('Error uploading document:', error)
-      res.status(500).json({ error: error.message || 'Failed to upload document' })
+      console.error("Error uploading document:", error);
+      res
+        .status(500)
+        .json({ error: error.message || "Failed to upload document" });
     }
   }
 
@@ -287,13 +369,13 @@ export class DocumentCategoryController {
         {
           page: parseInt(req.query.page as string) || 1,
           page_size: parseInt(req.query.page_size as string) || 30,
-          keywords: req.query.keywords as string
-        }
-      )
-      res.json(docs)
+          keywords: req.query.keywords as string,
+        },
+      );
+      res.json(docs);
     } catch (error) {
-      console.error('Error listing documents:', error)
-      res.status(500).json({ error: 'Failed to list documents' })
+      console.error("Error listing documents:", error);
+      res.status(500).json({ error: "Failed to list documents" });
     }
   }
 }

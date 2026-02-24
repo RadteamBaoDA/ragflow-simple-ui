@@ -836,8 +836,20 @@
         "layoutRecognize": "Layout Recognize",
         "html4excel": "HTML for Excel",
         "pdfParser": "PDF Parser",
+        "childChunk": "Child chunk are used for retrieval",
+        "childChunkDelimiter": "Delimiter for text",
+        "pageIndex": "PageIndex",
+        "pageIndexTip": "Add page number for each chunk as metadata",
+        "imageContextSize": "Image & table context window",
+        "imageContextSizeTip": "Number of surrounding tokens used as context for images and tables",
+        "autoMetadata": "Auto metadata",
+        "autoMetadataTip": "Automatically extract metadata from documents",
+        "overlappedPercent": "Overlapped percent (%)",
         "autoKeyword": "Auto-keyword",
-        "autoQuestion": "Auto-question"
+        "autoKeywordTip": "Number of keywords to auto-extract per chunk",
+        "autoQuestion": "Auto-question",
+        "autoQuestionTip": "Number of questions to auto-generate per chunk",
+        "html4excelTip": "Parse Excel files as HTML tables"
       }
     },
     "versions": {
@@ -863,7 +875,19 @@
       "updateSuccess": "Version updated successfully",
       "deactivate": "Deactivate",
       "deactivateConfirm": "Deactivate this version? It will be archived.",
-      "deactivateSuccess": "Version deactivated"
+      "deactivateSuccess": "Version deactivated",
+      "pageRank": "Page Rank",
+      "pageRankTip": "Boost document relevance ranking for this dataset (0–100). Higher values increase priority in search results.",
+      "pipelineSection": "Ingestion Pipeline",
+      "pipelineSectionTip": "Use an ingestion pipeline instead of the built-in chunk method. When set, chunk_method and parser_config from the category are ignored.",
+      "pipelineId": "Pipeline ID",
+      "pipelineIdPlaceholder": "32-character hex ID, e.g. d0bebe30ae2211f0...",
+      "parseType": "Parse Type",
+      "parseTypeBuiltIn": "Built-in",
+      "parseTypeChoosePipeline": "Choose pipeline",
+      "parseTypeNum": "Number of Parsers",
+      "parseTypePlaceholder": "Number of parsers in the pipeline",
+      "builtInHint": "Uses the chunk method and parser config from the category settings."
     },
     "documents": {
       "title": "Documents",
