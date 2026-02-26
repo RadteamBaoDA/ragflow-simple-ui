@@ -12,9 +12,33 @@ import {
   DocumentCategoryVersion,
 } from "@/shared/models/types.js";
 import { ragflowProxyService } from "@/shared/services/ragflow-proxy.service.js";
+import { converterQueueService } from "@/modules/converter/converter-queue.service.js";
+import {
+  auditService,
+  AuditAction,
+  AuditResourceType,
+} from "@/modules/audit/audit.service.js";
+import { ProjectActor } from "@/modules/projects/project.service.js";
 import { config } from "@/shared/config/index.js";
+import { log } from "@/shared/services/logger.service.js";
 import { promises as fs } from "fs";
 import path from "path";
+
+// Office file extensions that require conversion to PDF
+const OFFICE_EXTENSIONS = new Set([
+  ".doc",
+  ".docx",
+  ".docm",
+  ".xls",
+  ".xlsx",
+  ".xlsm",
+  ".ppt",
+  ".pptx",
+  ".pptm",
+]);
+
+// PDF extension — uploaded directly, no conversion needed
+const PDF_EXTENSION = ".pdf";
 
 /**
  * Service managing document categories and their versions.
@@ -60,14 +84,29 @@ export class DocumentCategoryService {
       sort_order?: number;
       dataset_config?: Record<string, any>;
     },
-    userId?: string,
+    actor?: ProjectActor,
   ): Promise<DocumentCategory> {
-    return ModelFactory.documentCategory.create({
+    const category = await ModelFactory.documentCategory.create({
       ...data,
       dataset_config: data.dataset_config || {},
-      created_by: userId ?? null,
-      updated_by: userId ?? null,
+      created_by: actor?.id ?? null,
+      updated_by: actor?.id ?? null,
     } as Partial<DocumentCategory>);
+
+    // Log audit event
+    if (actor) {
+      await auditService.log({
+        userId: actor.id,
+        userEmail: actor.email,
+        action: AuditAction.CREATE_CATEGORY,
+        resourceType: AuditResourceType.DOCUMENT_CATEGORY,
+        resourceId: category.id,
+        details: { project_id: data.project_id, name: data.name },
+        ipAddress: actor.ip,
+      });
+    }
+
+    return category;
   }
 
   /**
@@ -80,15 +119,29 @@ export class DocumentCategoryService {
   async updateCategory(
     id: string,
     data: Partial<DocumentCategory>,
-    userId?: string,
+    actor?: ProjectActor,
   ): Promise<DocumentCategory> {
     const existing = await ModelFactory.documentCategory.findById(id);
     if (!existing) throw new Error("Category not found");
     const updated = await ModelFactory.documentCategory.update(id, {
       ...data,
-      updated_by: userId ?? null,
+      updated_by: actor?.id ?? null,
     });
     if (!updated) throw new Error("Category not found after update");
+
+    // Log audit event
+    if (actor) {
+      await auditService.log({
+        userId: actor.id,
+        userEmail: actor.email,
+        action: AuditAction.UPDATE_CATEGORY,
+        resourceType: AuditResourceType.DOCUMENT_CATEGORY,
+        resourceId: id,
+        details: { changes: data },
+        ipAddress: actor.ip,
+      });
+    }
+
     return updated;
   }
 
@@ -98,7 +151,11 @@ export class DocumentCategoryService {
    * @param id - Category UUID
    * @param serverId - RAGFlow server ID for cleanup
    */
-  async deleteCategory(id: string, serverId?: string): Promise<void> {
+  async deleteCategory(
+    id: string,
+    serverId?: string,
+    actor?: ProjectActor,
+  ): Promise<void> {
     const existing = await ModelFactory.documentCategory.findById(id);
     if (!existing) throw new Error("Category not found");
 
@@ -123,6 +180,19 @@ export class DocumentCategoryService {
 
     // Cascade delete handled by DB FK
     await ModelFactory.documentCategory.delete(id);
+
+    // Log audit event
+    if (actor) {
+      await auditService.log({
+        userId: actor.id,
+        userEmail: actor.email,
+        action: AuditAction.DELETE_CATEGORY,
+        resourceType: AuditResourceType.DOCUMENT_CATEGORY,
+        resourceId: id,
+        details: { name: existing.name, project_id: existing.project_id },
+        ipAddress: actor.ip,
+      });
+    }
   }
 
   // =========================================================================
@@ -164,6 +234,7 @@ export class DocumentCategoryService {
       parser_config?: Record<string, any>;
     },
     userId?: string,
+    actor?: ProjectActor,
   ): Promise<DocumentCategoryVersion> {
     // Resolve category for naming and dataset_config
     const category = await ModelFactory.documentCategory.findById(
@@ -271,7 +342,7 @@ export class DocumentCategoryService {
     }
 
     // Create local version record
-    return ModelFactory.documentCategoryVersion.create({
+    const version = await ModelFactory.documentCategoryVersion.create({
       category_id: data.category_id,
       version_label: data.version_label,
       ragflow_dataset_id: ragflowDataset?.id,
@@ -284,9 +355,27 @@ export class DocumentCategoryService {
         pipeline_id: data.pipeline_id,
         parse_type: data.parse_type,
       },
-      created_by: userId ?? null,
-      updated_by: userId ?? null,
+      created_by: actor?.id ?? userId ?? null,
+      updated_by: actor?.id ?? userId ?? null,
     } as Partial<DocumentCategoryVersion>);
+
+    // Log audit event
+    if (actor) {
+      await auditService.log({
+        userId: actor.id,
+        userEmail: actor.email,
+        action: AuditAction.CREATE_VERSION,
+        resourceType: AuditResourceType.DOCUMENT_CATEGORY_VERSION,
+        resourceId: version.id,
+        details: {
+          category_id: data.category_id,
+          version_label: data.version_label,
+        },
+        ipAddress: actor.ip,
+      });
+    }
+
+    return version;
   }
 
   /**
@@ -332,6 +421,7 @@ export class DocumentCategoryService {
   async archiveVersion(
     versionId: string,
     userId?: string,
+    actor?: ProjectActor,
   ): Promise<DocumentCategoryVersion> {
     const version =
       await ModelFactory.documentCategoryVersion.findById(versionId);
@@ -340,10 +430,24 @@ export class DocumentCategoryService {
       versionId,
       {
         status: "archived",
-        updated_by: userId ?? null,
+        updated_by: actor?.id ?? userId ?? null,
       },
     );
     if (!updated) throw new Error("Version not found after update");
+
+    // Log audit event
+    if (actor) {
+      await auditService.log({
+        userId: actor.id,
+        userEmail: actor.email,
+        action: AuditAction.ARCHIVE_VERSION,
+        resourceType: AuditResourceType.DOCUMENT_CATEGORY_VERSION,
+        resourceId: versionId,
+        details: { version_label: version.version_label },
+        ipAddress: actor.ip,
+      });
+    }
+
     return updated;
   }
 
@@ -366,6 +470,7 @@ export class DocumentCategoryService {
     },
     serverId?: string,
     userId?: string,
+    actor?: ProjectActor,
   ): Promise<DocumentCategoryVersion> {
     const version =
       await ModelFactory.documentCategoryVersion.findById(versionId);
@@ -442,7 +547,7 @@ export class DocumentCategoryService {
         ...(data.chunk_method ? { chunk_method: data.chunk_method } : {}),
         ...(data.parser_config ? { parser_config: data.parser_config } : {}),
       },
-      updated_by: userId ?? null,
+      updated_by: actor?.id ?? userId ?? null,
     };
     if (data.version_label !== undefined) {
       updatePayload.version_label = data.version_label;
@@ -452,6 +557,20 @@ export class DocumentCategoryService {
       updatePayload,
     );
     if (!updated) throw new Error("Version not found after update");
+
+    // Log audit event
+    if (actor) {
+      await auditService.log({
+        userId: actor.id,
+        userEmail: actor.email,
+        action: AuditAction.UPDATE_VERSION,
+        resourceType: AuditResourceType.DOCUMENT_CATEGORY_VERSION,
+        resourceId: versionId,
+        details: { changes: data },
+        ipAddress: actor.ip,
+      });
+    }
+
     return updated;
   }
 
@@ -460,7 +579,11 @@ export class DocumentCategoryService {
    * @param versionId - Version UUID
    * @param serverId - RAGFlow server ID
    */
-  async deleteVersion(versionId: string, serverId?: string): Promise<void> {
+  async deleteVersion(
+    versionId: string,
+    serverId?: string,
+    actor?: ProjectActor,
+  ): Promise<void> {
     const version =
       await ModelFactory.documentCategoryVersion.findById(versionId);
     if (!version) throw new Error("Version not found");
@@ -477,6 +600,22 @@ export class DocumentCategoryService {
     }
 
     await ModelFactory.documentCategoryVersion.delete(versionId);
+
+    // Log audit event
+    if (actor) {
+      await auditService.log({
+        userId: actor.id,
+        userEmail: actor.email,
+        action: AuditAction.DELETE_VERSION,
+        resourceType: AuditResourceType.DOCUMENT_CATEGORY_VERSION,
+        resourceId: versionId,
+        details: {
+          version_label: version.version_label,
+          category_id: version.category_id,
+        },
+        ipAddress: actor.ip,
+      });
+    }
   }
 
   // =========================================================================
@@ -499,16 +638,17 @@ export class DocumentCategoryService {
   }
 
   /**
-   * Upload a document to local storage.
-   * Files are saved to {UPLOAD_DIR}/{projectId}/{categoryId}/{versionId}/{filename}.
-   * A future task converter will transform and push them to RAGFlow.
+   * Upload a document to local storage and enqueue for conversion.
+   * Office files (.doc, .docx, .xlsx, etc.) are queued for PDF conversion.
+   * PDF files are queued for direct upload to RAGFlow.
    *
    * @param projectId - Project UUID
    * @param categoryId - Category UUID
    * @param versionId - Version UUID
    * @param file - File buffer
    * @param fileName - Original file name
-   * @returns Upload result with file info
+   * @param serverId - RAGFlow server ID (optional, for conversion queue)
+   * @returns Upload result with file info and optional jobId
    */
   async uploadDocument(
     projectId: string,
@@ -516,7 +656,13 @@ export class DocumentCategoryService {
     versionId: string,
     file: Buffer,
     fileName: string,
-  ): Promise<{ name: string; size: number; path: string }> {
+    serverId?: string,
+  ): Promise<{
+    name: string;
+    size: number;
+    path: string;
+    jobId?: string | undefined;
+  }> {
     const version =
       await ModelFactory.documentCategoryVersion.findById(versionId);
     if (!version) throw new Error("Version not found");
@@ -529,18 +675,56 @@ export class DocumentCategoryService {
     const filePath = path.join(dir, fileName);
     await fs.writeFile(filePath, file);
 
-    console.log(`Document saved locally: ${filePath} (${file.length} bytes)`);
+    log.info(`Document saved locally: ${filePath} (${file.length} bytes)`);
+
+    // Add file to conversion queue if server + dataset are available
+    let jobId: string | undefined;
+    let fileId: string | undefined;
+    const ext = path.extname(fileName).toLowerCase();
+    const isOffice = OFFICE_EXTENSIONS.has(ext);
+    const isPdf = ext === PDF_EXTENSION;
+
+    if (serverId && version.ragflow_dataset_id && (isOffice || isPdf)) {
+      try {
+        const result = await converterQueueService.addFileToQueue({
+          projectId,
+          categoryId,
+          versionId,
+          serverId,
+          datasetId: version.ragflow_dataset_id,
+          fileName,
+          filePath: path.join(projectId, categoryId, versionId, fileName),
+        });
+        jobId = result.jobId;
+        fileId = result.fileId;
+        log.info("File added to conversion queue", {
+          jobId,
+          fileId,
+          fileName,
+          isOffice,
+          isPdf,
+        });
+      } catch (err) {
+        // Non-fatal: file is saved, just queue failed
+        log.error("Failed to add file to conversion queue", {
+          fileName,
+          error: (err as Error).message,
+        });
+      }
+    }
 
     return {
       name: fileName,
       size: file.length,
       path: filePath,
+      jobId,
     };
   }
 
   /**
    * List documents stored locally for a version.
-   * Reads file metadata from the local upload directory.
+   * Reads file metadata from the local upload directory and merges
+   * converter pipeline status: local → converted → imported → Success.
    *
    * @param projectId - Project UUID
    * @param categoryId - Category UUID
@@ -563,7 +747,48 @@ export class DocumentCategoryService {
       return [];
     }
 
-    // Read directory entries with file stats
+    // ── Build converter status map: fileName → latest FileTracking status ──
+    const converterStatusMap: Record<
+      string,
+      { status: string; pdfPath?: string; error?: string }
+    > = {};
+
+    try {
+      // Get all jobs for this version
+      const { jobs } = await converterQueueService.listVersionJobs({
+        versionId,
+        page: 1,
+        pageSize: 1000,
+      });
+
+      // Collect file tracking from all jobs, keep the latest per fileName
+      for (const job of jobs) {
+        const files = await converterQueueService.getJobFiles(job.id);
+        for (const f of files) {
+          const existing = converterStatusMap[f.fileName];
+          // Keep the latest record (by updatedAt)
+          if (
+            !existing ||
+            new Date(f.updatedAt) >
+              new Date((existing as any)._updatedAt || "1970-01-01")
+          ) {
+            converterStatusMap[f.fileName] = {
+              status: f.status,
+              pdfPath: f.pdfPath,
+              error: f.error,
+              _updatedAt: f.updatedAt,
+            } as any;
+          }
+        }
+      }
+    } catch (err) {
+      // Non-fatal: if Redis is down, just show all as "local"
+      log.warn("Failed to fetch converter status for documents", {
+        error: (err as Error).message,
+      });
+    }
+
+    // Read directory entries with file stats (exclude pdf/ subfolder)
     const entries = await fs.readdir(dir);
     let files: any[] = (
       await Promise.all(
@@ -571,20 +796,47 @@ export class DocumentCategoryService {
           const filePath = path.join(dir, name);
           const stat = await fs.stat(filePath);
           if (!stat.isFile()) return null;
+
+          // Derive document status from converter tracking
+          const conv = converterStatusMap[name];
+          let docStatus = "local"; // default: not converted
+          if (conv) {
+            switch (conv.status) {
+              case "pending":
+              case "processing":
+                // Still in conversion pipeline
+                docStatus = "local";
+                break;
+              case "completed":
+                // Converted but not yet uploaded to RAGFlow
+                docStatus = "converted";
+                break;
+              case "finished":
+                // Successfully uploaded to RAGFlow
+                docStatus = "imported";
+                break;
+              case "failed":
+                docStatus = "failed";
+                break;
+              default:
+                docStatus = "local";
+            }
+          }
+
           return {
             id: name,
             name,
             size: stat.size,
             type: path.extname(name).replace(".", ""),
-            run: "local",
-            status: "pending_conversion",
+            run: docStatus,
+            status: docStatus,
             created_by: "",
             create_time: Math.floor(stat.birthtimeMs / 1000),
             update_time: Math.floor(stat.mtimeMs / 1000),
             chunk_count: 0,
             token_count: 0,
             progress: 0,
-            progress_msg: "",
+            progress_msg: conv?.error || "",
           };
         }),
       )
@@ -601,6 +853,272 @@ export class DocumentCategoryService {
     const pageSize = query?.page_size ?? 100;
     const start = (page - 1) * pageSize;
     return files.slice(start, start + pageSize);
+  }
+
+  /**
+   * Delete multiple documents from local storage and RAGFlow.
+   * Looks up RAGFlow document IDs from converter tracking,
+   * deletes from RAGFlow first, then removes local files.
+   *
+   * @param projectId - Project UUID
+   * @param categoryId - Category UUID
+   * @param versionId - Version UUID
+   * @param fileNames - Array of file names to delete
+   * @param serverId - Optional RAGFlow server ID for remote deletion
+   * @returns Object with arrays of deleted and failed file names
+   */
+  async deleteDocuments(
+    projectId: string,
+    categoryId: string,
+    versionId: string,
+    fileNames: string[],
+    serverId?: string,
+  ): Promise<{ deleted: string[]; failed: string[] }> {
+    const dir = this.getUploadDir(projectId, categoryId, versionId);
+    const deleted: string[] = [];
+    const failed: string[] = [];
+
+    // Build fileName → ragflowDocId map from converter tracking (if serverId available)
+    const fileNameToRagflowId: Record<string, string> = {};
+    let datasetId: string | undefined;
+
+    if (serverId) {
+      try {
+        const version =
+          await ModelFactory.documentCategoryVersion.findById(versionId);
+        datasetId = version?.ragflow_dataset_id ?? undefined;
+
+        const { jobs } = await converterQueueService.listVersionJobs({
+          versionId,
+          page: 1,
+          pageSize: 1000,
+        });
+
+        for (const job of jobs) {
+          const files = await converterQueueService.getJobFiles(job.id);
+          for (const f of files) {
+            if (f.ragflowDocId) {
+              fileNameToRagflowId[f.fileName] = f.ragflowDocId;
+            }
+          }
+        }
+      } catch (err) {
+        log.warn("Failed to read converter tracking for delete", {
+          error: (err as Error).message,
+        });
+      }
+    }
+
+    // Batch delete from RAGFlow if we have doc IDs
+    if (serverId && datasetId) {
+      const ragflowIds = fileNames
+        .map((name) => fileNameToRagflowId[path.basename(name)])
+        .filter((id): id is string => !!id);
+
+      if (ragflowIds.length > 0) {
+        try {
+          await ragflowProxyService.deleteDocuments(
+            serverId,
+            datasetId,
+            ragflowIds,
+          );
+          log.info("Deleted documents from RAGFlow", {
+            datasetId,
+            count: ragflowIds.length,
+          });
+        } catch (err) {
+          // Non-fatal: continue with local deletion even if RAGFlow fails
+          log.error("Failed to delete from RAGFlow", {
+            error: (err as Error).message,
+          });
+        }
+      }
+    }
+
+    // Delete each file from local storage
+    for (const name of fileNames) {
+      // Prevent path traversal attacks
+      const safeName = path.basename(name);
+      const filePath = path.join(dir, safeName);
+      try {
+        await fs.unlink(filePath);
+        deleted.push(safeName);
+        log.info(`Document deleted: ${filePath}`);
+      } catch (err) {
+        log.error(`Failed to delete document: ${filePath}`, {
+          error: (err as Error).message,
+        });
+        failed.push(safeName);
+      }
+    }
+
+    return { deleted, failed };
+  }
+
+  /**
+   * Re-queue existing local files for conversion.
+   * Looks up each file on disk and adds it to the converter queue.
+   *
+   * @param projectId - Project UUID
+   * @param categoryId - Category UUID
+   * @param versionId - Version UUID
+   * @param fileNames - Array of file names to re-queue
+   * @param serverId - RAGFlow server ID
+   * @returns Object with arrays of queued and failed file names
+   */
+  async requeueDocuments(
+    projectId: string,
+    categoryId: string,
+    versionId: string,
+    fileNames: string[],
+    serverId: string,
+  ): Promise<{ queued: string[]; failed: string[] }> {
+    // Look up the version to get the RAGFlow dataset ID
+    const version =
+      await ModelFactory.documentCategoryVersion.findById(versionId);
+    if (!version) throw new Error("Version not found");
+    if (!version.ragflow_dataset_id)
+      throw new Error("Version has no RAGFlow dataset linked");
+
+    const dir = this.getUploadDir(projectId, categoryId, versionId);
+    const queued: string[] = [];
+    const failed: string[] = [];
+
+    for (const name of fileNames) {
+      // Prevent path traversal attacks
+      const safeName = path.basename(name);
+      const filePath = path.join(dir, safeName);
+
+      // Verify file exists on disk
+      try {
+        await fs.access(filePath);
+      } catch {
+        log.warn(`Requeue skipped — file not found: ${filePath}`);
+        failed.push(safeName);
+        continue;
+      }
+
+      // Add to conversion queue
+      try {
+        const result = await converterQueueService.addFileToQueue({
+          projectId,
+          categoryId,
+          versionId,
+          serverId,
+          datasetId: version.ragflow_dataset_id,
+          fileName: safeName,
+          filePath: path.join(projectId, categoryId, versionId, safeName),
+        });
+        log.info("File re-queued for conversion", {
+          jobId: result.jobId,
+          fileId: result.fileId,
+          fileName: safeName,
+        });
+        queued.push(safeName);
+      } catch (err) {
+        log.error("Failed to re-queue file for conversion", {
+          fileName: safeName,
+          error: (err as Error).message,
+        });
+        failed.push(safeName);
+      }
+    }
+
+    return { queued, failed };
+  }
+
+  /**
+   * Start parsing selected documents in RAGFlow.
+   * Looks up RAGFlow document IDs from converter file tracking records
+   * (saved when PDFs were uploaded to RAGFlow), then triggers parsing.
+   *
+   * @param projectId - Project UUID
+   * @param categoryId - Category UUID
+   * @param versionId - Version UUID
+   * @param fileNames - Array of file names to parse
+   * @param serverId - RAGFlow server ID
+   * @returns Object with arrays of parsed and failed file names
+   */
+  async parseDocuments(
+    projectId: string,
+    categoryId: string,
+    versionId: string,
+    fileNames: string[],
+    serverId: string,
+  ): Promise<{ parsed: string[]; failed: string[] }> {
+    // Look up the version to get the RAGFlow dataset ID
+    const version =
+      await ModelFactory.documentCategoryVersion.findById(versionId);
+    if (!version) throw new Error("Version not found");
+    if (!version.ragflow_dataset_id)
+      throw new Error("Version has no RAGFlow dataset linked");
+
+    const datasetId = version.ragflow_dataset_id;
+
+    // Build fileName → ragflowDocId map from converter tracking records
+    const fileNameToRagflowId: Record<string, string> = {};
+    try {
+      const { jobs } = await converterQueueService.listVersionJobs({
+        versionId,
+        page: 1,
+        pageSize: 1000,
+      });
+
+      for (const job of jobs) {
+        const files = await converterQueueService.getJobFiles(job.id);
+        for (const f of files) {
+          // Keep the latest ragflowDocId per fileName
+          if (f.ragflowDocId) {
+            fileNameToRagflowId[f.fileName] = f.ragflowDocId;
+          }
+        }
+      }
+    } catch (err) {
+      log.error("Failed to read converter tracking for parse", {
+        error: (err as Error).message,
+      });
+    }
+
+    const parsed: string[] = [];
+    const failed: string[] = [];
+    const idsToParse: string[] = [];
+
+    for (const name of fileNames) {
+      const safeName = path.basename(name);
+      const ragflowId = fileNameToRagflowId[safeName];
+
+      if (ragflowId) {
+        idsToParse.push(ragflowId);
+        parsed.push(safeName);
+      } else {
+        log.warn(`Parse skipped — no RAGFlow doc ID stored for: ${safeName}`);
+        failed.push(safeName);
+      }
+    }
+
+    // Call RAGFlow parse API with all matched IDs in one batch
+    if (idsToParse.length > 0) {
+      try {
+        await ragflowProxyService.parseDocuments(
+          serverId,
+          datasetId,
+          idsToParse,
+        );
+        log.info("RAGFlow parsing started", {
+          datasetId,
+          count: idsToParse.length,
+          ids: idsToParse,
+        });
+      } catch (err) {
+        log.error("Failed to start RAGFlow parsing", {
+          error: (err as Error).message,
+        });
+        // Move all to failed if the API call fails
+        failed.push(...parsed.splice(0));
+      }
+    }
+
+    return { parsed, failed };
   }
 }
 

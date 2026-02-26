@@ -914,7 +914,36 @@
       "statusParsing": "Đang phân tích",
       "statusParsed": "Đã phân tích",
       "statusCancelled": "Đã hủy",
-      "statusFailed": "Thất bại"
+      "statusFailed": "Thất bại",
+      "statusLocal": "Cục bộ",
+      "statusConverted": "Đã chuyển đổi",
+      "statusImported": "Đã nhập",
+      "deleteSelected": "Xóa đã chọn ({{count}})",
+      "deleteConfirm": "Bạn có chắc chắn muốn xóa {{count}} tệp đã chọn?",
+      "deleteConfirmRagflow": "Các tài liệu đã nhập cũng sẽ bị xóa khỏi máy chủ RAGFlow.",
+      "deleteSuccess": "Đã xóa {{count}} tệp thành công",
+      "deleteError": "Không thể xóa tệp",
+      "retryParse": "Phân tích lại",
+      "retryParseSuccess": "Đã thêm {{count}} tệp vào hàng đợi chuyển đổi",
+      "startParse": "Bắt đầu phân tích",
+      "startParseSuccess": "Đã gửi {{count}} tệp để phân tích"
+    },
+    "jobs": {
+      "title": "Công việc Chuyển đổi",
+      "empty": "Chưa có công việc chuyển đổi cho phiên bản này",
+      "uploadDate": "Ngày tải lên",
+      "file": "Tệp",
+      "files": "tệp",
+      "batches": "đợt",
+      "status": "Trạng thái",
+      "details": "Chi tiết",
+      "time": "Thời gian",
+      "error": "Lỗi",
+      "refresh": "Làm mới",
+      "pending": "Chờ xử lý",
+      "processing": "Đang xử lý",
+      "completed": "Hoàn thành",
+      "failed": "Thất bại"
     },
     "chats": {
       "title": "Trợ lý Chat",
@@ -1118,6 +1147,57 @@
       "copied": "Đã sao chép!",
       "insert": "Chèn vào chat",
       "noTask": "Vui lòng chọn nhiệm vụ trước"
+    }
+  },
+  "converter": {
+    "dashboard": {
+      "title": "Bảng điều khiển Chuyển đổi"
+    },
+    "status": {
+      "pending": "Chờ kích hoạt",
+      "waiting": "Đang chờ",
+      "converting": "Đang chuyển đổi",
+      "finished": "Hoàn thành",
+      "failed": "Thất bại"
+    },
+    "stats": {
+      "pending": "Chờ kích hoạt",
+      "waiting": "Đang chờ",
+      "converting": "Đang chuyển đổi",
+      "finished": "Hoàn thành",
+      "failed": "Thất bại",
+      "total": "Tổng cộng"
+    },
+    "jobs": {
+      "versionId": "Phiên bản",
+      "status": "Trạng thái",
+      "files": "Tệp",
+      "createdAt": "Ngày tạo",
+      "updatedAt": "Cập nhật",
+      "filterByStatus": "Lọc theo trạng thái",
+      "allStatuses": "Tất cả trạng thái"
+    },
+    "files": {
+      "fileName": "Tên tệp",
+      "status": "Trạng thái",
+      "error": "Lỗi",
+      "updatedAt": "Cập nhật"
+    },
+    "config": {
+      "title": "Cấu hình lịch trình",
+      "enabled": "Bật lịch trình",
+      "startHour": "Giờ bắt đầu",
+      "endHour": "Giờ kết thúc",
+      "timezone": "Múi giờ",
+      "saved": "Đã lưu cấu hình lịch trình"
+    },
+    "panel": {
+      "title": "Công việc chuyển đổi",
+      "activeJobs": "Đang hoạt động",
+      "jobHistory": "Lịch sử công việc",
+      "forceStart": "Bắt đầu ngay",
+      "forceStartSuccess": "Đã bắt đầu chuyển đổi thành công",
+      "forceStartError": "Không thể bắt đầu chuyển đổi"
     }
   }
 }

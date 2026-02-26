@@ -10,8 +10,10 @@
   ],
   "scripts": {
     "dev": "concurrently \"npm run dev:be\" \"npm run dev:fe\"",
+    "dev:all": "concurrently \"npm run dev:be\" \"npm run dev:fe\" \"npm run dev:converter\"",
     "dev:be": "npm run dev --workspace=be",
     "dev:fe": "npm run dev --workspace=fe",
+    "dev:converter": "cd converter && wsl bash ./start.sh",
     "dev:https": "concurrently \"npm run dev:be\" \"npm run dev:fe\"",
     "generate:cert": "node scripts/generate-cert.js",
     "build": "npm run build --workspaces",

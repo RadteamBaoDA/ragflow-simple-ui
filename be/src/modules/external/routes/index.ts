@@ -1,28 +1,34 @@
-
 /**
  * External API Routes Index
- * Aggregates all external-facing endpoints like tracing and history.
+ * Aggregates all external-facing endpoints like tracing, history, and search.
  */
-import { Router } from 'express'
-import { checkEnabled } from '@/modules/external/middleware/external.middleware.js'
-import traceRoutes from '@/modules/external/routes/trace.routes.js'
-import historyRoutes from '@/modules/external/routes/history.routes.js'
-import { ExternalTraceController } from '@/modules/external/trace.controller.js'
+import { Router } from "express";
+import { checkEnabled } from "@/modules/external/middleware/external.middleware.js";
+import traceRoutes from "@/modules/external/routes/trace.routes.js";
+import historyRoutes from "@/modules/external/routes/history.routes.js";
+import searchRoutes from "@/modules/external/routes/search.routes.js";
+import { ExternalTraceController } from "@/modules/external/trace.controller.js";
 
-const router = Router()
-const controller = new ExternalTraceController()
+const router = Router();
+const controller = new ExternalTraceController();
 
 /**
  * Mounts trace routes under /trace.
  * Used for logging LangChain/LLM traces from external apps.
  */
-router.use('/trace', traceRoutes)
+router.use("/trace", traceRoutes);
 
 /**
  * Mounts history routes under /history.
  * Used for syncing chat/search history from external apps.
  */
-router.use('/history', historyRoutes)
+router.use("/history", historyRoutes);
+
+/**
+ * Mounts search routes under /search.
+ * Used for CRUD operations on AI Search apps from external SDK clients.
+ */
+router.use("/search", searchRoutes);
 
 /**
  * @route GET /api/external/health
@@ -30,6 +36,6 @@ router.use('/history', historyRoutes)
  * @access Public (Protected by checkEnabled middleware)
  */
 // Simple liveness check for external integrations
-router.get('/health', checkEnabled, controller.getHealth.bind(controller))
+router.get("/health", checkEnabled, controller.getHealth.bind(controller));
 
-export default router
+export default router;

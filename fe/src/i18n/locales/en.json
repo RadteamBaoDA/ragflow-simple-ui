@@ -914,7 +914,36 @@
       "statusParsing": "Parsing",
       "statusParsed": "Parsed",
       "statusCancelled": "Cancelled",
-      "statusFailed": "Failed"
+      "statusFailed": "Failed",
+      "statusLocal": "Local",
+      "statusConverted": "Converted",
+      "statusImported": "Imported",
+      "deleteSelected": "Delete Selected ({{count}})",
+      "deleteConfirm": "Are you sure you want to delete {{count}} selected file(s)?",
+      "deleteConfirmRagflow": "Imported documents will also be removed from RAGFlow server.",
+      "deleteSuccess": "{{count}} file(s) deleted successfully",
+      "deleteError": "Failed to delete files",
+      "retryParse": "Retry Parse",
+      "retryParseSuccess": "Queued {{count}} file(s) for conversion",
+      "startParse": "Start Parse",
+      "startParseSuccess": "{{count}} file(s) sent for parsing"
+    },
+    "jobs": {
+      "title": "Conversion Jobs",
+      "empty": "No conversion jobs for this version",
+      "uploadDate": "Upload Date",
+      "file": "File",
+      "files": "file(s)",
+      "batches": "batch(es)",
+      "status": "Status",
+      "details": "Details",
+      "time": "Time",
+      "error": "Error",
+      "refresh": "Refresh",
+      "pending": "Pending",
+      "processing": "Processing",
+      "completed": "Completed",
+      "failed": "Failed"
     },
     "chats": {
       "title": "Chat Assistants",
@@ -1145,6 +1174,57 @@
       "applyToChat": "Apply to Chat",
       "appliedToChat": "Prompt copied! Paste it into the chat input.",
       "noTask": "Please select a task first"
+    }
+  },
+  "converter": {
+    "dashboard": {
+      "title": "Converter Dashboard"
+    },
+    "status": {
+      "pending": "Pending",
+      "waiting": "Waiting",
+      "converting": "Converting",
+      "finished": "Finished",
+      "failed": "Failed"
+    },
+    "stats": {
+      "pending": "Pending",
+      "waiting": "Waiting",
+      "converting": "Converting",
+      "finished": "Finished",
+      "failed": "Failed",
+      "total": "Total"
+    },
+    "jobs": {
+      "versionId": "Version",
+      "status": "Status",
+      "files": "Files",
+      "createdAt": "Created",
+      "updatedAt": "Updated",
+      "filterByStatus": "Filter by status",
+      "allStatuses": "All statuses"
+    },
+    "files": {
+      "fileName": "File Name",
+      "status": "Status",
+      "error": "Error",
+      "updatedAt": "Updated"
+    },
+    "config": {
+      "title": "Schedule Configuration",
+      "enabled": "Schedule Enabled",
+      "startHour": "Start Hour",
+      "endHour": "End Hour",
+      "timezone": "Timezone",
+      "saved": "Schedule configuration saved"
+    },
+    "panel": {
+      "title": "Conversion Jobs",
+      "activeJobs": "Active Jobs",
+      "jobHistory": "Job History",
+      "forceStart": "Force Start",
+      "forceStartSuccess": "Conversion started successfully",
+      "forceStartError": "Failed to start conversion"
     }
   }
 }

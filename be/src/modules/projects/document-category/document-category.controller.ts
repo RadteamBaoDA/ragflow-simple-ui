@@ -4,6 +4,11 @@
 import { Request, Response } from "express";
 import { documentCategoryService } from "@/modules/projects/document-category/document-category.service.js";
 import { ModelFactory } from "@/shared/models/factory.js";
+import {
+  auditService,
+  AuditAction,
+  AuditResourceType,
+} from "@/modules/audit/audit.service.js";
 
 /**
  * Controller for document category and version API endpoints.
@@ -42,6 +47,10 @@ export class DocumentCategoryController {
       }
       // @ts-ignore
       const userId = req.user?.id;
+      const userEmail = req.user?.email || "";
+      const actor = userId
+        ? { id: userId, email: userEmail, ip: req.ip }
+        : undefined;
       const category = await documentCategoryService.createCategory(
         {
           project_id: req.params.projectId as string,
@@ -50,7 +59,7 @@ export class DocumentCategoryController {
           sort_order,
           dataset_config,
         },
-        userId,
+        actor,
       );
       res.status(201).json(category);
     } catch (error: any) {
@@ -73,10 +82,14 @@ export class DocumentCategoryController {
     try {
       // @ts-ignore
       const userId = req.user?.id;
+      const userEmail = req.user?.email || "";
+      const actor = userId
+        ? { id: userId, email: userEmail, ip: req.ip }
+        : undefined;
       const category = await documentCategoryService.updateCategory(
         req.params.categoryId as string,
         req.body,
-        userId,
+        actor,
       );
       res.json(category);
     } catch (error: any) {
@@ -99,9 +112,16 @@ export class DocumentCategoryController {
       const project = await ModelFactory.project.findById(
         req.params.projectId as string,
       );
+      // @ts-ignore
+      const userId = req.user?.id;
+      const userEmail = req.user?.email || "";
+      const actor = userId
+        ? { id: userId, email: userEmail, ip: req.ip }
+        : undefined;
       await documentCategoryService.deleteCategory(
         req.params.categoryId as string,
         project?.ragflow_server_id || undefined,
+        actor,
       );
       res.status(204).send();
     } catch (error: any) {
@@ -166,6 +186,10 @@ export class DocumentCategoryController {
 
       // @ts-ignore
       const userId = req.user?.id;
+      const userEmail = req.user?.email || "";
+      const actor = userId
+        ? { id: userId, email: userEmail, ip: req.ip }
+        : undefined;
       const version = await documentCategoryService.createVersion(
         {
           category_id: req.params.categoryId as string,
@@ -187,6 +211,7 @@ export class DocumentCategoryController {
           parser_config: project.default_parser_config,
         },
         userId,
+        actor,
       );
       res.status(201).json(version);
     } catch (error: any) {
@@ -239,9 +264,14 @@ export class DocumentCategoryController {
     try {
       // @ts-ignore
       const userId = req.user?.id;
+      const userEmail = req.user?.email || "";
+      const actor = userId
+        ? { id: userId, email: userEmail, ip: req.ip }
+        : undefined;
       const version = await documentCategoryService.archiveVersion(
         req.params.versionId as string,
         userId,
+        actor,
       );
       res.json(version);
     } catch (error: any) {
@@ -260,6 +290,10 @@ export class DocumentCategoryController {
     try {
       // @ts-ignore
       const userId = req.user?.id;
+      const userEmail = req.user?.email || "";
+      const actor = userId
+        ? { id: userId, email: userEmail, ip: req.ip }
+        : undefined;
       const {
         version_label,
         pagerank,
@@ -288,6 +322,7 @@ export class DocumentCategoryController {
         },
         project?.ragflow_server_id || undefined,
         userId,
+        actor,
       );
       res.json(version);
     } catch (error: any) {
@@ -311,9 +346,16 @@ export class DocumentCategoryController {
       const project = await ModelFactory.project.findById(
         req.params.projectId as string,
       );
+      // @ts-ignore
+      const userId = req.user?.id;
+      const userEmail = req.user?.email || "";
+      const actor = userId
+        ? { id: userId, email: userEmail, ip: req.ip }
+        : undefined;
       await documentCategoryService.deleteVersion(
         req.params.versionId as string,
         project?.ragflow_server_id || undefined,
+        actor,
       );
       res.status(204).send();
     } catch (error: any) {
@@ -340,13 +382,37 @@ export class DocumentCategoryController {
         return;
       }
 
+      // Resolve project to get RAGFlow server ID for conversion queue
+      const project = await ModelFactory.project.findById(
+        req.params.projectId as string,
+      );
+      const serverId = project?.ragflow_server_id || undefined;
+
       const result = await documentCategoryService.uploadDocument(
         req.params.projectId as string,
         req.params.categoryId as string,
         req.params.versionId as string,
         req.file.buffer,
         req.file.originalname,
+        serverId,
       );
+
+      // Log audit event for document upload
+      // @ts-ignore
+      const userId = req.user?.id;
+      const userEmail = req.user?.email || "";
+      if (userId) {
+        await auditService.log({
+          userId,
+          userEmail,
+          action: AuditAction.UPLOAD_DOCUMENT,
+          resourceType: AuditResourceType.DOCUMENT_CATEGORY_VERSION,
+          resourceId: req.params.versionId as string,
+          details: { fileName: req.file.originalname, size: req.file.size },
+          ipAddress: req.ip,
+        });
+      }
+
       res.json(result);
     } catch (error: any) {
       console.error("Error uploading document:", error);
@@ -376,6 +442,144 @@ export class DocumentCategoryController {
     } catch (error) {
       console.error("Error listing documents:", error);
       res.status(500).json({ error: "Failed to list documents" });
+    }
+  }
+
+  /**
+   * Delete multiple documents from local storage.
+   * DELETE /api/projects/:projectId/categories/:categoryId/versions/:versionId/documents
+   * Body: { fileNames: string[] }
+   */
+  static async deleteDocuments(req: Request, res: Response) {
+    try {
+      const { fileNames } = req.body;
+      if (!Array.isArray(fileNames) || fileNames.length === 0) {
+        res
+          .status(400)
+          .json({ error: "fileNames array is required and must not be empty" });
+        return;
+      }
+
+      // Resolve project to get RAGFlow server ID for remote deletion
+      const project = await ModelFactory.project.findById(
+        req.params.projectId as string,
+      );
+      const serverId = project?.ragflow_server_id ?? undefined;
+
+      const result = await documentCategoryService.deleteDocuments(
+        req.params.projectId as string,
+        req.params.categoryId as string,
+        req.params.versionId as string,
+        fileNames,
+        serverId,
+      );
+
+      // Log audit event for document deletion
+      // @ts-ignore
+      const userId = req.user?.id;
+      const userEmail = req.user?.email || "";
+      if (userId && result.deleted.length > 0) {
+        await auditService.log({
+          userId,
+          userEmail,
+          action: AuditAction.DELETE_DOCUMENTS,
+          resourceType: AuditResourceType.DOCUMENT_CATEGORY_VERSION,
+          resourceId: req.params.versionId as string,
+          details: { deleted: result.deleted, failed: result.failed },
+          ipAddress: req.ip,
+        });
+      }
+
+      res.json(result);
+    } catch (error: any) {
+      console.error("Error deleting documents:", error);
+      res
+        .status(500)
+        .json({ error: error.message || "Failed to delete documents" });
+    }
+  }
+
+  /**
+   * Re-queue local files for conversion.
+   * POST /api/projects/:projectId/categories/:categoryId/versions/:versionId/documents/requeue
+   * Body: { fileNames: string[] }
+   */
+  static async requeueDocuments(req: Request, res: Response) {
+    try {
+      const { fileNames } = req.body;
+      if (!Array.isArray(fileNames) || fileNames.length === 0) {
+        res
+          .status(400)
+          .json({ error: "fileNames array is required and must not be empty" });
+        return;
+      }
+
+      // Resolve project to get RAGFlow server ID
+      const project = await ModelFactory.project.findById(
+        req.params.projectId as string,
+      );
+      if (!project?.ragflow_server_id) {
+        res
+          .status(400)
+          .json({ error: "Project must have a RAGFlow server assigned" });
+        return;
+      }
+
+      const result = await documentCategoryService.requeueDocuments(
+        req.params.projectId as string,
+        req.params.categoryId as string,
+        req.params.versionId as string,
+        fileNames,
+        project.ragflow_server_id,
+      );
+      res.json(result);
+    } catch (error: any) {
+      console.error("Error re-queuing documents:", error);
+      res
+        .status(500)
+        .json({ error: error.message || "Failed to re-queue documents" });
+    }
+  }
+
+  /**
+   * Start parsing imported documents in RAGFlow.
+   * POST /api/projects/:projectId/categories/:categoryId/versions/:versionId/documents/parse
+   * Body: { fileNames: string[] }
+   */
+  static async parseDocuments(req: Request, res: Response) {
+    try {
+      const { fileNames } = req.body;
+      if (!Array.isArray(fileNames) || fileNames.length === 0) {
+        res
+          .status(400)
+          .json({ error: "fileNames array is required and must not be empty" });
+        return;
+      }
+
+      // Resolve project to get RAGFlow server ID
+      const project = await ModelFactory.project.findById(
+        req.params.projectId as string,
+      );
+      if (!project?.ragflow_server_id) {
+        res
+          .status(400)
+          .json({ error: "Project must have a RAGFlow server assigned" });
+        return;
+      }
+
+      const result = await documentCategoryService.parseDocuments(
+        req.params.projectId as string,
+        req.params.categoryId as string,
+        req.params.versionId as string,
+        fileNames,
+        project.ragflow_server_id,
+      );
+      res.json(result);
+    } catch (error: any) {
+      console.error("Error parsing documents:", error);
+      res
+        .status(500)
+        .json({ error: error.message || "Failed to parse documents" });
     }
   }
 }

@@ -200,6 +200,7 @@ function Layout() {
         return t('admin.broadcastMessages');
       case '/admin/histories':
         return t('histories.title');
+
       case '/admin/dashboard':
         return t('dashboard.title');
       default:
@@ -445,6 +446,7 @@ function Layout() {
                     <span>{t('nav.ragflowServers')}</span>
                   </NavLink>
 
+
                 </div>
               )}
             </div>
@@ -539,7 +541,7 @@ function Layout() {
             )}
           </header>
         )}
-        <div id='container' className={`flex-1 overflow-hidden ${['/chat', '/search', '/admin/system-tools', '/ragflow-config', '/iam/teams', '/admin/histories', '/chat/history', '/search/history', '/knowledge-base/config'].includes(location.pathname) || location.pathname.startsWith('/knowledge-base/projects') ? '' : 'p-8 overflow-auto'}`}>
+        <div id='container' className={`flex-1 overflow-hidden ${['/chat', '/search', '/admin/system-tools', '/admin/system-monitor', '/ragflow-config', '/iam/teams', '/admin/histories', '/chat/history', '/search/history', '/knowledge-base/config'].includes(location.pathname) || location.pathname.startsWith('/knowledge-base/projects') ? '' : 'p-8 overflow-auto'}`}>
           <Outlet />
         </div>
       </main>

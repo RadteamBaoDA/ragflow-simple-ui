@@ -26,9 +26,14 @@ import {
     AlertCircle,
     CheckCircle2,
     XCircle,
-    HelpCircle
+    HelpCircle,
+    FileText,
+    Loader2,
+    Timer,
 } from 'lucide-react';
 import { getSystemHealth, SystemHealth } from '../api/systemToolsService';
+import { getConverterStats, type QueueStats } from '../api/converterService';
+import ConverterDashboardModal from '../components/ConverterDashboardModal';
 
 // ============================================================================
 // Types & Constants
@@ -123,7 +128,7 @@ const ServiceCard = ({
     icon: any;
     status: string;
     enabled: boolean;
-    subtext?: string
+    subtext?: string | undefined
 }) => {
     const { t } = useTranslation();
 
@@ -209,6 +214,7 @@ const MetricCard = ({
 const SystemMonitorPage = () => {
     const { t } = useTranslation();
     const [health, setHealth] = useState<SystemHealth | null>(null);
+    const [converterStats, setConverterStats] = useState<QueueStats | null>(null);
     const [loading, setLoading] = useState(false); // UI loading state
     const [error, setError] = useState<string | null>(null);
     const [lastUpdated, setLastUpdated] = useState<Date | null>(null);
@@ -216,6 +222,9 @@ const SystemMonitorPage = () => {
     // Scheduling controls
     const [autoRefresh, setAutoRefresh] = useState(true);
     const [intervalMs, setIntervalMs] = useState(DEFAULT_INTERVAL);
+
+    // Converter modal state
+    const [converterOpen, setConverterOpen] = useState(false);
 
     // Concurrency control
     const isFetchingRef = useRef(false);
@@ -238,8 +247,13 @@ const SystemMonitorPage = () => {
             if (!isAutoRefresh) setLoading(true); // Don't show full loader on auto-refresh
             setError(null);
 
-            const data = await getSystemHealth();
+            // Fetch system health and converter stats in parallel
+            const [data, stats] = await Promise.all([
+                getSystemHealth(),
+                getConverterStats().catch(() => null),
+            ]);
             setHealth(data);
+            setConverterStats(stats);
             setLastUpdated(new Date());
         } catch (err) {
             console.error('Failed to fetch system health:', err);
@@ -295,7 +309,7 @@ const SystemMonitorPage = () => {
 
     return (
         <div className="h-full overflow-y-auto">
-            <div className="container mx-auto px-4 py-8 max-w-7xl">
+            <div className="px-6 py-8">
                 {/* Header & Controls */}
                 <div className="flex flex-col md:flex-row md:items-center justify-between mb-8 gap-4">
                     <div>
@@ -381,7 +395,7 @@ const SystemMonitorPage = () => {
                                 <Box className="w-5 h-5 text-primary-500 dark:text-primary-400" />
                                 {t('systemMonitor.sections.services')}
                             </h2>
-                            <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
+                            <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-5 gap-4">
                                 <ServiceCard
                                     title="Database"
                                     icon={Database}
@@ -410,8 +424,75 @@ const SystemMonitorPage = () => {
                                     enabled={health.services?.langfuse?.enabled || false}
                                     subtext={health.services?.langfuse?.host}
                                 />
+                                <ServiceCard
+                                    title={t('converter.title', 'Document Converter')}
+                                    icon={FileText}
+                                    status={converterStats ? (converterStats.converting > 0 ? 'running' : 'ok') : 'unknown'}
+                                    enabled={converterStats !== null}
+                                    subtext={converterStats ? `${converterStats.total} jobs total` : undefined}
+                                />
                             </div>
                         </section>
+
+                        {/* Converter Overview Section */}
+                        {converterStats && (
+                            <section>
+                                <div className="flex items-center justify-between mb-4">
+                                    <h2 className="text-lg font-semibold text-gray-900 dark:text-white flex items-center gap-2">
+                                        <FileText className="w-5 h-5 text-indigo-500 dark:text-indigo-400" />
+                                        {t('converter.overview', 'Converter Overview')}
+                                    </h2>
+                                    <button
+                                        onClick={() => setConverterOpen(true)}
+                                        className="text-sm text-primary-600 hover:text-primary-700 dark:text-primary-400 dark:hover:text-primary-300 font-medium transition-colors"
+                                    >
+                                        {t('converter.viewDetails', 'View Details →')}
+                                    </button>
+                                </div>
+                                <div className="grid grid-cols-2 lg:grid-cols-4 gap-4">
+                                    {/* Pending */}
+                                    <div className="bg-white dark:bg-gray-800 p-4 rounded-lg border border-gray-200 dark:border-gray-700 shadow-sm">
+                                        <div className="flex items-center justify-between mb-2">
+                                            <span className="text-sm font-medium text-gray-500 dark:text-gray-400">Pending</span>
+                                            <div className="p-1.5 rounded-lg bg-yellow-50 dark:bg-yellow-900/20">
+                                                <Timer className="w-4 h-4 text-yellow-600 dark:text-yellow-400" />
+                                            </div>
+                                        </div>
+                                        <span className="text-2xl font-bold text-gray-900 dark:text-white">{converterStats.pending}</span>
+                                    </div>
+                                    {/* Processing */}
+                                    <div className="bg-white dark:bg-gray-800 p-4 rounded-lg border border-gray-200 dark:border-gray-700 shadow-sm">
+                                        <div className="flex items-center justify-between mb-2">
+                                            <span className="text-sm font-medium text-gray-500 dark:text-gray-400">Processing</span>
+                                            <div className="p-1.5 rounded-lg bg-blue-50 dark:bg-blue-900/20">
+                                                <Loader2 className={`w-4 h-4 text-blue-600 dark:text-blue-400 ${converterStats.converting > 0 ? 'animate-spin' : ''}`} />
+                                            </div>
+                                        </div>
+                                        <span className="text-2xl font-bold text-gray-900 dark:text-white">{converterStats.converting}</span>
+                                    </div>
+                                    {/* Completed */}
+                                    <div className="bg-white dark:bg-gray-800 p-4 rounded-lg border border-gray-200 dark:border-gray-700 shadow-sm">
+                                        <div className="flex items-center justify-between mb-2">
+                                            <span className="text-sm font-medium text-gray-500 dark:text-gray-400">Completed</span>
+                                            <div className="p-1.5 rounded-lg bg-green-50 dark:bg-green-900/20">
+                                                <CheckCircle2 className="w-4 h-4 text-green-600 dark:text-green-400" />
+                                            </div>
+                                        </div>
+                                        <span className="text-2xl font-bold text-gray-900 dark:text-white">{converterStats.finished}</span>
+                                    </div>
+                                    {/* Failed */}
+                                    <div className="bg-white dark:bg-gray-800 p-4 rounded-lg border border-gray-200 dark:border-gray-700 shadow-sm">
+                                        <div className="flex items-center justify-between mb-2">
+                                            <span className="text-sm font-medium text-gray-500 dark:text-gray-400">Failed</span>
+                                            <div className="p-1.5 rounded-lg bg-red-50 dark:bg-red-900/20">
+                                                <XCircle className="w-4 h-4 text-red-600 dark:text-red-400" />
+                                            </div>
+                                        </div>
+                                        <span className={`text-2xl font-bold ${converterStats.failed > 0 ? 'text-red-600 dark:text-red-400' : 'text-gray-900 dark:text-white'}`}>{converterStats.failed}</span>
+                                    </div>
+                                </div>
+                            </section>
+                        )}
 
 
                         {/* System Resources Section */}
@@ -501,6 +582,9 @@ const SystemMonitorPage = () => {
                     </div>
                 ) : null}
             </div>
+
+            {/* Converter Dashboard Modal */}
+            <ConverterDashboardModal open={converterOpen} onClose={() => setConverterOpen(false)} />
         </div>
     );
 };

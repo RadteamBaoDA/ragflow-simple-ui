@@ -899,7 +899,36 @@
       "statusParsing": "解析中",
       "statusParsed": "解析済み",
       "statusCancelled": "キャンセル",
-      "statusFailed": "失敗"
+      "statusFailed": "失敗",
+      "statusLocal": "ローカル",
+      "statusConverted": "変換済み",
+      "statusImported": "インポート済み",
+      "deleteSelected": "選択を削除 ({{count}})",
+      "deleteConfirm": "選択した{{count}}件のファイルを削除してもよろしいですか？",
+      "deleteConfirmRagflow": "インポート済みのドキュメントはRAGFlowサーバーからも削除されます。",
+      "deleteSuccess": "{{count}}件のファイルを削除しました",
+      "deleteError": "ファイルの削除に失敗しました",
+      "retryParse": "再解析",
+      "retryParseSuccess": "{{count}}件のファイルを変換キューに追加しました",
+      "startParse": "解析開始",
+      "startParseSuccess": "{{count}}件のファイルを解析に送信しました"
+    },
+    "jobs": {
+      "title": "変換ジョブ",
+      "empty": "このバージョンの変換ジョブはありません",
+      "uploadDate": "アップロード日",
+      "file": "ファイル",
+      "files": "ファイル",
+      "batches": "バッチ",
+      "status": "ステータス",
+      "details": "詳細",
+      "time": "時間",
+      "error": "エラー",
+      "refresh": "更新",
+      "pending": "待機中",
+      "processing": "処理中",
+      "completed": "完了",
+      "failed": "失敗"
     },
     "chats": {
       "title": "チャットアシスタント",
@@ -1103,6 +1132,57 @@
       "copied": "コピーしました！",
       "insert": "チャットに挿入",
       "noTask": "まずタスクを選択してください"
+    }
+  },
+  "converter": {
+    "dashboard": {
+      "title": "コンバーターダッシュボード"
+    },
+    "status": {
+      "pending": "保留中",
+      "waiting": "待機中",
+      "converting": "変換中",
+      "finished": "完了",
+      "failed": "失敗"
+    },
+    "stats": {
+      "pending": "保留中",
+      "waiting": "待機中",
+      "converting": "変換中",
+      "finished": "完了",
+      "failed": "失敗",
+      "total": "合計"
+    },
+    "jobs": {
+      "versionId": "バージョン",
+      "status": "ステータス",
+      "files": "ファイル",
+      "createdAt": "作成日時",
+      "updatedAt": "更新日時",
+      "filterByStatus": "ステータスでフィルター",
+      "allStatuses": "すべてのステータス"
+    },
+    "files": {
+      "fileName": "ファイル名",
+      "status": "ステータス",
+      "error": "エラー",
+      "updatedAt": "更新日時"
+    },
+    "config": {
+      "title": "スケジュール設定",
+      "enabled": "スケジュール有効",
+      "startHour": "開始時間",
+      "endHour": "終了時間",
+      "timezone": "タイムゾーン",
+      "saved": "スケジュール設定を保存しました"
+    },
+    "panel": {
+      "title": "変換ジョブ",
+      "activeJobs": "アクティブジョブ",
+      "jobHistory": "ジョブ履歴",
+      "forceStart": "強制開始",
+      "forceStartSuccess": "変換を開始しました",
+      "forceStartError": "変換の開始に失敗しました"
     }
   }
 }

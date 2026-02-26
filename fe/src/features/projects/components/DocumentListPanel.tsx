@@ -10,10 +10,12 @@
 
 import { useState, useEffect, useCallback } from 'react'
 import { useTranslation } from 'react-i18next'
-import { Table, Tag, Empty, Input, Button, Tooltip } from 'antd'
+import { Table, Tag, Empty, Input, Button, Tooltip, Popconfirm, message, Badge } from 'antd'
 import type { ColumnsType } from 'antd/es/table'
-import { FileText, FileSpreadsheet, FileImage, File, UploadCloud, FolderUp } from 'lucide-react'
-import { getVersionDocuments, type VersionDocument } from '../api/projectService'
+import { FileText, FileSpreadsheet, FileImage, File, UploadCloud, FolderUp, Trash2, Layers, RefreshCw, Play } from 'lucide-react'
+import { getVersionDocuments, deleteVersionDocuments, requeueVersionDocuments, parseVersionDocuments, type VersionDocument } from '../api/projectService'
+
+import { useConverterSocket } from '../../system/hooks/useConverterSocket'
 import UploadFilesModal from './UploadFilesModal'
 import UploadFolderModal from './UploadFolderModal'
 
@@ -46,6 +48,7 @@ const getFileIcon = (name: string) => {
   return <File size={14} className="text-gray-400" />
 }
 
+
 // ============================================================================
 // Types
 // ============================================================================
@@ -61,6 +64,10 @@ interface DocumentListPanelProps {
   versionLabel?: string
   /** Trigger counter — increment to force a refresh (e.g. after upload) */
   refreshKey?: number
+  /** Callback to open the jobs modal */
+  onShowJobs?: () => void
+  /** Number of active jobs for badge display */
+  activeJobCount?: number
 }
 
 // ============================================================================
@@ -73,7 +80,7 @@ interface DocumentListPanelProps {
  * @param {DocumentListPanelProps} props - Component props
  * @returns {JSX.Element} The rendered document list panel
  */
-const DocumentListPanel = ({ projectId, categoryId, versionId, versionLabel, refreshKey }: DocumentListPanelProps) => {
+const DocumentListPanel = ({ projectId, categoryId, versionId, versionLabel, refreshKey, onShowJobs, activeJobCount }: DocumentListPanelProps) => {
   const { t } = useTranslation()
   const [documents, setDocuments] = useState<VersionDocument[]>([])
   const [loading, setLoading] = useState(false)
@@ -85,6 +92,15 @@ const DocumentListPanel = ({ projectId, categoryId, versionId, versionLabel, ref
 
   /** Counter to trigger refresh after upload */
   const [localRefreshKey, setLocalRefreshKey] = useState(0)
+
+  /** Selected row keys for multi-delete */
+  const [selectedRowKeys, setSelectedRowKeys] = useState<string[]>([])
+  /** Loading state for delete operation */
+  const [deleting, setDeleting] = useState(false)
+  /** Loading state for requeue operation */
+  const [requeueing, setRequeueing] = useState(false)
+  /** Loading state for parse operation */
+  const [parsing, setParsing] = useState(false)
 
   /** Fetch documents for the selected version */
   const fetchDocuments = useCallback(async () => {
@@ -109,10 +125,92 @@ const DocumentListPanel = ({ projectId, categoryId, versionId, versionLabel, ref
     fetchDocuments()
   }, [fetchDocuments, refreshKey, localRefreshKey])
 
+  // Real-time updates via WebSocket — refresh documents to pick up status changes
+  useConverterSocket({
+    onFileUpdate: () => fetchDocuments(),
+    onJobUpdate: () => fetchDocuments(),
+  })
+
+  // Polling fallback — auto-refresh every 5s while documents are in-progress
+  // This ensures status updates even if WebSocket is not connected
+  useEffect(() => {
+    const hasInProgress = documents.some(
+      (doc) => doc.run === 'local' || doc.run === 'converted',
+    )
+    if (!hasInProgress || documents.length === 0) return
+
+    const interval = setInterval(() => {
+      fetchDocuments()
+    }, 5000)
+
+    return () => clearInterval(interval)
+  }, [documents, fetchDocuments])
+
   /** Callback after upload completes */
   const handleUploadComplete = () => {
     setLocalRefreshKey((k) => k + 1)
   }
+
+  /** Delete selected documents */
+  const handleDeleteSelected = async () => {
+    if (selectedRowKeys.length === 0) return
+    setDeleting(true)
+    try {
+      const result = await deleteVersionDocuments(projectId, categoryId, versionId, selectedRowKeys)
+      const deletedCount = result.deleted?.length ?? selectedRowKeys.length
+      message.success(t('projectManagement.documents.deleteSuccess', { count: deletedCount }))
+      setSelectedRowKeys([])
+      setLocalRefreshKey((k) => k + 1)
+    } catch (err) {
+      message.error(t('projectManagement.documents.deleteError'))
+    } finally {
+      setDeleting(false)
+    }
+  }
+
+  /** Re-queue selected local files for conversion */
+  const handleRetryParse = async () => {
+    if (selectedRowKeys.length === 0) return
+    setRequeueing(true)
+    try {
+      const result = await requeueVersionDocuments(projectId, categoryId, versionId, selectedRowKeys)
+      const queuedCount = result.queued?.length ?? 0
+      message.success(t('projectManagement.documents.retryParseSuccess', { count: queuedCount }))
+      setSelectedRowKeys([])
+      setLocalRefreshKey((k) => k + 1)
+    } catch (err) {
+      message.error(String(err))
+    } finally {
+      setRequeueing(false)
+    }
+  }
+
+  /** Start parsing selected imported documents in RAGFlow */
+  const handleStartParse = async () => {
+    if (selectedRowKeys.length === 0) return
+    setParsing(true)
+    try {
+      const result = await parseVersionDocuments(projectId, categoryId, versionId, selectedRowKeys)
+      const parsedCount = result.parsed?.length ?? 0
+      message.success(t('projectManagement.documents.startParseSuccess', { count: parsedCount }))
+      setSelectedRowKeys([])
+      setLocalRefreshKey((k) => k + 1)
+    } catch (err) {
+      message.error(String(err))
+    } finally {
+      setParsing(false)
+    }
+  }
+
+  /** Check if any selected files are local-only (eligible for retry) */
+  const hasLocalSelected = selectedRowKeys.length > 0 && documents.some(
+    (doc) => selectedRowKeys.includes(doc.id) && doc.run === 'local',
+  )
+
+  /** Check if any selected files are imported (eligible for parsing) */
+  const hasImportedSelected = selectedRowKeys.length > 0 && documents.some(
+    (doc) => selectedRowKeys.includes(doc.id) && doc.run === 'imported',
+  )
 
   // ── Table columns ──────────────────────────────────────────────────────
 
@@ -140,9 +238,16 @@ const DocumentListPanel = ({ projectId, categoryId, versionId, versionLabel, ref
       title: t('projectManagement.documents.status'),
       dataIndex: 'run',
       key: 'run',
-      width: 120,
+      width: 140,
       render: (run: string, record: VersionDocument) => {
+        // Document pipeline status map
         const statusMap: Record<string, { color: string; label: string }> = {
+          // Local pipeline statuses (from BE converter tracking)
+          local: { color: 'default', label: t('projectManagement.documents.statusLocal') },
+          converted: { color: 'cyan', label: t('projectManagement.documents.statusConverted') },
+          imported: { color: 'blue', label: t('projectManagement.documents.statusImported') },
+          failed: { color: 'error', label: t('projectManagement.documents.statusFailed') },
+          // RAGFlow parsing statuses
           UNSTART: { color: 'default', label: t('projectManagement.documents.statusPending') },
           RUNNING: { color: 'processing', label: t('projectManagement.documents.statusParsing') },
           CANCEL: { color: 'warning', label: t('projectManagement.documents.statusCancelled') },
@@ -151,10 +256,12 @@ const DocumentListPanel = ({ projectId, categoryId, versionId, versionLabel, ref
         }
         const info = statusMap[run] || { color: 'default', label: run }
         return (
-          <Tag color={info.color}>
-            {info.label}
-            {run === 'RUNNING' && record.progress > 0 && ` ${Math.round(record.progress * 100)}%`}
-          </Tag>
+          <Tooltip title={record.progress_msg || undefined}>
+            <Tag color={info.color}>
+              {info.label}
+              {run === 'RUNNING' && record.progress > 0 && ` ${Math.round(record.progress * 100)}%`}
+            </Tag>
+          </Tooltip>
         )
       },
     },
@@ -185,6 +292,47 @@ const DocumentListPanel = ({ projectId, categoryId, versionId, versionLabel, ref
           )}
         </h4>
         <div className="flex items-center gap-2">
+          {selectedRowKeys.length > 0 && (
+            <>
+              <Popconfirm
+                title={t('projectManagement.documents.deleteConfirm', { count: selectedRowKeys.length })}
+                description={hasImportedSelected ? t('projectManagement.documents.deleteConfirmRagflow') : undefined}
+                onConfirm={handleDeleteSelected}
+                okButtonProps={{ danger: true, loading: deleting }}
+              >
+                <Button
+                  danger
+                  size="small"
+                  icon={<Trash2 size={14} />}
+                  loading={deleting}
+                >
+                  {t('projectManagement.documents.deleteSelected', { count: selectedRowKeys.length })}
+                </Button>
+              </Popconfirm>
+              {hasLocalSelected && (
+                <Button
+                  type="primary"
+                  size="small"
+                  icon={<RefreshCw size={14} />}
+                  loading={requeueing}
+                  onClick={handleRetryParse}
+                >
+                  {t('projectManagement.documents.retryParse')}
+                </Button>
+              )}
+              {hasImportedSelected && (
+                <Button
+                  type="primary"
+                  size="small"
+                  icon={<Play size={14} />}
+                  loading={parsing}
+                  onClick={handleStartParse}
+                >
+                  {t('projectManagement.documents.startParse')}
+                </Button>
+              )}
+            </>
+          )}
           <Input.Search
             placeholder={t('projectManagement.documents.search')}
             size="small"
@@ -212,6 +360,19 @@ const DocumentListPanel = ({ projectId, categoryId, versionId, versionLabel, ref
               {t('projectManagement.documents.folderUpload')}
             </Button>
           </Tooltip>
+          {onShowJobs && (
+            <Tooltip title={t('converter.panel.title')}>
+              <Badge count={activeJobCount || 0} size="small" offset={[-2, 2]}>
+                <Button
+                  size="small"
+                  icon={<Layers size={14} />}
+                  onClick={onShowJobs}
+                >
+                  {t('converter.panel.title')}
+                </Button>
+              </Badge>
+            </Tooltip>
+          )}
         </div>
       </div>
 
@@ -222,6 +383,10 @@ const DocumentListPanel = ({ projectId, categoryId, versionId, versionLabel, ref
         dataSource={documents}
         size="small"
         loading={loading}
+        rowSelection={{
+          selectedRowKeys,
+          onChange: (keys: React.Key[]) => setSelectedRowKeys(keys as string[]),
+        }}
         pagination={documents.length > 20 ? { pageSize: 20, size: 'small', showSizeChanger: false } : false}
         locale={{
           emptyText: (
@@ -255,3 +420,4 @@ const DocumentListPanel = ({ projectId, categoryId, versionId, versionLabel, ref
 }
 
 export default DocumentListPanel
+

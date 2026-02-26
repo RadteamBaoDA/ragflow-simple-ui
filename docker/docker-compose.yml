@@ -88,6 +88,36 @@ services:
     networks:
       - kb-network
 
+  # ==========================================================================
+  # Document Converter (Office → PDF)
+  # ==========================================================================
+  converter:
+    build:
+      context: ../converter
+      dockerfile: Dockerfile
+    image: ${CONVERTER_IMAGE:-kb-converter}:${CONVERTER_VERSION:-latest}
+    container_name: kb-converter
+    restart: unless-stopped
+    depends_on:
+      redis:
+        condition: service_healthy
+      backend:
+        condition: service_healthy
+    env_file:
+      - .env
+    environment:
+      REDIS_HOST: redis
+      REDIS_PORT: 6379
+      REDIS_URL: redis://${REDIS_PASSWORD:+:${REDIS_PASSWORD}@}redis:6379
+      BACKEND_URL: http://backend:3001
+      POLL_INTERVAL: 30
+      CONVERSION_TIMEOUT: 300
+    volumes:
+      - backend_data:/app/.data    # Shared volume: read uploaded files
+      - converter_temp:/tmp/converter  # Temp space for PDF output
+    networks:
+      - kb-network
+
 # ==========================================================================
 # Networks
 # ==========================================================================
@@ -106,4 +136,6 @@ volumes:
   backend_logs:
     driver: local
   backend_data:
+    driver: local
+  converter_temp:
     driver: local

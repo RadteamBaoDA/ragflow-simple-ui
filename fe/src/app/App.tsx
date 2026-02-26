@@ -57,6 +57,7 @@ const ProjectListPage = lazy(() => import('@/features/projects/pages/ProjectList
 const ProjectDetailPage = lazy(() => import('@/features/projects/pages/ProjectDetailPage'));
 const AdminDashboardPage = lazy(() => import('@/features/dashboard/pages/AdminDashboardPage'));
 
+
 // ============================================================================
 // Loading Component (for initial app load / login page)
 // ============================================================================
@@ -223,6 +224,7 @@ function App() {
                                 <BroadcastMessagePage />
                               </AdminRoute>
                             } />
+
                             <Route path="admin/histories" element={
                               <AdminRoute>
                                 <HistoriesPage />

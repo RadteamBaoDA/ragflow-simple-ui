@@ -414,6 +414,101 @@ export class RagflowProxyService {
       return false;
     }
   }
+
+  // =========================================================================
+  // AI Search App Methods
+  // =========================================================================
+
+  /**
+   * Create a new AI Search app in RAGFlow.
+   * @param serverId - RAGFlow server UUID
+   * @param params - Search app creation parameters
+   * @returns Created search app data (contains search_id)
+   */
+  async createSearchApp(
+    serverId: string,
+    params: {
+      name: string;
+      description?: string | undefined;
+    },
+  ): Promise<any> {
+    const client = await this.buildClient(serverId);
+    // SDK endpoint: POST /api/v1/search (uses @token_required / API key auth)
+    const res = await client.post("/api/v1/search", params);
+    log.info("RAGFlow search app created", { serverId, name: params.name });
+    return this.unwrap(res);
+  }
+
+  /**
+   * Update an existing AI Search app in RAGFlow.
+   * @param serverId - RAGFlow server UUID
+   * @param params - Update parameters including search_id, name, search_config, tenant_id
+   * @returns Updated search app object
+   */
+  async updateSearchApp(
+    serverId: string,
+    searchId: string,
+    params: {
+      name?: string | undefined;
+      description?: string | undefined;
+      search_config?: Record<string, any> | undefined;
+    },
+  ): Promise<any> {
+    const client = await this.buildClient(serverId);
+    // SDK endpoint: PUT /api/v1/search/<search_id> (uses @token_required / API key auth)
+    const res = await client.put(`/api/v1/search/${searchId}`, params);
+    log.info("RAGFlow search app updated", { serverId, searchId });
+    return this.unwrap(res);
+  }
+
+  /**
+   * Get detail of an AI Search app in RAGFlow.
+   * @param serverId - RAGFlow server UUID
+   * @param searchId - RAGFlow search app ID
+   * @returns Search app detail object
+   */
+  async getSearchAppDetail(serverId: string, searchId: string): Promise<any> {
+    const client = await this.buildClient(serverId);
+    // SDK endpoint: GET /api/v1/search/<search_id> (uses @token_required / API key auth)
+    const res = await client.get(`/api/v1/search/${searchId}`);
+    return this.unwrap(res);
+  }
+
+  /**
+   * List AI Search apps in RAGFlow.
+   * @param serverId - RAGFlow server UUID
+   * @param query - Optional pagination/filter parameters
+   * @returns Object with search_apps array and total count
+   */
+  async listSearchApps(
+    serverId: string,
+    query?: {
+      keywords?: string | undefined;
+      page?: number | undefined;
+      page_size?: number | undefined;
+      orderby?: string | undefined;
+      desc?: boolean | undefined;
+    },
+  ): Promise<any> {
+    const client = await this.buildClient(serverId);
+    // SDK endpoint: GET /api/v1/search (uses @token_required / API key auth)
+    const res = await client.get("/api/v1/search", { params: query });
+    return this.unwrap(res);
+  }
+
+  /**
+   * Delete an AI Search app in RAGFlow.
+   * @param serverId - RAGFlow server UUID
+   * @param searchId - RAGFlow search app ID to delete
+   * @returns Deletion result
+   */
+  async deleteSearchApp(serverId: string, searchId: string): Promise<any> {
+    const client = await this.buildClient(serverId);
+    // SDK endpoint: DELETE /api/v1/search/<search_id> (uses @token_required / API key auth)
+    const res = await client.delete(`/api/v1/search/${searchId}`);
+    log.info("RAGFlow search app deleted", { serverId, searchId });
+    return this.unwrap(res);
+  }
 }
 
 export const ragflowProxyService = RagflowProxyService.getSharedInstance();

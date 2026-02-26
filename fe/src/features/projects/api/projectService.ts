@@ -376,6 +376,72 @@ export const uploadVersionDocument = (
   );
 };
 
+/**
+ * Delete multiple documents from a version's local storage.
+ * @param projectId - Project UUID
+ * @param categoryId - Category UUID
+ * @param versionId - Version UUID
+ * @param fileNames - Array of file names to delete
+ * @returns Object with deleted and failed file name arrays
+ */
+export const deleteVersionDocuments = (
+  projectId: string,
+  categoryId: string,
+  versionId: string,
+  fileNames: string[],
+): Promise<{ deleted: string[]; failed: string[] }> =>
+  apiFetch(
+    `/api/projects/${projectId}/categories/${categoryId}/versions/${versionId}/documents`,
+    {
+      method: "DELETE",
+      body: JSON.stringify({ fileNames }),
+    },
+  );
+
+/**
+ * Re-queue local files for conversion.
+ * @param projectId - Project UUID
+ * @param categoryId - Category UUID
+ * @param versionId - Version UUID
+ * @param fileNames - Array of file names to re-queue
+ * @returns Object with queued and failed file name arrays
+ */
+export const requeueVersionDocuments = (
+  projectId: string,
+  categoryId: string,
+  versionId: string,
+  fileNames: string[],
+): Promise<{ queued: string[]; failed: string[] }> =>
+  apiFetch(
+    `/api/projects/${projectId}/categories/${categoryId}/versions/${versionId}/documents/requeue`,
+    {
+      method: "POST",
+      body: JSON.stringify({ fileNames }),
+    },
+  );
+
+/**
+ * Start parsing selected documents in RAGFlow.
+ * @param projectId - Project UUID
+ * @param categoryId - Category UUID
+ * @param versionId - Version UUID
+ * @param fileNames - Array of file names to parse
+ * @returns Object with parsed and failed file name arrays
+ */
+export const parseVersionDocuments = (
+  projectId: string,
+  categoryId: string,
+  versionId: string,
+  fileNames: string[],
+): Promise<{ parsed: string[]; failed: string[] }> =>
+  apiFetch(
+    `/api/projects/${projectId}/categories/${categoryId}/versions/${versionId}/documents/parse`,
+    {
+      method: "POST",
+      body: JSON.stringify({ fileNames }),
+    },
+  );
+
 // ============================================================================
 // Project Chats API
 // ============================================================================

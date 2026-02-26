@@ -24,11 +24,13 @@ import {
   type DocumentCategory,
   type DocumentCategoryVersion,
 } from '../api/projectService'
+import { getConverterJobs } from '../../system/api/converterService'
 
 import CategoryModal from './CategoryModal'
 import VersionModal from './VersionModal'
 import EditVersionModal from './EditVersionModal'
 import DocumentListPanel from './DocumentListPanel'
+import JobManagementModal from './JobManagementModal'
 
 // ============================================================================
 // Types
@@ -75,8 +77,35 @@ const DocumentsTab = ({ projectId, initialCategories, embeddingModels }: Documen
   // Track selected version for upload area + document list
   const [selectedVersion, setSelectedVersion] = useState<DocumentCategoryVersion | null>(null)
 
+  // Jobs modal state
+  const [jobsModalOpen, setJobsModalOpen] = useState(false)
+  const [activeJobCount, setActiveJobCount] = useState(0)
 
-
+  // Fetch active job count for the jobs button badge
+  useEffect(() => {
+    if (!selectedCategory || !selectedVersion) return
+    const fetchActiveCount = async () => {
+      try {
+        const result = await getConverterJobs({
+          projectId,
+          categoryId: selectedCategory.id,
+          versionId: selectedVersion.id,
+          page: 1,
+          pageSize: 1,
+        })
+        // Count active jobs (pending/processing)
+        const active = result.jobs.filter(
+          (j) => j.status === 'pending' || j.status === 'converting',
+        ).length
+        setActiveJobCount(active)
+      } catch {
+        // Silent fail for badge count
+      }
+    }
+    fetchActiveCount()
+    const timer = setInterval(fetchActiveCount, 30000)
+    return () => clearInterval(timer)
+  }, [selectedCategory, selectedVersion, projectId])
   // Sync with parent if initialCategories changes
   useEffect(() => {
     setCategories(initialCategories)
@@ -429,6 +458,8 @@ const DocumentsTab = ({ projectId, initialCategories, embeddingModels }: Documen
                     categoryId={selectedCategory.id}
                     versionId={selectedVersion.id}
                     versionLabel={selectedVersion.version_label}
+                    onShowJobs={() => setJobsModalOpen(true)}
+                    activeJobCount={activeJobCount}
                   />
                 </>
               )}
@@ -474,6 +505,16 @@ const DocumentsTab = ({ projectId, initialCategories, embeddingModels }: Documen
         }}
         onCancel={() => setEditVersionModalOpen(false)}
       />
+      {selectedCategory && selectedVersion && (
+        <JobManagementModal
+          open={jobsModalOpen}
+          onClose={() => setJobsModalOpen(false)}
+          projectId={projectId}
+          categoryId={selectedCategory.id}
+          versionId={selectedVersion.id}
+          versionLabel={selectedVersion.version_label}
+        />
+      )}
     </>
   )
 }
