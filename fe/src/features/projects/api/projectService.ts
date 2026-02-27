@@ -583,3 +583,69 @@ export const syncProjectSearch = (
   searchId: string,
 ): Promise<ProjectSearch> =>
   api.post(`/api/projects/${projectId}/searches/${searchId}/sync`);
+
+// ============================================================================
+// Entity Permissions API
+// ============================================================================
+
+/**
+ * Represents a per-entity permission (category, chat, or search).
+ * Hierarchical levels: delete > edit > create > view > none.
+ */
+export interface ProjectEntityPermission {
+  id: string;
+  project_id: string;
+  entity_type: "category" | "chat" | "search";
+  entity_id: string;
+  grantee_type: "user" | "team";
+  grantee_id: string;
+  permission_level: "none" | "view" | "create" | "edit" | "delete";
+  created_by: string | null;
+  updated_by: string | null;
+  created_at: string;
+  updated_at: string;
+}
+
+/**
+ * List all entity permissions for a project.
+ */
+export const getEntityPermissions = (
+  projectId: string,
+): Promise<ProjectEntityPermission[]> =>
+  api.get(`/api/projects/${projectId}/entity-permissions`);
+
+/**
+ * List permissions for a specific entity.
+ */
+export const getEntityPermissionsByEntity = (
+  projectId: string,
+  entityType: string,
+  entityId: string,
+): Promise<ProjectEntityPermission[]> =>
+  api.get(
+    `/api/projects/${projectId}/entity-permissions/${entityType}/${entityId}`,
+  );
+
+/**
+ * Set (upsert) a permission for a grantee on an entity.
+ */
+export const setEntityPermission = (
+  projectId: string,
+  data: {
+    entity_type: string;
+    entity_id: string;
+    grantee_type: string;
+    grantee_id: string;
+    permission_level: string;
+  },
+): Promise<ProjectEntityPermission> =>
+  api.post(`/api/projects/${projectId}/entity-permissions`, data);
+
+/**
+ * Remove an entity permission.
+ */
+export const removeEntityPermission = (
+  projectId: string,
+  permissionId: string,
+): Promise<void> =>
+  api.delete(`/api/projects/${projectId}/entity-permissions/${permissionId}`);

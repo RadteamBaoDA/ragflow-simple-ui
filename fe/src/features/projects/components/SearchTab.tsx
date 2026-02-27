@@ -11,7 +11,7 @@ import { useState, useEffect, useCallback, useMemo } from 'react'
 import { useTranslation } from 'react-i18next'
 import { Button, Table, Popconfirm, Form, message, Tag } from 'antd'
 import type { ColumnsType } from 'antd/es/table'
-import { Plus, Trash2, RefreshCw, Pencil } from 'lucide-react'
+import { Plus, Trash2, RefreshCw, Pencil, Lock } from 'lucide-react'
 import {
   getProjectSearches,
   createProjectSearch,
@@ -23,6 +23,7 @@ import {
   type DocumentCategoryVersion,
 } from '../api/projectService'
 import SearchModal from './SearchModal'
+import { EntityPermissionModal } from './EntityPermissionModal'
 
 // ============================================================================
 // Types
@@ -68,6 +69,8 @@ const SearchTab = ({
   const [isEditing, setIsEditing] = useState(false)
   const [editingSearch, setEditingSearch] = useState<ProjectSearch | null>(null)
   const [saving, setSaving] = useState(false)
+  const [permSearchId, setPermSearchId] = useState<string | null>(null)
+  const [permSearchName, setPermSearchName] = useState('')
 
   // Sync initial data
   useEffect(() => {
@@ -263,6 +266,13 @@ const SearchTab = ({
             <Button
               type="text"
               size="small"
+              icon={<Lock size={14} />}
+              onClick={() => { setPermSearchId(record.id); setPermSearchName(record.name) }}
+              title={t('projectManagement.entityPermissions.title', 'Permissions')}
+            />
+            <Button
+              type="text"
+              size="small"
               icon={<Pencil size={14} />}
               onClick={() => handleEdit(record)}
               title={t('projectManagement.searches.edit', 'Edit')}
@@ -337,6 +347,16 @@ const SearchTab = ({
         onSave={handleSave}
         saving={saving}
       />
+      {permSearchId && (
+        <EntityPermissionModal
+          open={!!permSearchId}
+          onClose={() => setPermSearchId(null)}
+          projectId={projectId}
+          entityType="search"
+          entityId={permSearchId}
+          entityName={permSearchName}
+        />
+      )}
     </>
   )
 }

@@ -11,7 +11,7 @@ import { useState, useEffect, useCallback, useMemo } from 'react'
 import { useTranslation } from 'react-i18next'
 import { Button, Table, Popconfirm, Form, message, Tag } from 'antd'
 import type { ColumnsType } from 'antd/es/table'
-import { Plus, Trash2, RefreshCw, Pencil } from 'lucide-react'
+import { Plus, Trash2, RefreshCw, Pencil, Lock } from 'lucide-react'
 import {
   getProjectChats,
   createProjectChat,
@@ -23,6 +23,7 @@ import {
   type DocumentCategoryVersion,
 } from '../api/projectService'
 import ChatModal from './ChatModal'
+import { EntityPermissionModal } from './EntityPermissionModal'
 
 // ============================================================================
 // Types
@@ -68,6 +69,8 @@ const ChatTab = ({
   const [chatForm] = Form.useForm()
   const [saving, setSaving] = useState(false)
   const [syncingId, setSyncingId] = useState<string | null>(null)
+  const [permChatId, setPermChatId] = useState<string | null>(null)
+  const [permChatName, setPermChatName] = useState('')
 
   // Sync with parent if initialChats changes
   useEffect(() => {
@@ -271,9 +274,16 @@ const ChatTab = ({
     {
       title: '',
       key: 'actions',
-      width: 120,
+      width: 150,
       render: (_: unknown, record: ProjectChat) => (
         <div className="flex items-center gap-1">
+          <Button
+            type="text"
+            size="small"
+            icon={<Lock size={14} />}
+            onClick={() => { setPermChatId(record.id); setPermChatName(record.name) }}
+            title={t('projectManagement.entityPermissions.title', 'Permissions')}
+          />
           <Button
             type="text"
             size="small"
@@ -338,6 +348,16 @@ const ChatTab = ({
         chatModels={chatModels}
         editingChat={editingChat}
       />
+      {permChatId && (
+        <EntityPermissionModal
+          open={!!permChatId}
+          onClose={() => setPermChatId(null)}
+          projectId={projectId}
+          entityType="chat"
+          entityId={permChatId}
+          entityName={permChatName}
+        />
+      )}
     </>
   )
 }

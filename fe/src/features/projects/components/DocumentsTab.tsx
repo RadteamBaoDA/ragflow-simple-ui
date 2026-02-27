@@ -11,7 +11,7 @@
 import { useState, useEffect } from 'react'
 import { useTranslation } from 'react-i18next'
 import { Button, Tag, Popconfirm, Form, Tooltip, message } from 'antd'
-import { Plus, Trash2, Pencil, Archive, FolderOpen } from 'lucide-react'
+import { Plus, Trash2, Pencil, Archive, FolderOpen, Lock } from 'lucide-react'
 import {
   getDocumentCategories,
   createDocumentCategory,
@@ -31,6 +31,7 @@ import VersionModal from './VersionModal'
 import EditVersionModal from './EditVersionModal'
 import DocumentListPanel from './DocumentListPanel'
 import JobManagementModal from './JobManagementModal'
+import { EntityPermissionModal } from './EntityPermissionModal'
 
 // ============================================================================
 // Types
@@ -63,6 +64,8 @@ const DocumentsTab = ({ projectId, initialCategories, embeddingModels }: Documen
   const [selectedCategory, setSelectedCategory] = useState<DocumentCategory | null>(null)
   const [versions, setVersions] = useState<DocumentCategoryVersion[]>([])
   const [categoryModalOpen, setCategoryModalOpen] = useState(false)
+  const [permCategoryId, setPermCategoryId] = useState<string | null>(null)
+  const [permCategoryName, setPermCategoryName] = useState('')
   const [categoryForm] = Form.useForm()
   const [versionModalOpen, setVersionModalOpen] = useState(false)
   const [versionForm] = Form.useForm()
@@ -331,6 +334,15 @@ const DocumentsTab = ({ projectId, initialCategories, embeddingModels }: Documen
                 >
                   <span className="truncate">{cat.name}</span>
                   <div className="flex items-center gap-0.5">
+                    <Tooltip title={t('projectManagement.entityPermissions.title', 'Permissions')}>
+                      <Button
+                        type="text"
+                        size="small"
+                        icon={<Lock size={12} />}
+                        onClick={(e: React.MouseEvent) => { e.stopPropagation(); setPermCategoryId(cat.id); setPermCategoryName(cat.name) }}
+                        className="opacity-0 group-hover:opacity-100"
+                      />
+                    </Tooltip>
                     <Tooltip title={t('projectManagement.categories.edit')}>
                       <Button
                         type="text"
@@ -513,6 +525,16 @@ const DocumentsTab = ({ projectId, initialCategories, embeddingModels }: Documen
           categoryId={selectedCategory.id}
           versionId={selectedVersion.id}
           versionLabel={selectedVersion.version_label}
+        />
+      )}
+      {permCategoryId && (
+        <EntityPermissionModal
+          open={!!permCategoryId}
+          onClose={() => setPermCategoryId(null)}
+          projectId={projectId}
+          entityType="category"
+          entityId={permCategoryId}
+          entityName={permCategoryName}
         />
       )}
     </>

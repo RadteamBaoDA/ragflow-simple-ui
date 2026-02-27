@@ -850,3 +850,32 @@ export interface ProjectSearch {
   /** Timestamp of last update */
   updated_at: Date;
 }
+
+/**
+ * ProjectEntityPermission interface for granular per-entity access control.
+ * Supports hierarchical levels: delete > edit > create > view > none.
+ */
+export interface ProjectEntityPermission {
+  /** Unique UUID for the permission */
+  id: string;
+  /** Project ID this permission belongs to */
+  project_id: string;
+  /** Type of entity: 'category' | 'chat' | 'search' */
+  entity_type: string;
+  /** UUID of the entity (category, chat, or search) */
+  entity_id: string;
+  /** Type of grantee: 'user' | 'team' */
+  grantee_type: string;
+  /** UUID of the user or team */
+  grantee_id: string;
+  /** Hierarchical permission level: 'none' | 'view' | 'create' | 'edit' | 'delete' */
+  permission_level: string;
+  /** User ID who created this record */
+  created_by?: string | null;
+  /** User ID who last updated this record */
+  updated_by?: string | null;
+  /** Timestamp of record creation */
+  created_at: Date;
+  /** Timestamp of last update */
+  updated_at: Date;
+}

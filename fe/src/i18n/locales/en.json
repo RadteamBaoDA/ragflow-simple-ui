@@ -1085,6 +1085,34 @@
       },
       "deleteConfirm": "Remove this permission?",
       "noPermissions": "No permissions configured"
+    },
+    "entityPermissions": {
+      "title": "Permissions",
+      "description": "Manage who can access this {{type}}",
+      "add": "Add",
+      "granteeType": "Type",
+      "grantee": "Grantee",
+      "selectGrantee": "Select...",
+      "level": "Level",
+      "user": "User",
+      "team": "Team",
+      "saved": "Permission saved",
+      "saveError": "Failed to save permission",
+      "removed": "Permission removed",
+      "removeError": "Failed to remove permission",
+      "removeConfirm": "Remove this permission?",
+      "noPermissions": "No permissions configured",
+      "levels": {
+        "view": "View",
+        "create": "Create",
+        "edit": "Edit",
+        "delete": "Delete"
+      },
+      "entityTypes": {
+        "category": "Category",
+        "chat": "Chat",
+        "search": "Search"
+      }
     }
   },
   "dashboard": {
