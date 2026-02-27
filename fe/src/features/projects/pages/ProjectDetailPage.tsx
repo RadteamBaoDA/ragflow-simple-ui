@@ -4,6 +4,7 @@
  * Features:
  * - Header with project name, server badge, and back button
  * - Three tabs: Documents, Chat, Settings
+ * - Pre-fetches category versions for the Chat tab
  * - Dark/light theme support
  * - Full i18n support
  *
@@ -18,10 +19,12 @@ import { ArrowLeft, FolderOpen, MessageSquare, Settings } from 'lucide-react'
 import {
   getProjectById,
   getDocumentCategories,
+  getCategoryVersions,
   getProjectChats,
   getProjectPermissions,
   type Project,
   type DocumentCategory,
+  type DocumentCategoryVersion,
   type ProjectChat,
   type ProjectPermission,
 } from '../api/projectService'
@@ -50,14 +53,16 @@ const ProjectDetailPage = () => {
 
   // Sub-resource data passed to tab components
   const [categories, setCategories] = useState<DocumentCategory[]>([])
+  const [categoryVersions, setCategoryVersions] = useState<Record<string, DocumentCategoryVersion[]>>({})
   const [chats, setChats] = useState<ProjectChat[]>([])
   const [permissions, setPermissions] = useState<ProjectPermission[]>([])
   // Server-level model config
   const [embeddingModels, setEmbeddingModels] = useState<string[]>([])
-  const [_chatModels, _setChatModels] = useState<string[]>([])
+  const [chatModels, setChatModels] = useState<string[]>([])
 
   /**
    * Fetch the project and its sub-resources.
+   * Also pre-fetches all category versions for the Chat tab.
    */
   const fetchProject = useCallback(async () => {
     if (!projectId) return
@@ -74,12 +79,26 @@ const ProjectDetailPage = () => {
       setChats(chatData)
       setPermissions(permData)
 
+      // Pre-fetch versions for all categories (needed by ChatTab for dataset resolution)
+      const versionsMap: Record<string, DocumentCategoryVersion[]> = {}
+      await Promise.all(
+        categoryData.map(async (cat) => {
+          try {
+            const versions = await getCategoryVersions(projectId, cat.id)
+            versionsMap[cat.id] = versions
+          } catch {
+            versionsMap[cat.id] = []
+          }
+        }),
+      )
+      setCategoryVersions(versionsMap)
+
       // Fetch server's model config if linked
       if (projectData.ragflow_server_id) {
         try {
           const server = await getRagflowServerById(projectData.ragflow_server_id)
           setEmbeddingModels(server.embedding_models || [])
-          _setChatModels(server.chat_models || [])
+          setChatModels(server.chat_models || [])
         } catch {
           // Non-critical: models will fall back to text input
         }
@@ -172,6 +191,9 @@ const ProjectDetailPage = () => {
                   <ChatTab
                     projectId={projectId!}
                     initialChats={chats}
+                    categories={categories}
+                    categoryVersions={categoryVersions}
+                    chatModels={chatModels}
                   />
                 ),
               },
