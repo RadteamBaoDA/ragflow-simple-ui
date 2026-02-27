@@ -28,6 +28,7 @@ import ragflowServerRoutes from "@/modules/admin/ragflow-servers/ragflow-server.
 import projectRoutes from "@/modules/projects/project.routes.js";
 import documentCategoryRoutes from "@/modules/projects/document-category/document-category.routes.js";
 import projectChatRoutes from "@/modules/projects/project-chat/project-chat.routes.js";
+import projectSearchRoutes from "@/modules/projects/project-search/project-search.routes.js";
 import converterRoutes from "@/modules/converter/converter.routes.js";
 
 // ============================================================================
@@ -144,6 +145,7 @@ function registerRoutes(apiRouter: Router): void {
   apiRouter.use("/projects", projectRoutes);
   apiRouter.use("/projects/:projectId/categories", documentCategoryRoutes);
   apiRouter.use("/projects/:projectId/chats", projectChatRoutes);
+  apiRouter.use("/projects/:projectId/searches", projectSearchRoutes);
 
   // Document converter queue management
   apiRouter.use("/converter", converterRoutes);

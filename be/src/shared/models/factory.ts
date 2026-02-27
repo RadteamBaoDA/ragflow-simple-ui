@@ -26,6 +26,7 @@ import { ProjectPermissionModel } from "@/modules/projects/project-permission.mo
 import { DocumentCategoryModel } from "@/modules/projects/document-category/document-category.model.js";
 import { DocumentCategoryVersionModel } from "@/modules/projects/document-category/document-category-version.model.js";
 import { ProjectChatModel } from "@/modules/projects/project-chat/project-chat.model.js";
+import { ProjectSearchModel } from "@/modules/projects/project-search/project-search.model.js";
 
 /**
  * ModelFactory class implementing the Factory Pattern.
@@ -83,6 +84,8 @@ export class ModelFactory {
   private static documentCategoryVersionModel: DocumentCategoryVersionModel;
   /** Project chat model singleton instance */
   private static projectChatModel: ProjectChatModel;
+  /** Project search model singleton instance */
+  private static projectSearchModel: ProjectSearchModel;
 
   /**
    * Get the User model singleton.
@@ -308,5 +311,12 @@ export class ModelFactory {
   static get projectChat() {
     if (!this.projectChatModel) this.projectChatModel = new ProjectChatModel();
     return this.projectChatModel;
+  }
+
+  /** Get the ProjectSearch model singleton. */
+  static get projectSearch() {
+    if (!this.projectSearchModel)
+      this.projectSearchModel = new ProjectSearchModel();
+    return this.projectSearchModel;
   }
 }

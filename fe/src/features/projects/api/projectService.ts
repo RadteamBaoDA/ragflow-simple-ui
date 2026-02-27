@@ -501,3 +501,85 @@ export const syncProjectChat = (
   chatId: string,
 ): Promise<ProjectChat> =>
   api.post(`/api/projects/${projectId}/chats/${chatId}/sync`);
+
+// ============================================================================
+// Project Searches API
+// ============================================================================
+
+/**
+ * Represents a project search app.
+ */
+export interface ProjectSearch {
+  id: string;
+  project_id: string;
+  name: string;
+  description: string | null;
+  ragflow_search_id: string | null;
+  dataset_ids: string[];
+  ragflow_dataset_ids: string[];
+  search_config: Record<string, any>;
+  status: string;
+  last_synced_at: string | null;
+  created_by: string | null;
+  created_at: string;
+  updated_at: string;
+}
+
+/**
+ * List search apps for a project.
+ */
+export const getProjectSearches = (
+  projectId: string,
+): Promise<ProjectSearch[]> => api.get(`/api/projects/${projectId}/searches`);
+
+/**
+ * Get a search app by ID.
+ */
+export const getProjectSearchById = (
+  projectId: string,
+  searchId: string,
+): Promise<ProjectSearch> =>
+  api.get(`/api/projects/${projectId}/searches/${searchId}`);
+
+/**
+ * Create a search app.
+ */
+export const createProjectSearch = (
+  projectId: string,
+  data: {
+    name: string;
+    description?: string;
+    dataset_ids?: string[];
+    ragflow_dataset_ids?: string[];
+    search_config?: Record<string, any>;
+  },
+): Promise<ProjectSearch> =>
+  api.post(`/api/projects/${projectId}/searches`, data);
+
+/**
+ * Update a search app.
+ */
+export const updateProjectSearch = (
+  projectId: string,
+  searchId: string,
+  data: Partial<ProjectSearch>,
+): Promise<ProjectSearch> =>
+  api.put(`/api/projects/${projectId}/searches/${searchId}`, data);
+
+/**
+ * Delete a search app.
+ */
+export const deleteProjectSearch = (
+  projectId: string,
+  searchId: string,
+): Promise<void> =>
+  api.delete(`/api/projects/${projectId}/searches/${searchId}`);
+
+/**
+ * Sync a search app from RAGFlow.
+ */
+export const syncProjectSearch = (
+  projectId: string,
+  searchId: string,
+): Promise<ProjectSearch> =>
+  api.post(`/api/projects/${projectId}/searches/${searchId}/sync`);

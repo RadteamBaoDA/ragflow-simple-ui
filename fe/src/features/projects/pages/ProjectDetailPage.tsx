@@ -3,7 +3,7 @@
  *
  * Features:
  * - Header with project name, server badge, and back button
- * - Three tabs: Documents, Chat, Settings
+ * - Four tabs: Documents, Chat, Search, Settings
  * - Pre-fetches category versions for the Chat tab
  * - Dark/light theme support
  * - Full i18n support
@@ -15,22 +15,25 @@ import { useEffect, useState, useCallback } from 'react'
 import { useTranslation } from 'react-i18next'
 import { useParams, useNavigate } from 'react-router-dom'
 import { Tabs, Button, Tag, Spin, Empty, message } from 'antd'
-import { ArrowLeft, FolderOpen, MessageSquare, Settings } from 'lucide-react'
+import { ArrowLeft, FolderOpen, MessageSquare, Search, Settings } from 'lucide-react'
 import {
   getProjectById,
   getDocumentCategories,
   getCategoryVersions,
   getProjectChats,
+  getProjectSearches,
   getProjectPermissions,
   type Project,
   type DocumentCategory,
   type DocumentCategoryVersion,
   type ProjectChat,
+  type ProjectSearch,
   type ProjectPermission,
 } from '../api/projectService'
 import { getRagflowServerById } from '../../ragflow-servers/api/ragflowServerService'
 import DocumentsTab from '../components/DocumentsTab'
 import ChatTab from '../components/ChatTab'
+import SearchTab from '../components/SearchTab'
 import SettingsTab from '../components/SettingsTab'
 
 // ============================================================================
@@ -55,6 +58,7 @@ const ProjectDetailPage = () => {
   const [categories, setCategories] = useState<DocumentCategory[]>([])
   const [categoryVersions, setCategoryVersions] = useState<Record<string, DocumentCategoryVersion[]>>({})
   const [chats, setChats] = useState<ProjectChat[]>([])
+  const [searches, setSearches] = useState<ProjectSearch[]>([])
   const [permissions, setPermissions] = useState<ProjectPermission[]>([])
   // Server-level model config
   const [embeddingModels, setEmbeddingModels] = useState<string[]>([])
@@ -68,15 +72,17 @@ const ProjectDetailPage = () => {
     if (!projectId) return
     try {
       setLoading(true)
-      const [projectData, categoryData, chatData, permData] = await Promise.all([
+      const [projectData, categoryData, chatData, searchData, permData] = await Promise.all([
         getProjectById(projectId),
         getDocumentCategories(projectId),
         getProjectChats(projectId),
+        getProjectSearches(projectId),
         getProjectPermissions(projectId),
       ])
       setProject(projectData)
       setCategories(categoryData)
       setChats(chatData)
+      setSearches(searchData)
       setPermissions(permData)
 
       // Pre-fetch versions for all categories (needed by ChatTab for dataset resolution)
@@ -191,6 +197,24 @@ const ProjectDetailPage = () => {
                   <ChatTab
                     projectId={projectId!}
                     initialChats={chats}
+                    categories={categories}
+                    categoryVersions={categoryVersions}
+                    chatModels={chatModels}
+                  />
+                ),
+              },
+              {
+                key: 'search',
+                label: (
+                  <span className="flex items-center gap-2">
+                    <Search size={16} />
+                    {t('projectManagement.tabs.search', 'Search')}
+                  </span>
+                ),
+                children: (
+                  <SearchTab
+                    projectId={projectId!}
+                    initialSearches={searches}
                     categories={categories}
                     categoryVersions={categoryVersions}
                     chatModels={chatModels}

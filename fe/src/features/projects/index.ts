@@ -27,11 +27,18 @@ export {
   updateProjectChat,
   deleteProjectChat,
   syncProjectChat,
+  getProjectSearches,
+  getProjectSearchById,
+  createProjectSearch,
+  updateProjectSearch,
+  deleteProjectSearch,
+  syncProjectSearch,
   type Project,
   type ProjectPermission,
   type DocumentCategory,
   type DocumentCategoryVersion,
   type ProjectChat,
+  type ProjectSearch,
 } from "./api/projectService";
 
 export {

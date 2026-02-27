@@ -816,3 +816,37 @@ export interface ProjectChat {
   /** Timestamp of last update */
   updated_at: Date;
 }
+
+/**
+ * ProjectSearch interface representing an AI Search app linked to a project.
+ */
+export interface ProjectSearch {
+  /** Unique UUID for the project search */
+  id: string;
+  /** Project ID this search belongs to */
+  project_id: string;
+  /** Search app name */
+  name: string;
+  /** Search app description */
+  description?: string | null;
+  /** RAGFlow search app ID */
+  ragflow_search_id?: string | null;
+  /** Local version IDs linked to this search */
+  dataset_ids: string[];
+  /** RAGFlow dataset IDs linked to this search */
+  ragflow_dataset_ids: string[];
+  /** Search configuration (similarity threshold, vector weight, rerank, etc.) */
+  search_config: Record<string, any>;
+  /** Search status: 'active' | 'archived' */
+  status: string;
+  /** Last time synced with RAGFlow */
+  last_synced_at?: Date | null;
+  /** User ID who created this record */
+  created_by?: string | null;
+  /** User ID who last updated this record */
+  updated_by?: string | null;
+  /** Timestamp of record creation */
+  created_at: Date;
+  /** Timestamp of last update */
+  updated_at: Date;
+}
