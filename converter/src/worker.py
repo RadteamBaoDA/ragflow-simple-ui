@@ -568,12 +568,21 @@ def main():
     # Main polling loop
     while not _shutdown:
         try:
-            should_process = is_within_schedule(r) or is_manual_trigger_active(r)
+            within_schedule = is_within_schedule(r)
+            manual_trigger = is_manual_trigger_active(r)
+            should_process = within_schedule or manual_trigger
 
             if not should_process:
                 logger.debug('Outside schedule window, sleeping...')
                 time.sleep(POLL_INTERVAL)
                 continue
+
+            # If woken by manual trigger (outside schedule window), clear it
+            # immediately so it acts as a one-shot trigger and the worker
+            # returns to sleeping once the current batch is done.
+            if manual_trigger and not within_schedule:
+                r.delete(MANUAL_TRIGGER_KEY)
+                logger.info('Manual trigger activated — cleared after pickup')
 
             # Find converting jobs with pending files
             job_data = dequeue_version_job(r)

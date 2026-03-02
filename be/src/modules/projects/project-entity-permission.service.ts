@@ -7,6 +7,7 @@
  */
 import { ModelFactory } from "@/shared/models/factory.js";
 import { ProjectEntityPermission } from "@/shared/models/types.js";
+import { isAdminRole } from "@/shared/config/rbac.js";
 import {
   auditService,
   AuditAction,
@@ -168,8 +169,8 @@ export class ProjectEntityPermissionService {
     userRole: string,
     userTeamIds: string[],
   ): Promise<string> {
-    // Admins always have full access
-    if (userRole === "admin") return "delete";
+    // Admins/leaders always have full access
+    if (isAdminRole(userRole)) return "delete";
 
     // Gather all relevant permissions for this entity
     const userPerms = await ModelFactory.projectEntityPermission.findByGrantee(
@@ -228,8 +229,8 @@ export class ProjectEntityPermissionService {
     userRole: string,
     userTeamIds: string[],
   ): Promise<Record<string, string>> {
-    // Admins get full access to everything
-    if (userRole === "admin") return {};
+    // Admins/leaders get full access to everything
+    if (isAdminRole(userRole)) return {};
 
     const result: Record<string, string> = {};
 

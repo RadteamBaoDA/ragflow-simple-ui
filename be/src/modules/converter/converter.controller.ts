@@ -161,7 +161,18 @@ export class ConverterController {
     try {
       const alreadyRunning = converterWorkerService.getIsProcessing();
 
-      // Always try to start — worker's internal lock prevents duplicates
+      // Set the manual trigger key in Redis so the Python converter worker
+      // wakes up even when outside its nightly schedule window
+      await converterQueueService.setManualTrigger();
+
+      // Move all pending jobs to waiting queue so the Python worker can
+      // pick them up via dequeue_version_job()
+      const enqueued = await converterQueueService.enqueuePendingJobs();
+      log.info(
+        `Force Start: set manual trigger, enqueued ${enqueued} pending job(s)`,
+      );
+
+      // Also start the Node.js upload loop (processes completed conversions)
       converterWorkerService.startProcessing();
 
       res.json({

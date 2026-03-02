@@ -1,16 +1,16 @@
 /**
  * @fileoverview API utility module with authentication interceptor.
- * 
+ *
  * Provides a fetch wrapper that:
  * - Automatically includes credentials (cookies) for session auth
  * - Handles 401 responses by redirecting to login page
  * - Provides typed HTTP methods (GET, POST, PUT, DELETE)
- * 
+ *
  * @module lib/api
  */
 
 /** Backend API base URL from environment */
-const API_BASE_URL = import.meta.env.VITE_API_BASE_URL || '';
+const API_BASE_URL = import.meta.env.VITE_API_BASE_URL || "";
 
 // ============================================================================
 // Error Types
@@ -21,9 +21,22 @@ const API_BASE_URL = import.meta.env.VITE_API_BASE_URL || '';
  * Thrown when a 401 response is received.
  */
 export class AuthenticationError extends Error {
-  constructor(message: string = 'Not authenticated') {
+  constructor(message: string = "Not authenticated") {
     super(message);
-    this.name = 'AuthenticationError';
+    this.name = "AuthenticationError";
+  }
+}
+
+/**
+ * Custom error for gateway / server unavailable responses (502, 503, 504).
+ * Thrown when the reverse proxy or server is not reachable.
+ */
+export class GatewayError extends Error {
+  readonly status: number;
+  constructor(status: number) {
+    super(`Server unavailable (${status} Bad Gateway)`);
+    this.name = "GatewayError";
+    this.status = status;
   }
 }
 
@@ -34,7 +47,7 @@ export class AuthenticationError extends Error {
 /**
  * Handles 401 Unauthorized responses.
  * Redirects to login page with current path for post-login redirect.
- * 
+ *
  * @throws AuthenticationError - Always throws after redirect
  */
 function handleUnauthorized(): never {
@@ -42,7 +55,7 @@ function handleUnauthorized(): never {
   const currentPath = window.location.pathname + window.location.search;
   const loginUrl = `/login?redirect=${encodeURIComponent(currentPath)}`;
 
-  console.log('[API] Unauthorized (401), redirecting to login:', loginUrl);
+  console.log("[API] Unauthorized (401), redirecting to login:", loginUrl);
 
   // Force full page redirect to clear any stale state
   window.location.href = loginUrl;
@@ -69,14 +82,14 @@ interface FetchOptions extends RequestInit {
 
 /**
  * Fetch wrapper with automatic authentication handling.
- * 
+ *
  * Features:
  * - Prepends API base URL for relative endpoints
  * - Always includes credentials for session cookies
  * - Sets JSON content type by default
  * - Handles 401 by redirecting to login
  * - Parses JSON response automatically
- * 
+ *
  * @template T - Expected response type
  * @param endpoint - API endpoint (relative or absolute URL)
  * @param options - Fetch options with optional auth skip
@@ -86,22 +99,24 @@ interface FetchOptions extends RequestInit {
  */
 export async function apiFetch<T = unknown>(
   endpoint: string,
-  options: FetchOptions = {}
+  options: FetchOptions = {},
 ): Promise<T> {
   const { skipAuthCheck = false, ...fetchOptions } = options;
 
   // Build full URL (preserve absolute URLs)
-  const url = endpoint.startsWith('http')
+  const url = endpoint.startsWith("http")
     ? endpoint
     : `${API_BASE_URL}${endpoint}`;
 
   // Build default headers — skip Content-Type for FormData (browser sets multipart boundary)
   const defaultHeaders: Record<string, string> =
-    fetchOptions.body instanceof FormData ? {} : { 'Content-Type': 'application/json' }
+    fetchOptions.body instanceof FormData
+      ? {}
+      : { "Content-Type": "application/json" };
 
   const response = await fetch(url, {
     ...fetchOptions,
-    credentials: 'include', // Always include cookies for session auth
+    credentials: "include", // Always include cookies for session auth
     headers: {
       ...defaultHeaders,
       ...fetchOptions.headers,
@@ -111,6 +126,21 @@ export async function apiFetch<T = unknown>(
   // Handle 401 Unauthorized - redirect to login
   if (response.status === 401 && !skipAuthCheck) {
     handleUnauthorized();
+  }
+
+  // Handle 502 / 503 / 504 — server or reverse proxy is down
+  if (
+    response.status === 502 ||
+    response.status === 503 ||
+    response.status === 504
+  ) {
+    // Broadcast to the entire app so the UI can show an error overlay
+    window.dispatchEvent(
+      new CustomEvent("server:gateway-error", {
+        detail: { status: response.status },
+      }),
+    );
+    throw new GatewayError(response.status);
   }
 
   // Handle other errors
@@ -142,17 +172,21 @@ export const api = {
    * @template T - Expected response type
    */
   get: <T = unknown>(endpoint: string, options?: FetchOptions) =>
-    apiFetch<T>(endpoint, { ...options, method: 'GET' }),
+    apiFetch<T>(endpoint, { ...options, method: "GET" }),
 
   /**
    * Perform a POST request with JSON body.
    * @template T - Expected response type
    */
-  post: <T = unknown>(endpoint: string, data?: unknown, options?: FetchOptions) => {
+  post: <T = unknown>(
+    endpoint: string,
+    data?: unknown,
+    options?: FetchOptions,
+  ) => {
     const body = data ? JSON.stringify(data) : null;
     return apiFetch<T>(endpoint, {
       ...options,
-      method: 'POST',
+      method: "POST",
       body,
     });
   },
@@ -161,11 +195,15 @@ export const api = {
    * Perform a PUT request with JSON body.
    * @template T - Expected response type
    */
-  put: <T = unknown>(endpoint: string, data?: unknown, options?: FetchOptions) => {
+  put: <T = unknown>(
+    endpoint: string,
+    data?: unknown,
+    options?: FetchOptions,
+  ) => {
     const body = data ? JSON.stringify(data) : null;
     return apiFetch<T>(endpoint, {
       ...options,
-      method: 'PUT',
+      method: "PUT",
       body,
     });
   },
@@ -175,7 +213,7 @@ export const api = {
    * @template T - Expected response type
    */
   delete: <T = unknown>(endpoint: string, options?: FetchOptions) =>
-    apiFetch<T>(endpoint, { ...options, method: 'DELETE' }),
+    apiFetch<T>(endpoint, { ...options, method: "DELETE" }),
 };
 
 export default api;

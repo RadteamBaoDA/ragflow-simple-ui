@@ -857,8 +857,11 @@ export class DocumentCategoryService {
 
   /**
    * Delete multiple documents from local storage and RAGFlow.
-   * Looks up RAGFlow document IDs from converter tracking,
-   * deletes from RAGFlow first, then removes local files.
+   *
+   * RAGFlow doc ID resolution strategy (in order):
+   *   1. Converter queue (Redis) — fast, works while jobs are alive
+   *   2. Fallback: list all docs from the RAGFlow dataset and match by
+   *      filename (including .pdf variant for office-converted files)
    *
    * @param projectId - Project UUID
    * @param categoryId - Category UUID
@@ -878,16 +881,25 @@ export class DocumentCategoryService {
     const deleted: string[] = [];
     const failed: string[] = [];
 
-    // Build fileName → ragflowDocId map from converter tracking (if serverId available)
-    const fileNameToRagflowId: Record<string, string> = {};
+    // ── Step 1: Resolve version and datasetId ─────────────────────────────
     let datasetId: string | undefined;
+    const fileNameToRagflowId: Record<string, string> = {};
 
     if (serverId) {
       try {
         const version =
           await ModelFactory.documentCategoryVersion.findById(versionId);
         datasetId = version?.ragflow_dataset_id ?? undefined;
+      } catch (err) {
+        log.warn("Failed to look up version for delete", {
+          error: (err as Error).message,
+        });
+      }
+    }
 
+    if (serverId && datasetId) {
+      // ── Step 2a: Look up ragflowDocId from converter queue (Redis) ────────
+      try {
         const { jobs } = await converterQueueService.listVersionJobs({
           versionId,
           page: 1,
@@ -902,15 +914,78 @@ export class DocumentCategoryService {
             }
           }
         }
+        log.info("Loaded ragflowDocId from converter queue", {
+          count: Object.keys(fileNameToRagflowId).length,
+        });
       } catch (err) {
-        log.warn("Failed to read converter tracking for delete", {
+        log.warn("Failed to read converter tracking for delete (non-fatal)", {
           error: (err as Error).message,
         });
       }
-    }
 
-    // Batch delete from RAGFlow if we have doc IDs
-    if (serverId && datasetId) {
+      // ── Step 2b: Fallback — list docs from RAGFlow dataset ────────────────
+      // For any file still missing a ragflowDocId (jobs expired or never set),
+      // fetch all document metadata from the dataset and match by name.
+      const missingNames = fileNames
+        .map((n) => path.basename(n))
+        .filter((safeName) => !fileNameToRagflowId[safeName]);
+
+      if (missingNames.length > 0) {
+        try {
+          // Fetch up to 10,000 docs — RAGFlow max page_size is typically 100,
+          // so we page until we have enough or exhaust results.
+          const ragflowDocs: any[] = [];
+          let page = 1;
+          const pageSize = 100;
+          while (true) {
+            const batch = await ragflowProxyService.listDocuments(
+              serverId,
+              datasetId,
+              { page, page_size: pageSize },
+            );
+            if (!batch || batch.length === 0) break;
+            ragflowDocs.push(...batch);
+            if (batch.length < pageSize) break;
+            page++;
+            // Guard against very large datasets — stop at 5000 docs
+            if (ragflowDocs.length >= 5000) break;
+          }
+
+          // Build a name → id map from RAGFlow docs for fast lookup
+          const ragflowNameToId: Record<string, string> = {};
+          for (const doc of ragflowDocs) {
+            if (doc.id && doc.name) {
+              ragflowNameToId[doc.name] = doc.id;
+            }
+          }
+
+          // Match each missing file by original name OR by .pdf variant
+          for (const safeName of missingNames) {
+            const baseName = path.parse(safeName).name; // e.g. "report"
+            const pdfName = `${baseName}.pdf`; // e.g. "report.pdf"
+
+            const docId =
+              ragflowNameToId[safeName] || // exact match
+              ragflowNameToId[pdfName]; // pdf-converted variant
+
+            if (docId) {
+              fileNameToRagflowId[safeName] = docId;
+              log.info(`Resolved RAGFlow doc ID via dataset lookup`, {
+                safeName,
+                docId,
+              });
+            } else {
+              log.warn(`No matching RAGFlow doc found for file`, { safeName });
+            }
+          }
+        } catch (err) {
+          log.warn("Failed to fetch RAGFlow docs for fallback ID resolution", {
+            error: (err as Error).message,
+          });
+        }
+      }
+
+      // ── Step 3: Delete matching docs from RAGFlow ──────────────────────────
       const ragflowIds = fileNames
         .map((name) => fileNameToRagflowId[path.basename(name)])
         .filter((id): id is string => !!id);
@@ -922,7 +997,7 @@ export class DocumentCategoryService {
             datasetId,
             ragflowIds,
           );
-          log.info("Deleted documents from RAGFlow", {
+          log.info("Deleted documents from RAGFlow dataset", {
             datasetId,
             count: ragflowIds.length,
           });
@@ -932,23 +1007,80 @@ export class DocumentCategoryService {
             error: (err as Error).message,
           });
         }
+      } else {
+        log.info("No RAGFlow doc IDs resolved — skipping remote delete", {
+          fileNames,
+        });
       }
     }
 
-    // Delete each file from local storage
+    // ── Step 4: Delete each file from local storage (original + converted PDF) ──
+    // Build a map of fileName → pdfPath from converter tracking for accurate lookup
+    const fileNameToPdfPath: Record<string, string> = {};
+    // Re-scan converter jobs for pdfPath entries (may already be populated above, but
+    // we need pdfPath independently of ragflowDocId)
+    try {
+      const { jobs } = await converterQueueService.listVersionJobs({
+        versionId,
+        page: 1,
+        pageSize: 1000,
+      });
+      for (const job of jobs) {
+        const files = await converterQueueService.getJobFiles(job.id);
+        for (const f of files) {
+          if (f.pdfPath) {
+            fileNameToPdfPath[f.fileName] = f.pdfPath;
+          }
+        }
+      }
+    } catch {
+      // Non-fatal — fall back to {baseName}.pdf heuristic below
+    }
+
     for (const name of fileNames) {
       // Prevent path traversal attacks
       const safeName = path.basename(name);
       const filePath = path.join(dir, safeName);
+
+      // Delete the original file
       try {
         await fs.unlink(filePath);
         deleted.push(safeName);
-        log.info(`Document deleted: ${filePath}`);
+        log.info(`Document deleted locally: ${filePath}`);
       } catch (err) {
-        log.error(`Failed to delete document: ${filePath}`, {
+        log.error(`Failed to delete document locally: ${filePath}`, {
           error: (err as Error).message,
         });
         failed.push(safeName);
+      }
+
+      // Delete the converted PDF (if any)
+      // Strategy: use pdfPath from converter queue, or fallback to {baseName}.pdf in same dir
+      const ext = path.extname(safeName).toLowerCase();
+      const isPdf = ext === ".pdf";
+
+      // Only look for a PDF counterpart if the original is NOT already a PDF
+      if (!isPdf) {
+        let pdfFilePath: string | null = null;
+
+        // Prefer the recorded pdfPath from converter tracking
+        const trackedPdfPath = fileNameToPdfPath[safeName];
+        if (trackedPdfPath) {
+          // pdfPath in Redis is relative to config.uploadDir
+          pdfFilePath = path.resolve(config.uploadDir, trackedPdfPath);
+        } else {
+          // Heuristic: look for {baseName}.pdf in the same version dir
+          const baseName = path.parse(safeName).name;
+          pdfFilePath = path.join(dir, `${baseName}.pdf`);
+        }
+
+        try {
+          await fs.access(pdfFilePath); // Check it exists first
+          await fs.unlink(pdfFilePath);
+          log.info(`Converted PDF deleted locally: ${pdfFilePath}`);
+        } catch {
+          // No PDF counterpart found — that's fine (file may not have been converted yet)
+        }
       }
     }
 

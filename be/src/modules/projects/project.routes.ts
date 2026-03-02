@@ -26,10 +26,10 @@ router.put("/:id", requireRole("admin"), ProjectController.update);
 // Delete project (admin only)
 router.delete("/:id", requireRole("admin"), ProjectController.remove);
 
-// Permission management (admin only)
+// Permission management (read: admin + leader, write: admin only)
 router.get(
   "/:id/permissions",
-  requireRole("admin"),
+  requireRole("admin", "leader"),
   ProjectController.getPermissions,
 );
 router.post(
@@ -43,10 +43,10 @@ router.delete(
   ProjectController.removePermission,
 );
 
-// Entity-level permission management (admin only)
+// Entity-level permission management (read: admin + leader, write: admin only)
 router.use(
   "/:id/entity-permissions",
-  requireRole("admin"),
+  requireRole("admin", "leader"),
   entityPermissionRoutes,
 );
 

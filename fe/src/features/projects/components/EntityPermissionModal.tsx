@@ -1,15 +1,18 @@
 /**
- * EntityPermissionModal: Reusable modal for managing per-entity permissions.
+ * EntityPermissionModal: Modal for managing per-entity permissions.
  * Opens from a lock icon on each category/chat/search row.
  *
- * @description Displays permission grantees table with Select for level,
- * supports adding users/teams, removing grantees, and auto-saves via API.
+ * @description Design inspired by RAGFlow's "Edit Permissions" modal:
+ * - Entity info banner at top
+ * - Private Access toggle
+ * - Separate team/user multi-select dropdowns
+ * - Name/Email table of granted users with delete buttons
+ * - Cancel/Save footer with batch save
  */
-import React, { useState, useEffect, useCallback } from 'react'
+import React, { useState, useEffect, useCallback, useMemo } from 'react'
 import { useTranslation } from 'react-i18next'
-import { Button, Select, Table, Popconfirm, Tag, message } from 'antd'
-import { Users, User, Trash2, Plus } from 'lucide-react'
-import { Dialog } from '@/components/Dialog'
+import { Modal, Select, Table, Switch, Button, message, Divider } from 'antd'
+import { Lock, Users, User, Trash2 } from 'lucide-react'
 import { teamApi, type Team } from '@/features/teams'
 import { userApi } from '@/features/users'
 import { User as UserType } from '@/features/auth'
@@ -20,13 +23,9 @@ import {
   removeEntityPermission,
 } from '../api/projectService'
 
-/** Permission level hierarchy for display labels and ordering. */
-const PERMISSION_LEVELS = [
-  { value: 'view', label: 'View', color: 'blue' },
-  { value: 'create', label: 'Create', color: 'cyan' },
-  { value: 'edit', label: 'Edit', color: 'orange' },
-  { value: 'delete', label: 'Delete', color: 'red' },
-] as const
+// ============================================================================
+// Types
+// ============================================================================
 
 /** Props for EntityPermissionModal */
 interface EntityPermissionModalProps {
@@ -44,9 +43,13 @@ interface EntityPermissionModalProps {
   entityName: string
 }
 
+// ============================================================================
+// Component
+// ============================================================================
+
 /**
  * EntityPermissionModal component.
- * Manages per-entity permission grantees with hierarchical level selection.
+ * Manages per-entity permission grantees with a clean form layout.
  *
  * @param props - Modal configuration
  * @returns Modal dialog for permission management
@@ -66,12 +69,12 @@ export const EntityPermissionModal: React.FC<EntityPermissionModalProps> = ({
   const [teams, setTeams] = useState<Team[]>([])
   const [users, setUsers] = useState<UserType[]>([])
   const [loading, setLoading] = useState(false)
-
-  // Add form state
-  const [addGranteeType, setAddGranteeType] = useState<'user' | 'team'>('user')
-  const [addGranteeId, setAddGranteeId] = useState<string | undefined>(undefined)
-  const [addLevel, setAddLevel] = useState<string>('view')
   const [saving, setSaving] = useState(false)
+
+  // Form state: selected team/user IDs (local until Save)
+  const [selectedTeamIds, setSelectedTeamIds] = useState<string[]>([])
+  const [selectedUserIds, setSelectedUserIds] = useState<string[]>([])
+  const [isPrivate, setIsPrivate] = useState(false)
 
   /**
    * Fetch permissions and reference data (teams, users) when modal opens.
@@ -88,6 +91,19 @@ export const EntityPermissionModal: React.FC<EntityPermissionModalProps> = ({
       setPermissions(perms)
       setTeams(teamsList)
       setUsers(usersList)
+
+      // Sync local state from server permissions
+      const teamIds = perms
+        .filter((p) => p.grantee_type === 'team')
+        .map((p) => p.grantee_id)
+      const userIds = perms
+        .filter((p) => p.grantee_type === 'user')
+        .map((p) => p.grantee_id)
+      setSelectedTeamIds(teamIds)
+      setSelectedUserIds(userIds)
+
+      // If any permissions exist, entity is private
+      setIsPrivate(perms.length > 0)
     } catch (err) {
       console.error('[EntityPermissionModal] Failed to load data:', err)
     } finally {
@@ -101,98 +117,135 @@ export const EntityPermissionModal: React.FC<EntityPermissionModalProps> = ({
   }, [loadData])
 
   /**
-   * Add or update a grantee's permission for this entity.
+   * Resolve user ID to display info.
+   * @param userId - User UUID
+   * @returns Object with name and email
    */
-  const handleAddPermission = async () => {
-    if (!addGranteeId) return
+  const resolveUser = (userId: string) => {
+    const user = users.find((u) => u.id === userId)
+    return {
+      name: user?.displayName || userId,
+      email: user?.email || '',
+    }
+  }
+
+  /**
+   * Resolve team ID to display name.
+   * @param teamId - Team UUID
+   * @returns Team name string
+   */
+  const resolveTeamName = (teamId: string) => {
+    const team = teams.find((t) => t.id === teamId)
+    return team?.name || teamId
+  }
+
+  /**
+   * Build all grantees (teams + users) for the table display.
+   */
+  const granteeTableData = useMemo(() => {
+    const teamRows = selectedTeamIds.map((id) => ({
+      key: `team-${id}`,
+      type: 'team' as const,
+      id,
+      name: resolveTeamName(id),
+      email: '',
+    }))
+    const userRows = selectedUserIds.map((id) => {
+      const info = resolveUser(id)
+      return {
+        key: `user-${id}`,
+        type: 'user' as const,
+        id,
+        name: info.name,
+        email: info.email,
+      }
+    })
+    return [...teamRows, ...userRows]
+  }, [selectedTeamIds, selectedUserIds, teams, users])
+
+  /**
+   * Remove a grantee from the local selection (not yet saved to server).
+   */
+  const handleRemoveGrantee = (type: 'team' | 'user', id: string) => {
+    if (type === 'team') {
+      setSelectedTeamIds((prev) => prev.filter((tid) => tid !== id))
+    } else {
+      setSelectedUserIds((prev) => prev.filter((uid) => uid !== id))
+    }
+  }
+
+  /**
+   * Save all permission changes to the server.
+   * Compares current selections with server state and applies diffs.
+   */
+  const handleSave = async () => {
     setSaving(true)
     try {
-      await setEntityPermission(projectId, {
-        entity_type: entityType,
-        entity_id: entityId,
-        grantee_type: addGranteeType,
-        grantee_id: addGranteeId,
-        permission_level: addLevel,
-      })
-      message.success(t('projectManagement.entityPermissions.saved', 'Permission saved'))
-      // Reset form and reload
-      setAddGranteeId(undefined)
-      setAddLevel('view')
-      await loadData()
+      // If not private, remove all existing permissions
+      if (!isPrivate) {
+        for (const perm of permissions) {
+          await removeEntityPermission(projectId, perm.id)
+        }
+        message.success(t('projectManagement.entityPermissions.saved', 'Permissions saved'))
+        onClose()
+        return
+      }
+
+      // Determine diffs: added and removed grantees
+      const existingTeamIds = new Set(
+        permissions.filter((p) => p.grantee_type === 'team').map((p) => p.grantee_id),
+      )
+      const existingUserIds = new Set(
+        permissions.filter((p) => p.grantee_type === 'user').map((p) => p.grantee_id),
+      )
+
+      // Teams to add
+      const teamsToAdd = selectedTeamIds.filter((id) => !existingTeamIds.has(id))
+      // Teams to remove
+      const teamsToRemove = permissions.filter(
+        (p) => p.grantee_type === 'team' && !selectedTeamIds.includes(p.grantee_id),
+      )
+      // Users to add
+      const usersToAdd = selectedUserIds.filter((id) => !existingUserIds.has(id))
+      // Users to remove
+      const usersToRemove = permissions.filter(
+        (p) => p.grantee_type === 'user' && !selectedUserIds.includes(p.grantee_id),
+      )
+
+      // Apply removals
+      for (const perm of [...teamsToRemove, ...usersToRemove]) {
+        await removeEntityPermission(projectId, perm.id)
+      }
+
+      // Apply additions (default permission level: 'view')
+      for (const teamId of teamsToAdd) {
+        await setEntityPermission(projectId, {
+          entity_type: entityType,
+          entity_id: entityId,
+          grantee_type: 'team',
+          grantee_id: teamId,
+          permission_level: 'view',
+        })
+      }
+      for (const userId of usersToAdd) {
+        await setEntityPermission(projectId, {
+          entity_type: entityType,
+          entity_id: entityId,
+          grantee_type: 'user',
+          grantee_id: userId,
+          permission_level: 'view',
+        })
+      }
+
+      message.success(t('projectManagement.entityPermissions.saved', 'Permissions saved'))
+      onClose()
     } catch (err) {
-      console.error('[EntityPermissionModal] Failed to set permission:', err)
+      console.error('[EntityPermissionModal] Failed to save:', err)
       message.error(t('projectManagement.entityPermissions.saveError', 'Failed to save'))
     } finally {
       setSaving(false)
     }
   }
-
-  /**
-   * Update an existing grantee's permission level inline.
-   */
-  const handleUpdateLevel = async (permId: string, newLevel: string) => {
-    // Find the existing record to get entity/grantee info
-    const existing = permissions.find((p) => p.id === permId)
-    if (!existing) return
-    try {
-      await setEntityPermission(projectId, {
-        entity_type: entityType,
-        entity_id: entityId,
-        grantee_type: existing.grantee_type,
-        grantee_id: existing.grantee_id,
-        permission_level: newLevel,
-      })
-      message.success(t('projectManagement.entityPermissions.saved', 'Permission saved'))
-      await loadData()
-    } catch (err) {
-      console.error('[EntityPermissionModal] Failed to update permission:', err)
-      message.error(t('projectManagement.entityPermissions.saveError', 'Failed to save'))
-    }
-  }
-
-  /**
-   * Remove a grantee's permission.
-   */
-  const handleRemove = async (permId: string) => {
-    try {
-      await removeEntityPermission(projectId, permId)
-      message.success(t('projectManagement.entityPermissions.removed', 'Permission removed'))
-      await loadData()
-    } catch (err) {
-      console.error('[EntityPermissionModal] Failed to remove permission:', err)
-      message.error(t('projectManagement.entityPermissions.removeError', 'Failed to remove'))
-    }
-  }
-
-  /**
-   * Resolve a grantee ID to a display name.
-   */
-  const resolveGranteeName = (type: string, id: string): string => {
-    if (type === 'user') {
-      const user = users.find((u) => u.id === id)
-      return user ? `${user.displayName} (${user.email})` : id
-    }
-    const team = teams.find((t) => t.id === id)
-    return team ? team.name : id
-  }
-
-  /** Build options for grantee select, excluding already-assigned grantees. */
-  const granteeOptions = (() => {
-    // Get already-assigned grantee IDs of the selected type
-    const assignedIds = new Set(
-      permissions
-        .filter((p) => p.grantee_type === addGranteeType)
-        .map((p) => p.grantee_id),
-    )
-    if (addGranteeType === 'user') {
-      return users
-        .filter((u) => !assignedIds.has(u.id))
-        .map((u) => ({ label: `${u.displayName} (${u.email})`, value: u.id }))
-    }
-    return teams
-      .filter((t) => !assignedIds.has(t.id))
-      .map((t) => ({ label: t.name, value: t.id }))
-  })()
 
   /** Localized entity type label. */
   const entityTypeLabel = t(
@@ -200,47 +253,29 @@ export const EntityPermissionModal: React.FC<EntityPermissionModalProps> = ({
     entityType,
   )
 
-  // Table columns for existing permissions
+  // Table columns for granted users/teams
   const columns = [
     {
-      title: t('projectManagement.entityPermissions.granteeType', 'Type'),
-      dataIndex: 'grantee_type',
-      key: 'grantee_type',
-      width: 80,
-      render: (type: string) => (
-        <Tag
-          icon={type === 'user' ? <User size={10} /> : <Users size={10} />}
-          color={type === 'user' ? 'blue' : 'purple'}
-          className="flex items-center gap-1 w-fit"
-        >
-          {type === 'user'
-            ? t('projectManagement.entityPermissions.user', 'User')
-            : t('projectManagement.entityPermissions.team', 'Team')}
-        </Tag>
+      title: t('projectManagement.entityPermissions.name', 'Name'),
+      dataIndex: 'name',
+      key: 'name',
+      render: (name: string, record: { type: string }) => (
+        <div className="flex items-center gap-2">
+          {record.type === 'team' ? (
+            <Users size={14} className="text-purple-500 flex-shrink-0" />
+          ) : (
+            <User size={14} className="text-blue-500 flex-shrink-0" />
+          )}
+          <span>{name}</span>
+        </div>
       ),
     },
     {
-      title: t('projectManagement.entityPermissions.grantee', 'Grantee'),
-      key: 'grantee_name',
-      render: (_: any, record: ProjectEntityPermission) =>
-        resolveGranteeName(record.grantee_type, record.grantee_id),
-    },
-    {
-      title: t('projectManagement.entityPermissions.level', 'Level'),
-      dataIndex: 'permission_level',
-      key: 'permission_level',
-      width: 140,
-      render: (level: string, record: ProjectEntityPermission) => (
-        <Select
-          value={level}
-          size="small"
-          style={{ width: 120 }}
-          onChange={(val: string) => handleUpdateLevel(record.id, val)}
-          options={PERMISSION_LEVELS.map((l) => ({
-            label: t(`projectManagement.entityPermissions.levels.${l.value}`, l.label),
-            value: l.value,
-          }))}
-        />
+      title: t('projectManagement.entityPermissions.email', 'Email'),
+      dataIndex: 'email',
+      key: 'email',
+      render: (email: string) => (
+        <span className="text-gray-500 dark:text-gray-400">{email || '—'}</span>
       ),
     },
     {
@@ -248,119 +283,142 @@ export const EntityPermissionModal: React.FC<EntityPermissionModalProps> = ({
       key: 'actions',
       width: 50,
       align: 'center' as const,
-      render: (_: any, record: ProjectEntityPermission) => (
-        <Popconfirm
-          title={t('projectManagement.entityPermissions.removeConfirm', 'Remove this permission?')}
-          onConfirm={() => handleRemove(record.id)}
-        >
-          <Button type="text" danger size="small" icon={<Trash2 size={14} />} />
-        </Popconfirm>
+      render: (_: any, record: { type: 'team' | 'user'; id: string }) => (
+        <Button
+          type="text"
+          danger
+          size="small"
+          icon={<Trash2 size={14} />}
+          onClick={() => handleRemoveGrantee(record.type, record.id)}
+        />
       ),
     },
   ]
 
-  if (!open) return null
-
   return (
-    <Dialog
+    <Modal
       open={open}
-      onClose={onClose}
-      title={`${t('projectManagement.entityPermissions.title', 'Permissions')}: ${entityName}`}
-      maxWidth="none"
-      className="w-[50vw]"
+      onCancel={onClose}
+      title={t('projectManagement.entityPermissions.editTitle', 'Edit Permissions')}
+      width={640}
+      footer={
+        <div className="flex justify-end gap-2">
+          <Button onClick={onClose}>
+            {t('common.cancel', 'Cancel')}
+          </Button>
+          <Button type="primary" onClick={handleSave} loading={saving}>
+            {t('common.save', 'Save')}
+          </Button>
+        </div>
+      }
+      destroyOnClose
     >
-      <div className="space-y-5">
+      <div className="space-y-5 py-2">
         {/* Entity info banner */}
-        <div className="p-3 bg-gray-50 dark:bg-slate-800 rounded-lg border border-gray-200 dark:border-slate-700">
-          <p className="text-sm text-gray-600 dark:text-gray-300">
-            {t('projectManagement.entityPermissions.description', 'Manage who can access this {{type}}', { type: entityTypeLabel })}
+        <div className="p-4 bg-gray-50 dark:bg-slate-800 rounded-lg border border-gray-200 dark:border-slate-700">
+          <p className="text-sm font-medium text-gray-900 dark:text-gray-100">{entityName}</p>
+          <p className="text-xs text-gray-500 dark:text-gray-400 mt-1">
+            {entityTypeLabel}
           </p>
         </div>
 
-        {/* Add grantee form */}
-        <div className="flex items-end gap-3 p-4 bg-blue-50 dark:bg-blue-900/20 rounded-lg border border-blue-200 dark:border-blue-800">
-          <div className="flex-shrink-0">
-            <label className="text-xs font-medium text-gray-600 dark:text-gray-400 block mb-1">
-              {t('projectManagement.entityPermissions.granteeType', 'Type')}
-            </label>
-            <Select
-              value={addGranteeType}
-              onChange={(v: 'user' | 'team') => {
-                setAddGranteeType(v)
-                setAddGranteeId(undefined)
-              }}
-              size="small"
-              style={{ width: 100 }}
-              options={[
-                { label: t('projectManagement.entityPermissions.user', 'User'), value: 'user' },
-                { label: t('projectManagement.entityPermissions.team', 'Team'), value: 'team' },
-              ]}
+        {/* Permissions section */}
+        <div>
+          <h4 className="text-sm font-semibold text-gray-700 dark:text-gray-300 mb-3">
+            {t('projectManagement.entityPermissions.permissions', 'Permissions')}
+          </h4>
+
+          {/* Private Access toggle */}
+          <div className="flex items-center justify-between p-4 bg-gray-50 dark:bg-slate-800 rounded-lg border border-gray-200 dark:border-slate-700">
+            <div className="flex items-center gap-3">
+              <Lock size={18} className="text-amber-500" />
+              <div>
+                <p className="text-sm font-medium text-gray-900 dark:text-gray-100">
+                  {t('projectManagement.entityPermissions.privateAccess', 'Private Access')}
+                </p>
+                <p className="text-xs text-gray-500 dark:text-gray-400">
+                  {t(
+                    'projectManagement.entityPermissions.privateAccessDesc',
+                    'Only selected teams or users can access this {{type}}',
+                    { type: entityTypeLabel },
+                  )}
+                </p>
+              </div>
+            </div>
+            <Switch
+              checked={isPrivate}
+              onChange={setIsPrivate}
             />
           </div>
-          <div className="flex-1 min-w-0">
-            <label className="text-xs font-medium text-gray-600 dark:text-gray-400 block mb-1">
-              {t('projectManagement.entityPermissions.grantee', 'Grantee')}
-            </label>
-            <Select
-              showSearch
-              value={addGranteeId}
-              onChange={setAddGranteeId}
-              placeholder={t('projectManagement.entityPermissions.selectGrantee', 'Select...')}
-              size="small"
-              className="w-full"
-              optionFilterProp="label"
-              options={granteeOptions}
-              loading={loading}
-            />
-          </div>
-          <div className="flex-shrink-0">
-            <label className="text-xs font-medium text-gray-600 dark:text-gray-400 block mb-1">
-              {t('projectManagement.entityPermissions.level', 'Level')}
-            </label>
-            <Select
-              value={addLevel}
-              onChange={setAddLevel}
-              size="small"
-              style={{ width: 110 }}
-              options={PERMISSION_LEVELS.map((l) => ({
-                label: t(`projectManagement.entityPermissions.levels.${l.value}`, l.label),
-                value: l.value,
-              }))}
-            />
-          </div>
-          <Button
-            type="primary"
-            size="small"
-            icon={<Plus size={14} />}
-            onClick={handleAddPermission}
-            disabled={!addGranteeId}
-            loading={saving}
-          >
-            {t('projectManagement.entityPermissions.add', 'Add')}
-          </Button>
         </div>
 
-        {/* Existing permissions table */}
-        <Table
-          dataSource={permissions}
-          columns={columns}
-          rowKey="id"
-          size="small"
-          loading={loading}
-          pagination={false}
-          locale={{
-            emptyText: t('projectManagement.entityPermissions.noPermissions', 'No permissions configured'),
-          }}
-          className="border rounded-lg dark:border-slate-700 overflow-hidden"
-        />
+        {/* Team/User selection — only shown when Private Access is enabled */}
+        {isPrivate && (
+          <>
+            <Divider className="my-2" />
 
-        {/* Close button */}
-        <div className="flex justify-end pt-2 border-t dark:border-gray-700">
-          <Button onClick={onClose}>
-            {t('common.close', 'Close')}
-          </Button>
-        </div>
+            {/* Select Teams */}
+            <div>
+              <label className="flex items-center gap-2 text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
+                <Users size={14} />
+                {t('projectManagement.entityPermissions.selectTeams', 'Select Teams')}
+              </label>
+              <Select
+                mode="multiple"
+                value={selectedTeamIds}
+                onChange={setSelectedTeamIds}
+                placeholder={t(
+                  'projectManagement.entityPermissions.selectTeamsPlaceholder',
+                  'Select teams allowed to access this source',
+                )}
+                className="w-full"
+                optionFilterProp="label"
+                loading={loading}
+                options={teams.map((team) => ({
+                  label: team.name,
+                  value: team.id,
+                }))}
+              />
+            </div>
+
+            {/* Select Users */}
+            <div>
+              <label className="flex items-center gap-2 text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
+                <User size={14} />
+                {t('projectManagement.entityPermissions.selectUsers', 'Select Users')}
+              </label>
+              <Select
+                mode="multiple"
+                value={selectedUserIds}
+                onChange={setSelectedUserIds}
+                placeholder={t(
+                  'projectManagement.entityPermissions.selectUsersPlaceholder',
+                  'Select users allowed to access this source',
+                )}
+                className="w-full"
+                optionFilterProp="label"
+                loading={loading}
+                options={users.map((user) => ({
+                  label: `${user.displayName} (${user.email})`,
+                  value: user.id,
+                }))}
+              />
+            </div>
+
+            {/* Grantee table */}
+            {granteeTableData.length > 0 && (
+              <Table
+                dataSource={granteeTableData}
+                columns={columns}
+                rowKey="key"
+                size="small"
+                pagination={false}
+                className="border rounded-lg dark:border-slate-700 overflow-hidden"
+              />
+            )}
+          </>
+        )}
       </div>
-    </Dialog>
+    </Modal>
   )
 }

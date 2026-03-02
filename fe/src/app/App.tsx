@@ -12,7 +12,7 @@
  * @module App
  */
 
-import { Suspense, lazy, useEffect } from 'react';
+import { Suspense, lazy, useEffect, useState, useCallback } from 'react';
 import { Routes, Route, Navigate, Outlet } from 'react-router-dom';
 import { App as AntdApp } from 'antd';
 import { AuthProvider, ProtectedRoute, AdminRoute, RoleRoute } from '@/features/auth';
@@ -71,6 +71,68 @@ const PageLoader = () => (
     <div className="animate-spin rounded-full h-12 w-12 border-t-2 border-b-2 border-primary-600"></div>
   </div>
 );
+
+// ============================================================================
+// Server Error Overlay (502 / 503 / 504)
+// ============================================================================
+
+/**
+ * Full-screen overlay shown when the server returns a gateway error (502/503/504).
+ * Listens for the `server:gateway-error` custom event dispatched by api.ts.
+ * Renders over the preloader, stopping the spinner and showing a clear message.
+ */
+const ServerErrorBanner = () => {
+  const [errorStatus, setErrorStatus] = useState<number | null>(null);
+
+  const handleGatewayError = useCallback((e: Event) => {
+    const detail = (e as CustomEvent<{ status: number }>).detail;
+    setErrorStatus(detail.status);
+  }, []);
+
+  useEffect(() => {
+    window.addEventListener('server:gateway-error', handleGatewayError);
+    return () => window.removeEventListener('server:gateway-error', handleGatewayError);
+  }, [handleGatewayError]);
+
+  if (!errorStatus) return null;
+
+  const statusMessages: Record<number, string> = {
+    502: 'Bad Gateway — the server is not responding.',
+    503: 'Service Unavailable — the server is temporarily down.',
+    504: 'Gateway Timeout — the server took too long to respond.',
+  };
+  const message = statusMessages[errorStatus] ?? `Server error (${errorStatus}).`;
+
+  return (
+    <div
+      role="alert"
+      style={{ zIndex: 99999 }}
+      className="fixed inset-0 flex items-center justify-center bg-gray-900/80 backdrop-blur-sm"
+    >
+      <div className="bg-white dark:bg-gray-800 rounded-2xl shadow-2xl p-10 max-w-md w-full flex flex-col items-center gap-6 text-center mx-4">
+        {/* Status badge */}
+        <div className="w-20 h-20 rounded-full bg-red-100 dark:bg-red-900/30 flex items-center justify-center">
+          <span className="text-3xl font-bold text-red-600 dark:text-red-400">{errorStatus}</span>
+        </div>
+
+        <div>
+          <h2 className="text-xl font-bold text-gray-900 dark:text-white mb-2">Server Unavailable</h2>
+          <p className="text-gray-500 dark:text-gray-400 text-sm">{message}</p>
+          <p className="text-gray-400 dark:text-gray-500 text-xs mt-1">
+            Please wait a moment, then try again.
+          </p>
+        </div>
+
+        <button
+          onClick={() => { setErrorStatus(null); window.location.reload(); }}
+          className="px-6 py-2.5 bg-primary-600 hover:bg-primary-700 text-white text-sm font-medium rounded-lg transition-colors"
+        >
+          Retry
+        </button>
+      </div>
+    </div>
+  );
+};
 
 // ============================================================================
 // Global Notification Bridge
@@ -132,6 +194,7 @@ function App() {
 
   return (
     <AntdApp>
+      <ServerErrorBanner />
       <GlobalNotifications />
       <AuthProvider>
         <SettingsProvider>

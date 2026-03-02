@@ -509,6 +509,8 @@ export interface Project {
   default_parser_config: Record<string, any>;
   /** Project status: 'active' | 'archived' */
   status: string;
+  /** Whether the project is private (only accessible by permitted teams) */
+  is_private: boolean;
   /** User ID who created this record */
   created_by?: string | null;
   /** User ID who last updated this record */
@@ -541,6 +543,8 @@ export interface Project {
   default_parser_config: Record<string, any>;
   /** Project status: 'active' | 'archived' */
   status: string;
+  /** Whether the project is private (only accessible by permitted teams) */
+  is_private: boolean;
   /** User ID who created this record */
   created_by?: string | null;
   /** User ID who last updated this record */

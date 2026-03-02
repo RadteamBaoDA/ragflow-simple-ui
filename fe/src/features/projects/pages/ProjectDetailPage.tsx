@@ -72,18 +72,25 @@ const ProjectDetailPage = () => {
     if (!projectId) return
     try {
       setLoading(true)
-      const [projectData, categoryData, chatData, searchData, permData] = await Promise.all([
+      const [projectData, categoryData, chatData, searchData] = await Promise.all([
         getProjectById(projectId),
         getDocumentCategories(projectId),
         getProjectChats(projectId),
         getProjectSearches(projectId),
-        getProjectPermissions(projectId),
       ])
       setProject(projectData)
       setCategories(categoryData)
       setChats(chatData)
       setSearches(searchData)
-      setPermissions(permData)
+
+      // Permissions may not be accessible to all roles — load separately
+      try {
+        const permData = await getProjectPermissions(projectId)
+        setPermissions(permData)
+      } catch {
+        // Non-critical: user may not have permission to view project permissions
+        setPermissions([])
+      }
 
       // Pre-fetch versions for all categories (needed by ChatTab for dataset resolution)
       const versionsMap: Record<string, DocumentCategoryVersion[]> = {}

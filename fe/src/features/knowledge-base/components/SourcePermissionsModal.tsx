@@ -29,6 +29,10 @@ export interface PermissionsSelectorProps {
   isLoading?: boolean;
   /** Disable editing */
   disabled?: boolean;
+  /** Whether to show the "public only" note (default: true) */
+  showPublicNote?: boolean;
+  /** Custom private access description override */
+  privateAccessDesc?: string;
 }
 
 /**
@@ -47,7 +51,9 @@ export const PermissionsSelector: React.FC<PermissionsSelectorProps> = ({
   teams = [],
   users = [],
   isLoading = false,
-  disabled = false
+  disabled = false,
+  showPublicNote = true,
+  privateAccessDesc,
 }) => {
   const { t } = useTranslation();
 
@@ -82,7 +88,7 @@ export const PermissionsSelector: React.FC<PermissionsSelectorProps> = ({
             <p className="text-sm text-gray-500 dark:text-gray-400">
               {isPublic
                 ? (t('knowledgeBaseConfig.publicAccessDesc') || 'All authenticated users can access this source')
-                : (t('knowledgeBaseConfig.privateAccessDesc') || 'Only selected teams or users can access this source')
+                : (privateAccessDesc || t('knowledgeBaseConfig.privateAccessDesc') || 'Only selected teams or users can access this source')
               }
             </p>
           </div>
@@ -161,7 +167,8 @@ export const PermissionsSelector: React.FC<PermissionsSelectorProps> = ({
             )}
           </div>
 
-          {/* User Selection Section */}
+          {/* User Selection Section — only rendered when setSelectedUserIds is provided */}
+          {setSelectedUserIds && (
           <div className="space-y-3">
             <div className="space-y-1.5">
               <label className="text-xs font-medium text-gray-500 dark:text-gray-400 flex items-center gap-1.5">
@@ -229,13 +236,16 @@ export const PermissionsSelector: React.FC<PermissionsSelectorProps> = ({
               </div>
             )}
           </div>
+          )}
         </div>
       )}
 
-      {/* Info Note about System Defaults */}
-      <p className="text-xs text-orange-500 dark:text-orange-400 shrink-0">
-        {t('knowledgeBaseConfig.publicOnlyNote') || 'Only public sources can be set as system defaults.'}
-      </p>
+      {/* Info Note about System Defaults — conditionally shown */}
+      {showPublicNote && (
+        <p className="text-xs text-orange-500 dark:text-orange-400 shrink-0">
+          {t('knowledgeBaseConfig.publicOnlyNote') || 'Only public sources can be set as system defaults.'}
+        </p>
+      )}
     </div>
   );
 };

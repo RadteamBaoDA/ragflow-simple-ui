@@ -21,6 +21,7 @@ export interface Project {
   default_chunk_method: string;
   default_parser_config: Record<string, unknown> | null;
   status: string;
+  is_private: boolean;
   created_by: string | null;
   updated_by: string | null;
   created_at: string;
@@ -121,6 +122,7 @@ export const createProject = (data: {
   default_embedding_model?: string;
   default_chunk_method?: string;
   default_parser_config?: Record<string, unknown>;
+  is_private?: boolean;
 }): Promise<Project> => api.post("/api/projects", data);
 
 /**

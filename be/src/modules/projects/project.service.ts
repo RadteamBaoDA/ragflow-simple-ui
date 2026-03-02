@@ -5,6 +5,7 @@
  */
 import { ModelFactory } from "@/shared/models/factory.js";
 import { Project, ProjectPermission } from "@/shared/models/types.js";
+import { isAdminRole } from "@/shared/config/rbac.js";
 import {
   auditService,
   AuditAction,
@@ -37,7 +38,9 @@ export class ProjectService {
 
   /**
    * List projects accessible by a user.
-   * Admins see all projects; others see only projects they have permissions for.
+   * Admins see all projects; others see:
+   *   - All public projects (is_private = false)
+   *   - Private projects where user's team has a permission entry
    * @param userId - Current user ID
    * @param userRole - User's system role
    * @param userTeamIds - Array of team IDs the user belongs to
@@ -48,19 +51,19 @@ export class ProjectService {
     userRole: string,
     userTeamIds: string[] = [],
   ): Promise<Project[]> {
-    // Admins can see all projects
-    if (userRole === "admin") {
+    // Admins/leaders can see all projects
+    if (isAdminRole(userRole)) {
       return ModelFactory.project.findAll();
     }
 
-    // Find project IDs where user has any permission
-    const userPerms = await ModelFactory.projectPermission.findByGrantee(
-      "user",
-      userId,
-    );
-    const projectIds = new Set(userPerms.map((p) => p.project_id));
+    // Step 1: Get all public projects
+    const publicProjects = await (ModelFactory.project as any)
+      .query()
+      .where({ is_private: false });
 
-    // Also find project IDs via team permissions
+    // Step 2: Find private project IDs where user's team has any permission
+    const projectIds = new Set<string>();
+
     for (const teamId of userTeamIds) {
       const teamPerms = await ModelFactory.projectPermission.findByGrantee(
         "team",
@@ -69,12 +72,20 @@ export class ProjectService {
       teamPerms.forEach((p) => projectIds.add(p.project_id));
     }
 
-    if (projectIds.size === 0) return [];
+    // Step 3: Fetch private projects the user has access to
+    let privateProjects: Project[] = [];
+    if (projectIds.size > 0) {
+      privateProjects = await (ModelFactory.project as any)
+        .query()
+        .where({ is_private: true })
+        .whereIn("id", Array.from(projectIds));
+    }
 
-    // Fetch projects by IDs
-    return (ModelFactory.project as any)
-      .query()
-      .whereIn("id", Array.from(projectIds));
+    // Merge and deduplicate
+    const allMap = new Map<string, Project>();
+    for (const p of publicProjects) allMap.set(p.id, p);
+    for (const p of privateProjects) allMap.set(p.id, p);
+    return Array.from(allMap.values());
   }
 
   /**
@@ -300,8 +311,8 @@ export class ProjectService {
     userTeamIds: string[],
     tab: "documents" | "chat" | "settings",
   ): Promise<string> {
-    // Admins always have manage access
-    if (userRole === "admin") return "manage";
+    // Admins/leaders always have manage access
+    if (isAdminRole(userRole)) return "manage";
 
     const tabField = `tab_${tab}` as keyof ProjectPermission;
 

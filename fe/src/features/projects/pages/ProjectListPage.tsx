@@ -30,21 +30,31 @@ import {
   message,
   Spin,
   Empty,
+  Divider,
 } from 'antd'
 import {
   Plus,
   FolderOpen,
   Pencil,
   Trash2,
+  Lock,
+  Globe,
 } from 'lucide-react'
 import {
   getProjects,
   createProject,
   updateProject,
   deleteProject,
+  getProjectPermissions,
+  setProjectPermission,
+  removeProjectPermission,
   type Project,
+  type ProjectPermission,
 } from '../api/projectService'
 import { getRagflowServers, type RagflowServer } from '@/features/ragflow-servers'
+import { ProjectPermissionModal } from '../components/ProjectPermissionModal'
+import { PermissionsSelector } from '@/features/knowledge-base/components/SourcePermissionsModal'
+import { teamApi, type Team } from '@/features/teams'
 
 // ============================================================================
 // Component
@@ -70,6 +80,17 @@ const ProjectListPage = () => {
   const [modalOpen, setModalOpen] = useState(false)
   const [editingProject, setEditingProject] = useState<Project | null>(null)
   const [saving, setSaving] = useState(false)
+
+  // Permission modal state
+  const [permProject, setPermProject] = useState<Project | null>(null)
+  const [permModalOpen, setPermModalOpen] = useState(false)
+
+  // Inline permission state for create/edit modal
+  const [isPublic, setIsPublic] = useState(true)
+  const [selectedTeamIds, setSelectedTeamIds] = useState<string[]>([])
+  const [allTeams, setAllTeams] = useState<Team[]>([])
+  const [teamsLoading, setTeamsLoading] = useState(false)
+  const [editPermissions, setEditPermissions] = useState<ProjectPermission[]>([])
 
   /**
    * Fetch all projects and servers from the API.
@@ -97,12 +118,32 @@ const ProjectListPage = () => {
   }, [fetchData])
 
   /**
+   * Fetch teams list when needed.
+   */
+  const loadTeams = useCallback(async () => {
+    if (allTeams.length > 0) return
+    setTeamsLoading(true)
+    try {
+      const teamsList = await teamApi.getTeams()
+      setAllTeams(teamsList)
+    } catch (err) {
+      console.error('Failed to fetch teams:', err)
+    } finally {
+      setTeamsLoading(false)
+    }
+  }, [allTeams.length])
+
+  /**
    * Open modal to create a new project.
    */
   const handleAdd = () => {
     setEditingProject(null)
     form.resetFields()
+    setIsPublic(true)
+    setSelectedTeamIds([])
+    setEditPermissions([])
     setModalOpen(true)
+    loadTeams()
   }
 
   /**
@@ -111,7 +152,7 @@ const ProjectListPage = () => {
    * @param project - The project to edit
    * @param e - Mouse event (stopped to prevent card click)
    */
-  const handleEdit = (project: Project, e: React.MouseEvent) => {
+  const handleEdit = async (project: Project, e: React.MouseEvent) => {
     e.stopPropagation()
     setEditingProject(project)
     form.setFieldsValue({
@@ -119,22 +160,86 @@ const ProjectListPage = () => {
       description: project.description,
       ragflow_server_id: project.ragflow_server_id,
     })
+    setIsPublic(!project.is_private)
     setModalOpen(true)
+    loadTeams()
+
+    // Load existing team permissions
+    try {
+      const perms = await getProjectPermissions(project.id)
+      setEditPermissions(perms)
+      const teamIds = perms
+        .filter((p) => p.grantee_type === 'team')
+        .map((p) => p.grantee_id)
+      setSelectedTeamIds(teamIds)
+    } catch {
+      setEditPermissions([])
+      setSelectedTeamIds([])
+    }
   }
 
   /**
    * Submit create/edit form.
+   * Handles both project data and permission assignment.
    */
   const handleSubmit = async () => {
     try {
       const values = await form.validateFields()
       setSaving(true)
 
+      const isPrivate = !isPublic
+
       if (editingProject) {
-        await updateProject(editingProject.id, values)
+        // Update project with is_private
+        await updateProject(editingProject.id, { ...values, is_private: isPrivate })
+
+        // Diff team permissions
+        const existingTeamIds = new Set(
+          editPermissions.filter((p) => p.grantee_type === 'team').map((p) => p.grantee_id),
+        )
+
+        if (isPrivate) {
+          // Add new teams
+          for (const teamId of selectedTeamIds.filter((id) => !existingTeamIds.has(id))) {
+            await setProjectPermission(editingProject.id, {
+              grantee_type: 'team',
+              grantee_id: teamId,
+              tab_documents: 'view',
+              tab_chat: 'view',
+              tab_settings: 'none',
+            })
+          }
+          // Remove teams no longer selected
+          for (const perm of editPermissions.filter(
+            (p) => p.grantee_type === 'team' && !selectedTeamIds.includes(p.grantee_id),
+          )) {
+            await removeProjectPermission(editingProject.id, perm.id)
+          }
+        } else {
+          // Going public — remove all team permissions
+          for (const perm of editPermissions.filter((p) => p.grantee_type === 'team')) {
+            await removeProjectPermission(editingProject.id, perm.id)
+          }
+        }
+
         message.success(t('projectManagement.updateSuccess'))
       } else {
-        await createProject(values)
+        // Create project with is_private flag
+        const createdProject = await createProject({ ...values, is_private: isPrivate })
+
+        // Add team permissions to newly created project
+        if (isPrivate && selectedTeamIds.length > 0) {
+          for (const teamId of selectedTeamIds) {
+            await setProjectPermission(createdProject.id, {
+              grantee_type: 'team',
+              grantee_id: teamId,
+              tab_documents: 'view',
+              tab_chat: 'view',
+              tab_settings: 'none',
+            })
+          }
+        }
+
         message.success(t('projectManagement.createSuccess'))
       }
 
@@ -263,6 +368,21 @@ const ProjectListPage = () => {
                         </div>
                       </div>
                       <Space>
+                        <Tooltip title={t('projectManagement.editPermissions', 'Edit Permissions')}>
+                          <Button
+                            type="text"
+                            icon={
+                              project.is_private
+                                ? <Lock size={18} className="text-amber-500" />
+                                : <Globe size={18} className="text-green-500" />
+                            }
+                            onClick={(e: React.MouseEvent) => {
+                              e.stopPropagation()
+                              setPermProject(project)
+                              setPermModalOpen(true)
+                            }}
+                          />
+                        </Tooltip>
                         <Tooltip title={t('projectManagement.editProject')}>
                           <Button
                             type="text"
@@ -333,7 +453,34 @@ const ProjectListPage = () => {
             />
           </Form.Item>
         </Form>
+
+        <Divider className="my-2" />
+
+        {/* Inline Permissions Selector — teams only, no users, no public note */}
+        <PermissionsSelector
+          isPublic={isPublic}
+          setIsPublic={setIsPublic}
+          selectedTeamIds={selectedTeamIds}
+          setSelectedTeamIds={setSelectedTeamIds}
+          teams={allTeams}
+          isLoading={teamsLoading}
+          showPublicNote={false}
+          privateAccessDesc={t('projectManagement.privateAccessDesc', 'Only selected teams can access this project')}
+        />
       </Modal>
+
+      {/* Permission Modal */}
+      {permProject && (
+        <ProjectPermissionModal
+          open={permModalOpen}
+          onClose={() => {
+            setPermModalOpen(false)
+            setPermProject(null)
+          }}
+          project={permProject}
+          onSaved={fetchData}
+        />
+      )}
     </div>
   )
 }
