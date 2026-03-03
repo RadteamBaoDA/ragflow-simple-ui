@@ -25,6 +25,7 @@ import { useNavigation } from '@/components/NavigationLoader';
 import { useHeaderActionsContent } from '@/components/HeaderActions';
 import { config } from '../config';
 import { Select } from '@/components/Select';
+import { RagflowIcon } from '@/components/RagflowIcon';
 import {
   MessageSquare,
   Search,
@@ -47,7 +48,6 @@ import {
   History,
   Info,
   FolderOpen,
-  Database,
   BarChart3,
 } from 'lucide-react';
 
@@ -442,7 +442,7 @@ function Layout() {
                     <span>{t('nav.histories')}</span>
                   </NavLink>
                   <NavLink to="/admin/ragflow-servers" onClick={handleNavClick('/admin/ragflow-servers')} className={({ isActive }: { isActive: boolean }) => `sidebar-link ${isActive ? 'active' : ''}`} title={t('nav.ragflowServers')}>
-                    <Database size={18} />
+                    <RagflowIcon size={18} />
                     <span>{t('nav.ragflowServers')}</span>
                   </NavLink>
 

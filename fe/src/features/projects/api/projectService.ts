@@ -651,3 +651,30 @@ export const removeEntityPermission = (
   permissionId: string,
 ): Promise<void> =>
   api.delete(`/api/projects/${projectId}/entity-permissions/${permissionId}`);
+
+/**
+ * Fetch live RAGFlow parser status for all documents in a version.
+ * Triggers an on-demand sync from RAGFlow parser and returns updated statuses.
+ * @param projectId - Project UUID
+ * @param categoryId - Category UUID
+ * @param versionId - Version UUID
+ * @returns Array of document parser status snapshots from RAGFlow
+ */
+export const syncVersionParserStatus = (
+  projectId: string,
+  categoryId: string,
+  versionId: string,
+): Promise<
+  {
+    fileName: string;
+    ragflowDocId: string | null;
+    ragflowRun: string | null;
+    ragflowProgress: number | null;
+    ragflowProgressMsg: string | null;
+    ragflowChunkCount: number | null;
+    name: string;
+  }[]
+> =>
+  api.get(
+    `/api/projects/${projectId}/categories/${categoryId}/versions/${versionId}/documents/parser-status`,
+  );

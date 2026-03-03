@@ -88,5 +88,11 @@ router.post(
   requireAuth,
   DocumentCategoryController.parseDocuments,
 );
+// Must be registered before the generic /:versionId/documents GET to avoid collision
+router.get(
+  "/:categoryId/versions/:versionId/documents/parser-status",
+  requireAuth,
+  DocumentCategoryController.syncParserStatus,
+);
 
 export default router;

@@ -17,6 +17,7 @@ import {
   type FileTracking,
 } from "@/modules/converter/converter-queue.service.js";
 import { ragflowProxyService } from "@/shared/services/ragflow-proxy.service.js";
+import { parserPollerService } from "@/modules/converter/parser-poller.service.js";
 import { log } from "@/shared/services/logger.service.js";
 import { config } from "@/shared/config/index.js";
 
@@ -191,6 +192,42 @@ export class ConverterUploadService {
       `Version job ${job.id} upload complete: ${result.uploaded}/${result.totalFiles} succeeded` +
         (result.failed > 0 ? `, ${result.failed} failed` : ""),
     );
+
+    // ── Auto-trigger parse + start background poller ──────────────────────
+    try {
+      // Fetch updated file records to get the saved ragflowDocIds
+      const updatedFiles = await converterQueueService.getJobFiles(job.id);
+      const docIds = updatedFiles
+        .map((f) => f.ragflowDocId)
+        .filter((id): id is string => Boolean(id));
+
+      if (docIds.length > 0) {
+        // Auto-trigger RAGFlow parsing for all uploaded documents
+        log.info(
+          `Auto-triggering parse for ${docIds.length} doc(s) in version ${job.versionId}`,
+        );
+        await ragflowProxyService.parseDocuments(
+          job.serverId,
+          job.datasetId,
+          docIds,
+        );
+
+        // Start background poller to track parse progress
+        parserPollerService.startPolling(
+          job.versionId,
+          job.serverId,
+          job.datasetId,
+          docIds,
+        );
+      }
+    } catch (parseErr) {
+      // Non-fatal: log but don't fail the upload result
+      log.warn("Auto-parse trigger failed after upload", {
+        jobId: job.id,
+        versionId: job.versionId,
+        error: (parseErr as Error).message,
+      });
+    }
 
     return result;
   }

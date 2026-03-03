@@ -926,7 +926,11 @@
       "retryParse": "Phân tích lại",
       "retryParseSuccess": "Đã thêm {{count}} tệp vào hàng đợi chuyển đổi",
       "startParse": "Bắt đầu phân tích",
-      "startParseSuccess": "Đã gửi {{count}} tệp để phân tích"
+      "startParseSuccess": "Đã gửi {{count}} tệp để phân tích",
+      "syncParserStatus": "Đồng bộ Parser",
+      "syncParserSuccess": "Đã đồng bộ trạng thái phân tích từ RAGFlow",
+      "syncParserError": "Không thể đồng bộ trạng thái phân tích"
+
     },
     "jobs": {
       "title": "Công việc Chuyển đổi",

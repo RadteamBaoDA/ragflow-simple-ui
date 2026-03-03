@@ -13,7 +13,7 @@ import { useTranslation } from 'react-i18next'
 import { Table, Tag, Empty, Input, Button, Tooltip, Popconfirm, message, Badge } from 'antd'
 import type { ColumnsType } from 'antd/es/table'
 import { FileText, FileSpreadsheet, FileImage, File, UploadCloud, FolderUp, Trash2, Layers, RefreshCw, Play } from 'lucide-react'
-import { getVersionDocuments, deleteVersionDocuments, requeueVersionDocuments, parseVersionDocuments, type VersionDocument } from '../api/projectService'
+import { getVersionDocuments, deleteVersionDocuments, requeueVersionDocuments, parseVersionDocuments, syncVersionParserStatus, type VersionDocument } from '../api/projectService'
 
 import { useConverterSocket } from '../../system/hooks/useConverterSocket'
 import UploadFilesModal from './UploadFilesModal'
@@ -101,6 +101,8 @@ const DocumentListPanel = ({ projectId, categoryId, versionId, versionLabel, ref
   const [requeueing, setRequeueing] = useState(false)
   /** Loading state for parse operation */
   const [parsing, setParsing] = useState(false)
+  /** Loading state for parser status sync operation */
+  const [syncing, setSyncing] = useState(false)
 
   /** Fetch documents for the selected version */
   const fetchDocuments = useCallback(async () => {
@@ -211,6 +213,29 @@ const DocumentListPanel = ({ projectId, categoryId, versionId, versionLabel, ref
   const hasImportedSelected = selectedRowKeys.length > 0 && documents.some(
     (doc) => selectedRowKeys.includes(doc.id) && doc.run === 'imported',
   )
+
+  /**
+   * Check if any doc in the list is in a parse-trackable state.
+   * Shows the Sync Parser Status button when relevant.
+   */
+  const hasParseableStatus = documents.some(
+    (doc) => doc.run === 'imported' || doc.run === 'UNSTART' || doc.run === 'RUNNING',
+  )
+
+  /** Sync live parser status from RAGFlow on demand */
+  const handleSyncParserStatus = async () => {
+    setSyncing(true)
+    try {
+      await syncVersionParserStatus(projectId, categoryId, versionId)
+      // Refresh the local document list to pick up updated statuses
+      await fetchDocuments()
+      message.success(t('projectManagement.documents.syncParserSuccess'))
+    } catch (err) {
+      message.error(t('projectManagement.documents.syncParserError'))
+    } finally {
+      setSyncing(false)
+    }
+  }
 
   // ── Table columns ──────────────────────────────────────────────────────
 
@@ -371,6 +396,18 @@ const DocumentListPanel = ({ projectId, categoryId, versionId, versionLabel, ref
                   {t('converter.panel.title')}
                 </Button>
               </Badge>
+            </Tooltip>
+          )}
+          {hasParseableStatus && (
+            <Tooltip title={t('projectManagement.documents.syncParserStatus')}>
+              <Button
+                size="small"
+                icon={<RefreshCw size={14} />}
+                loading={syncing}
+                onClick={handleSyncParserStatus}
+              >
+                {t('projectManagement.documents.syncParserStatus')}
+              </Button>
             </Tooltip>
           )}
         </div>

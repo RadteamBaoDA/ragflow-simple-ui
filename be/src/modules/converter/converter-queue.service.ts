@@ -90,6 +90,14 @@ export interface FileTracking {
   pdfPath?: string | undefined;
   /** RAGFlow document ID (set after upload to RAGFlow) */
   ragflowDocId?: string | undefined;
+  /** RAGFlow parser run status: UNSTART | RUNNING | DONE | FAIL (set by poller) */
+  ragflowRun?: string | undefined;
+  /** RAGFlow parsing progress as decimal 0-1 (set by poller) */
+  ragflowProgress?: string | undefined;
+  /** RAGFlow parsing progress message (set by poller) */
+  ragflowProgressMsg?: string | undefined;
+  /** Number of chunks created in RAGFlow (set by poller) */
+  ragflowChunkCount?: string | undefined;
   /** Error message if failed */
   error?: string | undefined;
   /** ISO timestamp of creation */
@@ -638,8 +646,41 @@ export class ConverterQueueService {
     }
   }
 
-  // --------------------------------------------------------------------------
-  // Worker Helpers
+  /**
+   * Update live RAGFlow parser status fields for a file tracking record.
+   * Writes ragflowRun, ragflowProgress, ragflowProgressMsg, ragflowChunkCount
+   * into the Redis hash without touching job counters.
+   * Called by the ParserPollerService during background polling.
+   *
+   * @param fileId - File tracking UUID
+   * @param data - Live parser status data from RAGFlow
+   */
+  async updateFileParserStatus(
+    fileId: string,
+    data: {
+      ragflowRun: string;
+      ragflowProgress: string;
+      ragflowProgressMsg: string;
+      ragflowChunkCount: string;
+    },
+  ): Promise<void> {
+    const client = this.getClient();
+    const fileKey = `${FILE_KEY_PREFIX}${fileId}`;
+
+    // Verify the record exists
+    const exists = await client.hGet(fileKey, "id");
+    if (!exists) return; // silently skip if file record is gone
+
+    // Write parser status fields to hash
+    await client.hSet(fileKey, {
+      ragflowRun: data.ragflowRun,
+      ragflowProgress: data.ragflowProgress,
+      ragflowProgressMsg: data.ragflowProgressMsg,
+      ragflowChunkCount: data.ragflowChunkCount,
+      updatedAt: new Date().toISOString(),
+    });
+  }
+
   // --------------------------------------------------------------------------
 
   /**
@@ -879,6 +920,10 @@ export class ConverterQueueService {
       status: (data.status as ConversionJobStatus) ?? "pending",
       pdfPath: data.pdfPath || undefined,
       ragflowDocId: data.ragflowDocId || undefined,
+      ragflowRun: data.ragflowRun || undefined,
+      ragflowProgress: data.ragflowProgress || undefined,
+      ragflowProgressMsg: data.ragflowProgressMsg || undefined,
+      ragflowChunkCount: data.ragflowChunkCount || undefined,
       error: data.error || undefined,
       createdAt: data.createdAt ?? "",
       updatedAt: data.updatedAt ?? "",

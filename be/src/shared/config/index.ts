@@ -468,6 +468,16 @@ export const config = {
     scheduleEnd: parseInt(process.env["CONVERTER_SCHEDULE_END"] ?? "5", 10),
     /** IANA timezone for schedule evaluation */
     timezone: process.env["CONVERTER_TIMEZONE"] ?? "Asia/Ho_Chi_Minh",
+    /**
+     * Interval in milliseconds between RAGFlow parser status polls.
+     * After parse is triggered, the backend polls RAGFlow at this frequency
+     * until all documents reach DONE/FAIL or 24 hrs have elapsed.
+     * Default: 300000 (5 minutes)
+     */
+    parserPollIntervalMs: parseInt(
+      process.env["PARSER_POLL_INTERVAL_MS"] ?? "300000",
+      10,
+    ),
   },
 } as const;
 

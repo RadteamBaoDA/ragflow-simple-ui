@@ -203,26 +203,24 @@ export const TaskManagementTab: React.FC<TaskManagementTabProps> = ({
 
             {/* Tasks Table */}
             <Card
-                className="dark:bg-slate-800 dark:border-slate-700 flex-1 min-h-0"
-                styles={{ body: { padding: 0, height: '100%', display: 'flex', flexDirection: 'column' } }}
+                className="dark:bg-slate-800 dark:border-slate-700"
+                styles={{ body: { padding: 0 } }}
             >
-                <div className="flex-1 overflow-auto">
-                    <Table
-                        columns={columns}
-                        dataSource={filteredTasks}
-                        rowKey="id"
-                        loading={loading}
-                        rowSelection={rowSelection}
-                        pagination={{
-                            pageSize,
-                            showSizeChanger: true,
-                            onShowSizeChange: (_current: number, size: number) => setPageSize(size),
-                            showTotal: (total: number) => `${total} items`,
-                        }}
-                        scroll={{ x: true, y: 'calc(100vh - 320px)' }}
-                        locale={{ emptyText: t('common.noData') }}
-                    />
-                </div>
+                <Table
+                    columns={columns}
+                    dataSource={filteredTasks}
+                    rowKey="id"
+                    loading={loading}
+                    rowSelection={rowSelection}
+                    pagination={{
+                        pageSize,
+                        showSizeChanger: true,
+                        onShowSizeChange: (_current: number, size: number) => setPageSize(size),
+                        showTotal: (total: number) => `${total} items`,
+                    }}
+                    scroll={{ x: true }}
+                    locale={{ emptyText: t('common.noData') }}
+                />
             </Card>
 
             {/* Task Create/Edit Modal */}

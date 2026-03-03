@@ -582,4 +582,35 @@ export class DocumentCategoryController {
         .json({ error: error.message || "Failed to parse documents" });
     }
   }
+
+  /**
+   * Fetch live RAGFlow parser status for all documents in a version.
+   * GET /api/projects/:projectId/categories/:categoryId/versions/:versionId/documents/parser-status
+   */
+  static async syncParserStatus(req: Request, res: Response) {
+    try {
+      const project = await ModelFactory.project.findById(
+        req.params.projectId as string,
+      );
+      if (!project?.ragflow_server_id) {
+        res
+          .status(400)
+          .json({ error: "Project must have a RAGFlow server assigned" });
+        return;
+      }
+
+      const result = await documentCategoryService.syncParserStatus(
+        req.params.projectId as string,
+        req.params.categoryId as string,
+        req.params.versionId as string,
+        project.ragflow_server_id,
+      );
+      res.json(result);
+    } catch (error: any) {
+      console.error("Error syncing parser status:", error);
+      res
+        .status(500)
+        .json({ error: error.message || "Failed to sync parser status" });
+    }
+  }
 }

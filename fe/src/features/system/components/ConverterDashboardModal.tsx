@@ -36,7 +36,7 @@ import {
   ChevronDown,
   ChevronRight,
   FileText,
-  Trash2,
+  RotateCcw,
 } from 'lucide-react'
 
 import {
@@ -433,7 +433,7 @@ const ConverterDashboardModal = ({ open, onClose }: ConverterDashboardModalProps
                 type="text"
                 size="small"
                 danger
-                icon={<Trash2 size={14} />}
+                icon={<RotateCcw size={14} />}
                 loading={clearingQueue}
               />
             </Tooltip>

@@ -927,7 +927,11 @@
       "retryParse": "Retry Parse",
       "retryParseSuccess": "Queued {{count}} file(s) for conversion",
       "startParse": "Start Parse",
-      "startParseSuccess": "{{count}} file(s) sent for parsing"
+      "startParseSuccess": "{{count}} file(s) sent for parsing",
+      "syncParserStatus": "Sync Parser",
+      "syncParserSuccess": "Parser status synced from RAGFlow",
+      "syncParserError": "Failed to sync parser status"
+
     },
     "jobs": {
       "title": "Conversion Jobs",

@@ -70,6 +70,8 @@ services:
       # Override DB host to use Docker network
       DB_HOST: postgres
       REDIS_HOST: redis
+      # Upload directory for document files (shared with converter)
+      UPLOAD_DIR: /app/uploads
     ports:
       - "${PORT:-3001}:3001"
     expose:
@@ -77,6 +79,8 @@ services:
     volumes:
       - backend_logs:/app/logs
       - backend_data:/app/.data
+      # Shared upload volume — backend writes, converter reads
+      - uploads_data:/app/uploads
       # Mount config directory for system-tools.config.json & ragflow.config.json
       - ./config:/app/config:ro
     healthcheck:
@@ -112,9 +116,11 @@ services:
       BACKEND_URL: http://backend:3001
       POLL_INTERVAL: 30
       CONVERSION_TIMEOUT: 300
+      # Must match backend's UPLOAD_DIR so converter reads/writes to the same path
+      UPLOAD_DIR: /app/uploads
     volumes:
-      - backend_data:/app/.data    # Shared volume: read uploaded files
-      - converter_temp:/tmp/converter  # Temp space for PDF output
+      - uploads_data:/app/uploads    # Shared volume: read original files, write converted PDFs
+      - converter_temp:/tmp/converter  # Temp space for intermediate PDF output
     networks:
       - kb-network
 
@@ -136,6 +142,9 @@ volumes:
   backend_logs:
     driver: local
   backend_data:
+    driver: local
+  # Shared upload directory — backend writes originals, converter reads & writes PDFs back
+  uploads_data:
     driver: local
   converter_temp:
     driver: local

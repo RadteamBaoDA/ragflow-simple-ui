@@ -13,6 +13,8 @@ import {
 } from "@/shared/models/types.js";
 import { ragflowProxyService } from "@/shared/services/ragflow-proxy.service.js";
 import { converterQueueService } from "@/modules/converter/converter-queue.service.js";
+import { parserPollerService } from "@/modules/converter/parser-poller.service.js";
+
 import {
   auditService,
   AuditAction,
@@ -776,11 +778,30 @@ export class DocumentCategoryService {
               status: f.status,
               pdfPath: f.pdfPath,
               error: f.error,
+              // Parser status fields written by ParserPollerService / syncParserStatus
+              ragflowRun: f.ragflowRun,
+              ragflowProgress: f.ragflowProgress
+                ? parseFloat(f.ragflowProgress)
+                : 0,
+              ragflowProgressMsg: f.ragflowProgressMsg,
+              ragflowChunkCount: f.ragflowChunkCount
+                ? parseInt(f.ragflowChunkCount, 10)
+                : 0,
               _updatedAt: f.updatedAt,
             } as any;
           }
         }
       }
+      log.debug("Converter status map built for listDocuments", {
+        versionId,
+        fileCount: Object.keys(converterStatusMap).length,
+        files: Object.entries(converterStatusMap).map(([name, c]: any) => ({
+          name,
+          status: c.status,
+          ragflowRun: c.ragflowRun,
+          ragflowChunkCount: c.ragflowChunkCount,
+        })),
+      });
     } catch (err) {
       // Non-fatal: if Redis is down, just show all as "local"
       log.warn("Failed to fetch converter status for documents", {
@@ -798,9 +819,19 @@ export class DocumentCategoryService {
           if (!stat.isFile()) return null;
 
           // Derive document status from converter tracking
-          const conv = converterStatusMap[name];
+          const conv = converterStatusMap[name] as any;
           let docStatus = "local"; // default: not converted
+          let chunkCount = 0;
+          let progress = 0;
+          let progressMsg = "";
+
           if (conv) {
+            // Read poller-written RAGFlow parser state (may be undefined if poller hasn't run)
+            const ragflowRun: string | undefined = conv.ragflowRun;
+            chunkCount = conv.ragflowChunkCount || 0;
+            progress = conv.ragflowProgress || 0;
+            progressMsg = conv.ragflowProgressMsg || conv.error || "";
+
             switch (conv.status) {
               case "pending":
               case "processing":
@@ -812,13 +843,27 @@ export class DocumentCategoryService {
                 docStatus = "converted";
                 break;
               case "finished":
-                // Successfully uploaded to RAGFlow
-                docStatus = "imported";
+                // Uploaded to RAGFlow — use in-memory ragflowRun if available
+                if (ragflowRun && ragflowRun !== "") {
+                  docStatus = ragflowRun;
+                } else {
+                  // Poller hasn't run yet — show as imported
+                  docStatus = "imported";
+                }
                 break;
               case "failed":
                 docStatus = "failed";
                 break;
+              // RAGFlow-native run values stored in Postgres `status` col
+              // after syncParserStatus upserts them into document_category_version_files
+              case "DONE":
+              case "RUNNING":
+              case "FAIL":
+              case "UNSTART":
+                docStatus = conv.status;
+                break;
               default:
+                // Unknown — keep as local
                 docStatus = "local";
             }
           }
@@ -833,10 +878,10 @@ export class DocumentCategoryService {
             created_by: "",
             create_time: Math.floor(stat.birthtimeMs / 1000),
             update_time: Math.floor(stat.mtimeMs / 1000),
-            chunk_count: 0,
+            chunk_count: chunkCount,
             token_count: 0,
-            progress: 0,
-            progress_msg: conv?.error || "",
+            progress,
+            progress_msg: progressMsg,
           };
         }),
       )
@@ -1274,6 +1319,13 @@ export class DocumentCategoryService {
           count: idsToParse.length,
           ids: idsToParse,
         });
+        // Start background poller to track parse progress from manual trigger
+        parserPollerService.startPolling(
+          versionId,
+          serverId,
+          datasetId,
+          idsToParse,
+        );
       } catch (err) {
         log.error("Failed to start RAGFlow parsing", {
           error: (err as Error).message,
@@ -1284,6 +1336,244 @@ export class DocumentCategoryService {
     }
 
     return { parsed, failed };
+  }
+
+  /**
+   * Fetch live RAGFlow parser status for all documents in a version.
+   * Called by the Sync Parser Status button (GET .../documents/parser-status).
+   * Updates local file tracking records with the latest run/progress/chunk data
+   * from RAGFlow and returns a merged list for the frontend.
+   *
+   * @param projectId - Project UUID
+   * @param categoryId - Category UUID
+   * @param versionId - Version UUID
+   * @param serverId - RAGFlow server ID
+   * @returns Array of document status snapshots
+   */
+  async syncParserStatus(
+    projectId: string,
+    categoryId: string,
+    versionId: string,
+    serverId: string,
+  ): Promise<any[]> {
+    log.info("[syncParserStatus] START", { versionId, serverId });
+
+    // Step 1: Resolve version to get datasetId
+    const version =
+      await ModelFactory.documentCategoryVersion.findById(versionId);
+    if (!version) throw new Error("Version not found");
+    if (!version.ragflow_dataset_id)
+      throw new Error("Version has no RAGFlow dataset linked");
+
+    const datasetId = version.ragflow_dataset_id;
+    log.info("[syncParserStatus] Step 1 - Version resolved", {
+      versionId,
+      datasetId,
+    });
+
+    // Step 2: Fetch all documents from RAGFlow (paginated)
+    const ragflowDocs: any[] = [];
+    let page = 1;
+    const PAGE_SIZE = 100;
+    while (true) {
+      const batch = await ragflowProxyService.listDocuments(
+        serverId,
+        datasetId,
+        {
+          page,
+          page_size: PAGE_SIZE,
+        },
+      );
+      if (!batch || batch.length === 0) break;
+      ragflowDocs.push(...batch);
+      if (batch.length < PAGE_SIZE) break;
+      page++;
+      if (ragflowDocs.length >= 2000) break;
+    }
+    log.info("[syncParserStatus] Step 2 - RAGFlow docs fetched", {
+      totalFromRagflow: ragflowDocs.length,
+      docs: ragflowDocs.map((d: any) => ({
+        id: d.id,
+        name: d.name,
+        run: d.run,
+        progress: d.progress,
+        chunkNum: d.chunk_num ?? d.chunk_count,
+        progressMsg: d.progress_msg,
+      })),
+    });
+
+    // Step 3: Build ragflowDocId → RAGFlow doc map
+    const ragflowDocMap: Record<string, any> = {};
+    for (const doc of ragflowDocs) {
+      if (doc.id) ragflowDocMap[doc.id] = doc;
+    }
+
+    // Step 4: Load all file tracking records for this version
+    const { jobs } = await converterQueueService.listVersionJobs({
+      versionId,
+      page: 1,
+      pageSize: 1000,
+    });
+    log.info("[syncParserStatus] Step 4 - Converter jobs loaded", {
+      jobCount: jobs.length,
+      jobIds: jobs.map((j) => j.id),
+    });
+
+    const results: any[] = [];
+    let matchedCount = 0;
+    let unmatchedCount = 0;
+
+    for (const job of jobs) {
+      const files = await converterQueueService.getJobFiles(job.id);
+      log.info("[syncParserStatus] Step 4 - Files in job", {
+        jobId: job.id,
+        fileCount: files.length,
+        files: files.map((f) => ({
+          fileName: f.fileName,
+          fileId: f.id,
+          converterStatus: f.status,
+          ragflowDocId: f.ragflowDocId,
+          currentRagflowRun: f.ragflowRun,
+          currentRagflowChunkCount: f.ragflowChunkCount,
+        })),
+      });
+
+      for (const file of files) {
+        const ragflowDoc = file.ragflowDocId
+          ? ragflowDocMap[file.ragflowDocId]
+          : null;
+
+        if (ragflowDoc && file.ragflowDocId) {
+          matchedCount++;
+          const ragflowRun: string = ragflowDoc.run ?? "UNSTART";
+          const ragflowProgress: string = String(ragflowDoc.progress ?? 0);
+          const ragflowProgressMsg: string = ragflowDoc.progress_msg ?? "";
+          const ragflowChunkCount: string = String(
+            ragflowDoc.chunk_num ?? ragflowDoc.chunk_count ?? 0,
+          );
+
+          log.info("[syncParserStatus] Step 5 - Updating file parser status", {
+            fileId: file.id,
+            fileName: file.fileName,
+            ragflowDocId: file.ragflowDocId,
+            oldRagflowRun: file.ragflowRun ?? "(not set)",
+            newRagflowRun: ragflowRun,
+            oldChunkCount: file.ragflowChunkCount ?? "(not set)",
+            newChunkCount: ragflowChunkCount,
+            ragflowProgress,
+          });
+
+          // Persist latest parser status to the file tracking record
+          try {
+            await converterQueueService.updateFileParserStatus(file.id, {
+              ragflowRun,
+              ragflowProgress,
+              ragflowProgressMsg,
+              ragflowChunkCount,
+            });
+            log.info(
+              "[syncParserStatus] Step 5 - updateFileParserStatus SUCCESS",
+              {
+                fileId: file.id,
+                fileName: file.fileName,
+                ragflowRun,
+                ragflowChunkCount,
+              },
+            );
+          } catch (err) {
+            // File was archived from Redis to Postgres — updateFileParserStatus silently skipped it.
+            // Fall back: write ragflowRun directly into the existing `status` column of
+            // document_category_version_files using the upsertByVersionAndFileName method.
+            // No migration needed — `status TEXT(50)` already accepts DONE/RUNNING/FAIL/UNSTART.
+            log.warn(
+              "[syncParserStatus] Step 5 - Redis update skipped, falling back to Postgres upsert",
+              {
+                fileId: file.id,
+                fileName: file.fileName,
+                versionId: file.versionId,
+                ragflowRun,
+                ragflowDocId: file.ragflowDocId,
+                error: (err as Error).message,
+              },
+            );
+            try {
+              await ModelFactory.documentVersionFile.upsertByVersionAndFileName(
+                file.versionId,
+                file.fileName,
+                {
+                  status: ragflowRun, // write DONE / RUNNING / FAIL / UNSTART
+                  ragflow_doc_id: file.ragflowDocId ?? null,
+                },
+              );
+              log.info("[syncParserStatus] Step 5 - Postgres upsert SUCCESS", {
+                fileName: file.fileName,
+                versionId: file.versionId,
+                ragflowRun,
+              });
+            } catch (pgErr) {
+              log.error(
+                "[syncParserStatus] Step 5 - Postgres upsert ALSO FAILED",
+                {
+                  fileName: file.fileName,
+                  versionId: file.versionId,
+                  error: (pgErr as Error).message,
+                },
+              );
+            }
+          }
+
+          results.push({
+            fileName: file.fileName,
+            ragflowDocId: file.ragflowDocId,
+            ragflowRun,
+            ragflowProgress: parseFloat(ragflowProgress),
+            ragflowProgressMsg,
+            ragflowChunkCount: parseInt(ragflowChunkCount, 10),
+            name: ragflowDoc.name,
+          });
+        } else {
+          unmatchedCount++;
+          // File has no RAGFlow doc ID or it's not found in the dataset
+          log.warn("[syncParserStatus] Step 5 - File NOT matched in RAGFlow", {
+            fileId: file.id,
+            fileName: file.fileName,
+            ragflowDocId: file.ragflowDocId ?? null,
+            converterStatus: file.status,
+            hint: !file.ragflowDocId
+              ? "ragflowDocId missing in Redis — upload may not have saved it"
+              : "ragflowDocId not found in RAGFlow dataset — file may have been deleted from RAGFlow",
+          });
+          results.push({
+            fileName: file.fileName,
+            ragflowDocId: file.ragflowDocId ?? null,
+            ragflowRun: file.ragflowRun ?? null,
+            ragflowProgress: file.ragflowProgress
+              ? parseFloat(file.ragflowProgress)
+              : null,
+            ragflowProgressMsg: file.ragflowProgressMsg ?? null,
+            ragflowChunkCount: file.ragflowChunkCount
+              ? parseInt(file.ragflowChunkCount, 10)
+              : null,
+            name: file.fileName,
+          });
+        }
+      }
+    }
+
+    log.info("[syncParserStatus] COMPLETE", {
+      versionId,
+      totalRagflowDocs: ragflowDocs.length,
+      trackedFiles: results.length,
+      matchedCount,
+      unmatchedCount,
+      summary: results.map((r) => ({
+        fileName: r.fileName,
+        ragflowRun: r.ragflowRun,
+        ragflowChunkCount: r.ragflowChunkCount,
+      })),
+    });
+
+    return results;
   }
 }
 

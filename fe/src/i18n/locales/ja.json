@@ -911,7 +911,11 @@
       "retryParse": "再解析",
       "retryParseSuccess": "{{count}}件のファイルを変換キューに追加しました",
       "startParse": "解析開始",
-      "startParseSuccess": "{{count}}件のファイルを解析に送信しました"
+      "startParseSuccess": "{{count}}件のファイルを解析に送信しました",
+      "syncParserStatus": "パーサー同期",
+      "syncParserSuccess": "RAGFlowから解析ステータスを同期しました",
+      "syncParserError": "解析ステータスの同期に失敗しました"
+
     },
     "jobs": {
       "title": "変換ジョブ",
