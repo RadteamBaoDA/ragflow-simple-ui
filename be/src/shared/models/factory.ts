@@ -28,6 +28,8 @@ import { DocumentCategoryVersionModel } from "@/modules/projects/document-catego
 import { ProjectChatModel } from "@/modules/projects/project-chat/project-chat.model.js";
 import { ProjectSearchModel } from "@/modules/projects/project-search/project-search.model.js";
 import { ProjectEntityPermissionModel } from "@/modules/projects/project-entity-permission.model.js";
+import { DocumentVersionFileModel } from "@/modules/projects/document-category/document-version-file.model.js";
+import { ConverterVersionJobModel } from "@/modules/converter/converter-version-job.model.js";
 
 /**
  * ModelFactory class implementing the Factory Pattern.
@@ -89,6 +91,10 @@ export class ModelFactory {
   private static projectSearchModel: ProjectSearchModel;
   /** Project entity permission model singleton instance */
   private static projectEntityPermissionModel: ProjectEntityPermissionModel;
+  /** Document version file model singleton instance */
+  private static documentVersionFileModel: DocumentVersionFileModel;
+  /** Converter version job (Postgres archive) model singleton instance */
+  private static converterVersionJobModel: ConverterVersionJobModel;
 
   /**
    * Get the User model singleton.
@@ -328,5 +334,19 @@ export class ModelFactory {
     if (!this.projectEntityPermissionModel)
       this.projectEntityPermissionModel = new ProjectEntityPermissionModel();
     return this.projectEntityPermissionModel;
+  }
+
+  /** Get the DocumentVersionFile model singleton. */
+  static get documentVersionFile() {
+    if (!this.documentVersionFileModel)
+      this.documentVersionFileModel = new DocumentVersionFileModel();
+    return this.documentVersionFileModel;
+  }
+
+  /** Get the ConverterVersionJob model singleton (Postgres archive). */
+  static get converterVersionJob() {
+    if (!this.converterVersionJobModel)
+      this.converterVersionJobModel = new ConverterVersionJobModel();
+    return this.converterVersionJobModel;
   }
 }

@@ -1216,13 +1216,31 @@
       "timezone": "タイムゾーン",
       "saved": "スケジュール設定を保存しました"
     },
+    "clearQueue": {
+      "tooltip": "Redisキューからスタックしたジョブを強制削除",
+      "confirmTitle": "スタックキューをクリアしますか？",
+      "confirmDesc": "Redisからすべての変換ジョブが完全に削除されます。ジョブが待機中または変換中でスタックしている場合のみ使用してください。",
+      "confirm": "はい、すべてクリア",
+      "success": "キューをクリアしました — {{count}}件のRedisキーを削除",
+      "error": "キューのクリアに失敗しました"
+    },
     "panel": {
       "title": "変換ジョブ",
       "activeJobs": "アクティブジョブ",
       "jobHistory": "ジョブ履歴",
       "forceStart": "強制開始",
       "forceStartSuccess": "変換を開始しました",
-      "forceStartError": "変換の開始に失敗しました"
+      "forceStartError": "変換の開始に失敗しました",
+      "forceStartConfirmTitle": "強制開始の確認",
+      "forceStartConfirmMessage": "通常のスケジュールをスキップして、すべての保留中ジョブの変換を即座に開始します。",
+      "autoParseLabel": "アップロード完了後にすべてのファイルを解析する",
+      "autoParseDesc": "すべてのファイルがRAGFlowにアップロードされた後、自動的に解析（チャンク化・埋め込み）を開始します。",
+      "autoParseScheduled": "自動解析をスケジュール済み — すべてのジョブが完了したら開始します。",
+      "autoParseSuccess": "{{count}}件のファイルをRAGFlowに送信しました",
+      "autoParseNoFiles": "解析する完了済みファイルが見つかりません",
+      "autoParseError": "自動解析に失敗しました。手動で解析を実行してください。",
+      "waitingToAutoparse": "自動解析前にジョブの完了を待機中…",
+      "parsing": "解析中…"
     }
   }
 }

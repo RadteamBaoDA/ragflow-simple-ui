@@ -19,7 +19,8 @@
     "db:migrate": "tsx src/scripts/migrate.ts",
     "db:migrate:make": "tsx src/scripts/make_migration.ts",
     "db:migrate:rollback": "tsx src/scripts/rollback_migration.ts",
-    "db:seed": "tsx src/scripts/run_seeds.ts"
+    "db:seed": "tsx src/scripts/run_seeds.ts",
+    "clean:queue": "tsx src/scripts/clear-converter-queue.ts"
   },
   "keywords": [
     "ragflow",

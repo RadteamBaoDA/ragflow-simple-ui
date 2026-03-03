@@ -1231,13 +1231,31 @@
       "timezone": "Múi giờ",
       "saved": "Đã lưu cấu hình lịch trình"
     },
+    "clearQueue": {
+      "tooltip": "Xóa toàn bộ công việc bị kẹt khỏi hàng đợi Redis",
+      "confirmTitle": "Xóa hàng đợi bị kẹt?",
+      "confirmDesc": "Thao tác này sẽ xóa vĩnh viễn tất cả công việc chuyển đổi khỏi Redis. Chỉ dùng khi công việc bị kẹt ở trạng thái chờ hoặc đang xử lý.",
+      "confirm": "Có, Xóa tất cả",
+      "success": "Đã xóa hàng đợi — {{count}} khóa Redis đã được xóa",
+      "error": "Không thể xóa hàng đợi"
+    },
     "panel": {
       "title": "Công việc chuyển đổi",
       "activeJobs": "Đang hoạt động",
       "jobHistory": "Lịch sử công việc",
       "forceStart": "Bắt đầu ngay",
       "forceStartSuccess": "Đã bắt đầu chuyển đổi thành công",
-      "forceStartError": "Không thể bắt đầu chuyển đổi"
+      "forceStartError": "Không thể bắt đầu chuyển đổi",
+      "forceStartConfirmTitle": "Xác nhận Bắt đầu ngay",
+      "forceStartConfirmMessage": "Thao tác này sẽ kích hoạt ngay lập tức quá trình chuyển đổi cho tất cả công việc đang chờ, bỏ qua lịch trình thông thường.",
+      "autoParseLabel": "Phân tích tất cả tệp sau khi tải lên xong",
+      "autoParseDesc": "Sau khi tất cả tệp được tải lên RAGFlow, tự động kích hoạt phân tích (chia đoạn & nhúng).",
+      "autoParseScheduled": "Đã lên lịch tự động phân tích — sẽ kích hoạt khi tất cả công việc hoàn thành.",
+      "autoParseSuccess": "Đã gửi {{count}} tệp đến RAGFlow để phân tích",
+      "autoParseNoFiles": "Không tìm thấy tệp đã hoàn thành để phân tích",
+      "autoParseError": "Tự động phân tích thất bại. Vui lòng kích hoạt thủ công.",
+      "waitingToAutoparse": "Đang chờ công việc hoàn thành trước khi tự động phân tích…",
+      "parsing": "Đang phân tích…"
     }
   }
 }

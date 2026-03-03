@@ -898,32 +898,65 @@ export class DocumentCategoryService {
     }
 
     if (serverId && datasetId) {
-      // ── Step 2a: Look up ragflowDocId from converter queue (Redis) ────────
+      // ── Step 2a: Look up ragflowDocId from Postgres (primary, durable) ────
+      // Postgres is the source of truth after a job completes.
+      // Redis is checked as fallback for jobs still in progress.
       try {
-        const { jobs } = await converterQueueService.listVersionJobs({
-          versionId,
-          page: 1,
-          pageSize: 1000,
-        });
-
-        for (const job of jobs) {
-          const files = await converterQueueService.getJobFiles(job.id);
-          for (const f of files) {
-            if (f.ragflowDocId) {
-              fileNameToRagflowId[f.fileName] = f.ragflowDocId;
-            }
+        const pgFiles =
+          await ModelFactory.documentVersionFile.findByVersion(versionId);
+        for (const f of pgFiles) {
+          if (f.ragflow_doc_id) {
+            fileNameToRagflowId[f.file_name] = f.ragflow_doc_id;
           }
         }
-        log.info("Loaded ragflowDocId from converter queue", {
+        log.info("Loaded ragflowDocId from Postgres", {
           count: Object.keys(fileNameToRagflowId).length,
         });
       } catch (err) {
-        log.warn("Failed to read converter tracking for delete (non-fatal)", {
-          error: (err as Error).message,
-        });
+        log.warn(
+          "Failed to read Postgres file tracking for delete (non-fatal)",
+          {
+            error: (err as Error).message,
+          },
+        );
       }
 
-      // ── Step 2b: Fallback — list docs from RAGFlow dataset ────────────────
+      // ── Step 2b: Fallback — look up any still-missing IDs from Redis ──────
+      // Covers jobs that are still in-flight and not yet archived to Postgres.
+      const stillMissingInRedis = fileNames
+        .map((n) => path.basename(n))
+        .filter((safeName) => !fileNameToRagflowId[safeName]);
+
+      if (stillMissingInRedis.length > 0) {
+        try {
+          const { jobs } = await converterQueueService.listVersionJobs({
+            versionId,
+            page: 1,
+            pageSize: 1000,
+          });
+
+          for (const job of jobs) {
+            const files = await converterQueueService.getJobFiles(job.id);
+            for (const f of files) {
+              if (f.ragflowDocId && !fileNameToRagflowId[f.fileName]) {
+                fileNameToRagflowId[f.fileName] = f.ragflowDocId;
+              }
+            }
+          }
+          log.info(
+            "Loaded ragflowDocId from Redis converter queue (fallback)",
+            {
+              count: Object.keys(fileNameToRagflowId).length,
+            },
+          );
+        } catch (err) {
+          log.warn("Failed to read converter tracking for delete (non-fatal)", {
+            error: (err as Error).message,
+          });
+        }
+      }
+
+      // ── Step 2c: Fallback — list docs from RAGFlow dataset ────────────────
       // For any file still missing a ragflowDocId (jobs expired or never set),
       // fetch all document metadata from the dataset and match by name.
       const missingNames = fileNames

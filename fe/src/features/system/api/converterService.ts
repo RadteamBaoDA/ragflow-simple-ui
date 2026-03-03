@@ -240,3 +240,43 @@ export async function uploadCompleted(): Promise<{
 }> {
   return api.post("/api/converter/upload");
 }
+
+/**
+ * Trigger RAGFlow parsing for uploaded documents in a version.
+ * Calls POST /api/projects/:projectId/categories/:categoryId/versions/:versionId/documents/parse
+ *
+ * @param projectId - Project UUID
+ * @param categoryId - Category UUID
+ * @param versionId - Version UUID
+ * @param fileNames - List of file names to parse (all finished files)
+ * @returns Parse result with count of triggered files
+ */
+export async function parseVersionDocuments(
+  projectId: string,
+  categoryId: string,
+  versionId: string,
+  fileNames: string[],
+): Promise<{
+  message: string;
+  triggered: number;
+  skipped: number;
+  errors: string[];
+}> {
+  return api.post(
+    `/api/projects/${projectId}/categories/${categoryId}/versions/${versionId}/documents/parse`,
+    { fileNames },
+  );
+}
+
+/**
+ * Force-clear all stuck converter queue data from Redis.
+ * Calls POST /api/converter/clear-queue.
+ *
+ * @returns Number of Redis keys deleted and a status message
+ */
+export async function clearConverterQueue(): Promise<{
+  message: string;
+  deleted: number;
+}> {
+  return api.post("/api/converter/clear-queue");
+}

@@ -19,6 +19,7 @@
  */
 import { v4 as uuidv4 } from "uuid";
 import { getRedisClient } from "@/shared/services/redis.service.js";
+import { ModelFactory } from "@/shared/models/factory.js";
 import { log } from "@/shared/services/logger.service.js";
 
 // ============================================================================
@@ -370,67 +371,146 @@ export class ConverterQueueService {
 
   /**
    * List version jobs with optional filtering and pagination.
+   *
+   * Two-tier strategy:
+   *  - pending / waiting / converting → query Redis
+   *  - finished / failed              → query Postgres (converter_version_jobs)
+   *  - no status filter               → merge both sources
+   *
    * @param filters - Optional filters
    * @returns Paginated list of VersionJob objects
    */
   async listVersionJobs(
     filters?: JobListFilter,
   ): Promise<{ jobs: VersionJob[]; total: number }> {
-    const client = this.getClient();
     const page = filters?.page ?? 1;
     const pageSize = filters?.pageSize ?? 20;
+    const status = filters?.status;
 
-    // Get job IDs from status set or all jobs
-    let jobIds: string[];
-    if (filters?.status) {
-      jobIds = await client.sMembers(`${STATUS_SET_PREFIX}${filters.status}`);
-    } else {
-      jobIds = await client.sMembers(ALL_JOBS_KEY);
+    // ── Helper: load active jobs from Redis ──────────────────────────────
+    const loadFromRedis = async (
+      statusToLoad?: ConversionJobStatus,
+    ): Promise<VersionJob[]> => {
+      const client = this.getClient();
+      let ids: string[];
+      if (statusToLoad) {
+        ids = await client.sMembers(`${STATUS_SET_PREFIX}${statusToLoad}`);
+      } else {
+        // Active statuses only — terminal ones are in Postgres
+        const [p, w, c] = await Promise.all([
+          client.sMembers(`${STATUS_SET_PREFIX}pending`),
+          client.sMembers(`${STATUS_SET_PREFIX}waiting`),
+          client.sMembers(`${STATUS_SET_PREFIX}converting`),
+        ]);
+        ids = [...p, ...w, ...c];
+      }
+
+      const jobs: VersionJob[] = [];
+      for (const id of ids) {
+        const job = await this.getVersionJob(id);
+        if (!job) continue;
+        if (filters?.projectId && job.projectId !== filters.projectId) continue;
+        if (filters?.categoryId && job.categoryId !== filters.categoryId)
+          continue;
+        if (filters?.versionId && job.versionId !== filters.versionId) continue;
+        jobs.push(job);
+      }
+      return jobs;
+    };
+
+    // ── Helper: load archived jobs from Postgres ──────────────────────────
+    const loadFromPostgres = async (
+      pgStatus?: "finished" | "failed",
+    ): Promise<{ jobs: VersionJob[]; total: number }> => {
+      const result = await ModelFactory.converterVersionJob.listWithFilters({
+        ...(pgStatus ? { status: pgStatus } : {}),
+        ...(filters?.projectId ? { projectId: filters.projectId } : {}),
+        ...(filters?.categoryId ? { categoryId: filters.categoryId } : {}),
+        ...(filters?.versionId ? { versionId: filters.versionId } : {}),
+        page,
+        pageSize,
+      });
+      // Convert Postgres row shape to VersionJob shape
+      const jobs: VersionJob[] = result.jobs.map((row) => ({
+        id: row.id,
+        projectId: row.project_id,
+        categoryId: row.category_id,
+        versionId: row.version_id,
+        serverId: row.server_id,
+        datasetId: row.dataset_id,
+        status: row.status as ConversionJobStatus,
+        fileCount: row.file_count,
+        finishedCount: row.finished_count,
+        failedCount: row.failed_count,
+        createdAt: row.job_created_at.toISOString(),
+        updatedAt: row.job_updated_at.toISOString(),
+      }));
+      return { jobs, total: result.total };
+    };
+
+    // ── Route to the right store based on status filter ──────────────────
+    const activeStatuses: ConversionJobStatus[] = [
+      "pending",
+      "waiting",
+      "converting",
+    ];
+    const terminalStatuses: ConversionJobStatus[] = ["finished", "failed"];
+
+    if (status && activeStatuses.includes(status)) {
+      // Only Redis
+      const allJobs = await loadFromRedis(status);
+      allJobs.sort(
+        (a, b) =>
+          new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime(),
+      );
+      const total = allJobs.length;
+      const start = (page - 1) * pageSize;
+      return { jobs: allJobs.slice(start, start + pageSize), total };
     }
 
-    // Fetch all matching jobs
-    const allJobs: VersionJob[] = [];
-    for (const id of jobIds) {
-      const job = await this.getVersionJob(id);
-      if (!job) continue;
-
-      // Apply filters
-      if (filters?.projectId && job.projectId !== filters.projectId) continue;
-      if (filters?.categoryId && job.categoryId !== filters.categoryId)
-        continue;
-      if (filters?.versionId && job.versionId !== filters.versionId) continue;
-
-      allJobs.push(job);
+    if (status && terminalStatuses.includes(status)) {
+      // Only Postgres
+      return loadFromPostgres(status as "finished" | "failed");
     }
 
-    // Sort by createdAt descending (newest first)
-    allJobs.sort(
+    // No status filter → merge both: Redis (active) first, Postgres (history) paginated separately
+    // Return Redis-active jobs + first page of Postgres history merged
+    const [redisJobs, pgResult] = await Promise.all([
+      loadFromRedis(),
+      loadFromPostgres(),
+    ]);
+    redisJobs.sort(
       (a, b) =>
         new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime(),
     );
-
-    // Paginate
-    const total = allJobs.length;
-    const start = (page - 1) * pageSize;
-    const jobs = allJobs.slice(start, start + pageSize);
-
-    return { jobs, total };
+    const allJobs = [...redisJobs, ...pgResult.jobs];
+    return {
+      jobs: allJobs.slice(0, pageSize),
+      total: redisJobs.length + pgResult.total,
+    };
   }
 
   /**
    * Get aggregate queue statistics.
+   *
+   * Active counts (pending/waiting/converting) from Redis.
+   * Terminal counts (finished/failed) from Postgres — accurate even after Redis flush.
+   *
    * @returns QueueStats with counts by status
    */
   async getQueueStats(): Promise<QueueStats> {
     const client = this.getClient();
 
-    const [pending, waiting, converting, finished, failed] = await Promise.all([
+    // Active counts from Redis
+    const [pending, waiting, converting] = await Promise.all([
       client.sCard(`${STATUS_SET_PREFIX}pending`),
       client.sCard(`${STATUS_SET_PREFIX}waiting`),
       client.sCard(`${STATUS_SET_PREFIX}converting`),
-      client.sCard(`${STATUS_SET_PREFIX}finished`),
-      client.sCard(`${STATUS_SET_PREFIX}failed`),
     ]);
+
+    // Terminal counts from Postgres
+    const { finished, failed } =
+      await ModelFactory.converterVersionJob.countByStatus();
 
     return {
       pending,
@@ -448,32 +528,57 @@ export class ConverterQueueService {
 
   /**
    * Get all file tracking records for a version job.
+   *
+   * Two-tier: checks Redis first.
+   * If the job is not in Redis (archived), falls back to Postgres
+   * (document_category_version_files) via the version ID stored in the job.
+   *
    * @param jobId - Version job UUID
    * @returns Array of FileTracking records
    */
   async getJobFiles(jobId: string): Promise<FileTracking[]> {
     const client = this.getClient();
 
-    // Get file IDs from the job's file set
+    // Check if the job's file set exists in Redis
     const fileIds = await client.sMembers(`${FILES_SET_PREFIX}${jobId}`);
-    if (!fileIds || fileIds.length === 0) return [];
 
-    // Fetch each file hash
-    const files: FileTracking[] = [];
-    for (const fileId of fileIds) {
-      const data = await client.hGetAll(`${FILE_KEY_PREFIX}${fileId}`);
-      if (data && data.id) {
-        files.push(this.hashToFile(data));
+    if (fileIds && fileIds.length > 0) {
+      // Job is still in Redis — return files from Redis
+      const files: FileTracking[] = [];
+      for (const fileId of fileIds) {
+        const data = await client.hGetAll(`${FILE_KEY_PREFIX}${fileId}`);
+        if (data && data.id) files.push(this.hashToFile(data));
       }
+      files.sort(
+        (a, b) =>
+          new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime(),
+      );
+      return files;
     }
 
-    // Sort by createdAt descending
-    files.sort(
-      (a, b) =>
-        new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime(),
+    // Job not in Redis — look it up in Postgres to get the versionId
+    const archivedJob = await ModelFactory.converterVersionJob.findById(jobId);
+    if (!archivedJob) return [];
+
+    // Load file records from Postgres document_category_version_files
+    const pgFiles = await ModelFactory.converterVersionJob.findFilesByVersionId(
+      archivedJob.version_id,
     );
 
-    return files;
+    // Shape into FileTracking (without Redis-only fields like filePath/pdfPath)
+    const now = new Date().toISOString();
+    return pgFiles.map((f, idx) => ({
+      id: `archived-${archivedJob.id}-${idx}`,
+      jobId,
+      versionId: archivedJob.version_id,
+      fileName: f.fileName,
+      filePath: "",
+      status: f.status as ConversionJobStatus,
+      ragflowDocId: f.ragflowDocId ?? undefined,
+      error: f.error ?? undefined,
+      createdAt: now,
+      updatedAt: now,
+    }));
   }
 
   /**
@@ -778,6 +883,186 @@ export class ConverterQueueService {
       createdAt: data.createdAt ?? "",
       updatedAt: data.updatedAt ?? "",
     };
+  }
+
+  // --------------------------------------------------------------------------
+  // Archive & Purge (Two-Tier Persistence)
+  // --------------------------------------------------------------------------
+
+  /**
+   * Archive a finished/failed job from Redis to Postgres.
+   *
+   * Reads the job metadata and all file tracking records from Redis,
+   * writes them to:
+   *   - converter_version_jobs (job-level summary)
+   *   - document_category_version_files (per-file ragflow_doc_id + status)
+   *
+   * Idempotent: safe to call twice (uses ON CONFLICT ... DO UPDATE).
+   *
+   * @param jobId - Version job UUID
+   */
+  async archiveJobToPostgres(jobId: string): Promise<void> {
+    const job = await this.getVersionJob(jobId);
+    if (!job) {
+      log.warn(
+        `archiveJobToPostgres: job ${jobId} not found in Redis — skipping`,
+      );
+      return;
+    }
+
+    // Collect file records
+    const files = await this.getJobFiles(jobId);
+
+    // 1. Upsert job-level row in Postgres
+    await ModelFactory.converterVersionJob.upsert({
+      id: job.id,
+      projectId: job.projectId,
+      categoryId: job.categoryId,
+      versionId: job.versionId,
+      serverId: job.serverId,
+      datasetId: job.datasetId,
+      status: job.status as "finished" | "failed",
+      fileCount: job.fileCount,
+      finishedCount: job.finishedCount,
+      failedCount: job.failedCount,
+      jobCreatedAt: new Date(job.createdAt),
+      jobUpdatedAt: new Date(job.updatedAt),
+    });
+
+    // 2. Bulk-upsert file records (preserves ragflow_doc_id for delete/parse)
+    if (files.length > 0) {
+      await ModelFactory.documentVersionFile.bulkUpsert(
+        files.map((f) => ({
+          versionId: f.versionId,
+          fileName: f.fileName,
+          ragflowDocId: f.ragflowDocId ?? null,
+          status: f.status,
+          error: f.error ?? null,
+        })),
+      );
+    }
+
+    log.info(
+      `archiveJobToPostgres: archived job ${jobId} with ${files.length} file(s) to Postgres`,
+    );
+  }
+
+  /**
+   * Delete all Redis keys associated with a version job.
+   *
+   * Keys removed:
+   *   converter:vjob:{jobId}               — job metadata hash
+   *   converter:vjob:status:{status}        — status set membership
+   *   converter:vjob:all                    — global job ID set
+   *   converter:version:active_job:{verId}  — active job pointer
+   *   converter:files:{jobId}               — file ID set
+   *   converter:file:{fileId}               — per-file hash (one per file)
+   *
+   * @param jobId - Version job UUID
+   */
+  async deleteJobFromRedis(jobId: string): Promise<void> {
+    const client = this.getClient();
+    const jobKey = `${VJOB_KEY_PREFIX}${jobId}`;
+
+    // Read job metadata before deleting (need status + versionId)
+    const jobData = await client.hGetAll(jobKey);
+    if (!jobData || !jobData.id) {
+      log.debug(
+        `deleteJobFromRedis: job ${jobId} not in Redis — nothing to remove`,
+      );
+      return;
+    }
+
+    const status = jobData.status ?? "pending";
+    const versionId = jobData.versionId ?? "";
+
+    // 1. Remove per-file hashes and the file-set
+    const fileIds = await client.sMembers(`${FILES_SET_PREFIX}${jobId}`);
+    if (fileIds.length > 0) {
+      const fileKeys = fileIds.map((fid) => `${FILE_KEY_PREFIX}${fid}`);
+      // Delete file hashes in one batch
+      await client.del([`${FILES_SET_PREFIX}${jobId}`, ...fileKeys] as [
+        string,
+        ...string[],
+      ]);
+    } else {
+      await client.del(`${FILES_SET_PREFIX}${jobId}`);
+    }
+
+    // 2. Remove from status set
+    await client.sRem(`${STATUS_SET_PREFIX}${status}`, jobId);
+
+    // 3. Remove from global all-jobs set
+    await client.sRem(ALL_JOBS_KEY, jobId);
+
+    // 4. Clear active_job pointer if it points to this job
+    if (versionId) {
+      const activeKey = `${ACTIVE_JOB_PREFIX}${versionId}`;
+      const activeJobId = await client.get(activeKey);
+      if (activeJobId === jobId) {
+        await client.del(activeKey);
+      }
+    }
+
+    // 5. Remove job hash itself
+    await client.del(jobKey);
+
+    log.info(
+      `deleteJobFromRedis: purged job ${jobId} (${fileIds.length} files) from Redis`,
+    );
+  }
+
+  // --------------------------------------------------------------------------
+  // Queue Maintenance
+  // --------------------------------------------------------------------------
+
+  /**
+   * Clear all stuck converter queue data from Redis.
+   *
+   * Removes all Redis keys matching converter key patterns so stale/stuck
+   * waiting or converting jobs are fully reset. Safe to call while no
+   * Python worker or Node upload worker is actively processing.
+   *
+   * Key patterns deleted:
+   *   converter:vjob:*  converter:file:*  converter:files:*
+   *   converter:version:active_job:*  converter:manual_trigger
+   *
+   * @returns Number of Redis keys deleted
+   */
+  async clearQueue(): Promise<{ deleted: number }> {
+    const redis = getRedisClient();
+    if (!redis) throw new Error("Redis client is not available");
+
+    /** Scan and delete keys matching a glob pattern, returns count deleted */
+    const deleteByPattern = async (pattern: string): Promise<number> => {
+      const keys = await redis.keys(pattern);
+      if (keys.length === 0) return 0;
+      // Delete in batches of 100 to avoid blocking Redis
+      for (let i = 0; i < keys.length; i += 100) {
+        await redis.del(keys.slice(i, i + 100) as [string, ...string[]]);
+      }
+      return keys.length;
+    };
+
+    const patterns = [
+      "converter:vjob:*",
+      "converter:file:*",
+      "converter:files:*",
+      "converter:version:active_job:*",
+      "converter:manual_trigger",
+    ];
+
+    let totalDeleted = 0;
+    for (const pattern of patterns) {
+      const count = await deleteByPattern(pattern);
+      totalDeleted += count;
+      if (count > 0) {
+        log.info(`clearQueue: deleted ${count} key(s) matching ${pattern}`);
+      }
+    }
+
+    log.info(`clearQueue: total ${totalDeleted} Redis key(s) removed`);
+    return { deleted: totalDeleted };
   }
 }
 

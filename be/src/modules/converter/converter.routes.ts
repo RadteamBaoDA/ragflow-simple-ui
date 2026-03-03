@@ -36,4 +36,7 @@ router.post("/start", requireAuth, ConverterController.startManual);
 // Upload completed conversions to RAGFlow
 router.post("/upload", requireAuth, ConverterController.uploadCompleted);
 
+// Force-clear stuck queue data from Redis
+router.post("/clear-queue", requireAuth, ConverterController.clearQueue);
+
 export default router;

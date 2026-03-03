@@ -186,19 +186,35 @@ export class ConverterWorkerService {
             const fileBuffer = await fs.readFile(absolutePdfPath);
             const fileName = path.basename(absolutePdfPath);
 
-            await ragflowProxyService.uploadDocument(
+            // Capture upload response to extract RAGFlow document ID
+            const uploadResult = await ragflowProxyService.uploadDocument(
               job.serverId,
               job.datasetId,
               fileBuffer,
               fileName,
             );
 
-            // Mark file as finished
-            await converterQueueService.updateFileStatus(
-              file.id,
-              "finished",
-              {},
-            );
+            // RAGFlow returns an array of doc objects: [{ id, name, ... }]
+            const ragflowDocs = Array.isArray(uploadResult)
+              ? uploadResult
+              : [uploadResult];
+            const ragflowDocId: string | undefined = ragflowDocs[0]?.id;
+
+            if (!ragflowDocId) {
+              log.warn(
+                `No RAGFlow doc ID returned for file ${file.fileName} — parse/delete may not work`,
+              );
+            } else {
+              log.info(
+                `Saved RAGFlow doc ID ${ragflowDocId} for file ${file.fileName}`,
+              );
+            }
+
+            // Mark file as finished and persist the RAGFlow doc ID
+            // Use conditional spread to satisfy exactOptionalPropertyTypes
+            await converterQueueService.updateFileStatus(file.id, "finished", {
+              ...(ragflowDocId ? { ragflowDocId } : {}),
+            });
             log.info(`Uploaded to RAGFlow: ${fileName} (file ${file.id})`);
 
             // Emit real-time status via WebSocket
@@ -260,6 +276,21 @@ export class ConverterWorkerService {
             finishedCount,
             failedCount,
           });
+
+          // ── Archive to Postgres then purge Redis ──────────────────────────
+          // Write durable records to Postgres first, then clean up Redis keys.
+          // This ensures ragflow_doc_id survives Redis restarts/flushes.
+          try {
+            await converterQueueService.archiveJobToPostgres(job.id);
+            await converterQueueService.deleteJobFromRedis(job.id);
+          } catch (archiveErr) {
+            // Non-fatal: Redis keys will remain until next manual cleanup.
+            // Postgres may be partially written — next run will upsert missing rows.
+            log.error("Failed to archive/purge job from Redis", {
+              jobId: job.id,
+              error: (archiveErr as Error).message,
+            });
+          }
         }
 
         // Dequeue next waiting job immediately

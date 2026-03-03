@@ -212,4 +212,27 @@ export class ConverterController {
       });
     }
   }
+
+  // --------------------------------------------------------------------------
+  // Queue Maintenance
+  // --------------------------------------------------------------------------
+
+  /**
+   * Force-clear all stuck converter queue data from Redis.
+   * Deletes all converter:* keys so stale waiting/converting jobs are wiped.
+   * POST /api/converter/clear-queue
+   */
+  static async clearQueue(_req: Request, res: Response) {
+    try {
+      log.warn("clearQueue: Force clearing entire converter queue from Redis");
+      const result = await converterQueueService.clearQueue();
+      res.json({
+        message: `Queue cleared — ${result.deleted} Redis key(s) removed`,
+        deleted: result.deleted,
+      });
+    } catch (error: any) {
+      log.error("Error clearing converter queue", { error: error.message });
+      res.status(500).json({ error: error.message || "Failed to clear queue" });
+    }
+  }
 }

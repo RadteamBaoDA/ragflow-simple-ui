@@ -883,3 +883,61 @@ export interface ProjectEntityPermission {
   /** Timestamp of last update */
   updated_at: Date;
 }
+
+/**
+ * DocumentVersionFile interface — durable per-file record for a version.
+ * Written to Postgres when a converter job completes (finish or fail).
+ * Provides long-term storage of ragflow_doc_id for parse/delete operations.
+ */
+export interface DocumentVersionFile {
+  /** Unique UUID */
+  id: string;
+  /** Version this file belongs to */
+  version_id: string;
+  /** Original filename as uploaded by the user */
+  file_name: string;
+  /** RAGFlow document ID — set after successful upload to RAGFlow */
+  ragflow_doc_id?: string | null;
+  /** Final status: 'finished' | 'failed' */
+  status: string;
+  /** Error message if failed */
+  error?: string | null;
+  /** Timestamp of record creation */
+  created_at: Date;
+  /** Timestamp of last update */
+  updated_at: Date;
+}
+
+/**
+ * ConverterVersionJob — Postgres row in converter_version_jobs.
+ * Archived from Redis once a converter job reaches a terminal status
+ * (finished or failed). Active jobs (pending/converting) stay in Redis only.
+ */
+export interface ConverterVersionJob {
+  /** Job UUID (same as the Redis job ID) */
+  id: string;
+  /** Project UUID */
+  project_id: string;
+  /** Category UUID */
+  category_id: string;
+  /** Version UUID */
+  version_id: string;
+  /** RAGFlow server ID */
+  server_id: string;
+  /** RAGFlow dataset ID */
+  dataset_id: string;
+  /** Terminal status: 'finished' | 'failed' */
+  status: string;
+  /** Total files processed */
+  file_count: number;
+  /** Successfully uploaded files */
+  finished_count: number;
+  /** Failed files */
+  failed_count: number;
+  /** Original job creation time (from Redis) */
+  job_created_at: Date;
+  /** Original job last-update time (from Redis) */
+  job_updated_at: Date;
+  /** When this row was written to Postgres */
+  archived_at: Date;
+}

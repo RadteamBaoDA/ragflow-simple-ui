@@ -24,6 +24,7 @@ import {
   Tooltip,
   Progress,
   Typography,
+  Popconfirm,
 } from 'antd'
 import type { ColumnsType } from 'antd/es/table'
 import {
@@ -35,6 +36,7 @@ import {
   ChevronDown,
   ChevronRight,
   FileText,
+  Trash2,
 } from 'lucide-react'
 
 import {
@@ -43,6 +45,7 @@ import {
   getConverterConfig,
   updateConverterConfig,
   getVersionJobFiles,
+  clearConverterQueue,
   type VersionJob,
   type FileTrackingRecord,
   type QueueStats,
@@ -221,6 +224,7 @@ const ConverterDashboardModal = ({ open, onClose }: ConverterDashboardModalProps
   const [scheduleConfig, setScheduleConfig] = useState<ConverterScheduleConfig | null>(null)
   const [savingConfig, setSavingConfig] = useState(false)
   const [expandedRowKeys, setExpandedRowKeys] = useState<string[]>([])
+  const [clearingQueue, setClearingQueue] = useState(false)
 
   // Auto-refresh timer
   const autoRefreshRef = useRef<ReturnType<typeof setInterval> | null>(null)
@@ -306,6 +310,25 @@ const ConverterDashboardModal = ({ open, onClose }: ConverterDashboardModalProps
       message.error(String(err))
     } finally {
       setSavingConfig(false)
+    }
+  }
+
+  /**
+   * Force-clear all stuck converter jobs from Redis.
+   * Wipes all converter:* keys so stale waiting/converting jobs are reset.
+   */
+  const handleClearQueue = async () => {
+    setClearingQueue(true)
+    try {
+      const result = await clearConverterQueue()
+      message.success(t('converter.clearQueue.success', { count: result.deleted }))
+      // Refresh stats + jobs after clearing
+      await refreshAll()
+    } catch (err: unknown) {
+      message.error(t('converter.clearQueue.error'))
+      console.error('Clear queue failed:', err)
+    } finally {
+      setClearingQueue(false)
     }
   }
 
@@ -397,6 +420,24 @@ const ConverterDashboardModal = ({ open, onClose }: ConverterDashboardModalProps
             onClick={() => refreshAll()}
             loading={loading}
           />
+          <Popconfirm
+            title={t('converter.clearQueue.confirmTitle')}
+            description={t('converter.clearQueue.confirmDesc')}
+            onConfirm={handleClearQueue}
+            okText={t('converter.clearQueue.confirm')}
+            okButtonProps={{ danger: true }}
+            cancelText={t('common.cancel', 'Cancel')}
+          >
+            <Tooltip title={t('converter.clearQueue.tooltip')}>
+              <Button
+                type="text"
+                size="small"
+                danger
+                icon={<Trash2 size={14} />}
+                loading={clearingQueue}
+              />
+            </Tooltip>
+          </Popconfirm>
         </Space>
       }
     >

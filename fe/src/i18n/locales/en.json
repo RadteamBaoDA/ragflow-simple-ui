@@ -1332,13 +1332,31 @@
       "timezone": "Timezone",
       "saved": "Schedule configuration saved"
     },
+    "clearQueue": {
+      "tooltip": "Force clear all stuck jobs from Redis queue",
+      "confirmTitle": "Clear Stuck Queue?",
+      "confirmDesc": "This will permanently delete all converter jobs from Redis. Use this when jobs are stuck in waiting or converting state.",
+      "confirm": "Yes, Clear All",
+      "success": "Queue cleared — {{count}} Redis key(s) removed",
+      "error": "Failed to clear queue"
+    },
     "panel": {
       "title": "Conversion Jobs",
       "activeJobs": "Active Jobs",
       "jobHistory": "Job History",
       "forceStart": "Force Start",
       "forceStartSuccess": "Conversion started successfully",
-      "forceStartError": "Failed to start conversion"
+      "forceStartError": "Failed to start conversion",
+      "forceStartConfirmTitle": "Confirm Force Start",
+      "forceStartConfirmMessage": "This will immediately trigger conversion for all pending jobs, bypassing the normal schedule.",
+      "autoParseLabel": "Parse all files after upload completes",
+      "autoParseDesc": "After all files are uploaded to RAGFlow, automatically trigger parsing (chunking & embedding).",
+      "autoParseScheduled": "Auto-parse scheduled — will trigger when all jobs finish.",
+      "autoParseSuccess": "{{count}} file(s) sent to RAGFlow for parsing",
+      "autoParseNoFiles": "No finished files found to parse",
+      "autoParseError": "Auto-parse failed. Please trigger parse manually.",
+      "waitingToAutoparse": "Waiting for jobs to finish before auto-parsing…",
+      "parsing": "Parsing…"
     }
   }
 }

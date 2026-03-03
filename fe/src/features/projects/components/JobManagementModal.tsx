@@ -1,14 +1,12 @@
 /**
  * @fileoverview Job Management Modal — shows converter jobs for a specific
- * project version in a modal dialog with Active/History tabs and force-start.
- *
- * Opened from DocumentsTab via a trigger button. Shows active jobs (pending/processing)
- * on the first tab and completed/failed job history on the second tab.
+ * project version with Active/History tabs, force-start confirm dialog,
+ * and optional auto-parse after upload finishes.
  *
  * @module features/projects/components/JobManagementModal
  */
 
-import { useState, useEffect, useCallback } from 'react'
+import { useState, useEffect, useCallback, useRef } from 'react'
 import { useTranslation } from 'react-i18next'
 import {
   Modal,
@@ -21,7 +19,10 @@ import {
   Progress,
   Tooltip,
   Badge,
+  Checkbox,
   message,
+  Alert,
+  type CheckboxProps,
 } from 'antd'
 import type { ColumnsType } from 'antd/es/table'
 import {
@@ -34,12 +35,14 @@ import {
   ChevronRight,
   FileText,
   Play,
+  AlertTriangle,
 } from 'lucide-react'
 
 import {
   getConverterJobs,
   getVersionJobFiles,
   triggerManualConversion,
+  parseVersionDocuments,
   type VersionJob,
   type FileTrackingRecord,
   type ConversionJobStatus,
@@ -206,8 +209,9 @@ const FileExpandRow = ({ jobId }: { jobId: string }) => {
 // ============================================================================
 
 /**
- * JobManagementModal — shows version-level jobs in a modal dialog
- * with Active/History tabs and a Force Start button.
+ * JobManagementModal — shows version-level jobs with Active/History tabs,
+ * a Force Start button (with confirm dialog), and an optional auto-parse
+ * checkbox that triggers RAGFlow parsing after all files are uploaded.
  */
 const JobManagementModal = ({
   open,
@@ -222,6 +226,18 @@ const JobManagementModal = ({
   const [loading, setLoading] = useState(false)
   const [expandedRowKeys, setExpandedRowKeys] = useState<string[]>([])
   const [forceStarting, setForceStarting] = useState(false)
+  const [parsing, setParsing] = useState(false)
+
+  // ── Confirm dialog state ────────────────────────────────────────────────
+  const [confirmVisible, setConfirmVisible] = useState(false)
+  /** Whether to trigger RAGFlow parse after upload completes */
+  const [autoParseAfterUpload, setAutoParseAfterUpload] = useState(false)
+
+  // Track if we're waiting to auto-parse after job finishes
+  const pendingAutoParseRef = useRef(false)
+  // Stable ref so the interval can always call the latest triggerParseAll
+  // without needing it as a useEffect dependency (avoids missing-dep lint)
+  const triggerParseAllRef = useRef<((jobs: VersionJob[]) => Promise<void>) | null>(null)
 
   // ── Data Fetching ──────────────────────────────────────────────────────
 
@@ -236,29 +252,101 @@ const JobManagementModal = ({
         pageSize: 100,
       })
       setJobs(result.jobs)
+      return result.jobs
     } catch (err: unknown) {
       console.error('Failed to fetch version jobs:', err)
+      return []
     } finally {
       setLoading(false)
     }
   }, [projectId, categoryId, versionId])
 
-  // Fetch on open + auto-refresh every 30s while modal is open
+  // Fetch on open + auto-refresh while modal is open
   useEffect(() => {
     if (!open) return
     fetchJobs()
-    const timer = setInterval(() => fetchJobs(true), 30000)
+    const timer = setInterval(async () => {
+      const latestJobs = await fetchJobs(true)
+
+      // ── Auto-parse trigger ─────────────────────────────────────────────
+      // If user requested auto-parse and all jobs are now finished/failed
+      if (pendingAutoParseRef.current && latestJobs.length > 0) {
+        const allDone = latestJobs.every(
+          (j) => j.status === 'finished' || j.status === 'failed',
+        )
+        if (allDone) {
+          pendingAutoParseRef.current = false
+          // Use the stable ref to avoid missing-dep warning
+          triggerParseAllRef.current?.(latestJobs)
+        }
+      }
+    }, 10000)
     return () => clearInterval(timer)
   }, [open, fetchJobs])
 
+  // ── Parse All Finished Files ───────────────────────────────────────────
+
+  /**
+   * Collects file names from all finished jobs and triggers RAGFlow parsing.
+   * @param latestJobs - Current jobs (fetched right before calling)
+   */
+  const triggerParseAll = useCallback(async (latestJobs: VersionJob[]) => {
+    setParsing(true)
+    try {
+      // Gather all file names from finished jobs
+      const fileNamesSet = new Set<string>()
+      for (const job of latestJobs) {
+        if (job.status === 'finished') {
+          const res = await getVersionJobFiles(job.id)
+          for (const f of res.files) {
+            if (f.status === 'finished') fileNamesSet.add(f.fileName)
+          }
+        }
+      }
+      const fileNames = Array.from(fileNamesSet)
+      if (fileNames.length === 0) {
+        message.warning(t('converter.panel.autoParseNoFiles'))
+        return
+      }
+
+      const result = await parseVersionDocuments(projectId, categoryId, versionId, fileNames)
+      message.success(
+        t('converter.panel.autoParseSuccess', { count: result.triggered ?? fileNames.length }),
+      )
+    } catch (err) {
+      message.error(t('converter.panel.autoParseError'))
+      console.error('Auto-parse failed:', err)
+    } finally {
+      setParsing(false)
+    }
+  }, [projectId, categoryId, versionId, t])
+
+  // Keep the ref in sync so the interval callback always uses latest version
+  useEffect(() => {
+    triggerParseAllRef.current = triggerParseAll
+  }, [triggerParseAll])
+
   // ── Force Start Handler ────────────────────────────────────────────────
 
-  const handleForceStart = async () => {
+  /**
+   * Triggered when user clicks OK in the confirm dialog.
+   * Starts conversion; if auto-parse checkbox is checked, sets the pending flag.
+   */
+  const handleConfirmForceStart = async () => {
+    setConfirmVisible(false)
     setForceStarting(true)
     try {
       const result = await triggerManualConversion()
       message.success(result.message || t('converter.panel.forceStartSuccess'))
-      // Refresh jobs after a short delay to show new status
+
+      // If user checked "parse after finish", set the pending flag.
+      // The refresh interval will detect when all jobs are done and call triggerParseAll.
+      if (autoParseAfterUpload) {
+        pendingAutoParseRef.current = true
+        message.info(t('converter.panel.autoParseScheduled'))
+      }
+
+      // Refresh after a short delay to show new status
       setTimeout(() => fetchJobs(), 1500)
     } catch (err) {
       message.error(t('converter.panel.forceStartError'))
@@ -354,12 +442,12 @@ const JobManagementModal = ({
           setExpandedRowKeys(expanded ? [record.id] : [])
         },
         expandedRowRender: (record: VersionJob) => <FileExpandRow jobId={record.id} />,
-        expandIcon: ({ expanded, onExpand, record }: { expanded: boolean; onExpand: (record: VersionJob, e: React.MouseEvent) => void; record: VersionJob }) => (
+        expandIcon: ({ expanded, onExpand, record }: { expanded: boolean; onExpand: (record: VersionJob, e: React.MouseEvent<HTMLElement>) => void; record: VersionJob }) => (
           <Button
             type="text"
             size="small"
             icon={expanded ? <ChevronDown size={14} /> : <ChevronRight size={14} />}
-            onClick={(e: React.MouseEvent) => onExpand(record, e)}
+            onClick={(e: React.MouseEvent<HTMLElement>) => onExpand(record, e)}
           />
         ),
       }}
@@ -389,50 +477,102 @@ const JobManagementModal = ({
   // ── Render ─────────────────────────────────────────────────────────────
 
   return (
-    <Modal
-      open={open}
-      onCancel={onClose}
-      title={
-        <div className="flex items-center justify-between pr-8">
-          <Text strong>
-            {t('converter.panel.title')}
-            {versionLabel && (
-              <Text type="secondary" className="ml-2 text-sm font-normal">
-                — {versionLabel}
+    <>
+      {/* ── Main modal ─────────────────────────────────────────────────── */}
+      <Modal
+        open={open}
+        onCancel={onClose}
+        title={
+          <div className="flex items-center justify-between pr-8">
+            <Text strong>
+              {t('converter.panel.title')}
+              {versionLabel && (
+                <Text type="secondary" className="ml-2 text-sm font-normal">
+                  — {versionLabel}
+                </Text>
+              )}
+            </Text>
+          </div>
+        }
+        width="70%"
+        footer={null}
+        destroyOnClose
+      >
+        {/* Action bar */}
+        <div className="flex items-center justify-between mb-3">
+          <Space>
+            <Button
+              type="primary"
+              icon={<Play size={14} />}
+              onClick={() => setConfirmVisible(true)}
+              loading={forceStarting || parsing}
+              disabled={forceStartDisabled}
+              size="small"
+            >
+              {parsing
+                ? t('converter.panel.parsing')
+                : t('converter.panel.forceStart')}
+            </Button>
+            {pendingAutoParseRef.current && (
+              <Text type="secondary" className="text-xs">
+                {t('converter.panel.waitingToAutoparse')}
               </Text>
             )}
-          </Text>
-        </div>
-      }
-      width="70%"
-      footer={null}
-      destroyOnClose
-    >
-      {/* Action bar */}
-      <div className="flex items-center justify-between mb-3">
-        <Space>
+          </Space>
           <Button
-            type="primary"
-            icon={<Play size={14} />}
-            onClick={handleForceStart}
-            loading={forceStarting}
-            disabled={forceStartDisabled}
+            type="text"
             size="small"
-          >
-            {t('converter.panel.forceStart')}
-          </Button>
-        </Space>
-        <Button
-          type="text"
-          size="small"
-          icon={<RefreshCw size={14} />}
-          onClick={() => fetchJobs()}
-          loading={loading}
-        />
-      </div>
+            icon={<RefreshCw size={14} />}
+            onClick={() => fetchJobs()}
+            loading={loading}
+          />
+        </div>
 
-      <Tabs items={tabItems} defaultActiveKey="active" size="small" />
-    </Modal>
+        <Tabs items={tabItems} defaultActiveKey="active" size="small" />
+      </Modal>
+
+      {/* ── Confirm dialog ─────────────────────────────────────────────── */}
+      <Modal
+        open={confirmVisible}
+        onCancel={() => setConfirmVisible(false)}
+        onOk={handleConfirmForceStart}
+        okText={t('converter.panel.forceStart')}
+        okType="primary"
+        cancelText={t('common.cancel', 'Cancel')}
+        title={
+          <Space>
+            <AlertTriangle size={16} className="text-orange-500" />
+            {t('converter.panel.forceStartConfirmTitle')}
+          </Space>
+        }
+        width={480}
+      >
+        <div className="flex flex-col gap-3 py-1">
+          <Alert
+            type="warning"
+            showIcon={false}
+            message={t('converter.panel.forceStartConfirmMessage')}
+          />
+
+          {/* Auto-parse checkbox */}
+          <div className="flex items-start gap-2 p-3 bg-blue-50 dark:bg-blue-900/20 rounded-lg border border-blue-200 dark:border-blue-700">
+            <Checkbox
+              checked={autoParseAfterUpload}
+              onChange={((e) => setAutoParseAfterUpload(e.target.checked)) as CheckboxProps['onChange']}
+            >
+              <div>
+                <div className="font-medium text-sm">
+                  {t('converter.panel.autoParseLabel')}
+                </div>
+                <div className="text-xs text-gray-500 mt-0.5">
+                  {t('converter.panel.autoParseDesc')}
+                </div>
+              </div>
+            </Checkbox>
+          </div>
+        </div>
+      </Modal>
+    </>
   )
 }
 
