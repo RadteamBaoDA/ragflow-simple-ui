@@ -433,8 +433,8 @@ export class RagflowProxyService {
     },
   ): Promise<any> {
     const client = await this.buildClient(serverId);
-    // SDK endpoint: POST /api/v1/search (uses @token_required / API key auth)
-    const res = await client.post("/api/v1/search", params);
+    // SDK endpoint: POST /api/v1/searchs (uses @token_required / API key auth)
+    const res = await client.post("/api/v1/searchs", params);
     log.info("RAGFlow search app created", { serverId, name: params.name });
     return this.unwrap(res);
   }
@@ -455,8 +455,8 @@ export class RagflowProxyService {
     },
   ): Promise<any> {
     const client = await this.buildClient(serverId);
-    // SDK endpoint: PUT /api/v1/search/<search_id> (uses @token_required / API key auth)
-    const res = await client.put(`/api/v1/search/${searchId}`, params);
+    // SDK endpoint: PUT /api/v1/searchs/<search_id> (uses @token_required / API key auth)
+    const res = await client.put(`/api/v1/searchs/${searchId}`, params);
     log.info("RAGFlow search app updated", { serverId, searchId });
     return this.unwrap(res);
   }
@@ -469,8 +469,8 @@ export class RagflowProxyService {
    */
   async getSearchAppDetail(serverId: string, searchId: string): Promise<any> {
     const client = await this.buildClient(serverId);
-    // SDK endpoint: GET /api/v1/search/<search_id> (uses @token_required / API key auth)
-    const res = await client.get(`/api/v1/search/${searchId}`);
+    // SDK endpoint: GET /api/v1/searchs/<search_id> (uses @token_required / API key auth)
+    const res = await client.get(`/api/v1/searchs/${searchId}`);
     return this.unwrap(res);
   }
 
@@ -491,8 +491,8 @@ export class RagflowProxyService {
     },
   ): Promise<any> {
     const client = await this.buildClient(serverId);
-    // SDK endpoint: GET /api/v1/search (uses @token_required / API key auth)
-    const res = await client.get("/api/v1/search", { params: query });
+    // SDK endpoint: GET /api/v1/searchs (uses @token_required / API key auth)
+    const res = await client.get("/api/v1/searchs", { params: query });
     return this.unwrap(res);
   }
 
@@ -504,8 +504,8 @@ export class RagflowProxyService {
    */
   async deleteSearchApp(serverId: string, searchId: string): Promise<any> {
     const client = await this.buildClient(serverId);
-    // SDK endpoint: DELETE /api/v1/search/<search_id> (uses @token_required / API key auth)
-    const res = await client.delete(`/api/v1/search/${searchId}`);
+    // SDK endpoint: DELETE /api/v1/searchs/<search_id> (uses @token_required / API key auth)
+    const res = await client.delete(`/api/v1/searchs/${searchId}`);
     log.info("RAGFlow search app deleted", { serverId, searchId });
     return this.unwrap(res);
   }
