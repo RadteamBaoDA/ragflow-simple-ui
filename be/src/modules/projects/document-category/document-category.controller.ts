@@ -222,6 +222,14 @@ export class DocumentCategoryController {
           .json({ error: "Version label already exists for this category" });
         return;
       }
+      // RAGFlow API or connectivity failures → 502 Bad Gateway with full detail
+      if (
+        error.message?.includes("RAGFlow") ||
+        error.message?.includes("Connection check")
+      ) {
+        res.status(502).json({ error: error.message });
+        return;
+      }
       res
         .status(500)
         .json({ error: error.message || "Failed to create version" });

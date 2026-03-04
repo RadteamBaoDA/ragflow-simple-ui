@@ -3,7 +3,7 @@
  * Resolves server credentials dynamically per serverId.
  * @description Implements Singleton Pattern per coding guidelines.
  */
-import axios, { AxiosInstance, AxiosResponse } from "axios";
+import axios, { AxiosError, AxiosInstance, AxiosResponse } from "axios";
 import { ModelFactory } from "@/shared/models/factory.js";
 import { log } from "@/shared/services/logger.service.js";
 
@@ -52,7 +52,7 @@ export class RagflowProxyService {
     }
 
     // Build axios instance with base URL and auth header
-    return axios.create({
+    const client = axios.create({
       baseURL: server.endpoint_url.replace(/\/$/, ""),
       headers: {
         Authorization: `Bearer ${server.api_key}`,
@@ -60,6 +60,29 @@ export class RagflowProxyService {
       },
       timeout: 60000,
     });
+
+    // Intercept HTTP-level errors (network failures, 4xx/5xx) and log details
+    client.interceptors.response.use(
+      (response) => response,
+      (error: AxiosError) => {
+        const method = error.config?.method?.toUpperCase() ?? "UNKNOWN";
+        const url = error.config?.url ?? "UNKNOWN";
+        const status = error.response?.status;
+        const responseBody = error.response?.data;
+        log.error("[RAGFlow] HTTP error response", {
+          serverId,
+          method,
+          url,
+          status,
+          responseBody,
+          message: error.message,
+        });
+        // Re-throw so callers can handle it
+        return Promise.reject(error);
+      },
+    );
+
+    return client;
   }
 
   /**
@@ -69,6 +92,14 @@ export class RagflowProxyService {
    */
   private unwrap<T>(res: AxiosResponse<RagflowApiResponse<T>>): T {
     if (res.data.code !== 0) {
+      // Log detailed info before throwing so errors are always visible in logs
+      log.error("[RAGFlow] API returned non-zero code", {
+        method: res.config?.method?.toUpperCase(),
+        url: res.config?.url,
+        code: res.data.code,
+        message: res.data.message,
+        data: res.data.data,
+      });
       throw new Error(
         res.data.message || `RAGFlow API error (code: ${res.data.code})`,
       );
@@ -100,18 +131,14 @@ export class RagflowProxyService {
     },
   ): Promise<any> {
     const client = await this.buildClient(serverId);
-    // Debug: log the exact payload being sent to RAGFlow
-    console.log(
-      "[RAGFlow createDataset] Payload:",
-      JSON.stringify(params, null, 2),
-    );
+    log.info("[RAGFlow] createDataset request", { serverId, params });
     const res = await client.post("/api/v1/datasets", params);
-    // Debug: log the full RAGFlow response
-    console.log(
-      "[RAGFlow createDataset] Response:",
-      JSON.stringify(res.data, null, 2),
-    );
-    log.info("RAGFlow dataset created", { serverId, name: params.name });
+    log.info("[RAGFlow] createDataset response", {
+      serverId,
+      name: params.name,
+      code: res.data.code,
+      message: res.data.message,
+    });
     return this.unwrap(res);
   }
 
@@ -128,19 +155,18 @@ export class RagflowProxyService {
     params: Record<string, any>,
   ): Promise<any> {
     const client = await this.buildClient(serverId);
-    // Debug: log the exact payload being sent to RAGFlow
-    console.log(
-      "[RAGFlow updateDataset] datasetId:",
+    log.info("[RAGFlow] updateDataset request", {
+      serverId,
       datasetId,
-      "Payload:",
-      JSON.stringify(params, null, 2),
-    );
+      params,
+    });
     const res = await client.put(`/api/v1/datasets/${datasetId}`, params);
-    // Debug: log the full RAGFlow response
-    console.log(
-      "[RAGFlow updateDataset] Response:",
-      JSON.stringify(res.data, null, 2),
-    );
+    log.info("[RAGFlow] updateDataset response", {
+      serverId,
+      datasetId,
+      code: res.data.code,
+      message: res.data.message,
+    });
     return this.unwrap(res);
   }
 
@@ -412,6 +438,122 @@ export class RagflowProxyService {
       return res.data.code === 0;
     } catch {
       return false;
+    }
+  }
+
+  /**
+   * Run a detailed pre-flight diagnostic against a RAGFlow server.
+   * Returns a structured result explaining what was checked and what failed.
+   * @param serverId - UUID of the ragflow_servers record
+   * @returns Diagnostic result with reachable, authenticated, code, and summary fields
+   */
+  async verifyConnection(serverId: string): Promise<{
+    reachable: boolean;
+    authenticated: boolean;
+    endpoint: string;
+    httpStatus?: number;
+    ragflowCode?: number;
+    ragflowMessage?: string;
+    summary: string;
+  }> {
+    // Step 1: Resolve server record
+    const server = await ModelFactory.ragflowServer.findById(serverId);
+    if (!server) {
+      return {
+        reachable: false,
+        authenticated: false,
+        endpoint: "unknown",
+        summary: `RAGFlow server record not found for id=${serverId}`,
+      };
+    }
+    if (!server.is_active) {
+      return {
+        reachable: false,
+        authenticated: false,
+        endpoint: server.endpoint_url,
+        summary: `RAGFlow server "${server.name}" is marked inactive in the database`,
+      };
+    }
+
+    const endpoint = server.endpoint_url.replace(/\/$/, "");
+    const client = axios.create({
+      baseURL: endpoint,
+      headers: {
+        Authorization: `Bearer ${server.api_key}`,
+        "Content-Type": "application/json",
+      },
+      timeout: 10000,
+    });
+
+    try {
+      // Step 2: Attempt a lightweight authenticated call
+      const res = await client.get<RagflowApiResponse<any>>(
+        "/api/v1/datasets",
+        {
+          params: { page: 1, page_size: 1 },
+        },
+      );
+      const ragflowCode = res.data?.code;
+      const ragflowMessage = res.data?.message;
+
+      if (ragflowCode === 0) {
+        return {
+          reachable: true,
+          authenticated: true,
+          endpoint,
+          httpStatus: res.status,
+          ragflowCode,
+          summary: `Connection OK — endpoint reachable and API key is valid`,
+        };
+      }
+
+      // Reachable but business-logic failure (e.g. bad API key, wrong tenant)
+      log.error("[RAGFlow] verifyConnection: API returned non-zero code", {
+        serverId,
+        endpoint,
+        ragflowCode,
+        ragflowMessage,
+      });
+      return {
+        reachable: true,
+        authenticated: false,
+        endpoint,
+        httpStatus: res.status,
+        ragflowCode,
+        ragflowMessage: ragflowMessage ?? "",
+        summary: `Endpoint reachable but RAGFlow rejected request (code=${ragflowCode}): ${ragflowMessage || "no message"}`,
+      };
+    } catch (err: any) {
+      const axiosErr = err as AxiosError;
+      const httpStatus = axiosErr.response?.status;
+      const responseBody = axiosErr.response?.data;
+
+      log.error("[RAGFlow] verifyConnection: HTTP error", {
+        serverId,
+        endpoint,
+        httpStatus,
+        responseBody,
+        message: axiosErr.message,
+      });
+
+      if (httpStatus) {
+        // Server responded with HTTP error (401, 403, 404, 5xx, etc.)
+        return {
+          reachable: true,
+          authenticated: false,
+          endpoint,
+          httpStatus,
+          summary: `Endpoint reachable but returned HTTP ${httpStatus} — check API key and RAGFlow server version`,
+        };
+      }
+
+      // Network-level failure: ECONNREFUSED, ETIMEDOUT, DNS failure, etc.
+      return {
+        reachable: false,
+        authenticated: false,
+        endpoint,
+        summary: `Cannot reach RAGFlow endpoint "${endpoint}": ${axiosErr.message}`,
+      };
     }
   }
 

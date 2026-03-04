@@ -323,11 +323,34 @@ export class DocumentCategoryService {
           typeof ragflowProxyService.createDataset
         >[1],
       );
-    } catch (err) {
-      console.error("Failed to create RAGFlow dataset:", err);
-      throw new Error(
-        "Failed to create RAGFlow dataset. Please verify server connection.",
-      );
+    } catch (err: any) {
+      // Log the original error with full detail first
+      log.error("[createVersion] Failed to create RAGFlow dataset", {
+        serverId,
+        datasetName,
+        createPayload,
+        error: err?.message,
+        stack: err?.stack,
+      });
+
+      // Run a connection diagnostic to get a human-readable explanation
+      let diagSummary = "";
+      try {
+        const diag = await ragflowProxyService.verifyConnection(serverId);
+        diagSummary = ` | Connection check: ${diag.summary}`;
+        log.error("[createVersion] RAGFlow connection diagnostic", {
+          serverId,
+          ...diag,
+        });
+      } catch (diagErr: any) {
+        log.error("[createVersion] Failed to run connection diagnostic", {
+          serverId,
+          error: diagErr?.message,
+        });
+      }
+
+      const cause = err?.message ? `: ${err.message}` : "";
+      throw new Error(`Failed to create RAGFlow dataset${cause}${diagSummary}`);
     }
 
     // Set pagerank via update API (not supported in create API)
