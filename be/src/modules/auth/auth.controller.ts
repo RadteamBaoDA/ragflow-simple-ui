@@ -84,6 +84,11 @@ export class AuthController {
         // CSRF-style state guard per OAuth best practices
         const state = authService.generateState()
         req.session.oauthState = state
+        log.info('Azure AD login started', {
+            clientIp: getClientIp(req),
+            redirectUri: config.azureAd.redirectUri,
+            proxy: authService.getAzureAdFetchDiagnostics()
+        })
         // Redirect to Azure AD authorization URL
         res.redirect(authService.getAuthorizationUrl(state))
     }
@@ -97,22 +102,46 @@ export class AuthController {
     async handleCallback(req: Request, res: Response): Promise<void> {
         const { code, state, error } = req.query;
 
+        log.info('Azure AD callback received', {
+            hasCode: typeof code === 'string' && code.length > 0,
+            hasState: typeof state === 'string' && state.length > 0,
+            hasSessionState: !!req.session.oauthState,
+            providerError: error,
+            clientIp: getClientIp(req),
+            proxy: authService.getAzureAdFetchDiagnostics()
+        })
+
         // Handle error from provider
         if (error) {
-            log.error('Azure AD login error', { error })
+            log.error('Azure AD login error from provider', {
+                error,
+                errorDescription: req.query['error_description'],
+                errorUri: req.query['error_uri'],
+                correlationId: req.query['correlation_id'],
+                traceId: req.query['trace_id']
+            })
             res.redirect(`${config.frontendUrl}/login?error=auth_failed`)
             return
         }
 
         // Validate code presence
         if (!code || typeof code !== 'string') {
+            log.warn('Azure AD callback missing authorization code', {
+                queryKeys: Object.keys(req.query),
+                hasState: typeof state === 'string' && state.length > 0
+            })
             res.redirect(`${config.frontendUrl}/login?error=no_code`)
             return
         }
 
         // Validate state to prevent CSRF
         if (state !== req.session.oauthState) {
-            log.warn('State mismatch in OAuth callback')
+            log.warn('State mismatch in OAuth callback', {
+                hasReceivedState: typeof state === 'string' && state.length > 0,
+                hasSessionState: !!req.session.oauthState,
+                receivedStateLength: typeof state === 'string' ? state.length : undefined,
+                sessionStateLength: req.session.oauthState?.length
+            })
             res.redirect(`${config.frontendUrl}/login?error=invalid_state`)
             return
         }
@@ -161,7 +190,11 @@ export class AuthController {
             })
         } catch (err: any) {
             // detailed logging for debugging
-            log.error('Authentication failed', { error: err.message })
+            log.error('Authentication failed', {
+                error: err.message,
+                stack: err.stack,
+                proxy: authService.getAzureAdFetchDiagnostics()
+            })
             res.redirect(`${config.frontendUrl}/login?error=auth_failed`)
         }
     }

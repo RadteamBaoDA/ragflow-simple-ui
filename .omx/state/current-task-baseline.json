@@ -1,0 +1,12 @@
+{
+  "version": 1,
+  "tasks": [
+    {
+      "branch_name": "main",
+      "worktree_path": "/mnt/d/Project/RAG/ragflow-simple-ui",
+      "status": "active",
+      "created_at": "2026-06-07T03:21:53.354Z",
+      "updated_at": "2026-06-07T03:21:53.354Z"
+    }
+  ]
+}

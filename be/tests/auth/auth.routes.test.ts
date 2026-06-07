@@ -27,6 +27,8 @@ vi.mock('../../src/shared/config/index.js', () => ({
             clientSecret: 'test-secret',
             tenantId: 'test-tenant',
             redirectUri: 'http://localhost:3001/api/auth/callback',
+            proxyUrl: undefined,
+            proxySource: undefined,
         },
     },
 }));
@@ -39,6 +41,20 @@ vi.mock('../../src/shared/middleware/auth.middleware.js', () => ({
 }));
 
 vi.mock('../../src/modules/auth/auth.service.js', () => ({
+    authService: {
+        getAuthorizationUrl: vi.fn().mockReturnValue('https://login.microsoft.com/auth'),
+        exchangeCodeForTokens: vi.fn(),
+        getUserProfile: vi.fn(),
+        generateState: vi.fn().mockReturnValue('mock-state-uuid'),
+        refreshAccessToken: vi.fn(),
+        isTokenExpired: vi.fn(),
+        getAzureAdFetchDiagnostics: vi.fn().mockReturnValue({
+            nodeFetchHonorsHttpProxyEnv: false,
+            customProxyApplied: false,
+            proxyConfigured: false,
+            proxySource: undefined,
+        }),
+    },
     getAuthorizationUrl: vi.fn().mockReturnValue('https://login.microsoft.com/auth'),
     exchangeCodeForTokens: vi.fn(),
     getUserProfile: vi.fn(),

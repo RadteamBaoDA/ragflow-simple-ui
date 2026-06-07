@@ -82,6 +82,30 @@ const getEnv = (key: string, defaultValue?: string): string => {
   return value;
 };
 
+/**
+ * Resolves the proxy URL that should be used for Azure AD and Graph calls.
+ * @returns The proxy URL and the environment variable that supplied it.
+ * @description Prefers Azure-specific proxy configuration before generic process proxy variables.
+ */
+const getAzureAdProxyConfig = (): { url: string | undefined; source: string | undefined } => {
+  const proxyCandidates = [
+    ['AZURE_AD_PROXY_URL', process.env['AZURE_AD_PROXY_URL']],
+    ['HTTPS_PROXY', process.env['HTTPS_PROXY']],
+    ['https_proxy', process.env['https_proxy']],
+    ['HTTP_PROXY', process.env['HTTP_PROXY']],
+    ['http_proxy', process.env['http_proxy']],
+  ] as const;
+
+  const configuredProxy = proxyCandidates.find(([, value]) => !!value?.trim());
+
+  return {
+    url: configuredProxy?.[1]?.trim() || undefined,
+    source: configuredProxy?.[0],
+  };
+};
+
+const azureAdProxyConfig = getAzureAdProxyConfig();
+
 // ============================================================================
 // MAIN CONFIGURATION OBJECT
 // ============================================================================
@@ -250,8 +274,10 @@ export const config = {
     tenantId: getEnv('AZURE_AD_TENANT_ID', ''),
     /** OAuth callback URL (must match Azure Portal configuration) */
     redirectUri: process.env['AZURE_AD_REDIRECT_URI'] ?? 'http://localhost:3001/api/auth/callback',
-    /** Optional proxy URL for Azure AD requests */
-    proxyUrl: process.env['AZURE_AD_PROXY_URL'] ?? undefined,
+    /** Optional proxy URL for Azure AD and Microsoft Graph requests */
+    proxyUrl: azureAdProxyConfig.url,
+    /** Environment variable that supplied the proxy URL */
+    proxySource: azureAdProxyConfig.source,
   },
 
   // --------------------------------------------------------------------------

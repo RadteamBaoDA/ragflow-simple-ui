@@ -18,6 +18,7 @@ vi.stubGlobal('crypto', {
 
 // Hoist all mocks
 const mockLog = vi.hoisted(() => ({
+  info: vi.fn(),
   error: vi.fn(),
   warn: vi.fn(),
   debug: vi.fn(),
@@ -54,6 +55,8 @@ vi.mock('../../src/shared/config/index.js', () => ({
       clientSecret: 'test-client-secret',
       tenantId: 'test-tenant-id',
       redirectUri: 'http://localhost:3001/api/auth/callback',
+      proxyUrl: undefined,
+      proxySource: undefined,
     },
     enableRootLogin: true,
     rootUser: 'root@example.com',
@@ -89,6 +92,19 @@ describe('Auth Service', () => {
       expect(url).toMatch(/scope=.*openid/)
       expect(url).toMatch(/scope=.*profile/)
       expect(url).toMatch(/scope=.*email/)
+    })
+  })
+
+  describe('getAzureAdFetchDiagnostics', () => {
+    it('reports that Node fetch does not use HTTP proxy env automatically', () => {
+      const service = createService()
+
+      expect(service.getAzureAdFetchDiagnostics()).toEqual({
+        nodeFetchHonorsHttpProxyEnv: false,
+        customProxyApplied: false,
+        proxyConfigured: false,
+        proxySource: undefined,
+      })
     })
   })
 

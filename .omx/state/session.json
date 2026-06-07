@@ -1,0 +1,10 @@
+{
+  "session_id": "019ea001-e5cf-7dc3-b469-2573a54144b4",
+  "native_session_id": "019ea001-e5cf-7dc3-b469-2573a54144b4",
+  "started_at": "2026-06-07T02:57:39.700Z",
+  "cwd": "/mnt/d/Project/RAG/ragflow-simple-ui",
+  "pid": 1382,
+  "platform": "linux",
+  "pid_start_ticks": 540,
+  "pid_cmdline": "/home/doana/.nvm/versions/node/v24.15.0/lib/node_modules/@openai/codex/node_modules/@openai/codex-linux-x64/vendor/x86_64-unknown-linux-musl/bin/codex"
+}
