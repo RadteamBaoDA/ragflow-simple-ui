@@ -1,0 +1,219 @@
+{
+  "version": "1.0.0",
+  "lastScanned": 1781101048302,
+  "projectRoot": "/mnt/d/Project/RAG/ragflow-simple-ui",
+  "techStack": {
+    "languages": [
+      {
+        "name": "JavaScript/TypeScript",
+        "version": ">=18.0.0",
+        "confidence": "high",
+        "markers": [
+          "package.json"
+        ]
+      }
+    ],
+    "frameworks": [],
+    "packageManager": "npm",
+    "runtime": "Node.js 18.0.0"
+  },
+  "build": {
+    "buildCommand": "npm run build",
+    "testCommand": "npm test",
+    "lintCommand": "npm run lint",
+    "devCommand": "npm run dev",
+    "scripts": {
+      "dev": "concurrently \"npm run dev:be\" \"npm run dev:fe\"",
+      "dev:be": "npm run dev --workspace=be",
+      "dev:fe": "npm run dev --workspace=fe",
+      "dev:https": "concurrently \"npm run dev:be\" \"npm run dev:fe\"",
+      "generate:cert": "node scripts/generate-cert.js",
+      "build": "npm run build --workspaces",
+      "build:prod": "npm run build:prod --workspaces",
+      "build:be": "npm run build --workspace=be",
+      "build:fe": "npm run build --workspace=fe",
+      "lint": "npm run lint --workspaces",
+      "test": "npm run test --workspaces --if-present"
+    }
+  },
+  "conventions": {
+    "namingStyle": null,
+    "importStyle": null,
+    "testPattern": null,
+    "fileOrganization": null
+  },
+  "structure": {
+    "isMonorepo": true,
+    "workspaces": [
+      "be",
+      "fe"
+    ],
+    "mainDirectories": [
+      "docs",
+      "scripts"
+    ],
+    "gitBranches": {
+      "defaultBranch": "main",
+      "branchingStrategy": null
+    }
+  },
+  "customNotes": [],
+  "directoryMap": {
+    "be": {
+      "path": "be",
+      "purpose": null,
+      "fileCount": 12,
+      "lastAccessed": 1781101048217,
+      "keyFiles": [
+        "Dockerfile",
+        "TEST_COVERAGE_SUMMARY.md",
+        "build-deploy.sh",
+        "coverage.txt",
+        "eslint.config.js"
+      ]
+    },
+    "docker": {
+      "path": "docker",
+      "purpose": null,
+      "fileCount": 3,
+      "lastAccessed": 1781101048225,
+      "keyFiles": [
+        "README.md",
+        "docker-compose.yml"
+      ]
+    },
+    "docs": {
+      "path": "docs",
+      "purpose": "Documentation",
+      "fileCount": 10,
+      "lastAccessed": 1781101048233,
+      "keyFiles": [
+        "api-reference.md",
+        "architecture.md",
+        "configuration.md",
+        "deployment.md",
+        "development.md"
+      ]
+    },
+    "fe": {
+      "path": "fe",
+      "purpose": null,
+      "fileCount": 15,
+      "lastAccessed": 1781101048239,
+      "keyFiles": [
+        "eslint.config.js",
+        "index.html",
+        "package.json",
+        "postcss.config.js",
+        "tailwind.config.js"
+      ]
+    },
+    "plans": {
+      "path": "plans",
+      "purpose": null,
+      "fileCount": 6,
+      "lastAccessed": 1781101048247,
+      "keyFiles": [
+        "improve-generative.md",
+        "rag_implementation_plan.md",
+        "rag_long_form_document_generation_plan.md",
+        "sharepoint_to_ragflow_research.md",
+        "solution1.md"
+      ]
+    },
+    "prompts": {
+      "path": "prompts",
+      "purpose": null,
+      "fileCount": 2,
+      "lastAccessed": 1781101048255,
+      "keyFiles": [
+        "genera-user-ex.md",
+        "general-sys.md"
+      ]
+    },
+    "samples": {
+      "path": "samples",
+      "purpose": null,
+      "fileCount": 2,
+      "lastAccessed": 1781101048259,
+      "keyFiles": [
+        "glossary_keyword_import_sample.xlsx",
+        "glossary_task_import_sample.xlsx"
+      ]
+    },
+    "scripts": {
+      "path": "scripts",
+      "purpose": "Build/utility scripts",
+      "fileCount": 2,
+      "lastAccessed": 1781101048262,
+      "keyFiles": [
+        "generate-cert.js",
+        "generate_glossary_sample.cjs"
+      ]
+    },
+    "be/dist": {
+      "path": "be/dist",
+      "purpose": "Distribution/build output",
+      "fileCount": 0,
+      "lastAccessed": 1781101048268,
+      "keyFiles": []
+    },
+    "be/docs": {
+      "path": "be/docs",
+      "purpose": "Documentation",
+      "fileCount": 1,
+      "lastAccessed": 1781101048271,
+      "keyFiles": [
+        "external-trace-api.md"
+      ]
+    },
+    "docker/config": {
+      "path": "docker/config",
+      "purpose": "Configuration files",
+      "fileCount": 2,
+      "lastAccessed": 1781101048276,
+      "keyFiles": [
+        "ragflow.config.json",
+        "system-tools.config.json"
+      ]
+    },
+    "fe/node_modules": {
+      "path": "fe/node_modules",
+      "purpose": "Dependencies",
+      "fileCount": 0,
+      "lastAccessed": 1781101048283,
+      "keyFiles": []
+    },
+    "fe/public": {
+      "path": "fe/public",
+      "purpose": "Public files",
+      "fileCount": 0,
+      "lastAccessed": 1781101048287,
+      "keyFiles": []
+    },
+    "fe/scripts": {
+      "path": "fe/scripts",
+      "purpose": "Build/utility scripts",
+      "fileCount": 3,
+      "lastAccessed": 1781101048292,
+      "keyFiles": [
+        "aggregate-coverage.mjs",
+        "capture_screenshots.spec.ts",
+        "coverage-file-stats.mjs"
+      ]
+    },
+    "fe/src": {
+      "path": "fe/src",
+      "purpose": "Source code",
+      "fileCount": 5,
+      "lastAccessed": 1781101048296,
+      "keyFiles": [
+        "config.ts",
+        "index.css",
+        "main.tsx"
+      ]
+    }
+  },
+  "hotPaths": [],
+  "userDirectives": []
+}
