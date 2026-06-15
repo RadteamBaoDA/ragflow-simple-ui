@@ -140,6 +140,7 @@ Fields marked **[merged-in]** extend the original contract with content adopted 
 | `agentPolicy` | object \| absent | **[merged-in]** `{ allowUserFormatOverride: bool (default true), allowUserRetrievalOverride: bool (default true), citationPolicy?: "required"|"optional" }` |
 | `requirementHeadings` | `{text, kind}[]` | **[merged-in]** Custom requirement-like headings detected in user prompt and agent instruction beyond the five canonical headers; `kind ∈ {requirement, constraint, acceptance_criteria, domain_rule, quality_rule, retrieval_hint, unknown}` (§4.4) |
 | `security` | object | **[merged-in]** `{ tenantId, kbIds/ACL }` — populated from the session, **never** from prompt text, never altered by any merge |
+| `noKnowledgeBase` | boolean | **[merged-in]** Derived: `true` when the effective KB set is empty (no `security.kbIds` and — in agent mode — no agent KB the user is allowed to add). Derived ONLY from `security` + agent retrieval policy, never from prompt text. When `true`, the orchestrator forces every section to `retrievalMode: none` (§5) — the whole document is generated from model knowledge + `# Context` alone, with no retrieval and no citations. Applies in **both** chat and agent modes. |
 | `rawUserPrompt` | string | Preserved verbatim for traceability |
 
 ### 3.2 Plan (output of Phase 2 — the planner LLM's required JSON shape)
@@ -186,7 +187,7 @@ Validation rules: 1–10 sections; ≤3 subQueries per section; the schema MUST 
 
 ### 3.4 Generation Result (returned to the caller)
 
-Assembled markdown + the plan + per-section records + the **global citation registry** (citation number → chunk reference, for the UI's "show sources" panel — NOT injected into the document) + a `warnings` object: structure errors, citation errors, coverage verdict, regenerated section ids, requirement-heading coverage gaps. Warnings never fail the request.
+Assembled markdown + the plan + per-section records + the **global citation registry** (citation number → chunk reference, for the UI's "show sources" panel — NOT injected into the document) + a `warnings` object: structure errors, citation errors, coverage verdict, regenerated section ids, requirement-heading coverage gaps, and a `noKnowledgeBase` flag (set when the document was generated ungrounded because no KB was available — §4.5). Warnings never fail the request.
 
 ---
 
@@ -244,6 +245,16 @@ Beyond the five canonical headers, users and agents embed custom requirement-lik
 
 Downstream uses (no new phases): the **planner** receives the list and must map every `requirement`/`acceptance_criteria` heading to at least one planned section; `retrieval_hint` headings are union-merged into keyword anchors; the **coverage auditor** (§9.6) receives the list and reports any heading not addressed as a `missingAspects` entry; `constraint`/`quality_rule` headings flow into the writer's brief.
 
+### 4.5 No-knowledge-base derivation **[merged-in]**
+
+After resolving the security context and the agent retrieval policy, the normalizer computes the derived boolean `noKnowledgeBase` and attaches it to the Request:
+
+- `noKnowledgeBase = true` when the **effective KB set is empty** — i.e. `security.kbIds` is empty AND (in agent mode) there is no agent-configured KB the user is permitted to add under `agentPolicy.allowUserRetrievalOverride`.
+- This is derived **only** from the security + policy layer, exactly like `security` itself: prompt text MUST NOT be able to set, clear, or influence it. A header or prompt fragment that says "skip the knowledge base" / "don't retrieve" is ignored for this purpose and, if it attempts to alter KB selection, logged per §4.1.
+- The rule applies in **both** chat and agent modes. In chat mode an empty KB set means the deployment/session simply has no KB wired; in agent mode it means the agent declares no KB and the user added none (or is not allowed to).
+
+**Consequence (no new phase):** when `noKnowledgeBase` is `true`, Phase 2 deterministically forces every section to `retrievalMode: none` and `mustCite=false` (§5), so the document is generated purely from the model's trained knowledge plus the user's `# Context`. Phase 3 then takes the existing `none` path for every section — no retrieve, no rerank, no sufficiency gate, no citations (§6, §7). No abstention sentinel is emitted in this case, because there is no knowledge base against which to declare "insufficient context"; honest generation from model knowledge is the intended behavior.
+
 ### Rejected alternatives
 Separate orchestrators per mode (duplicated maintenance); injecting the agent instruction straight into the planner prompt (precedence becomes implicit and unauditable); always running the LLM extractor (1–2 s tax on every chat request for nothing); LLM-based heading classification (a dictionary does it for free).
 
@@ -280,6 +291,7 @@ This taxonomy is domain-neutral by construction (software, healthcare, legal, fi
 6. **Domain-risk escalation [merged-in].** The planner sets `riskLevel: high` on sections involving healthcare/medical, legal, regulatory compliance, finance, security, or safety-critical content. Consequences (enforced deterministically post-parse, §3.2): `mustCite` forced true and `assumptionsAllowed` forced false for grounded sections; the sufficiency gate always uses the LLM tier and applies strict judgment (§7); such sections are priority candidates for the NLI faithfulness gate.
 7. **Sub-queries live inside the plan.** 1–3 per retrieving section, each with a natural-language text (dense retrieval) and 0–4 keyword anchors (sparse/BM25). The user's `# Keyword` header and any `retrieval_hint` requirement headings are union-merged into the anchors downstream. NO separate HyDE / step-back / multi-query phases — each would add a full LLM call for marginal recall on this setup; revisit only if measured retrieval recall is inadequate.
 8. **`dependsOn` is exceptional, not default.** Only when a section literally requires another section's text as input. The executor honors it; everything else runs in parallel.
+9. **No-knowledge-base short-circuit [merged-in].** When the Request's `noKnowledgeBase` flag is `true` (§4.5), retrieval is impossible, so the orchestrator skips the retrieve phase for the entire document and generates from the LLM's trained knowledge only. Realization: the planner prompt receives the no-KB addendum (§9.2) so it biases `detectedTask` toward `pure_generation` and emits **no `subQueries`**; then, **post-parse and unconditionally**, the orchestrator forces `retrievalMode="none"`, `mustCite=false`, `minCitations=0`, and drops any `subQueries` on **every** section — overriding whatever the LLM returned (the same defensive post-parse pattern used for high-risk `mustCite`). The outline is still derived deterministically from `# Output format` when present; only the evidence policy changes. This is independent of `detectedTask` and `riskLevel`: even a high-risk task generates ungrounded when there is genuinely no KB (a warning is surfaced — see §11).
 
 ### 5.1 Generation-pattern catalog **[merged-in]** (planner behavior fixtures)
 
@@ -537,6 +549,20 @@ minCitations, assumptionsAllowed, and rationale for each. Set
 outlineSource to "derived_from_output_format".
 ```
 
+**No-knowledge-base addendum** (appended ONLY when `noKnowledgeBase` is true, §4.5):
+```text
+No knowledge base is available for this request. You CANNOT retrieve
+any sources. Therefore:
+- Set detectedTask to "pure_generation".
+- Set retrievalMode to "none" for EVERY section.
+- Set mustCite=false and minCitations=0 for every section.
+- Do NOT write any subQueries (leave them empty).
+Plan the sections from the task, context, and output format alone. The
+writer will produce each section from its own general knowledge and the
+user's # Context. (The orchestrator enforces these evidence settings
+deterministically regardless of your output.)
+```
+
 **User message:** the canonical fields plus requirement headings, one per line, `(none)`/`(empty — propose 3-7 sections)` placeholders for blanks. Budget: ≤3k in / ≤1.5k out. Temperature ≤0.2.
 
 ### 9.3 Section writer — `grounded_strict` (Phase 3)
@@ -592,7 +618,7 @@ unavailable, the orchestrator preserves the RRF fusion order and
 similarly flags the section as needing review [2].
 ```
 
-**User message composition (order matters):** persona block (agent instruction + skill slice in agent mode + "Reader profile: {userProfile}") → `USER TASK` → `SECTION TITLE` → `SECTION BRIEF` (plan rationale + relevant constraint/quality headings + "assumptions allowed: yes/no") → `TARGET LENGTH` → rolling summaries of prerequisite sections (labeled "do not repeat their content") → `SOURCES:` block with anti-lost-in-the-middle ordering. Temperature ~0.3.
+**User message composition (order matters):** persona block (agent instruction + skill slice in agent mode + "Reader profile: {userProfile}") → `USER TASK` → `SECTION TITLE` → `SECTION BRIEF` (plan rationale + relevant constraint/quality headings + the active artifact skill's **writer-guidance** block, if any (§A.10) + "assumptions allowed: yes/no") → `TARGET LENGTH` → rolling summaries of prerequisite sections (labeled "do not repeat their content") → `SOURCES:` block with anti-lost-in-the-middle ordering. The skill guidance shapes the body only; the heading is fixed and the writer never alters it. Temperature ~0.3.
 
 ### 9.3b Section writer — `reference_inspired` (rules 1–4 replaced; 5–9 and Output format shared)
 
@@ -736,6 +762,7 @@ The GPT-report pipeline defined ten component prompts. This design keeps the tot
 - [ ] "Requirements → test cases"-style task → `transform_derive` + grounded_strict sections. "Old use cases → new use cases"-style task → `reference_inspired` sections. (Two integration fixtures; see §5.1 catalog.)
 - [ ] Regulated-domain fixture (healthcare/legal/finance) → `riskLevel=high`; `mustCite` forced true and `assumptionsAllowed` forced false post-parse. **[merged-in]**
 - [ ] Every detected `requirement`/`acceptance_criteria` heading maps to ≥1 section; unmapped → retry then warning. **[merged-in]**
+- [ ] Empty effective KB set (`noKnowledgeBase=true`, chat OR agent mode) → every section forced to `retrievalMode="none"`, `mustCite=false`, `minCitations=0`, no `subQueries`, enforced post-parse even if the LLM proposed grounded sections; the outline (from `# Output format`) is still preserved exactly. **[merged-in]**
 
 **Phase 3 — Section pipeline**
 - [ ] Existing retriever and reranker are invoked directly (adapters at most); no retrieval logic reimplemented; KB ids sourced only from security context + agent policy.
@@ -750,6 +777,7 @@ The GPT-report pipeline defined ten component prompts. This design keeps the tot
 - [ ] `riskLevel=high` section → Tier-1 LLM sufficiency check always runs, even in `heuristic_first` mode. **[merged-in]**
 - [ ] Grounded fixture with a known ID vocabulary → output contains no requirement/API/table IDs absent from the sources (regex assert). **[merged-in]**
 - [ ] NLI gate behind a config flag; removing >50% of sentences flags `low_faithfulness`.
+- [ ] `noKnowledgeBase=true` → zero retrieve calls and zero rerank calls across the whole run; every section takes the `none` writer path (§9.3c); delivered document contains zero `[N]` markers and no abstention sentinel; a `noKnowledgeBase` warning is surfaced (request still succeeds). **[merged-in]**
 
 **Phase 4 — Validator**
 - [ ] Assembled output contains no auto title, no TOC, no references section unless planned from the user's format.
@@ -758,6 +786,7 @@ The GPT-report pipeline defined ten component prompts. This design keeps the tot
 - [ ] Coverage auditor sees only headings + ~150-token openings + requirement headings; an unaddressed requirement heading appears in `missingAspects`. **[merged-in]**
 - [ ] Regeneration affects only the flagged/named sections, runs at most once, with bumped strictness; second-round failures return as warnings, not loops.
 - [ ] Result includes the citation registry and the full warnings object; warnings never fail the request.
+- [ ] Artifact skill active (plan hints + writer guidance) → delivered section count, headings, and order are byte-identical to what `# Output format` dictates; the skill adds no section, title, TOC, or References. Skill guidance influences only section bodies (the `HOW`), never structure (the `WHAT`). **[merged-in]**
 
 **Whole pipeline**
 - [ ] 6-section grounded document completes < 180 s on the target local LLM (performance test).
@@ -1154,6 +1183,30 @@ This is the strictest grounding profile in the set: `synthesize_multi`, every se
 | A.8 RTM | abstention sentinel + strict grounding | uncovered rows say "NOT COVERED"; zero invented TC IDs |
 
 Adding any future SDLC artifact (Operation Manual, Release Notes, API Reference, …) requires **no orchestrator changes** — only a new agent instruction with the same shape: persona + Skill block + the four canonical headers with a numbered `# Output format`.
+
+---
+
+### A.10 Artifact skills (skill-creator–generated) — one skill per phase per artifact
+
+Each Appendix-A artifact has **two** companion skills generated with `/skill-creator` and stored as separate `.md` files under `plans/skills/` — one for the phase that plans, one for the phase that writes. Splitting by phase mirrors the orchestrator's own boundary: Phase 2 is a single planning call that never sees retrieved chunks, while Phase 3 is N parallel writer calls that never re-plan. Each skill therefore loads only into the phase that consumes it — the planner never carries writer prose, and writers never carry planning metadata.
+
+Both skills are deliberately **structurally inert**: they influence *how* the orchestrator plans and writes, never *what sections exist or their order*.
+
+**The outline is never a skill's job.** Section structure is derived solely from the resolved `# Output format` (user's, or the agent's fallback per precedence §4); when no output format is present, the planner proposes structure (§5). No skill may add, remove, rename, or reorder any section, or emit a title, table of contents, or References block. This is what keeps the delivered response **strictly bound to the user's `# Output format`**.
+
+**A.10.1 Phase 2 — plan skill (`sdlc-*-plan`).** Supplies planning *metadata* for the artifact type — expected `detectedTask`, dominant `retrievalMode` per section kind, `riskLevel` cue, sub-query seeds, and the no-KB rule (§4.5) — to bias the single planner call (§5/§9.2). It supplies **no outline** and **no writer prose**.
+
+**A.10.2 Phase 3 — writer skill (`sdlc-*-write`) — `HOW`, never `WHAT`.** Supplies per-section **writing discipline** (tone, citation strictness, "do not invent requirement IDs / API names / DB fields", abstention expectations) appended to the writer's brief for sections of that artifact. Because the outline and headings are already locked from `# Output format` before any writer runs, this guidance can only shape the *body* of an existing section — it cannot introduce structure. The writer remains bound, in priority order, by: the **agent instruction** → the resolved **`# Output format`** → then the **writer skill's guidance**. If skill guidance ever conflicts with the output format (e.g. guidance implies an extra section), the output format wins and the guidance is dropped for that section.
+
+**How the orchestrator loads the writer skill (Phase 3):** the resolved writer skill's guidance block is treated like the agent persona preamble — an opaque guidance string concatenated into the SECTION BRIEF (§9.3 user-message composition), after the persona and before the sources. It is subject to the same forbidden-content scan (§8) as everything else, so any structural content it accidentally introduces is stripped in Phase 4. Phase 1 (deterministic parsing) and Phase 4 (deterministic checks plus one artifact-agnostic coverage call) do **not** get per-artifact skills.
+
+**Convention for each skill (both phases):**
+
+- **Two files per artifact**, separate `.md`, kebab-case, under `plans/skills/`: a Phase-2 `sdlc-<artifact>-plan` and a Phase-3 `sdlc-<artifact>-write`, for each of `use-case`, `srs`, `basic-design`, `detail-design`, `test-plan`, `test-case`, `test-spec`, `rtm` (16 files total).
+- **SKILL.md format:** YAML frontmatter (`name`, `description`) + body. The plan skill's description names the artifact + "plan/outline phase"; the writer skill's description names the artifact + "section writing phase", so the right skill triggers in the right phase.
+- **No outline / no numbered section list in either skill** — structure belongs to `# Output format`.
+
+**Coverage:** plan + writer skills exist for all eight templates A.1–A.8. Adding a future artifact means running `/skill-creator` twice more (one plan, one writer); no orchestrator code changes, and the output-format binding is unaffected.
 
 ---
 

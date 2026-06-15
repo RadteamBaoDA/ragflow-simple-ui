@@ -152,3 +152,4 @@ be/.data/knowledge-base.db
 be/src/config/*.json
 be/temp
 tasks
+ragflow
