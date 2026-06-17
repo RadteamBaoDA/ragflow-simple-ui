@@ -1,15 +1,15 @@
 ---
 name: sdlc-test-spec-write
-description: Use during the PARALLEL PER-SECTION WRITING phase (Phase 3) of the generative RAG orchestrator when writing the body of a Test Specification section (test spec, test procedures, test data sets, environment setup, pass/fail criteria, evidence/teardown). Supplies per-section writing discipline only. Structurally inert — shapes the section body (HOW), never the outline or headings (WHAT); never adds/renames/reorders sections; the resolved # Output format and agent instruction always win.
+description: Phase-3 writer resource for the sdlc-test-spec skill (Test Specifications — test procedures, test data sets, environment setup, pass/fail criteria, evidence/teardown). Not independently triggered; appended to a section's writer brief only after SKILL.md selects this artifact. Supplies per-section writing discipline only. Structurally inert — shapes the section body (HOW), never the outline or headings (WHAT); never adds/renames/reorders sections; the resolved # Output format and agent instruction always win.
 ---
 
-# Test Specification — Writer Skill (Phase 3)
+# Test Specification — Writer Resource (Phase 3)
 
 Shapes **how** a test spec section body is written, never **what** sections exist.
 Headings and section order are already locked from the resolved `# Output format`
 (§4) before any writer runs. Writer priority: agent instruction → `# Output format`
 → this guidance; the output format wins any conflict. Planning metadata lives in
-the companion `sdlc-test-spec-plan` (Phase 2).
+the sibling [plan.md](plan.md) (Phase 2).
 
 ## Writer guidance (body only, never structure)
 - Expand test cases into step-level procedures with setup, execution, verification, teardown.

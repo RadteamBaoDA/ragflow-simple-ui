@@ -1,15 +1,15 @@
 ---
 name: sdlc-test-case-write
-description: Use during the PARALLEL PER-SECTION WRITING phase (Phase 3) of the generative RAG orchestrator when writing the body of a Test Case section (test case, test step/expected result, boundary value, equivalence partition, negative test, requirements-to-test derivation). Supplies per-section writing discipline only. Structurally inert — shapes the section body (HOW), never the outline or headings (WHAT); never adds/renames/reorders sections; the resolved # Output format and agent instruction always win.
+description: Phase-3 writer resource for the sdlc-test-case skill (Test Cases — test step/expected result, boundary value, equivalence partition, negative test, requirements-to-test derivation). Not independently triggered; appended to a section's writer brief only after SKILL.md selects this artifact. Supplies per-section writing discipline only. Structurally inert — shapes the section body (HOW), never the outline or headings (WHAT); never adds/renames/reorders sections; the resolved # Output format and agent instruction always win.
 ---
 
-# Test Case — Writer Skill (Phase 3)
+# Test Case — Writer Resource (Phase 3)
 
 Shapes **how** a test case section body is written, never **what** sections exist.
 Headings and section order are already locked from the resolved `# Output format`
 (§4) before any writer runs. Writer priority: agent instruction → `# Output format`
 → this guidance; the output format wins any conflict. Planning metadata lives in
-the companion `sdlc-test-case-plan` (Phase 2).
+the sibling [plan.md](plan.md) (Phase 2).
 
 ## Writer guidance (body only, never structure)
 - One test case per verifiable behavior; atomic and independently executable.

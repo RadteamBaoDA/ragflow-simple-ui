@@ -1,15 +1,15 @@
 ---
 name: sdlc-srs-write
-description: Use during the PARALLEL PER-SECTION WRITING phase (Phase 3) of the generative RAG orchestrator when writing the body of a Software Requirements Specification section (SRS, requirements spec, functional/non-functional requirements, IEEE 29148, "shall" statements). Supplies per-section writing discipline only. Structurally inert — shapes the section body (HOW), never the outline or headings (WHAT); never adds/renames/reorders sections; the resolved # Output format and agent instruction always win.
+description: Phase-3 writer resource for the sdlc-srs skill (Software Requirements Specifications — SRS, functional/non-functional requirements, IEEE 29148, "shall" statements). Not independently triggered; appended to a section's writer brief only after SKILL.md selects this artifact. Supplies per-section writing discipline only. Structurally inert — shapes the section body (HOW), never the outline or headings (WHAT); never adds/renames/reorders sections; the resolved # Output format and agent instruction always win.
 ---
 
-# Software Requirements Specification (SRS) — Writer Skill (Phase 3)
+# Software Requirements Specification (SRS) — Writer Resource (Phase 3)
 
 Shapes **how** an SRS section body is written, never **what** sections exist.
 Headings and section order are already locked from the resolved `# Output format`
 (§4) before any writer runs. Writer priority: agent instruction → `# Output format`
 → this guidance; the output format wins any conflict. Planning metadata lives in
-the companion `sdlc-srs-plan` (Phase 2).
+the sibling [plan.md](plan.md) (Phase 2).
 
 ## Writer guidance (body only, never structure)
 - Write each functional requirement as an atomic, testable "shall" statement with a unique ID continuing the existing numbering (REQ-<MODULE>-<NN>).

@@ -1,15 +1,15 @@
 ---
 name: sdlc-test-plan-write
-description: Use during the PARALLEL PER-SECTION WRITING phase (Phase 3) of the generative RAG orchestrator when writing the body of a Test Plan section (test plan, test strategy, ISTQB/IEEE 829 plan, test scope, entry/exit criteria, test schedule, risk-based testing). Supplies per-section writing discipline only. Structurally inert — shapes the section body (HOW), never the outline or headings (WHAT); never adds/renames/reorders sections; the resolved # Output format and agent instruction always win.
+description: Phase-3 writer resource for the sdlc-test-plan skill (Test Plans — test strategy, ISTQB/IEEE 829 plan, test scope, entry/exit criteria, test schedule, risk-based testing). Not independently triggered; appended to a section's writer brief only after SKILL.md selects this artifact. Supplies per-section writing discipline only. Structurally inert — shapes the section body (HOW), never the outline or headings (WHAT); never adds/renames/reorders sections; the resolved # Output format and agent instruction always win.
 ---
 
-# Test Plan — Writer Skill (Phase 3)
+# Test Plan — Writer Resource (Phase 3)
 
 Shapes **how** a test plan section body is written, never **what** sections exist.
 Headings and section order are already locked from the resolved `# Output format`
 (§4) before any writer runs. Writer priority: agent instruction → `# Output format`
 → this guidance; the output format wins any conflict. Planning metadata lives in
-the companion `sdlc-test-plan-plan` (Phase 2).
+the sibling [plan.md](plan.md) (Phase 2).
 
 ## Writer guidance (body only, never structure)
 - Derive test scope (in/out) and test items from the SRS feature list; never invent requirement IDs.

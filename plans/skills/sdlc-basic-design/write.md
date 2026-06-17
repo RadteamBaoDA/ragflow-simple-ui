@@ -1,15 +1,15 @@
 ---
 name: sdlc-basic-design-write
-description: Use during the PARALLEL PER-SECTION WRITING phase (Phase 3) of the generative RAG orchestrator when writing the body of a Basic Design / High-Level Design section (HLD, basic design, system architecture, component design, requirement-to-component traceability). Supplies per-section writing discipline only. Structurally inert — shapes the section body (HOW), never the outline or headings (WHAT); never adds/renames/reorders sections; the resolved # Output format and agent instruction always win.
+description: Phase-3 writer resource for the sdlc-basic-design skill (Basic Design / High-Level Design — HLD, system architecture, component design, requirement-to-component traceability). Not independently triggered; appended to a section's writer brief only after SKILL.md selects this artifact. Supplies per-section writing discipline only. Structurally inert — shapes the section body (HOW), never the outline or headings (WHAT); never adds/renames/reorders sections; the resolved # Output format and agent instruction always win.
 ---
 
-# Basic Design (High-Level Design) — Writer Skill (Phase 3)
+# Basic Design (High-Level Design) — Writer Resource (Phase 3)
 
 Shapes **how** an HLD section body is written, never **what** sections exist.
 Headings and section order are already locked from the resolved `# Output format`
 (§4) before any writer runs. Writer priority: agent instruction → `# Output format`
 → this guidance; the output format wins any conflict. Planning metadata lives in
-the companion `sdlc-basic-design-plan` (Phase 2).
+the sibling [plan.md](plan.md) (Phase 2).
 
 ## Writer guidance (body only, never structure)
 - Decompose into components/modules with single responsibilities and explicit interfaces; use the project's component IDs (CMP-<NN>) and decision IDs (DD-<NN>).
