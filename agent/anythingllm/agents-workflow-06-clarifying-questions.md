@@ -41,12 +41,16 @@ aibitat.requestUserClarification({
 })
 ```
 
+The tool self-skips at setup when `aibitat.requestUserClarification` is absent (API/ephemeral runs without a socket), so the LLM never sees it in those contexts.
+
 Question shape is determined by the request-user-input tools. The frontend supports:
 
-- `kind: "input"`
+- `kind: "input"` (inputType: text, url, number, date, email, or textarea)
 - `kind: "choice"`
 
 Choice questions support single-select and multi-select behavior.
+
+A per-turn cap limits how many questions can be asked, from the `agent_clarifying_questions_max_per_turn` setting (default 3), tracked on `aibitat._clarifyState`. Each call accepts 1 to 10 questions; batches are truncated to the remaining allowance, and once the cap is hit the tool tells the model to proceed with best judgment.
 
 ## Browser Flow
 
@@ -109,6 +113,7 @@ Default timeout is 120 seconds. On timeout, answers are normalized as skipped va
 - Gate the skill behind an admin setting.
 - Add a role instruction so the model uses the tool instead of asking in plain text.
 - Send structured question batches over the websocket.
+- Cap questions per turn and truncate oversized batches.
 - Render the card as an assistant chat item.
 - Match responses by `requestId`.
 - Persist completed surveys in the final chat response JSON.

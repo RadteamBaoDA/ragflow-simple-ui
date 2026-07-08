@@ -23,14 +23,14 @@ Flows are JSON files under:
 storage/plugins/agent-flows/<uuid>.json
 ```
 
-In development, the path is relative to the server working directory unless `STORAGE_DIR` is set.
+When `STORAGE_DIR` is unset, the path is relative to the server working directory (`process.cwd()/storage/plugins/agent-flows`).
 
 Each flow contains:
 
 - `name`
 - `description`
-- `active`
-- `steps`
+- `active` (a flow counts as active unless `active` is explicitly `false`)
+- `steps` (each step is `{ type, config }`)
 
 ## CRUD Endpoints
 
@@ -51,17 +51,19 @@ All endpoints require admin access.
 - `llmInstruction`: send an instruction to the current agent LLM.
 - `webScraping`: scrape a webpage and optionally summarize it.
 
-`saveFlow` rejects unsupported block types.
+`saveFlow` rejects unsupported block types (e.g. file/code blocks from flows exported by AnythingLLM Desktop).
+
+The builder UI also has `flowInfo` and `finish` blocks, but they are UI-only and stripped from `steps` before saving. Website, file, and code node components exist under `AgentBuilder/nodes/` but are currently disabled in `BlockList`.
 
 ## Tool Exposure
 
-`AgentFlows.activeFlowPlugins()` returns `@@flow_<uuid>` for every active flow.
+`AgentFlows.activeFlowPlugins()` returns `@@flow_<uuid>` for every flow whose `active` flag is not `false`.
 
 During agent setup:
 
 1. `#attachPlugins` sees `@@flow_<uuid>`.
 2. It calls `AgentFlows.loadFlowPlugin(uuid)`.
-3. The flow name is sanitized into an OpenAI-compatible tool name.
+3. The flow name is sanitized into an OpenAI-compatible tool name (`^[a-zA-Z0-9_-]{1,64}$`), falling back to `flow_<uuid>` if sanitization yields an empty string.
 4. Variables from the `start` block become tool input parameters.
 5. The placeholder function is replaced with the real sanitized tool name.
 6. `aibitat.use(plugin.plugin())` registers the flow tool.
@@ -75,7 +77,7 @@ When the model calls a flow tool:
 3. Each step config is variable-expanded using `${path.to.value}` syntax.
 4. Steps execute sequentially.
 5. Step results can be stored in `resultVariable` or `responseVariable`.
-6. If a step has `directOutput`, execution stops and returns that result.
+6. If a step has `directOutput`, execution stops; the flow plugin sets `aibitat.skipHandleExecution = true` and returns that result without another model pass.
 7. Otherwise the full execution result returns to the model.
 
 ## Variable Paths

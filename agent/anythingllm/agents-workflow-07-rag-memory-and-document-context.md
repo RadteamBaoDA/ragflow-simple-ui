@@ -46,6 +46,8 @@ It also calls `aibitat.addDocumentCitations(allDocuments)` so the frontend can s
 - `search`: similarity search in the workspace vector namespace.
 - `store`: add a text memory into the workspace vector namespace.
 
+Repeated calls with the same `action` + `content` are short-circuited by a `Deduplicator` and return a "duplicated call" notice instead of re-running.
+
 Search flow:
 
 1. Resolve the workspace LLM connector.

@@ -84,13 +84,23 @@ The core loop:
 4. Call provider.
 5. If response has tool call:
    - execute handler
-   - append tool result to messages
+   - append tool result to messages as a `role: "function"` message
    - call provider again
 6. If response has text:
    - emit final message
    - flush citations and metrics
 
-Protect recursion with a max tool call count.
+Loop edge cases the runtime must handle:
+
+- **Max tool call depth**: when recursion depth reaches the cap, still execute the current tool once, then pass an **empty tool list** on the next provider call. This forces the model to produce a plain-text final answer instead of erroring out mid-task.
+- **Unknown function name**: do not crash. Inject a function-result message like `Function "X" not found. Try again.` and recurse. The model self-corrects.
+- **Direct output**: a tool can set a `skipHandleExecution` flag (for example flow steps or chart tools with `directOutput`). The runtime then returns the tool result verbatim as the final answer and skips further tool calls.
+
+Interrupt semantics (human-in-the-loop control):
+
+- Register the human as a `USER` agent with `interrupt: "ALWAYS"`. After every agent reply, control returns to the human instead of looping.
+- A reply of `"TERMINATE"` or hitting max conversation rounds ends the session.
+- `continue(feedback, attachments)` resumes an interrupted session by injecting the user's next message and re-entering the loop. There is no automatic retry on provider errors — surface the error and let the user retry.
 
 ## Layer 3: Provider Adapters
 
@@ -113,6 +123,19 @@ For OpenAI-compatible APIs:
 - Convert old function result messages into `assistant.tool_calls` and `tool` messages.
 - Stream text chunks to the frontend with stable UUIDs.
 - Return only the first tool call if the provider emits multiple parallel calls, unless your runtime supports parallel tool execution.
+
+### Fallback strategy for models without native tool calling (UnTooled / ReAct emulation)
+
+Support any model by adding a second strategy. A provider without native tool support should:
+
+1. Prepend a tool-selection system prompt: "pick a single function, respond in JSON with exactly two keys `name` and `arguments`, or reply with plain text if no function helps." Render each tool as name + description + parameter schema + optional few-shot examples.
+2. Fold prior `role: "function"` results into adjacent messages, since these models cannot see a function role.
+3. Parse the response with a safe JSON parse. Unparseable output is treated as the final plain-text answer, not an error.
+4. Validate strictly before executing: the function must exist, all required params present, **no unknown params** (anti-hallucination guard).
+5. Guard with a **deduplicator**: hash of function name + arguments; identical repeat calls, per-tool cooldowns (~30s), and once-per-session flags block weak models from looping the same call. Apply a cooldown to every MCP tool by default.
+6. On a valid call, return `{ functionCall }` to the runtime; otherwise return `{ textResponse }`.
+
+Selection between strategies: probe or hardcode per provider (OpenAI/Anthropic always native; local models probe capabilities), and allow an env override to force the fallback per provider.
 
 ## Layer 4: Agent Handler
 
@@ -214,6 +237,18 @@ Client-to-server messages to support:
 
 Use `requestId` for approval and clarification messages so stale responses do not unblock the wrong promise.
 
+### Non-browser transport (ephemeral runs)
+
+Make the transport a swappable plugin so the same runtime serves surfaces without a websocket (REST API, chat bots, scheduled jobs):
+
+- Implement the same interface (`socket.send`, `introspect`, `requestToolApproval`, `requestUserClarification`) backed by an in-memory event listener instead of a real socket.
+- The event listener collects emitted messages and either:
+  - **blocks** until session close, then compacts them into `{ thoughts, textResponse, outputs, metrics }` for a synchronous API response, or
+  - **re-streams** each event as HTTP chunks (`agentThought`, `textResponseChunk`, `textResponse`, `fileDownload`, `usageMetrics`).
+- Ephemeral runs skip the invocation row and the persistence plugin; the caller persists the result itself.
+- Tool approval on ephemeral transports must fail closed (auto-deny) unless the surface has its own approval channel (for example a bot IPC).
+- Scheduled/automated runs should support a `toolOverrides` option to pin the tool set.
+
 ## Layer 7: Chat Persistence
 
 Persist in two phases:
@@ -254,9 +289,8 @@ Recommended keys:
 - `disabled_<parent>_skills`: disabled child tools
 - `agent_search_provider`
 - `agent_clarifying_questions_enabled`
-- `agent_skill_reranker_enabled`
-- `agent_skill_reranker_top_n`
-- `agent_max_tool_calls`
+
+Operational tuning can live in environment variables instead of settings rows (the reference implementation does this): tool-reranker enable/top-N (`AGENT_SKILL_RERANKER_ENABLED`, `AGENT_SKILL_RERANKER_TOP_N`) and max tool calls (`AGENT_MAX_TOOL_CALLS`).
 
 Frontend should maintain a central skill registry with:
 
@@ -270,6 +304,20 @@ Frontend should maintain a central skill registry with:
 - sub-skill preference key
 
 ## Layer 9: Dynamic Tools
+
+### Tool identifier prefix conventions
+
+Keep the agent's tool list as **string identifiers** until attach time, and dispatch by prefix:
+
+| Form | Meaning |
+|---|---|
+| `plain-slug` | built-in single-tool skill |
+| `parent#child` | one sub-tool of a built-in multi-tool skill |
+| `@@<hubId>` | imported custom skill folder |
+| `@@flow_<uuid>` | agent flow (becomes one tool; params from start-block variables) |
+| `@@mcp_<server>` | MCP server (expands to one function per tool, named `<server>-<tool>`) |
+
+This keeps tool resolution lazy and lets flows/MCP/imported sources register themselves without touching the core runtime.
 
 ### Agent Flows
 
@@ -288,7 +336,7 @@ Use a singleton supervisor. Start configured servers once. Convert each MCP tool
 Required safeguards:
 
 - Max tool call depth.
-- Tool approval timeout.
+- Tool approval resolution chain: env auto-approve list → per-user whitelist → interactive prompt; timeout **fails closed** (denied).
 - Websocket idle feedback timeout.
 - Invocation closed flag.
 - Path traversal checks for file-backed plugins and flows.

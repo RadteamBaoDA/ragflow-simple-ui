@@ -81,7 +81,7 @@ Inputs:
 - user query or model-generated search phrase
 - top N: `workspace.topN` or default 4
 - rerank flag: `workspace.vectorSearchMode === "rerank"`
-- similarity threshold from workspace/vector provider behavior
+- similarity threshold: the vector provider's default (the tool does not pass the workspace `similarityThreshold` setting)
 
 Outputs:
 
@@ -156,11 +156,10 @@ The frontend opens a websocket to `/api/agent-invocation/:uuid`.
 1. Loads the invocation and workspace.
 2. Resolves agent provider/model.
 3. Loads cached attachments.
-4. Loads previous chat history for the same workspace/user/thread.
 
 `AgentHandler.createAIbitat`:
 
-1. Creates `AIbitat`.
+1. Creates `AIbitat` seeded with the last 20 workspace chats for the same workspace/user/thread.
 2. Registers `fetchParsedFileContext`.
 3. Attaches websocket and chat-history plugins.
 4. Registers `USER` and `@agent`.
@@ -248,11 +247,10 @@ The model should treat search results as leads, not always final evidence. For i
 
 For source-page evidence, the model calls `web-scraping` with a URL. The tool:
 
-1. Uses `CollectorApi.getLinkContent`.
-2. Parses text or HTML depending on capture mode.
-3. Summarizes if content exceeds context limits.
-4. Adds a citation for the page.
-5. Returns readable page content or summary to the model.
+1. Uses `CollectorApi.getLinkContent` with the default `"text"` capture mode.
+2. Adds a citation for the page.
+3. Summarizes if content exceeds the model context limit.
+4. Returns readable page content or summary to the model.
 
 ### 9. Model Synthesizes Final Answer
 

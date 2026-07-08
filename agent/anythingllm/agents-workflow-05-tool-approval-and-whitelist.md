@@ -11,6 +11,7 @@ Require user approval for sensitive tool actions and remember approved skills wh
 - `server/models/agentSkillWhitelist.js`
 - `server/endpoints/agentSkillWhitelist.js`
 - `server/utils/helpers/agents.js`
+- `server/utils/agents/imported.js`
 - `frontend/src/components/WorkspaceChat/ChatContainer/ChatHistory/ToolApprovalRequest/index.jsx`
 - `frontend/src/models/agentSkillWhitelist.js`
 
@@ -105,9 +106,9 @@ This applies globally and should be treated as an admin-level trust setting.
 
 ## Telegram And HTTP Contexts
 
-`httpSocket` supports approval only when `telegramChatId` and worker IPC are available. Otherwise it denies approval for safety.
+`httpSocket` still resolves `skillIsAutoApproved` and the global whitelist (`isWhitelisted(skillName, null)`) first. Interactive approval is supported only when `telegramChatId` and worker IPC are available: the request is relayed to the parent `TelegramBotService` process over IPC and answered via a Telegram inline keyboard, with the same `requestId` matching and 120s fail-closed timeout. Otherwise it denies approval for safety.
 
-Imported plugin helper `ImportedPlugin.createToolApprovalFn` returns approved when no approval function exists. Built-in tools should call the actual runtime approval function if they need safety guarantees.
+Built-in write tools guard their approval call with `if (this.super.requestToolApproval)`, so contexts without an approval function (e.g. scheduled jobs) fall through as approved. Imported skills get `requestToolApproval` injected by `ImportedPlugin.createToolApprovalFn` after the skill's own runtime exports are spread, so a skill cannot override it or spoof another skill's name; it likewise returns approved when no approval function exists on the runtime.
 
 ## Rebuild Checklist
 

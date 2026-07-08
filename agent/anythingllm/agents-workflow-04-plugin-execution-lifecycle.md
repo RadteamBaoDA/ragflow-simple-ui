@@ -22,11 +22,14 @@ Explain how a skill becomes a callable LLM tool and how tool results are fed bac
 3. It attaches persistence plugin:
    - browser: `chat-history`
    - ephemeral: normally caller persists packed output
-4. `#loadAgents` registers:
-   - `USER`
+4. It registers per-turn callbacks on the instance:
+   - `aibitat.fetchParsedFileContext` — fetches fresh parsed files and pinned docs each turn.
+   - `aibitat.resolveRoute` — only when the workspace uses the model router; re-resolves provider/model per turn.
+5. `#loadAgents` registers:
+   - `USER` (interrupt: `"ALWAYS"`)
    - `@agent`
-5. `WORKSPACE_AGENT.getDefinition` returns the system prompt and function identifiers.
-6. `#attachPlugins` resolves every identifier into actual `aibitat.function` registrations.
+6. `WORKSPACE_AGENT.getDefinition` returns the system prompt and function identifiers.
+7. `#attachPlugins` resolves every identifier into actual `aibitat.function` registrations.
 
 ## Identifier Resolution
 
@@ -38,16 +41,26 @@ Explain how a skill becomes a callable LLM tool and how tool results are fed bac
 - `@@<hubId>`: load imported custom skill.
 - normal name: load built-in plugin from `AgentPlugins`.
 
+Notes:
+
+- Flow and MCP cases rewrite `@agent`'s function list: the `@@flow_`/`@@mcp_` placeholder is removed and replaced with the actual registered tool name(s), so lookup in `reply()` succeeds.
+- One MCP server expands into multiple sub-tool plugins (one per tool).
+- Invalid or unknown identifiers are logged and skipped, never fatal.
+
 ## Tool Definition Shape
 
-Every callable tool is registered with:
+Every callable tool is registered via `aibitat.function(...)` into the central `functions` Map with:
 
 - `name`
 - `description`
 - `parameters`
 - `handler(args)`
+- `super` (back-reference to the aibitat instance; handlers use `this.super.introspect`, `this.super.socket.send`, `this.super.addCitation`, etc.)
+- `examples` (optional, used by the UnTooled prompt path)
 
 The `parameters` object is JSON schema. Provider helpers convert it into provider-specific tool schemas.
+
+Multi-tool plugins export an array of sub-plugins and are addressed as `parent#child` in the agent's function list. `reply()` resolves each entry through `#parseFunctionName`, which strips the `parent#` and `@@` prefixes before the `functions` Map lookup.
 
 ## Runtime Sequence
 
@@ -59,17 +72,22 @@ The `parameters` object is JSON schema. Provider helpers convert it into provide
    - current user message
    - fresh parsed-file/pinned-doc context
    - tool definitions
-4. Optional `ToolReranker` reduces the function list.
-5. Model router may re-resolve provider/model.
-6. Provider returns either:
+4. Optional `ToolReranker` reduces the function list (when disabled, a log hint suggests enabling it if the tool count is large).
+5. Model router may re-resolve provider/model (`resolveRoute`).
+6. AIbitat branches on `providerInstance.supportsAgentStreaming`:
+   - streaming providers: `handleAsyncExecution` (stream events sent over the socket)
+   - non-streaming providers: `handleExecution`
+7. Provider returns either:
    - final text
    - function call
-7. If there is a function call:
+8. If there is a function call:
    - AIbitat finds the tool in `functions`.
-   - AIbitat executes `fn.handler(args)`.
+   - Unknown name: AIbitat appends `Function "<name>" not found. Try again.` as a `role: "function"` message and recurses (still consumes a depth level).
+   - AIbitat executes `fn.handler(args)`, sends `agent_tool_call` telemetry, and emits a `toolCallResult` event.
    - The tool result is appended as a function/tool result message.
-   - AIbitat calls the model again.
-8. Recursion stops when the provider returns final text or `maxToolCalls` is reached.
+   - Image attachments queued by the tool (`addToolAttachment`) are injected as a follow-up user message.
+   - AIbitat calls the model again with `depth + 1`.
+9. Recursion stops when the provider returns final text or `maxToolCalls` is reached.
 
 ## Tool Call Limits
 
@@ -85,7 +103,7 @@ A tool can set:
 aibitat.skipHandleExecution = true;
 ```
 
-The tool result then becomes the final answer without another model pass. Agent flows use this for direct-output blocks.
+The tool result then becomes the final answer without another model pass. The flag resets to `false` after one use. On the streaming path the raw result is emitted as a `fullTextResponse` stream event plus `usageMetrics`, then citations are flushed. Agent flows use this for direct-output blocks; the router-classifier plugin also uses it.
 
 ## Citations And Attachments
 

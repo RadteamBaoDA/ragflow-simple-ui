@@ -38,7 +38,7 @@ Shape:
 }
 ```
 
-HTTP/SSE MCP servers use `url` and optional `type`.
+HTTP/SSE MCP servers use `url`, an optional `type` (`sse`, `streamable`, or `http`), and optional `headers` passed to the transport. In development, the config file resolves to `server/storage/plugins/`; otherwise `STORAGE_DIR/plugins/`.
 
 ## Hypervisor Responsibilities
 
@@ -59,7 +59,7 @@ HTTP/SSE MCP servers use `url` and optional `type`.
 
 1. Skips if servers are already running.
 2. Reads all configured servers.
-3. Skips servers with `anythingllm.autoStart === false`.
+3. Skips servers with `anythingllm.autoStart === false` (recorded as a failed boot result so they display as stopped).
 4. Parses transport type.
 5. Validates required fields.
 6. Starts the transport and connects an MCP client.
@@ -69,7 +69,7 @@ Connection has a 30 second timeout.
 
 ## Agent Tool Exposure
 
-`MCPCompatibilityLayer.activeMCPServers()` boots servers and returns:
+`MCPCompatibilityLayer.activeMCPServers()` boots servers and returns, for each running server:
 
 ```text
 @@mcp_<serverName>
@@ -86,10 +86,13 @@ This:
 1. Calls `mcp.listTools()`.
 2. Removes suppressed tools.
 3. Builds one plugin per remaining tool.
-4. Uses tool name `${serverName}-${tool.name}`.
-5. Uses the MCP tool `inputSchema` as the function parameters.
+4. Uses tool name `${serverName}-${tool.name}` (display label `serverName:toolName`).
+5. Uses the MCP tool `inputSchema` (merged with a draft-07 `$schema`) as the function parameters.
 6. Handler calls `currentMcp.callTool({ name: tool.name, arguments: args })`.
-7. The result is stringified safely with BigInt and circular-reference handling.
+7. The result is stringified safely with BigInt and circular-reference handling (`returnMCPResult`).
+8. `#attachPlugins` removes the `@@mcp_<serverName>` placeholder from the agent's function list and pushes the expanded tool names.
+
+Each function is flagged `isMCPTool: true`. Providers using the UnTooled helper apply a deduplication cooldown after every MCP tool call to prevent repeat-call loops, unless the `MCP_NO_COOLDOWN` env var is set.
 
 ## Admin Endpoints
 

@@ -33,6 +33,8 @@ API/Telegram/scheduled job caller
   -> EphemeralEventListener packs or streams events
 ```
 
+The embed widget does not support agents: `chats/embed.js` coerces `automatic` chat mode to `chat` and never calls `grepAgents`.
+
 ## Main Backend Components
 
 ### Agent Detection
@@ -96,8 +98,17 @@ Important behavior:
 - `reply()` builds system and chat messages, appends fresh parsed-file context, selects functions, reranks tools if enabled, resolves model router if needed, and calls the provider.
 - `handleAsyncExecution()` handles streaming providers.
 - `handleExecution()` handles non-streaming providers.
-- When a provider returns a function call, AIbitat executes the tool and recursively calls the model with the tool result.
+- When a provider returns a function call, AIbitat executes the tool and recursively calls the model with the tool result appended as a `role: "function"` message.
 - If `skipHandleExecution` is set by a tool, the tool result is returned directly as the final answer.
+- When recursion depth reaches `maxToolCalls`, the current tool still executes once, then the next model call receives an empty tool list, forcing a plain-text final answer.
+- An unknown function name is not fatal: AIbitat injects `Function "<name>" not found. Try again.` as a function result and recurses so the model can self-correct.
+- All stream events of one turn are correlated by a single `msgUUID` created at recursion depth 0 (tool-call chunks use `<msgUUID>:tool_call_invocation`).
+
+Conversation control:
+
+- `USER` is registered with `interrupt: "ALWAYS"`, so control returns to the human after every `@agent` reply instead of looping.
+- A literal `"TERMINATE"` reply or reaching `maxRounds` ends the session; `continue(feedback, attachments)` resumes an interrupted session with the user's next message.
+- There is no automatic retry. Provider throws become `APIError`/`RetryError`, surface as a `wssFailure` event, and terminate the session; `retry()` exists but is manual.
 
 ### Provider Layer
 
@@ -113,6 +124,15 @@ Each provider must expose:
 - `attachHandlerProps(handlerProps)`
 
 OpenAI-compatible providers reuse `providers/helpers/tooled.js` for native `tools` calls and `providers/helpers/untooled.js` where prompt-based function calling is needed.
+
+The UnTooled path is the ReAct-style emulation for models without native tool calling:
+
+- A tool-selection system prompt instructs the model to answer with JSON `{ "name", "arguments" }` for exactly one function, or plain text when no function helps; tools are rendered with name, description, parameter schema, and optional few-shot `examples`.
+- Responses are safe-JSON-parsed (unparseable output becomes the final text answer) and validated strictly: function must exist, all required params present, no unknown params.
+- A `Deduplicator` (`aibitat/utils/dedupe.js`) hashes name+arguments to block identical repeat calls, applies ~30 second per-tool cooldowns, and puts every MCP tool on cooldown by default so weak models cannot loop.
+- Prior `role: "function"` results are folded into adjacent messages because these models cannot see a function role.
+
+Native-vs-fallback selection is per provider: OpenAI and Anthropic are always native, local providers probe model capabilities, and the env var `PROVIDER_DISABLE_NATIVE_TOOL_CALLING` forces the fallback for listed providers.
 
 ### Plugin Contract
 
@@ -165,6 +185,8 @@ The websocket object is stored in state. While it exists, new prompt submissions
   "attachments": []
 }
 ```
+
+Typing a bail command (`exit`, `/exit`, `stop`, `/stop`, `halt`, `/halt`, `/reset`) aborts the run: the server calls `aibitat.abort()` and closes the socket. On socket close the server marks the invocation row `closed: true` (the UUID is single-use) and the frontend dispatches `AGENT_SESSION_END` and reverts to normal chat.
 
 ### Websocket Event Handling
 
@@ -257,3 +279,9 @@ For the full create/configure-to-answer lifecycle, see
 `docs/agents-workflow-13-create-agent-to-grounded-response.md`. For a comparison
 with a comparable open-source agentic workflow/RAG platform over 50k GitHub
 stars, see `docs/agents-comparison-dify.md`.
+
+## Related Documents
+
+- `docs/agents-spec.md` — full feature specification (requirements + architecture summary).
+- `docs/agents-context.md` — exact file/line code map for implementers.
+- `docs/agents-detailed-design.md` — layer-by-layer reimplementation guide.

@@ -60,9 +60,13 @@ Common system settings:
 - `disabled_agent_skills`: default skills disabled globally.
 - `disabled_<skill>_skills`: disabled sub-tools for parent skills.
 - `agent_search_provider`: web search backend.
-- `agent_skill_reranker_enabled`: whether tool reranking is enabled.
-- `agent_skill_reranker_top_n`: max tools after reranking.
 - `agent_clarifying_questions_enabled`: whether the agent can ask structured questions.
+
+Environment variables (written through the admin UI via `updateENV`, not `system_settings` rows):
+
+- `AGENT_SKILL_RERANKER_ENABLED`: whether tool reranking is enabled (default on).
+- `AGENT_SKILL_RERANKER_TOP_N`: max tools after reranking (default 15).
+- `AGENT_MAX_TOOL_CALLS`: tool-call limit per response (default 10).
 
 Workspace settings:
 
@@ -231,6 +235,8 @@ Backend:
   attachments
 }
 ```
+
+`stripAgentCommand` removes the leading `@agent` prefix; if nothing remains it substitutes `"Hello!"` so the agent still gets a message.
 
 `AIbitat.start` records the message and asks `@agent` to reply.
 
@@ -547,10 +553,15 @@ Backend emits websocket events:
 
 - `statusResponse`
 - `reportStreamEvent.textResponseChunk`
+- `reportStreamEvent.fullTextResponse`
 - `reportStreamEvent.toolCallInvocation`
 - `reportStreamEvent.citations`
 - `reportStreamEvent.usageMetrics`
 - `reportStreamEvent.chatId`
+- `reportStreamEvent.modelRouteNotification`
+- `reportStreamEvent.removeStatusResponse`
+
+Each `reportStreamEvent` payload carries a message `uuid` so the frontend can correlate chunks, citations, and metrics to one assistant message.
 
 Frontend `handleSocketResponse`:
 
@@ -580,6 +591,8 @@ Backend:
   "clarifyingQuestions": []
 }
 ```
+
+`outputs` and `clarifyingQuestions` are included only when non-empty. The plugin also auto-renames a new thread from the first prompt (emitting a `rename_thread` event) and skips the save entirely when the run was aborted (for example a `/reset` bail).
 
 The response then appears in historical chat like any normal workspace answer.
 

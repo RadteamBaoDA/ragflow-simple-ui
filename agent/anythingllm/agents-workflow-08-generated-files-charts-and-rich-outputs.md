@@ -42,7 +42,7 @@ The tool also sets `_replySpecialAttributes` so `chat-history` saves the chat as
 
 ## Generated File Output
 
-`create-files-agent` tools can generate files such as text, DOCX, XLSX, and presentation formats. Generated-file tools send a `fileDownloadCard` event through the socket and can add output metadata to `_pendingOutputs`.
+`create-files-agent` tools can generate text, PDF, DOCX, XLSX, and PPTX files. Files are written to `storage/generated-files` as `{fileType}-{uuid}.{extension}`. Each tool sends a `fileDownloadCard` event through the socket with `{ filename, storageFilename, fileSize }` and registers matching `{ type, payload }` output metadata into `_pendingOutputs` via `registerOutput`, so the card can be rebuilt from history.
 
 `agentFileServerEndpoints` serves generated files at:
 
@@ -50,7 +50,7 @@ The tool also sets `_replySpecialAttributes` so `chat-history` saves the chat as
 /api/agent-skills/generated-files/:filename
 ```
 
-The endpoint authenticates requests, validates filename/path safety, and reports telemetry when files are downloaded.
+The endpoint authenticates requests, validates the storage filename format, confirms ownership by finding a workspace chat the user can access (or, in single-user mode, a scheduled job run) whose persisted `outputs` reference the file, and reports telemetry when files are downloaded.
 
 ## Direct Output Vs Rich Output
 
@@ -70,6 +70,8 @@ For flows, `aibitat.skipHandleExecution` can return a direct text result and sto
 - `reportStreamEvent.fullTextResponse`: create direct full text response.
 - `reportStreamEvent.usageMetrics`: attach metrics to final message.
 
+`ChatHistory/index.jsx` renders live and persisted `rechartVisualize` items with `Chartable` and `fileDownloadCard` items with `FileDownloadCard`. For persisted file cards, `HistoricalMessage/HistoricalOutputs` maps `response.outputs[]` entries back to `FileDownloadCard`, which downloads via the generated-files endpoint using `storageFilename`.
+
 ## Persistence
 
 `chat-history` checks `_replySpecialAttributes`. If present, it calls `_storeSpecial`, which can:
@@ -81,10 +83,12 @@ For flows, `aibitat.skipHandleExecution` can return a direct text result and sto
 
 Without special attributes, normal `_store` persists a standard `chat` response.
 
+Both `_store` and `_storeSpecial` include `_pendingOutputs` as `response.outputs` when non-empty, then `_cleanup` clears the pending buffers (citations, outputs, clarifying questions, tracked chat ID).
+
 ## Rebuild Checklist
 
 - Add explicit websocket event types for each rich output.
 - Add frontend chat item renderers for those event types.
 - Add a persistence hook so the artifact can be reconstructed from history.
 - Add authenticated file-serving endpoints for generated files.
-- Use path normalization and allow only files inside the generated-file directory.
+- Enforce a strict storage-filename format (`{fileType}-{uuid}.{extension}`) and serve only files referenced by an accessible chat inside the generated-file directory.

@@ -7,6 +7,7 @@ Build the list of tools that `@agent` can use, and let admins/users enable or di
 ## Backend Sources
 
 - `server/utils/agents/defaults.js`
+- `server/utils/agents/index.js` (identifier resolution in `#attachPlugins`)
 - `server/utils/agents/aibitat/plugins/index.js`
 - `server/models/systemSettings.js`
 - `server/utils/agents/imported.js`
@@ -19,6 +20,26 @@ Build the list of tools that `@agent` can use, and let admins/users enable or di
 - `frontend/src/pages/Admin/Agents/skills.jsx`
 - `frontend/src/components/WorkspaceChat/ChatContainer/PromptInput/ToolsMenu/Tabs/AgentSkills`
 - `frontend/src/components/WorkspaceChat/ChatContainer/PromptInput/ToolsMenu/Tabs/AgentSkills/skillRegistry.js`
+
+## Tool List Assembly
+
+`WORKSPACE_AGENT.getDefinition` in `defaults.js` concatenates enabled tool
+identifiers in this order:
+
+1. Built-in skills from `agentSkillsFromSystemSettings()`.
+2. Clarifying-question sub-tools (`request-user-input#request-user-input`) when
+   the `agent_clarifying_questions_enabled` system setting is `"true"`. When
+   enabled, the agent's role prompt also gains a note telling the model to use
+   the `request-user-input` tool instead of asking questions in plain text.
+3. Imported skills via `ImportedPlugin.activeImportedPlugins()`.
+4. Agent flows via `AgentFlows.activeFlowPlugins()`.
+5. MCP tools via `new MCPCompatibilityLayer().activeMCPServers()`.
+
+`#attachPlugins` in `server/utils/agents/index.js` (mirrored in
+`server/utils/agents/ephemeral.js`) later resolves each identifier:
+`parent#child` loads a child plugin, `@@flow_<uuid>` a flow, `@@mcp_<name>`
+expands to MCP tools, any other `@@<hubId>` an imported skill, and a plain
+slug a built-in plugin.
 
 ## Default Built-In Skills
 
@@ -71,7 +92,7 @@ parent-skill#child-tool
 
 Examples:
 
-- `filesystem-agent#read-text-file`
+- `filesystem-agent#filesystem-read-text-file`
 - `create-files-agent#create-docx-file`
 - `gmail-agent#gmail-send-email`
 
@@ -100,6 +121,11 @@ Imported custom skills are active when their `plugin.json` has `active: true`. `
 ```
 
 The handler later resolves that into a runtime plugin.
+
+The admin UI reads the imported skill list through the virtual
+`imported_agent_skills` system-preference field. It is never stored in the
+database: `server/endpoints/admin.js` lists it under `noRecord` and computes
+its value from disk via `ImportedPlugin.listImportedPlugins()`.
 
 ## Agent Flows
 
@@ -130,7 +156,12 @@ The handler later expands this into one tool per unsuppressed MCP tool.
 - skill-specific settings
 - environment settings where needed
 
-The active flow state is stored in each flow JSON via `POST /agent-flows/:uuid/toggle`, not by the hidden `active_agent_flows` field.
+The hidden inputs are named `system::default_agent_skills` and
+`system::disabled_agent_skills` and submit comma-joined strings; the
+validation functions in `server/models/systemSettings.js` split on commas and
+store JSON arrays.
+
+The active flow state is stored in each flow JSON via `POST /agent-flows/:uuid/toggle`, not by the hidden `active_agent_flows` field. The `system::active_agent_flows` field is still submitted, but no server-side handler consumes it.
 
 ## Rebuild Checklist
 
