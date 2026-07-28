@@ -2,7 +2,7 @@
 
 **Version:** 2.0 (Draft)
 **Status:** For Review
-**Language:** English only
+**Language:** Multilingual with BCP 47 language detection and configurable language packs
 **Scope:** Portable, retrieval-only Adaptive RAG for Node.js, TypeScript, and OpenSearch
 **Deployment model:** One modular service supporting multi-tenant, multi-project, and multi-dataset search
 **Baseline:** Static BM25 plus dense-vector retrieval over already indexed chunks
@@ -23,7 +23,7 @@ Adaptive RAG v2 selects retrieval behavior from the query instead of applying on
 
 The retrieval mechanism has six stages:
 
-1. Analyze the standalone English query.
+1. Detect language and analyze the standalone query.
 2. Select a base retrieval profile and independent modifiers.
 3. Resolve the caller's authorized project and dataset scope.
 4. Route hierarchically to a bounded set of datasets.
@@ -40,7 +40,7 @@ This is a retrieval-only specification. Parsing, chunking, document embeddings, 
 
 ### 2.1 Goals
 
-- **G1 - Fast deterministic analysis:** At least 90% of queries use rules only, with less than 5 ms p95 analyzer latency.
+- **G1 - Fast deterministic analysis:** At least 90% of queries use local language detection and rules only, with less than 10 ms p95 combined analyzer latency.
 - **G2 - Query-adaptive retrieval:** Select precision, balanced, recall, or no-retrieval behavior from query signals.
 - **G3 - Explicit score semantics:** Support reranked and non-reranked retrieval without treating reranker scores as vector cosine scores.
 - **G4 - Large-scale routing:** Keep the number of fully searched datasets bounded even when the eligible scope contains thousands of datasets.
@@ -53,10 +53,10 @@ This is a retrieval-only specification. Parsing, chunking, document embeddings, 
 - **G11 - Enterprise query coverage:** Handle conversational, exact, factual, procedural, policy, temporal, comparative, tabular, cross-project, and bounded multi-hop queries.
 - **G12 - Portable implementation:** Keep adaptive decisions and Reciprocal Rank Fusion in TypeScript and use the official OpenSearch client without requiring Neural Search pipelines.
 - **G13 - Dual-axis scale:** Bound work independently for eligible dataset count, physical index count, shard count, and chunk candidate count.
+- **G14 - Multilingual and cross-lingual retrieval:** Detect query language, apply language-specific rules and lexical fields, and retain dense retrieval when lexical support is unavailable.
 
 ### 2.2 Non-Goals
 
-- Multilingual analysis or retrieval optimization.
 - Querying every eligible dataset for every request.
 - Training a custom classifier in v2.
 - Answer generation or prompt design after context assembly.
@@ -66,6 +66,7 @@ This is a retrieval-only specification. Parsing, chunking, document embeddings, 
 - Using historical popularity as a hard routing signal.
 - Enabling knowledge-graph retrieval for every analytical query.
 - Unlimited agentic research, open-ended web search, or more than three synchronous retrieval hops.
+- Automatic answer translation or localization of source evidence.
 
 ---
 
@@ -83,6 +84,8 @@ This is a retrieval-only specification. Parsing, chunking, document embeddings, 
 10. **Client filters only narrow scope.** Tenant and ACL filters are created from trusted server identity and cannot be supplied or removed by the caller.
 11. **Every loop is bounded.** Query variants, projects, datasets, physical indexes, candidates, retries, and multi-hop steps all have hard limits.
 12. **No answer is a valid result.** The service returns `INSUFFICIENT_EVIDENCE` rather than filling evidence gaps.
+13. **Language detection is advisory, not authorization.** A detected language changes analysis and retrieval fields but never tenant, project, dataset, or ACL scope.
+14. **Low-confidence language never blocks retrieval.** Identifier search and multilingual dense retrieval remain available when language detection is uncertain.
 
 ---
 
@@ -99,6 +102,7 @@ This is a retrieval-only specification. Parsing, chunking, document embeddings, 
 | Retrieval pool | One physical OpenSearch index or alias containing chunks with one compatible vector dimension and embedding-model version. |
 | Search group | Selected datasets that can be searched together because they share a retrieval pool, routing policy, and query-vector model. |
 | Retrieval hop | One evidence-seeking subquery in a bounded multi-hop plan. |
+| Language pack | Versioned rules, lexical fields, stopwords, and query expansions for one BCP 47 language. |
 | Routing wave | One bounded selection and retrieval attempt over a set of projects or datasets. |
 | Candidate | A chunk returned before final context selection. |
 | Context chunk | A final evidence chunk returned to the downstream consumer. |
@@ -114,8 +118,9 @@ Standalone query
       v
 +-------------------------+
 | 1. Query Analyzer       |
-| - normalization         |
-| - deterministic rules   |
+| - language detection    |
+| - language normalization|
+| - language-pack rules   |
 | - optional LLM fallback |
 +-------------------------+
       |
@@ -178,12 +183,62 @@ The services may be horizontally stateless, but they depend on external state:
 
 ## 6. Query Analyzer
 
-### 6.1 Output Contract
+### 6.1 Language Detection
+
+Language detection runs before language-specific intent rules.
+
+Detection order:
+
+1. Normalize Unicode with NFKC while preserving the original query.
+2. Separate identifiers, URLs, code, and quoted/pasted spans from natural-language text.
+3. Run the configured local or private language detector on the remaining text.
+4. Normalize detector tags to BCP 47 base languages, for example `en-US -> en`, `vi-VN -> vi`, and `ja-JP -> ja`.
+5. Compare the result with an optional authenticated user locale and tenant default.
+6. Detect mixed-language input when two qualified languages each exceed the configured share threshold.
+7. Select one primary rule language and up to two analysis languages.
+
+The detector returns:
+
+```json
+{
+  "primary": "vi",
+  "confidence": 0.96,
+  "source": "detector",
+  "mixed": true,
+  "analysis_languages": ["vi", "en"],
+  "candidates": [
+    { "language": "vi", "score": 0.96 },
+    { "language": "en", "score": 0.61 }
+  ]
+}
+```
+
+Rules:
+
+- Use BCP 47 base-language tags internally.
+- A caller's `language_hint` is a tie-breaker, not an override, unless trusted tenant policy marks it authoritative.
+- Queries with fewer than four natural-language tokens, identifier-only queries, and code-heavy queries are `und` unless the detector meets the short-query confidence gate.
+- `und` uses language-neutral identifier, exact, length, and punctuation rules plus multilingual dense retrieval.
+- Mixed-language queries apply rule packs in priority order and merge modifiers deterministically.
+- A detected language without a configured lexical field uses the `und` lexical field or dense-only fallback; it does not fail the request.
+- The detector must run locally or through an approved private service because raw enterprise queries may contain sensitive content.
+- Detection output is cached by tenant-scoped query hash, detector version, and language-pack version.
+
+The minimum supported set is deployment configuration. The seed configuration and TypeScript sample include English (`en`), Vietnamese (`vi`), and Japanese (`ja`) to demonstrate the mechanism.
+
+### 6.2 Output Contract
 
 ```json
 {
   "base_profile": "PRECISION",
   "modifiers": ["LEXICAL"],
+  "language": {
+    "primary": "en",
+    "confidence": 0.98,
+    "source": "detector",
+    "mixed": false,
+    "analysis_languages": ["en"]
+  },
   "confidence": 0.91,
   "classifier": "rule:R03",
   "signals": {
@@ -197,7 +252,7 @@ The services may be horizontally stateless, but they depend on external state:
 }
 ```
 
-### 6.2 Base Profiles
+### 6.3 Base Profiles
 
 | Profile | Use |
 |---|---|
@@ -206,7 +261,7 @@ The services may be horizontally stateless, but they depend on external state:
 | `RECALL` | A summary, comparison, broad list, or analysis needing diverse evidence. |
 | `NONE` | High-confidence conversational or meta input that requires no retrieval. |
 
-### 6.3 Modifiers
+### 6.4 Modifiers
 
 | Modifier | Effect |
 |---|---|
@@ -220,6 +275,7 @@ The services may be horizontally stateless, but they depend on external state:
 | `DECOMPOSE` | Creates independent retrieval subqueries for comparisons, lists, or compound questions and merges their evidence. |
 | `MULTI_HOP` | Runs sequential evidence-dependent subqueries with a maximum of three hops. |
 | `ENTITY_CARRYOVER` | Allows the next hop to use entities extracted only from evidence returned by an earlier hop. |
+| `CROSS_LINGUAL` | Uses multilingual dense retrieval and approved translated lexical variants when query and source languages differ. |
 
 Modifiers compose with profiles. For example:
 
@@ -229,7 +285,7 @@ Modifiers compose with profiles. For example:
 - `RECALL + DECOMPOSE + MULTI_EVIDENCE`: "Compare parental leave in Japan and Vietnam."
 - `RECALL + MULTI_HOP + ENTITY_CARRYOVER`: "Which customer services depend on systems owned by Team A?"
 
-### 6.4 Enterprise Query Coverage
+### 6.5 Enterprise Query Coverage
 
 The analyzer assigns a query family before applying ordered rules. A family is diagnostic metadata; executable behavior remains the base profile plus modifiers.
 
@@ -249,18 +305,20 @@ The analyzer assigns a query family before applying ordered rules. A family is d
 | Relationship traversal | "Which customers depend on systems owned by Team A?" | `RECALL + MULTI_HOP + ENTITY_CARRYOVER` |
 | Table or numeric evidence | "What was Q3 revenue for each region?" | `BALANCED + TABLE_AWARE` |
 | Ambiguous shorthand | "Access issue" | `BALANCED + LEXICAL_EXPANSION`, then at most three query variants |
+| Cross-lingual evidence | Vietnamese query over English policy sources | Same profile plus `CROSS_LINGUAL` |
+| Mixed-language query | "So sánh leave policy 日本" | Merge `vi` and `ja` language-pack modifiers, then `DECOMPOSE` when required |
 | Cross-project discovery | "Which projects use library X?" | `RECALL + MULTI_EVIDENCE` with project diversity |
 | Unsupported or absent evidence | No qualifying evidence | `INSUFFICIENT_EVIDENCE` |
 
 Queries may belong to more than one family. For example, a current-policy comparison uses `RECALL + TEMPORAL + DECOMPOSE + MULTI_EVIDENCE`.
 
-### 6.5 Normalized Signals
+### 6.6 Normalized Signals
 
 The rule path computes:
 
 - Character, token, and sentence counts.
 - Question mark and interrogative lead.
-- English imperative and intent phrases.
+- Language-pack imperative and intent phrases.
 - Quoted span length.
 - Identifier patterns configured by project.
 - Uppercase, punctuation, and newline density.
@@ -271,10 +329,12 @@ The rule path computes:
 - Comparison conjunctions and independently retrievable clauses.
 - Relationship language such as owned by, depends on, caused by, affected, and associated with.
 - Table and numeric signals such as quarter names, currencies, percentages, "by region", and "for each".
+- Primary, alternate, mixed, and undetermined language signals.
+- Ratio of natural-language tokens to identifiers, URLs, code, and punctuation.
 
-English-only operation uses one tokenizer and one stopword set. Named-entity recognition is not required on the fast path.
+Each configured language pack supplies its tokenizer, stopwords, rule phrases, date expressions, and approved lexical fields. Named-entity recognition is not required on the fast path.
 
-### 6.6 Ordered Rules
+### 6.7 Ordered Rules
 
 Rules produce independent base-profile and modifier decisions:
 
@@ -326,6 +386,9 @@ R15 conflicting base-profile rules
 
 R16 insufficient confidence or ambiguous decomposition
     -> LLM fallback
+
+R17 query language differs from selected source languages
+    -> CROSS_LINGUAL
 ```
 
 An identifier adds `LEXICAL`; it does not imply `EXACT`. `EXACT` requires evidence that query text was copied or deliberately quoted.
@@ -340,8 +403,10 @@ Modifier merge rules:
 6. `TABLE_AWARE` never performs arithmetic. It retrieves table evidence and preserves row and header context.
 7. `EXACT` runs beside fuzzy retrieval unless an authorized unique exact hit satisfies the request.
 8. No modifier may increase the authorized project or dataset set.
+9. Language-pack rules may broaden the profile but cannot remove a modifier produced by a higher-confidence language-neutral rule.
+10. `CROSS_LINGUAL` prefers a compatible multilingual embedding model; translated lexical variants are optional, bounded, and recorded.
 
-### 6.7 Rule Confidence
+### 6.8 Rule and Language Confidence
 
 Rule confidence values must be calibrated from labeled traffic:
 
@@ -349,8 +414,10 @@ Rule confidence values must be calibrated from labeled traffic:
 - Each rule reports precision, recall, and sample size.
 - Uncalibrated rule scores are called `rule_score`, not probability.
 - Production `confidence` is emitted only after calibration.
+- Language detection precision, recall, and calibration are reported per language, mixed-language slice, and query-length bucket.
+- Intent confidence and language confidence are separate values.
 
-### 6.8 LLM Fallback
+### 6.9 LLM Fallback
 
 The LLM fallback:
 
@@ -365,8 +432,10 @@ The LLM fallback:
 - Never shares cache entries across tenants.
 - Returns JSON validated against a closed enum; unknown fields and modifiers reject the output.
 - Does not contribute facts, entities, filters, or evidence to the retrieval result.
+- Receives detected language and must return the same BCP 47 language fields unless explicitly classifying a mixed-language query.
+- Uses the query language for classification when a compatible prompt exists; otherwise uses a configured private translation only for classification.
 
-### 6.9 Bounded Decomposition and Multi-Hop
+### 6.10 Bounded Decomposition and Multi-Hop
 
 `DECOMPOSE` is used when subquestions can be searched independently. All subqueries execute against the same authorized scope and share one global deadline.
 
@@ -390,6 +459,7 @@ Hard limits:
 - No repeated normalized subquery.
 - No entity carryover from model memory or unqualified candidates.
 - No authorization-scope expansion.
+- Generated subqueries retain the original primary language unless a recorded `CROSS_LINGUAL` plan creates an approved translated variant.
 - Stop when evidence is sufficient, the next hop has no grounded entities, or the request deadline has less than 250 ms remaining.
 
 The response groups evidence by hop and records the dependency:
@@ -550,9 +620,18 @@ These values are shadow-mode starting points, not universal production constants
 
 #### MULTI_HOP and ENTITY_CARRYOVER
 
-- Use the limits in Section 6.9.
+- Use the limits in Section 6.10.
 - Carry only entities supported by selected evidence.
 - Preserve hop-specific candidate and citation groups in the response.
+
+#### CROSS_LINGUAL
+
+- Prefer a retrieval pool whose query embedding model is multilingual and compatible with the indexed vectors.
+- Add at most two approved translated lexical variants when the selected source languages differ from the query language.
+- Fuse each translated lexical list through RRF; never add translation-model scores to retrieval scores.
+- Preserve the original query and source text and record language, translation model, target language, and variant hash.
+- On translation failure, use the calibrated multilingual dense and `und` lexical paths when available.
+- Never translate identifiers, code spans, URLs, or authorization filters.
 
 ### 7.7 Score Floors
 
@@ -563,7 +642,7 @@ Seed floors may be used only in shadow mode:
 | Weighted RRF, two lists with `rrf_k=60` | 0.018 | 0.014 | 0.010 |
 | Reranker | 0.25 | 0.20 | 0.15 |
 
-Production floors require a calibration report. Changing the number of fused lists, an RRF weight, `rrf_k`, embedding model, lexical engine, reranker, fusion formula, or score normalization invalidates the relevant calibration version.
+Production floors require a calibration report. Changing the number of fused lists, an RRF weight, `rrf_k`, embedding model, lexical engine, language analyzer, lexical-field map, translation variant policy, reranker, fusion formula, or score normalization invalidates the relevant calibration version.
 
 ### 7.8 Empty-Result Retry
 
@@ -667,6 +746,7 @@ Each dataset catalog entry contains:
 - Physical chunk index or alias.
 - Optional OpenSearch routing key.
 - Vector field name, vector dimension, and distance space.
+- Content-language set and lexical-schema ID.
 - Catalog freshness timestamp.
 - Health state.
 
@@ -731,20 +811,24 @@ cluster_id
 + vector_field
 + vector_dimension
 + distance_space
++ lexical_schema_id
 + routing_policy
 ```
 
 For each group:
 
 1. Generate or reuse the query vector matching that group's embedding model.
-2. Build one trusted filter containing tenant, selected project IDs, selected dataset IDs, ACL principals, lifecycle state, and allowed client metadata filters.
-3. Put the filter inside the k-NN clause for efficient filtered ANN when the index uses a supported Lucene or Faiss engine.
-4. Reuse the same trusted filter in the lexical Boolean query.
-5. Add one dense and one lexical request to `_msearch`.
-6. Set per-search `cancel_after_time_interval`, result size, `_source` allow-list, and optional routing key.
-7. Parse every `_msearch` response independently and mark shard failures or timeouts as partial coverage.
+2. Resolve lexical fields for the detected analysis languages and the group's lexical schema.
+3. Build one trusted filter containing tenant, selected project IDs, selected dataset IDs, ACL principals, lifecycle state, and allowed client metadata filters.
+4. Put the filter inside the k-NN clause for efficient filtered ANN when the index uses a supported Lucene or Faiss engine.
+5. Reuse the same trusted filter in the lexical Boolean query.
+6. Add one dense and one lexical request to `_msearch`.
+7. Set per-search `cancel_after_time_interval`, result size, `_source` allow-list, and optional routing key.
+8. Parse every `_msearch` response independently and mark shard failures or timeouts as partial coverage.
 
 The executor caps physical groups, concurrent OpenSearch requests, concurrent shard requests, candidates per group, and total elapsed time. It never targets an unspecified wildcard or all indexes.
+
+Detected language selects rule packs and lexical fields but is not a hard chunk filter by default. Hard filtering on `language` is allowed only when the caller explicitly requests source language and authorization policy permits it; otherwise cross-lingual evidence remains eligible.
 
 ### 8.9 Exact Locator Shortcut
 
@@ -764,10 +848,11 @@ Wave 1:
 1. Select projects.
 2. Select datasets within those projects.
 3. Add mandatory datasets from explicit scope, identifiers, and exact locator hits.
-4. Group datasets by physical index, routing policy, and embedding-model compatibility.
-5. Execute grouped `_msearch` retrieval with bounded concurrency and a shared deadline.
-6. Fuse candidates globally.
-7. Evaluate evidence sufficiency.
+4. Compare detected query languages with selected dataset content languages and add `CROSS_LINGUAL` when required.
+5. Group datasets by physical index, lexical schema, routing policy, and embedding-model compatibility.
+6. Execute grouped `_msearch` retrieval with bounded concurrency and a shared deadline.
+7. Fuse candidates globally.
+8. Evaluate evidence sufficiency.
 
 ### 8.11 Evidence Sufficiency
 
@@ -849,7 +934,10 @@ Retrieval assumes the following logical fields. Physical names may differ behind
 | `visibility` | `keyword` | Yes | `public` or `restricted`. |
 | `acl_principals` | `keyword` | Yes | User, team, role, or service-principal filter. |
 | `lifecycle_state` | `keyword` | Yes | Exclude deleted, quarantined, and inactive chunks. |
-| `text` | `text` | Yes | BM25 search and returned evidence. |
+| `language` | `keyword` | Recommended | BCP 47 source language used for lexical-field selection and cross-lingual telemetry. |
+| `text.<language>` | `text` | Yes for supported lexical languages | Language-analyzed BM25 field. |
+| `text.universal` | `text` | Recommended | Language-neutral lexical fallback for `und` and unsupported languages. |
+| `text` | stored or `text` | Yes | Returned source evidence; it may also be the universal lexical field. |
 | `title` | `text` plus `keyword` subfield | Recommended | Boosted lexical search and citation. |
 | `section` | `text` plus `keyword` subfield | Recommended | Boosted lexical search and citation. |
 | `identifiers` | `keyword` | Recommended | Exact ticket, order, invoice, error, and document IDs. |
@@ -884,7 +972,16 @@ An example compatible vector mapping is shown only to make the read contract pre
       "dataset_id": { "type": "keyword" },
       "acl_principals": { "type": "keyword" },
       "lifecycle_state": { "type": "keyword" },
-      "text": { "type": "text" },
+      "language": { "type": "keyword" },
+      "text": {
+        "type": "text",
+        "fields": {
+          "en": { "type": "text", "analyzer": "english" },
+          "vi": { "type": "text", "analyzer": "standard" },
+          "ja": { "type": "text", "analyzer": "kuromoji" },
+          "universal": { "type": "text", "analyzer": "standard" }
+        }
+      },
       "identifiers": { "type": "keyword" },
       "embedding_model_id": { "type": "keyword" },
       "embedding": {
@@ -907,21 +1004,24 @@ An example compatible vector mapping is shown only to make the read contract pre
 
 The dimension and model ID are deployment values, not universal defaults. A retrieval pool cannot mix incompatible dimensions or embedding models in the same vector field.
 
+The language subfields are illustrative. Upstream mappings must use analyzers installed on the target cluster, and retrieval must query the same mapped fields so query-time and index-time analysis remain compatible. Japanese `kuromoji` and ICU-based analyzers require the corresponding OpenSearch analysis plugins.
+
 #### Dataset catalog document
 
 The dataset catalog must expose:
 
 - Tenant, project, dataset, visibility, ACL, health, and lifecycle fields.
 - Name, description, aliases, glossary terms, identifier prefixes, and domain tags.
+- BCP 47 content languages and supported lexical-field names.
 - One or more router-space centroid vectors.
 - `cluster_id`, `physical_index`, optional `routing_key`, `embedding_model_id`, `vector_field`, `vector_dimension`, and `distance_space`.
 - Document and chunk counts, source time range, and catalog freshness.
 
 #### Project catalog document
 
-The project catalog must expose tenant, project, ACL, name, description, aliases, domain tags, router-space centroids, dataset count, and freshness.
+The project catalog must expose tenant, project, ACL, language-tagged name/description/aliases, domain tags, router-space centroids, dataset count, supported content languages, and freshness.
 
-Catalog vectors use one globally consistent routing model. Chunk retrieval pools may use different application-generated embedding models, but the executor must generate a compatible query vector for each selected search group.
+Catalog vectors use one globally consistent multilingual routing model. Chunk retrieval pools may use different application-generated embedding models, but the executor must generate a compatible query vector for each selected search group. Cross-lingual retrieval requires a compatible multilingual embedding model or an approved bounded query-translation path.
 
 #### Trusted filter shape
 
@@ -960,7 +1060,7 @@ The server builds this object from trusted identity and resolved scope. User inp
 The upstream indexing system must make the following fields searchable when exact retrieval is enabled:
 
 - Unicode-normalized source text.
-- Lowercased English token stream.
+- Language-tagged normalized token streams for configured lexical analyzers.
 - Positional term index for phrase search.
 - Character 4-gram index for OCR and punctuation variation.
 - Chunk adjacency and parent-section links.
@@ -1015,7 +1115,7 @@ Fuzzy fallback uses the selected base profile:
 - `PRECISION + EXACT` for source lookup.
 - `RECALL + EXACT + MULTI_EVIDENCE` for summary or analysis of pasted content.
 
-Unlike v1, fuzzy fallback is not forced to near-pure lexical scoring. Dense retrieval remains available to handle OCR changes, paraphrases, and partial edits. Translation recovery is outside the English-only v2 scope.
+Unlike v1, fuzzy fallback is not forced to near-pure lexical scoring. Dense retrieval remains available to handle OCR changes, paraphrases, partial edits, and cross-lingual matches when the retrieval pool uses a compatible multilingual embedding model.
 
 ### 9.7 Miss Handling
 
@@ -1125,7 +1225,26 @@ KG retrieval failure does not fail normal text retrieval.
 ```yaml
 adaptive_rag:
   version: "2.0.0"
-  language: "en"
+
+  languages:
+    supported: ["en", "vi", "ja"]
+    default: "en"
+    detector_id: "private-language-detector-v1"
+    confidence_min: 0.80
+    short_query_confidence_min: 0.95
+    mixed_language_score_min: 0.55
+    max_analysis_languages: 2
+    unknown_language: "und"
+    lexical_fields:
+      en: ["title.en^3", "section.en^2", "table_headers.en^2", "table_text.en^1.5", "text.en"]
+      vi: ["title.vi^3", "section.vi^2", "table_headers.vi^2", "table_text.vi^1.5", "text.vi"]
+      ja: ["title.ja^3", "section.ja^2", "table_headers.ja^2", "table_text.ja^1.5", "text.ja"]
+      und: ["title.universal^3", "section.universal^2", "table_headers.universal^2", "table_text.universal^1.5", "text.universal"]
+    cross_lingual:
+      enabled: true
+      max_translated_variants: 2
+      translation_timeout_ms: 400
+      dense_only_on_translation_failure: true
 
   analyzer:
     rule_confidence_min: 0.82
@@ -1259,6 +1378,7 @@ adaptive_rag:
       - "project_id"
       - "dataset_id"
       - "document_id"
+      - "language"
       - "text"
       - "title"
       - "section"
@@ -1275,10 +1395,11 @@ adaptive_rag:
 Configuration reload is atomic:
 
 1. Parse and schema-validate the new version.
-2. Verify every referenced calibration and model ID.
-3. Verify all weights and candidate limits.
-4. Run deterministic configuration smoke tests.
-5. Activate the entire version or retain the last known-good version.
+2. Verify the language detector, BCP 47 tags, language packs, and lexical-field maps.
+3. Verify every referenced calibration, embedding, translation, and rerank model ID.
+4. Verify all weights and candidate limits.
+5. Run deterministic configuration smoke tests in every supported language.
+6. Activate the entire version or retain the last known-good version.
 
 No request may combine fields from two configuration versions.
 
@@ -1295,6 +1416,7 @@ POST /v2/adaptive-retrieve
 ```json
 {
   "query": "Why did incident E-4402 occur?",
+  "language_hint": null,
   "project_ids": ["project-a"],
   "dataset_ids": null,
   "metadata_filters": null,
@@ -1315,6 +1437,8 @@ POST /v2/adaptive-retrieve
 - `off`: Use the calibrated non-reranked path.
 
 `max_hops` may narrow the configured maximum but cannot raise it. Client metadata filters are matched against an allow-list and can only narrow the server-resolved scope.
+
+`language_hint` is an optional BCP 47 hint used only as described in Section 6.1. Retrieval still detects language unless trusted tenant policy makes the hint authoritative.
 
 ### 13.2 Response
 
@@ -1344,6 +1468,13 @@ POST /v2/adaptive-retrieve
   "decision": {
     "base_profile": "RECALL",
     "modifiers": ["LEXICAL", "MULTI_EVIDENCE", "MULTI_HOP"],
+    "language": {
+      "primary": "en",
+      "confidence": 0.98,
+      "source": "detector",
+      "mixed": false,
+      "analysis_languages": ["en"]
+    },
     "classifier": "rule:R03+R10",
     "scoring_path": "reranked",
     "config_version": "2.0.0",
@@ -1408,6 +1539,9 @@ POST /v2/adaptive-retrieve
 
 Record:
 
+- Primary, mixed, and undetermined language distributions.
+- Detector confidence, per-language confusion, hint disagreements, and language-pack version.
+- Language-specific rule accuracy and cross-lingual fallback rates.
 - Rules-only and LLM-fallback rates.
 - Base profile and modifier distributions.
 - Classification quality by rule.
@@ -1436,6 +1570,10 @@ Record:
 
 The evaluation set includes:
 
+- Parallel query sets in every supported language.
+- Mixed-language queries, short queries, identifier-only queries, and code-heavy queries.
+- Cross-lingual questions where query and source languages differ.
+- Queries in unsupported languages that must use `und` lexical or dense-only fallback.
 - Precision lookups.
 - Identifiers and search-style keyword queries.
 - Procedures spanning adjacent chunks.
@@ -1460,6 +1598,11 @@ The evaluation set includes:
 | Failure | Required behavior |
 |---|---|
 | Rule analyzer uncertain | Use LLM fallback, then `BALANCED` on failure. |
+| Language detector unavailable | Use a trusted hint when present; otherwise use `und`, language-neutral rules, and multilingual dense retrieval. |
+| Language detector confidence below threshold | Use `und` or a qualified hint; do not guess a language-specific analyzer. |
+| Language pack unavailable | Keep language-neutral rules and use `und` lexical fields or dense-only retrieval. |
+| Query/source languages differ | Add `CROSS_LINGUAL`; use a compatible multilingual vector model and optional approved translated lexical variants. |
+| Cross-lingual translation fails | Continue dense-only when calibrated; otherwise return partial or dependency status without changing source text. |
 | LLM classifier timeout | Use `BALANCED`; do not delay retrieval beyond 800 ms. |
 | Project catalog unavailable | Use explicit project and dataset scope; otherwise use the last healthy snapshot and flag degradation. |
 | Dataset catalog unavailable | Search mandatory datasets and configured project defaults only; never fan out to every dataset. |
@@ -1484,11 +1627,14 @@ The evaluation set includes:
 
 ### 16.1 Analyzer
 
-- Rules-only analyzer latency is less than 5 ms p95.
+- Local language detection is less than 5 ms p95 and detection plus rules is less than 10 ms p95.
 - At least 90% of production queries avoid classifier LLM calls.
 - Base-profile macro F1 is at least 0.90.
 - Each production modifier has precision and recall of at least 0.90.
 - `NONE` precision is at least 0.98 to avoid incorrectly skipping retrieval.
+- Supported-language detection macro F1 is at least 0.95 on queries with four or more natural-language tokens.
+- Mixed-language detection F1 is at least 0.90.
+- Detection, profile, and modifier metrics are reported per language; no critical language slice is more than five percentage points below the overall metric.
 
 ### 16.2 Routing
 
@@ -1508,6 +1654,8 @@ The evaluation set includes:
 - Every comparison side has qualifying evidence or the response is `PARTIAL`/`INSUFFICIENT_EVIDENCE`.
 - Temporal retrieval returns the effective source in the top five and does not silently hide conflicting versions.
 - Table-aware retrieval returns the qualifying row plus its header context.
+- Each supported-language slice matches or exceeds its static same-language baseline.
+- Cross-lingual retrieval Recall@10 is measured separately and may activate only after meeting its configured baseline gate.
 - Two-hop and three-hop completion are reported separately; every carried entity has a supporting selected chunk.
 - Reranked and non-reranked paths are evaluated separately.
 - Reranker failure fallback does not reduce Recall@K by more than five percentage points.
@@ -1550,9 +1698,9 @@ Excluding answer generation:
 
 ### Phase 1 - Analyzer and Profiles
 
-- Run analyzer and profile selection in shadow mode.
+- Run language detection, language-pack rules, and profile selection in shadow mode.
 - Compare selected plans with the static baseline.
-- Calibrate rule confidence and modifier decisions.
+- Calibrate language, rule, and modifier confidence per language and query-length bucket.
 
 ### Phase 2 - Hierarchical Router
 
@@ -1564,6 +1712,7 @@ Excluding answer generation:
 ### Phase 3 - Specialized Retrieval
 
 - Enable exact, temporal, table-aware, and neighbor retrieval only where the required indexed fields are available.
+- Enable language-specific lexical fields, then cross-lingual dense retrieval, as separate feature flags.
 - Return explicit capability degradation for missing optional fields.
 - Evaluate exact source location, current-policy selection, table context, and procedures.
 
@@ -1625,6 +1774,15 @@ export type Modifier =
   | 'DECOMPOSE'
   | 'MULTI_HOP'
   | 'ENTITY_CARRYOVER'
+  | 'CROSS_LINGUAL'
+
+export interface LanguageDetection {
+  primary: string
+  confidence: number
+  source: 'detector' | 'hint' | 'tenant_default' | 'undetermined'
+  mixed: boolean
+  analysisLanguages: string[]
+}
 
 export interface TrustedIdentity {
   tenantId: string
@@ -1636,6 +1794,7 @@ export interface TrustedIdentity {
 
 export interface RetrievalRequest {
   query: string
+  languageHint?: string
   projectIds?: string[]
   datasetIds?: string[]
   metadataFilters?: Record<string, string | string[]>
@@ -1658,6 +1817,7 @@ export interface QuerySignals {
 export interface QueryIntent {
   profile: BaseProfile
   modifiers: Modifier[]
+  language: LanguageDetection
   family: string
   classifier: string
   ruleScore: number
@@ -1689,6 +1849,8 @@ export interface SearchGroup {
   embeddingModelId: string
   vectorField: string
   vectorDimension: number
+  lexicalFields: Record<string, string[]>
+  contentLanguages: string[]
 }
 
 export interface ChunkSource {
@@ -1697,6 +1859,7 @@ export interface ChunkSource {
   project_id: string
   dataset_id: string
   document_id: string
+  language?: string
   text: string
   title?: string
   section?: string
@@ -1740,20 +1903,68 @@ export interface HopEvidence {
 // query-analyzer.ts
 import type {
   BaseProfile,
+  LanguageDetection,
   Modifier,
   QueryIntent,
   QuerySignals
 } from './adaptive-rag.types.js'
 
 const IDENTIFIER = /\b(?:INC|REQ|PO|INV|ERR|DOC)-?\d{3,}\b/gi
-const META = /^(?:hi|hello|thanks|thank you|good morning|good afternoon)[.! ]*$/i
-const SUMMARY = /\b(?:summari[sz]e|overview|list all|all requirements|across)\b/i
-const PROCEDURE = /\b(?:how (?:do|can|to)|steps?|procedure|instructions?|troubleshoot)\b/i
-const TEMPORAL = /\b(?:current|latest|effective|expired|historical|as of|before|after)\b/i
-const TABLE = /\b(?:q[1-4]|quarter|percent|percentage|total|amount|revenue|by region|for each)\b/i
-const COMPARE = /\b(?:compare|versus|vs\.?|differences?|between)\b/i
-const RELATIONSHIP = /\b(?:why|caused by|impact|depends on|owned by|affected|relationship)\b/i
-const QUOTED_EXACT = /["“][^"”]{40,}["”]/i
+const QUOTED_EXACT = /(?:"[^"]{40,}"|\u201c[^\u201d]{40,}\u201d)/i
+
+interface DetectorCandidate {
+  language: string
+  score: number
+}
+
+interface DetectorResult {
+  language: string
+  confidence: number
+  mixed?: boolean
+  candidates?: DetectorCandidate[]
+}
+
+type DetectLanguage = (query: string) => DetectorResult
+
+interface LanguagePack {
+  meta: RegExp
+  summary: RegExp
+  procedure: RegExp
+  temporal: RegExp
+  table: RegExp
+  compare: RegExp
+  relationship: RegExp
+}
+
+const LANGUAGE_PACKS: Record<string, LanguagePack> = {
+  en: {
+    meta: /^(?:hi|hello|thanks|thank you|good morning|good afternoon)[.! ]*$/i,
+    summary: /\b(?:summari[sz]e|overview|list all|all requirements|across)\b/i,
+    procedure: /\b(?:how (?:do|can|to)|steps?|procedure|instructions?|troubleshoot)\b/i,
+    temporal: /\b(?:current|latest|effective|expired|historical|as of|before|after)\b/i,
+    table: /\b(?:q[1-4]|quarter|percent|percentage|total|amount|revenue|by region|for each)\b/i,
+    compare: /\b(?:compare|versus|vs\.?|differences?|between)\b/i,
+    relationship: /\b(?:why|caused by|impact|depends on|owned by|affected|relationship)\b/i
+  },
+  vi: {
+    meta: /^(?:xin chào|chào|cảm ơn|cám ơn)[.! ]*$/i,
+    summary: /\b(?:tóm tắt|tổng quan|liệt kê tất cả|toàn bộ yêu cầu)\b/i,
+    procedure: /\b(?:làm thế nào|cách|các bước|quy trình|hướng dẫn|khắc phục)\b/i,
+    temporal: /\b(?:hiện tại|mới nhất|có hiệu lực|hết hạn|tính đến|trước|sau)\b/i,
+    table: /\b(?:quý|phần trăm|tổng|số tiền|doanh thu|theo khu vực|mỗi)\b/i,
+    compare: /\b(?:so sánh|khác biệt|giữa)\b/i,
+    relationship: /\b(?:tại sao|nguyên nhân|tác động|phụ thuộc|sở hữu|ảnh hưởng)\b/i
+  },
+  ja: {
+    meta: /^(?:こんにちは|ありがとう|おはようございます?)[。.! ]*$/,
+    summary: /(?:要約|概要|すべて.*一覧|まとめ)/,
+    procedure: /(?:方法|手順|やり方|トラブルシュート)/,
+    temporal: /(?:現在|最新|有効|期限切れ|時点|以前|以降)/,
+    table: /(?:四半期|パーセント|合計|金額|売上|地域別|それぞれ)/,
+    compare: /(?:比較|違い|対比)/,
+    relationship: /(?:なぜ|原因|影響|依存|所有|関係)/
+  }
+}
 
 /**
  * @description Normalizes whitespace without changing identifier punctuation.
@@ -1762,6 +1973,109 @@ const QUOTED_EXACT = /["“][^"”]{40,}["”]/i
  */
 function normalizeQuery(query: string): string {
   return query.normalize('NFKC').replace(/\s+/g, ' ').trim()
+}
+
+/**
+ * @description Normalizes a detector tag to a BCP 47 base language.
+ * @param tag Detector or hint language tag.
+ * @returns Base language or und.
+ */
+function normalizeLanguageTag(tag: string | undefined): string {
+  if (!tag) return 'und'
+
+  try {
+    return new Intl.Locale(tag).language.toLowerCase()
+  } catch {
+    return 'und'
+  }
+}
+
+/**
+ * @description Detects primary and mixed query languages with bounded fallbacks.
+ * @param query Normalized standalone query.
+ * @param detector Private language detector.
+ * @param languageHint Optional caller locale hint.
+ * @returns Normalized language decision.
+ */
+function resolveLanguage(
+  query: string,
+  detector: DetectLanguage,
+  languageHint?: string
+): LanguageDetection {
+  const result = detector(query)
+  const detected = normalizeLanguageTag(result.language)
+  const hinted = normalizeLanguageTag(languageHint)
+  const naturalText = query.replace(IDENTIFIER, '').trim()
+  const naturalTokenCount = naturalText
+    ? segmentWords(naturalText, detected).length
+    : 0
+  const confidenceMinimum = naturalTokenCount < 4 ? 0.95 : 0.8
+  const detectorAccepted = (
+    result.confidence >= confidenceMinimum &&
+    detected !== 'und' &&
+    naturalTokenCount > 0
+  )
+  const primary = detectorAccepted
+    ? detected
+    : hinted !== 'und'
+      ? hinted
+      : 'und'
+  const candidates = result.candidates ?? []
+  const analysisLanguages = [
+    primary,
+    ...(result.mixed
+      ? candidates
+          .filter(candidate => candidate.score >= 0.55)
+          .map(candidate => normalizeLanguageTag(candidate.language))
+      : [])
+  ].filter((language, index, all) => (
+    language !== 'und' &&
+    all.indexOf(language) === index
+  )).slice(0, 2)
+
+  return {
+    primary,
+    confidence: detectorAccepted ? result.confidence : 0,
+    source: detectorAccepted
+      ? 'detector'
+      : hinted !== 'und'
+        ? 'hint'
+        : 'undetermined',
+    mixed: Boolean(result.mixed && analysisLanguages.length > 1),
+    analysisLanguages: analysisLanguages.length > 0
+      ? analysisLanguages
+      : ['und']
+  }
+}
+
+/**
+ * @description Segments words with the Node.js Intl implementation.
+ * @param query Normalized query.
+ * @param language Detected BCP 47 base language.
+ * @returns Word-like query segments.
+ */
+function segmentWords(query: string, language: string): string[] {
+  const locale = language === 'und' ? 'en' : language
+  const segmenter = new Intl.Segmenter(locale, { granularity: 'word' })
+
+  return [...segmenter.segment(query)]
+    .filter(segment => segment.isWordLike)
+    .map(segment => segment.segment)
+}
+
+/**
+ * @description Tests one rule across every selected language pack.
+ * @param packs Selected language packs.
+ * @param rule Rule field to test.
+ * @param query Normalized query.
+ * @returns True when any pack matches.
+ */
+function matchesLanguageRule(
+  packs: LanguagePack[],
+  rule: keyof LanguagePack,
+  query: string
+): boolean {
+  return packs.some(pack => pack[rule].test(query))
 }
 
 /**
@@ -1788,19 +2102,28 @@ function broaden(current: BaseProfile, next: BaseProfile): BaseProfile {
 /**
  * @description Applies the fast ordered enterprise-query rules.
  * @param rawQuery Raw standalone query.
- * @param approvedExpansions Tenant-approved glossary expansions keyed by lowercase term.
+ * @param detector Private language detector.
+ * @param approvedExpansions Tenant-approved expansions keyed by language and lowercase term.
+ * @param languageHint Optional BCP 47 locale hint.
  * @returns Query intent used to build the retrieval plan.
  */
 export function analyzeQuery(
   rawQuery: string,
-  approvedExpansions: ReadonlyMap<string, string[]> = new Map()
+  detector: DetectLanguage,
+  approvedExpansions: ReadonlyMap<string, string[]> = new Map(),
+  languageHint?: string
 ): QueryIntent {
   // Normalize once so every rule sees the same query.
   const query = normalizeQuery(rawQuery)
-  const tokens = query ? query.split(' ') : []
+  const language = resolveLanguage(query, detector, languageHint)
+  const tokens = segmentWords(query, language.primary)
   const identifierHits = [...query.matchAll(IDENTIFIER)].map(match => match[0].toUpperCase())
   const modifiers: Modifier[] = []
-  const expansions = approvedExpansions.get(query.toLowerCase())?.slice(0, 8) ?? []
+  const packs = language.analysisLanguages
+    .map(tag => LANGUAGE_PACKS[tag])
+    .filter((pack): pack is LanguagePack => Boolean(pack))
+  const expansionKey = `${language.primary}:${query.toLowerCase()}`
+  const expansions = approvedExpansions.get(expansionKey)?.slice(0, 8) ?? []
 
   // Compute reusable signals before selecting a profile.
   const signals: QuerySignals = {
@@ -1810,17 +2133,18 @@ export function analyzeQuery(
       tokens.length >= 20
     ),
     identifierHits,
-    hasTemporalIntent: TEMPORAL.test(query),
-    hasTableIntent: TABLE.test(query),
-    hasComparison: COMPARE.test(query),
-    hasRelationshipChain: RELATIONSHIP.test(query)
+    hasTemporalIntent: matchesLanguageRule(packs, 'temporal', query),
+    hasTableIntent: matchesLanguageRule(packs, 'table', query),
+    hasComparison: matchesLanguageRule(packs, 'compare', query),
+    hasRelationshipChain: matchesLanguageRule(packs, 'relationship', query)
   }
 
   // Skip retrieval only for a narrow, high-precision meta rule.
-  if (META.test(query)) {
+  if (matchesLanguageRule(packs, 'meta', query)) {
     return {
       profile: 'NONE',
       modifiers,
+      language,
       family: 'conversation',
       classifier: 'rule:R01',
       ruleScore: 0.99,
@@ -1857,7 +2181,7 @@ export function analyzeQuery(
     rules.push('R05')
   }
 
-  if (PROCEDURE.test(query)) {
+  if (matchesLanguageRule(packs, 'procedure', query)) {
     profile = broaden(profile, 'BALANCED')
     addModifier(modifiers, 'NEIGHBOR_EXPANSION')
     rules.push('R06')
@@ -1877,7 +2201,7 @@ export function analyzeQuery(
     addModifier(modifiers, 'MULTI_EVIDENCE')
     rules.push('R08')
     family = 'comparison'
-  } else if (SUMMARY.test(query)) {
+  } else if (matchesLanguageRule(packs, 'summary', query)) {
     profile = 'RECALL'
     addModifier(modifiers, 'MULTI_EVIDENCE')
     rules.push('R09')
@@ -1896,6 +2220,7 @@ export function analyzeQuery(
   return {
     profile,
     modifiers,
+    language,
     family,
     classifier: rules.length > 0 ? `rule:${rules.join('+')}` : 'rule:R14',
     ruleScore: rules.length > 0 ? 0.9 : 0.75,
@@ -1979,6 +2304,8 @@ export interface DatasetRoute {
   embeddingModelId: string
   vectorField: string
   vectorDimension: number
+  lexicalFields: Record<string, string[]>
+  contentLanguages: string[]
 }
 
 /**
@@ -2051,13 +2378,15 @@ export function buildSearchGroups(routes: DatasetRoute[]): SearchGroup[] {
       route.index,
       route.embeddingModelId,
       route.vectorField,
-      route.vectorDimension
+      route.vectorDimension,
+      JSON.stringify(route.lexicalFields)
     ].join('|')
     const current = groups.get(key)
 
     if (current) {
       current.projectIds.push(route.projectId)
       current.datasetIds.push(route.datasetId)
+      current.contentLanguages.push(...route.contentLanguages)
       if (route.routingKey) current.routingKeys.push(route.routingKey)
       continue
     }
@@ -2070,7 +2399,9 @@ export function buildSearchGroups(routes: DatasetRoute[]): SearchGroup[] {
       datasetIds: [route.datasetId],
       embeddingModelId: route.embeddingModelId,
       vectorField: route.vectorField,
-      vectorDimension: route.vectorDimension
+      vectorDimension: route.vectorDimension,
+      lexicalFields: route.lexicalFields,
+      contentLanguages: route.contentLanguages
     })
   }
 
@@ -2078,8 +2409,29 @@ export function buildSearchGroups(routes: DatasetRoute[]): SearchGroup[] {
     ...group,
     routingKeys: [...new Set(group.routingKeys)],
     projectIds: [...new Set(group.projectIds)],
-    datasetIds: [...new Set(group.datasetIds)]
+    datasetIds: [...new Set(group.datasetIds)],
+    contentLanguages: [...new Set(group.contentLanguages)]
   }))
+}
+
+/**
+ * @description Detects whether selected sources require cross-lingual retrieval.
+ * @param groups Selected physical search groups.
+ * @param analysisLanguages Primary and mixed query languages.
+ * @returns True when no detected query language matches a selected source language.
+ */
+export function requiresCrossLingual(
+  groups: SearchGroup[],
+  analysisLanguages: string[]
+): boolean {
+  const queryLanguages = new Set(
+    analysisLanguages.filter(language => language !== 'und')
+  )
+
+  return queryLanguages.size > 0 && groups.some(group => (
+    group.contentLanguages.length > 0 &&
+    !group.contentLanguages.some(language => queryLanguages.has(language))
+  ))
 }
 ```
 
@@ -2141,6 +2493,7 @@ const SOURCE_FIELDS = [
   'project_id',
   'dataset_id',
   'document_id',
+  'language',
   'text',
   'title',
   'section',
@@ -2184,9 +2537,28 @@ function buildTrustedFilter(
 }
 
 /**
+ * @description Resolves configured lexical fields for detected languages.
+ * @param group Physical group with a validated lexical schema.
+ * @param analysisLanguages Primary and mixed query languages.
+ * @returns Deduplicated lexical fields with a universal fallback.
+ */
+function resolveLexicalFields(
+  group: SearchGroup,
+  analysisLanguages: string[]
+): string[] {
+  const fields = analysisLanguages.flatMap(
+    language => group.lexicalFields[language] ?? []
+  )
+  const fallback = group.lexicalFields.und ?? ['text']
+
+  return [...new Set(fields.length > 0 ? fields : fallback)]
+}
+
+/**
  * @description Builds the BM25 query for one search group.
  * @param query Normalized query.
  * @param filter Trusted scope filter.
+ * @param lexicalFields Language-compatible lexical fields.
  * @param modifiers Selected query modifiers.
  * @param profile Retrieval profile.
  * @param expansions Approved lexical expansions.
@@ -2195,6 +2567,7 @@ function buildTrustedFilter(
 function buildLexicalBody(
   query: string,
   filter: QueryDsl,
+  lexicalFields: string[],
   modifiers: Modifier[],
   profile: RetrievalProfile,
   expansions: string[]
@@ -2231,14 +2604,7 @@ function buildLexicalBody(
             multi_match: {
               query: lexicalQuery,
               type: 'best_fields',
-              fields: [
-                'title^3',
-                'section^2',
-                'identifiers^4',
-                'table_headers^2',
-                'table_text^1.5',
-                'text'
-              ],
+              fields: [...lexicalFields, 'identifiers^4'],
               operator: modifiers.includes('LEXICAL') ? 'and' : 'or',
               minimum_should_match: modifiers.includes('LEXICAL') ? undefined : '60%'
             }
@@ -2311,6 +2677,7 @@ function parseSearchPart(
  * @param groups Selected compatible search groups.
  * @param scope Trusted resolved scope.
  * @param query Normalized standalone query.
+ * @param analysisLanguages Primary and mixed detected languages.
  * @param modifiers Selected modifiers.
  * @param expansions Approved lexical expansions.
  * @param profile Selected retrieval profile.
@@ -2322,6 +2689,7 @@ export async function retrieveGroups(
   groups: SearchGroup[],
   scope: ResolvedScope,
   query: string,
+  analysisLanguages: string[],
   modifiers: Modifier[],
   expansions: string[],
   profile: RetrievalProfile,
@@ -2358,6 +2726,7 @@ export async function retrieveGroups(
 
   groups.forEach((group, index) => {
     const filter = buildTrustedFilter(scope, group)
+    const lexicalFields = resolveLexicalFields(group, analysisLanguages)
     const metadata = {
       index: group.index,
       routing: group.routingKeys.length > 0
@@ -2368,7 +2737,14 @@ export async function retrieveGroups(
 
     // Add one lexical and one dense search per physical group.
     body.push(metadata)
-    body.push(buildLexicalBody(query, filter, modifiers, profile, expansions))
+    body.push(buildLexicalBody(
+      query,
+      filter,
+      lexicalFields,
+      modifiers,
+      profile,
+      expansions
+    ))
     body.push(metadata)
     body.push(buildDenseBody(vectors[index], group, filter, profile))
   })
@@ -2444,6 +2820,8 @@ interface CatalogSource {
   embedding_model_id?: string
   vector_field?: string
   vector_dimension?: number
+  lexical_fields?: Record<string, string[]>
+  content_languages?: string[]
 }
 
 interface CatalogPart {
@@ -2525,6 +2903,7 @@ function fuseCatalog(
  * @param query Normalized user query.
  * @param vector Router-model query vector.
  * @param filter Trusted catalog filter.
+ * @param lexicalFields Language-compatible catalog fields.
  * @param limit Maximum fused results.
  * @returns Ranked catalog sources.
  */
@@ -2534,6 +2913,7 @@ async function searchCatalog(
   query: string,
   vector: number[],
   filter: QueryDsl,
+  lexicalFields: string[],
   limit: number
 ): Promise<CatalogSource[]> {
   const response = await client.msearch({
@@ -2548,7 +2928,7 @@ async function searchCatalog(
             must: [{
               multi_match: {
                 query,
-                fields: ['name^3', 'aliases^2', 'description', 'top_terms']
+                fields: lexicalFields
               }
             }]
           }
@@ -2577,6 +2957,23 @@ async function searchCatalog(
   }
 
   return fuseCatalog(parts[0], parts[1], limit)
+}
+
+/**
+ * @description Builds catalog field names for primary and mixed languages.
+ * @param analysisLanguages Detected analysis languages.
+ * @returns Deduplicated catalog lexical fields.
+ */
+function catalogLexicalFields(analysisLanguages: string[]): string[] {
+  const supported = analysisLanguages.filter(language => language !== 'und')
+  const languages = supported.length > 0 ? supported : ['universal']
+
+  return [...new Set(languages.flatMap(language => [
+    `name.${language}^3`,
+    `aliases.${language}^2`,
+    `description.${language}`,
+    `top_terms.${language}`
+  ]))]
 }
 
 /**
@@ -2622,7 +3019,8 @@ function toDatasetRoute(dataset: CatalogSource): DatasetRoute {
     !dataset.physical_index ||
     !dataset.embedding_model_id ||
     !dataset.vector_field ||
-    !dataset.vector_dimension
+    !dataset.vector_dimension ||
+    !dataset.lexical_fields
   ) {
     throw new Error(`INVALID_DATASET_CATALOG_ENTRY:${dataset.dataset_id ?? 'unknown'}`)
   }
@@ -2635,7 +3033,9 @@ function toDatasetRoute(dataset: CatalogSource): DatasetRoute {
     datasetId: dataset.dataset_id,
     embeddingModelId: dataset.embedding_model_id,
     vectorField: dataset.vector_field,
-    vectorDimension: dataset.vector_dimension
+    vectorDimension: dataset.vector_dimension,
+    lexicalFields: dataset.lexical_fields,
+    contentLanguages: dataset.content_languages ?? ['und']
   }
 }
 
@@ -2644,6 +3044,7 @@ function toDatasetRoute(dataset: CatalogSource): DatasetRoute {
  * @param client OpenSearch client.
  * @param query Normalized user query.
  * @param scope Trusted authorized scope.
+ * @param analysisLanguages Primary and mixed detected languages.
  * @param embedRouterQuery Router-space embedding function.
  * @returns Dataset routes ready for physical grouping.
  */
@@ -2651,6 +3052,7 @@ export async function routeDatasets(
   client: Client,
   query: string,
   scope: ResolvedScope,
+  analysisLanguages: string[],
   embedRouterQuery: EmbedRouterQuery
 ): Promise<DatasetRoute[]> {
   // Explicit authorized dataset scope bypasses relevance ranking.
@@ -2659,6 +3061,7 @@ export async function routeDatasets(
   }
 
   const vector = await embedRouterQuery(query)
+  const lexicalFields = catalogLexicalFields(analysisLanguages)
   const selectedProjectIds = scope.explicitProjectScope
     ? scope.projectIds
     : (await searchCatalog(
@@ -2667,6 +3070,7 @@ export async function routeDatasets(
         query,
         vector,
         buildCatalogFilter(scope, scope.projectIds),
+        lexicalFields,
         3
       )).map(project => project.project_id)
   const datasetFilter = buildCatalogFilter(
@@ -2680,6 +3084,7 @@ export async function routeDatasets(
     query,
     vector,
     datasetFilter,
+    lexicalFields,
     16
   )
 
@@ -2818,6 +3223,32 @@ import { resolveScope } from './retrieval-scope.js'
 import type { RankedChunk } from './adaptive-rag.types.js'
 
 /**
+ * @description Returns deterministic English detection for analyzer tests.
+ * @returns English detector result.
+ */
+function detectEnglish() {
+  return {
+    language: 'en',
+    confidence: 0.99,
+    mixed: false,
+    candidates: [{ language: 'en', score: 0.99 }]
+  }
+}
+
+/**
+ * @description Returns deterministic Vietnamese detection for analyzer tests.
+ * @returns Vietnamese detector result.
+ */
+function detectVietnamese() {
+  return {
+    language: 'vi',
+    confidence: 0.99,
+    mixed: false,
+    candidates: [{ language: 'vi', score: 0.99 }]
+  }
+}
+
+/**
  * @description Creates the smallest ranked chunk used by RRF tests.
  * @param id Stable test chunk ID.
  * @returns Ranked test chunk.
@@ -2841,12 +3272,25 @@ const chunk = (id: string): RankedChunk => ({
 describe('adaptive RAG mechanism', () => {
   it('selects multi-hop retrieval for relationship questions', () => {
     const intent = analyzeQuery(
-      'Which customers depend on systems owned by Team A?'
+      'Which customers depend on systems owned by Team A?',
+      detectEnglish
     )
 
+    expect(intent.language.primary).toBe('en')
     expect(intent.profile).toBe('RECALL')
     expect(intent.modifiers).toContain('MULTI_HOP')
     expect(intent.modifiers).toContain('ENTITY_CARRYOVER')
+  })
+
+  it('detects Vietnamese and applies its procedure rules', () => {
+    const intent = analyzeQuery(
+      'Làm thế nào để yêu cầu quyền truy cập production?',
+      detectVietnamese
+    )
+
+    expect(intent.language.primary).toBe('vi')
+    expect(intent.profile).toBe('BALANCED')
+    expect(intent.modifiers).toContain('NEIGHBOR_EXPANSION')
   })
 
   it('fuses lexical and dense ranks without adding native scores', () => {
@@ -2884,6 +3328,8 @@ describe('adaptive RAG mechanism', () => {
 - [OpenSearch `knn_vector` mapping](https://docs.opensearch.org/latest/mappings/supported-field-types/knn-vector/)
 - [OpenSearch Multi-Search API](https://docs.opensearch.org/latest/api-reference/search-apis/multi-search/)
 - [OpenSearch multi-match query](https://docs.opensearch.org/latest/query-dsl/full-text/multi-match/)
+- [OpenSearch text analysis and query-time analyzer compatibility](https://docs.opensearch.org/latest/analyzers/)
+- [OpenSearch language analyzers](https://docs.opensearch.org/latest/analyzers/language-analyzers/index/)
 - [OpenSearch score-ranker RRF processor](https://docs.opensearch.org/latest/search-plugins/search-pipelines/score-ranker-processor/)
 - [RAGFlow: Run retrieval test](https://ragflow.io/docs/dev/run_retrieval_test)
 - [RAGFlow: HTTP API - Retrieve chunks](https://ragflow.io/docs/dev/http_api_reference#retrieve-chunks)
