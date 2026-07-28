@@ -69,6 +69,88 @@ This specification is complete for its declared retrieval-only boundary. "Comple
 | Adaptive Feedback Controller | Controlled improvement across releases | Telemetry and labeled evaluation | Calibrate and canary versioned behavior offline | 14, 16, 17 | Full; no online self-training |
 | Decision Trace Contract | Auditable request and response decisions | Scope, plan, route, scores, hops, failures | Return versions, timings, coverage, and decision metadata | 13, 14 | Full |
 
+### 1.2 Adaptive Retrieval Mechanism
+
+```text
+                       ADAPTIVE RAG RETRIEVAL
+
+[Query + trusted identity + optional scope]
+                     |
+                     v
++---------------------------------------------------------------+
+| 1. ANALYZE                                                    |
+| Detect language, intent, complexity, modifiers, and hop need  |
++---------------------------------------------------------------+
+                     |
+                     v
++---------------------------------------------------------------+
+| 2. AUTHORIZE                                                  |
+| Resolve tenant, project, dataset, metadata, and ACL boundary  |
++---------------------------------------------------------------+
+                     |
+                     v
++---------------------------------------------------------------+
+| 3. PLAN                                                       |
+| Select profile, budgets, retrieval sources, and score policy  |
++---------------------------------------------------------------+
+                     |
+                     v
++---------------------------------------------------------------+
+| 4. ROUTE                                                      |
+| Project catalog -> dataset catalog -> physical search groups  |
++---------------------------------------------------------------+
+                     |
+                     v
++---------------------------------------------------------------+
+| 5. RETRIEVE                                                   |
+| BM25 | vector | exact | optional graph | neighbor expansion   |
++---------------------------------------------------------------+
+                     |
+                     v
++---------------------------------------------------------------+
+| 6. COMBINE                                                    |
+| RRF -> optional rerank -> deduplicate -> diversify -> trim    |
++---------------------------------------------------------------+
+                     |
+                     v
+             +----------------------+
+             | Evidence sufficient? |
+             +----------------------+
+                | yes          | no
+                |              v
+                |     [One bounded retry,
+                |      escalation, or next hop]
+                |              |
+                |              +-------> return to RETRIEVE
+                v
+[Evidence + citations + coverage + auditable decision trace]
+```
+
+Every arrow is bounded by authorization, candidate, dataset, physical-group, hop, context, and deadline limits. If a limit is reached before evidence becomes sufficient, the mechanism returns an honest insufficient-evidence or partial-coverage result.
+
+### 1.3 Adaptation by Query Difficulty
+
+```text
+Query
+ |
+ +-- No enterprise knowledge required
+ |     `-- NONE: skip retrieval
+ |
+ +-- Identifier, title, quoted text, or pasted fragment
+ |     `-- PRECISION + LEXICAL and/or EXACT
+ |
+ +-- Direct factual, policy, procedure, table, or temporal question
+ |     `-- BALANCED + matching modifiers
+ |
+ +-- Broad summary, comparison, or independent compound question
+ |     `-- RECALL + MULTI_EVIDENCE and/or DECOMPOSE
+ |
+ `-- A later question depends on evidence found by an earlier search
+       `-- MULTI_HOP: at most three grounded sequential hops
+```
+
+The base profile controls precision and recall. Independent modifiers add exact, lexical, temporal, table, neighbor, cross-lingual, decomposition, or multi-hop behavior without creating a separate profile for every combination.
+
 Explicitly outside this coverage boundary:
 
 - Document parsing, chunking, ingestion, and index lifecycle.
@@ -500,12 +582,37 @@ The LLM fallback:
 `MULTI_HOP` is used only when a later retrieval depends on evidence from an earlier retrieval:
 
 ```text
-original query
-  -> hop 1 subquery
-  -> retrieve and select qualifying evidence
-  -> extract allow-listed entity types from that evidence
-  -> instantiate hop 2 from the approved template
-  -> stop, or run one final hop 3
+                         [Complex query]
+                                |
+                  +-------------+-------------+
+                  |                           |
+       Subqueries are independent?    Later query needs evidence
+                  |                   from an earlier result?
+                  v                           v
+           +-------------+             +-------------+
+           |  DECOMPOSE  |             |  MULTI_HOP  |
+           +-------------+             +-------------+
+                  |                           |
+      +-----------+-----------+               v
+      |           |           |       [Run grounded hop 1]
+      v           v           v               |
+   [Query A]   [Query B]   [Query C]           v
+      |           |           |       [Select qualifying evidence]
+      +-----------+-----------+               |
+                  |                           v
+                  v                  [Extract allow-listed entities]
+       [Merge independent evidence]            |
+                                              v
+                                   [Instantiate approved next query]
+                                              |
+                                   +----------+----------+
+                                   |                     |
+                             evidence enough       run hop 2 or 3
+                                   |                     |
+                                   +----------+----------+
+                                              |
+                                              v
+                                  [Grouped evidence + dependencies]
 ```
 
 Hard limits:
@@ -750,10 +857,57 @@ When open:
 Routing has four levels:
 
 ```text
-L0: authorization and explicit scope
-L1: project catalog routing
-L2: dataset catalog routing
-L3: full chunk retrieval in selected datasets
+                         [Authorized request]
+                                  |
+                                  v
+                  +-------------------------------+
+                  | L0: resolve authorized scope  |
+                  | tenant + ACL + explicit IDs   |
+                  +-------------------------------+
+                                  |
+                         Eligible scope shape?
+                         /                    \
+                        /                      \
+       explicit or few datasets              many datasets
+       with very large chunk count                 |
+                  |                                v
+                  |                 +-----------------------------+
+                  |                 | L1: select project catalogs |
+                  |                 +-----------------------------+
+                  |                                |
+                  |                                v
+                  |                 +-----------------------------+
+                  |                 | L2: select dataset catalogs |
+                  |                 +-----------------------------+
+                  |                                |
+                  +---------------+----------------+
+                                  |
+                                  v
+                     [Bounded selected datasets]
+                                  |
+                                  v
+         +---------------------------------------------------+
+         | Group by index, model, vector, schema, and routing |
+         +---------------------------------------------------+
+                                  |
+                                  v
+          [L3: bounded OpenSearch `_msearch` over chunk data]
+                                  |
+                                  v
+                       +----------------------+
+                       | Evidence sufficient? |
+                       +----------------------+
+                          | yes          | no
+                          v              v
+                    [Fuse and       [One escalation:
+                     assemble]       search only new
+                                     routed datasets]
+                                          |
+                                  sufficient or budget exhausted
+                                          |
+                                          v
+                              [Evidence, partial coverage,
+                               or insufficient evidence]
 ```
 
 Document and chunk counts do not affect L1 and L2 search complexity. The router searches compact project and dataset catalog entries.
