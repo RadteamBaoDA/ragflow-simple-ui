@@ -2017,7 +2017,7 @@ Excluding answer generation:
 
 The following are intentionally deferred until telemetry demonstrates a need:
 
-- Multilingual analysis and language-specific profiles.
+- Learned per-language classifiers or profile overrides beyond the shared multilingual analyzer and configurable language packs.
 - A trained query classifier.
 - A learned dataset router.
 - Historical-hit routing features.
