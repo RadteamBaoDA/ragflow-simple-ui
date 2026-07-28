@@ -9,9 +9,10 @@
 
 ---
 
-## 1. Executive Summary
+## 1. Adaptive RAG Mechanism
 
-> **Adaptive mechanism covered:** End-to-end per-request adaptation from language and intent detection through routing, retrieval, evidence sufficiency, bounded iteration, and safe degradation.
+> **Mechanism name:** Adaptive RAG Retrieval Orchestrator
+> **What it covers:** End-to-end per-request adaptation from language and intent detection through routing, retrieval, evidence sufficiency, bounded iteration, and safe degradation.
 
 Adaptive RAG v2 selects retrieval behavior from the query instead of applying one static configuration to every request. It is designed for deployments with:
 
@@ -36,37 +37,37 @@ The design intentionally does **not** query every eligible dataset. At large sca
 
 This is a retrieval-only specification. Parsing, chunking, document embeddings, ingestion jobs, index creation, reindexing, and answer generation are outside scope. Section 9 defines only the fields that those upstream systems must make searchable.
 
-### 1.1 Adaptive Mechanism Coverage Matrix
+### 1.1 Adaptive Mechanism Registry
 
 This specification is complete for its declared retrieval-only boundary. "Complete" means every adaptive decision has a trigger, bounded action, fallback, telemetry, and acceptance gate. It does not mean every possible RAG feature is in scope.
 
-| Adaptive decision | Trigger or input | Runtime adaptation | Primary section | Coverage |
-|---|---|---|---|---|
-| Language selection | Query text, hint, tenant default | Select BCP 47 language packs and lexical fields | 6 | Full |
-| Mixed/unknown language | Detector confidence and candidates | Merge packs or use `und` plus dense fallback | 6, 7 | Full |
-| Cross-lingual retrieval | Query/source language mismatch | Multilingual vector search and bounded translated lexical variants | 6, 7, 8 | Full |
-| Retrieval/no retrieval | High-confidence meta intent | Select `NONE` or a retrieval profile | 6 | Full |
-| Precision/recall strategy | Intent, length, complexity, evidence need | Select `PRECISION`, `BALANCED`, or `RECALL` | 6, 7 | Full |
-| Lexical emphasis | Identifiers, acronyms, keyword query | Raise BM25 quota and RRF weight | 6, 7 | Full |
-| Exact lookup | Quoted or pasted source text | Run exact locator beside fuzzy retrieval | 6, 8, 9 | Full when indexed fields exist |
-| Temporal retrieval | Current, latest, effective, or as-of intent | Apply temporal filter or recency preference | 6, 7 | Full when indexed fields exist |
-| Table retrieval | Numeric, table, row, or dimension intent | Prefer table fields and preserve header context | 6, 7, 10 | Full when indexed fields exist |
-| Procedure context | How-to or troubleshooting intent | Expand neighboring and parent chunks | 6, 7, 10 | Full when adjacency exists |
-| Scope selection | Identity, ACL, explicit IDs, metadata | Resolve authorized projects and datasets before search | 8, 13 | Full |
-| Project/dataset routing | Eligible-scope size and catalog scores | Select bounded catalogs and mandatory datasets | 8 | Full |
-| Physical search planning | Index, model, vector, and lexical compatibility | Group datasets into bounded `_msearch` work | 8 | Full |
-| Candidate budgets | Profile, modifier, scale, and deadline | Change BM25, ANN, fusion, rerank, and context counts | 7, 8 | Full |
-| Retrieval-source selection | Intent and capability health | Use BM25, vector, exact, or optional graph sources | 7, 9, 11 | Full; graph optional |
-| Fusion strategy | Compatible/incompatible score distributions | Use weighted RRF or calibrated score fusion | 7, 10 | Full |
-| Reranker decision | Profile, request mode, health, and deadline | Enable, skip, or circuit-break to non-reranked policy | 7, 15 | Full |
-| Evidence sufficiency | Score, count, diversity, failures, comparison sides | Stop, relax once, escalate routing, or return insufficient evidence | 7, 8, 15 | Full |
-| Parallel decomposition | Compound or comparison query | Run at most three independent subqueries | 6, 7 | Full |
-| Sequential multi-hop | Evidence-dependent relationship query | Run at most three grounded retrieval hops | 6, 7 | Full |
-| Context selection | Profile, token budget, diversity, adjacency | Deduplicate, diversify, expand, and trim evidence | 10 | Full |
-| Failure adaptation | Dependency errors, timeouts, stale catalogs, shard failures | Use typed fallbacks, partial coverage, or fail closed | 15 | Full |
-| Runtime configuration | Versioned profiles, models, rules, floors | Validate and atomically activate or roll back | 12 | Full |
-| Feedback control loop | Telemetry and labeled evaluations | Calibrate rules, budgets, routing, scores, and feature flags offline | 14, 16, 17 | Full; no online self-training |
-| Auditable API behavior | Request scope and runtime decisions | Return versions, timings, hops, coverage, and failure state | 13, 14 | Full |
+| Mechanism name | What it covers | Trigger or input | Runtime adaptation | Detailed section | Coverage |
+|---|---|---|---|---|---|
+| Language Detector | Primary, mixed, short, and unknown query language | Query text, hint, tenant default | Select BCP 47 language packs and lexical fields | 6 | Full |
+| Mixed-Language Analyzer | Queries containing multiple languages | Detector confidence and candidates | Merge language-pack rules or use `und` plus dense fallback | 6, 7 | Full |
+| Cross-Lingual Retriever | Query and source languages differ | Query/source language mismatch | Use multilingual vectors and bounded translated lexical variants | 6, 7, 8 | Full |
+| Retrieval Gate | Whether retrieval is needed | High-confidence conversational or meta intent | Select `NONE` or continue retrieval | 6 | Full |
+| Retrieval Profile Selector | Precision, balance, and recall requirements | Intent, length, complexity, evidence need | Select `PRECISION`, `BALANCED`, or `RECALL` | 6, 7 | Full |
+| Lexical Strategy Adapter | Identifier, acronym, and keyword behavior | Identifiers, glossary terms, search-style query | Raise BM25 quota and RRF weight | 6, 7 | Full |
+| Exact Locator | Source-location and verbatim matching | Quoted or pasted source text | Run exact locator beside fuzzy retrieval | 6, 8, 9 | Full when indexed fields exist |
+| Temporal Retriever | Current, historical, and as-of evidence | Temporal language or explicit date | Apply temporal filter or recency preference | 6, 7 | Full when indexed fields exist |
+| Table-Aware Retriever | Tables, rows, headers, units, and numeric evidence | Numeric, table, row, or dimension intent | Prefer table fields and preserve header context | 6, 7, 10 | Full when indexed fields exist |
+| Neighbor Expander | Procedures and local source context | How-to or troubleshooting intent | Expand neighboring and parent chunks | 6, 7, 10 | Full when adjacency exists |
+| Authorization Scope Resolver | Tenant, project, dataset, ACL, and metadata scope | Trusted identity and explicit IDs | Resolve authorized scope before search | 8, 13 | Full |
+| Hierarchical Router | Project and dataset selection at enterprise scale | Eligible-scope size and catalog scores | Select bounded catalogs and mandatory datasets | 8 | Full |
+| Physical Search Planner | Compatible OpenSearch work groups | Index, model, vector, and lexical compatibility | Group datasets into bounded `_msearch` work | 8 | Full |
+| Retrieval Budget Controller | Per-request candidate, deadline, and context budgets | Profile, modifier, scale, and deadline | Change BM25, ANN, fusion, rerank, and context counts | 7, 8 | Full |
+| Retrieval Source Selector | BM25, vector, exact, and graph source choice | Intent and capability health | Enable only qualifying retrieval sources | 7, 9, 11 | Full; graph optional |
+| Rank Fusion Controller | Cross-source and cross-index candidate merge | Compatible or incompatible score distributions | Use weighted RRF or calibrated score fusion | 7, 10 | Full |
+| Reranker Controller | Reranker activation and fallback | Profile, request mode, health, candidates, deadline | Enable, skip, or circuit-break to RRF | 7, 15 | Full |
+| Evidence Sufficiency Controller | Whether retrieval has enough trustworthy evidence | Score, count, diversity, failures, comparison sides | Stop, relax once, escalate, or return insufficient evidence | 7, 8, 15 | Full |
+| Query Decomposer | Independent compound or comparison subqueries | Compound or comparison query | Run at most three parallel subqueries | 6, 7 | Full |
+| Multi-Hop Controller | Sequential evidence-dependent retrieval | Relationship query and grounded entities | Run at most three grounded hops | 6, 7 | Full |
+| Context Assembly Controller | Final evidence set and token budget | Profile, diversity, adjacency, token limit | Deduplicate, diversify, expand, and trim evidence | 10 | Full |
+| Degradation Controller | Safe behavior during dependency or partial failure | Errors, timeouts, stale catalogs, shard failures | Use typed fallbacks, partial coverage, or fail closed | 15 | Full |
+| Configuration Controller | Versioned runtime behavior | Profiles, models, rules, floors, limits | Validate, activate atomically, or roll back | 12 | Full |
+| Adaptive Feedback Controller | Controlled improvement across releases | Telemetry and labeled evaluation | Calibrate and canary versioned behavior offline | 14, 16, 17 | Full; no online self-training |
+| Decision Trace Contract | Auditable request and response decisions | Scope, plan, route, scores, hops, failures | Return versions, timings, coverage, and decision metadata | 13, 14 | Full |
 
 Explicitly outside this coverage boundary:
 
@@ -80,7 +81,8 @@ Explicitly outside this coverage boundary:
 
 ## 2. Goals and Non-Goals
 
-> **Adaptive mechanism covered:** Defines measurable boundaries for what may adapt at runtime and what remains intentionally static or outside retrieval.
+> **Mechanism name:** Adaptive Scope Contract
+> **What it covers:** Defines measurable boundaries for what may adapt at runtime and what remains intentionally static or outside retrieval.
 
 ### 2.1 Goals
 
@@ -116,7 +118,8 @@ Explicitly outside this coverage boundary:
 
 ## 3. Design Principles and Invariants
 
-> **Adaptive mechanism covered:** Constrains every adaptive choice with authorization, bounded work, score compatibility, read-only behavior, and honest no-evidence outcomes.
+> **Mechanism name:** Adaptive Safety Guardrails
+> **What it covers:** Constrains every adaptive choice with authorization, bounded work, score compatibility, read-only behavior, and honest no-evidence outcomes.
 
 1. **Authorization precedes routing.** Unauthorized projects and datasets never enter router candidate sets.
 2. **Query intent and retrieval properties are separate.** A query may be analytical and lexical, or summary-oriented and verbatim, at the same time.
@@ -137,7 +140,8 @@ Explicitly outside this coverage boundary:
 
 ## 4. Terminology
 
-> **Adaptive mechanism covered:** Establishes the contracts used to express profiles, modifiers, routing waves, search groups, hops, language packs, calibration, and evidence.
+> **Mechanism name:** Adaptive Contract Vocabulary
+> **What it covers:** Establishes the contracts used to express profiles, modifiers, routing waves, search groups, hops, language packs, calibration, and evidence.
 
 | Term | Definition |
 |---|---|
@@ -160,7 +164,8 @@ Explicitly outside this coverage boundary:
 
 ## 5. High-Level Architecture
 
-> **Adaptive mechanism covered:** Shows the control flow that converts query signals into a retrieval plan, executes it, checks evidence, and records the decision.
+> **Mechanism name:** Adaptive Retrieval Orchestrator
+> **What it covers:** Shows the control flow that converts query signals into a retrieval plan, executes it, checks evidence, and records the decision.
 
 ```text
 Standalone query
@@ -233,7 +238,8 @@ The services may be horizontally stateless, but they depend on external state:
 
 ## 6. Query Analyzer
 
-> **Adaptive mechanism covered:** Detects language and query family, then selects the base profile, composable modifiers, decomposition, multi-hop, or `NONE`.
+> **Mechanism name:** Multilingual Query Analyzer
+> **What it covers:** Detects language and query family, then selects the base profile, composable modifiers, decomposition, multi-hop, or `NONE`.
 
 ### 6.1 Language Detection
 
@@ -536,7 +542,8 @@ If the loop stops early, completed evidence is returned with `coverage_incomplet
 
 ## 7. Retrieval Parameter Model
 
-> **Adaptive mechanism covered:** Converts profiles and modifiers into bounded candidate counts, RRF weights, score floors, reranking policy, retries, and specialized retrieval behavior.
+> **Mechanism name:** Retrieval Policy and Budget Controller
+> **What it covers:** Converts profiles and modifiers into bounded candidate counts, RRF weights, score floors, reranking policy, retries, and specialized retrieval behavior.
 
 ### 7.1 Separation of Concerns
 
@@ -735,7 +742,8 @@ When open:
 
 ## 8. Hierarchical Routing
 
-> **Adaptive mechanism covered:** Adapts authorized project, dataset, physical-index, embedding-model, lexical-schema, and search-group selection to deployment scale and evidence sufficiency.
+> **Mechanism name:** Authorization-Aware Hierarchical Router
+> **What it covers:** Adapts authorized project, dataset, physical-index, embedding-model, lexical-schema, and search-group selection to deployment scale and evidence sufficiency.
 
 ### 8.1 Routing Hierarchy
 
@@ -1123,7 +1131,8 @@ The server builds this object from trusted identity and resolved scope. User inp
 
 ## 9. Exact and Verbatim Retrieval
 
-> **Adaptive mechanism covered:** Switches quoted or pasted text to exact-location search while retaining fuzzy and cross-lingual fallback paths.
+> **Mechanism name:** Exact and Verbatim Retriever
+> **What it covers:** Switches quoted or pasted text to exact-location search while retaining fuzzy and cross-lingual fallback paths.
 
 ### 9.1 Required Indexed Fields
 
@@ -1200,7 +1209,8 @@ If no exact or qualified fuzzy result is found:
 
 ## 10. Candidate Fusion and Context Assembly
 
-> **Adaptive mechanism covered:** Adapts cross-group fusion, deduplication, diversity, neighbor expansion, multi-hop evidence preservation, and context trimming.
+> **Mechanism name:** Rank Fusion and Context Assembly Controller
+> **What it covers:** Adapts cross-group fusion, deduplication, diversity, neighbor expansion, multi-hop evidence preservation, and context trimming.
 
 ### 10.1 Per-Group and Per-Dataset Candidate Quotas
 
@@ -1272,7 +1282,8 @@ For `DECOMPOSE`, the assembler preserves at least one qualifying evidence group 
 
 ## 11. Knowledge-Graph Retrieval
 
-> **Adaptive mechanism covered:** Optionally activates graph retrieval only for explicit or calibrated relationship queries and safely falls back to text retrieval.
+> **Mechanism name:** Adaptive Knowledge-Graph Retriever
+> **What it covers:** Optionally activates graph retrieval only for explicit or calibrated relationship queries and safely falls back to text retrieval.
 
 Knowledge-graph retrieval is optional and separately gated because it may require LLM-based entity extraction and adds latency.
 
@@ -1294,7 +1305,8 @@ KG retrieval failure does not fail normal text retrieval.
 
 ## 12. Configuration
 
-> **Adaptive mechanism covered:** Makes rules, language packs, models, budgets, floors, routing limits, and fallbacks versioned, validated, atomic, and reversible.
+> **Mechanism name:** Adaptive Configuration Controller
+> **What it covers:** Makes rules, language packs, models, budgets, floors, routing limits, and fallbacks versioned, validated, atomic, and reversible.
 
 ### 12.1 Example
 
@@ -1489,7 +1501,8 @@ No request may combine fields from two configuration versions.
 
 ## 13. Internal API
 
-> **Adaptive mechanism covered:** Exposes adaptive inputs that may narrow behavior and returns the complete plan, language, route, hop, score, coverage, and timing decision.
+> **Mechanism name:** Adaptive Retrieval API Contract
+> **What it covers:** Exposes adaptive inputs that may narrow behavior and returns the complete plan, language, route, hop, score, coverage, and timing decision.
 
 ### 13.1 Request
 
@@ -1619,7 +1632,8 @@ POST /v2/adaptive-retrieve
 
 ## 14. Observability and Privacy
 
-> **Adaptive mechanism covered:** Supplies the feedback signals used to calibrate adaptive rules and budgets while protecting enterprise queries and unauthorized scope.
+> **Mechanism name:** Adaptive Feedback and Telemetry Controller
+> **What it covers:** Supplies the feedback signals used to calibrate adaptive rules and budgets while protecting enterprise queries and unauthorized scope.
 
 ### 14.1 Metrics
 
@@ -1696,7 +1710,8 @@ The loop never writes production configuration directly from user clicks, model 
 
 ## 15. Failure Modes
 
-> **Adaptive mechanism covered:** Defines how the mechanism adapts to uncertainty, unavailable models, stale catalogs, timeouts, partial shards, and insufficient evidence.
+> **Mechanism name:** Adaptive Degradation Controller
+> **What it covers:** Defines how the mechanism adapts to uncertainty, unavailable models, stale catalogs, timeouts, partial shards, and insufficient evidence.
 
 | Failure | Required behavior |
 |---|---|
@@ -1728,7 +1743,8 @@ The loop never writes production configuration directly from user clicks, model 
 
 ## 16. Acceptance Criteria
 
-> **Adaptive mechanism covered:** Provides activation gates for every adaptive path so behavior changes are evidence-based rather than assumed improvements.
+> **Mechanism name:** Adaptive Evaluation Gate
+> **What it covers:** Provides activation gates for every adaptive path so behavior changes are evidence-based rather than assumed improvements.
 
 ### 16.1 Analyzer
 
@@ -1795,7 +1811,8 @@ Excluding answer generation:
 
 ## 17. Rollout Plan
 
-> **Adaptive mechanism covered:** Activates analyzer, routing, specialized retrieval, reranking, decomposition, multi-hop, and cross-lingual behavior incrementally with rollback.
+> **Mechanism name:** Adaptive Rollout Controller
+> **What it covers:** Activates analyzer, routing, specialized retrieval, reranking, decomposition, multi-hop, and cross-lingual behavior incrementally with rollback.
 
 ### Phase 0 - Baseline
 
@@ -1841,7 +1858,8 @@ Excluding answer generation:
 
 ## 18. Deferred Options
 
-> **Adaptive mechanism covered:** Prevents speculative adaptive features from entering runtime until telemetry demonstrates a measured need.
+> **Mechanism name:** Adaptive Evolution Backlog
+> **What it covers:** Prevents speculative adaptive features from entering runtime until telemetry demonstrates a measured need.
 
 The following are intentionally deferred until telemetry demonstrates a need:
 
@@ -1858,7 +1876,8 @@ The following are intentionally deferred until telemetry demonstrates a need:
 
 ## 19. Portable TypeScript Reference
 
-> **Adaptive mechanism covered:** Demonstrates the executable contracts for analysis, language detection, scope, routing, grouping, OpenSearch retrieval, RRF, and bounded hops.
+> **Mechanism name:** Portable Adaptive RAG Reference Implementation
+> **What it covers:** Demonstrates the executable contracts for analysis, language detection, scope, routing, grouping, OpenSearch retrieval, RRF, and bounded hops.
 
 This reference is intentionally small. It shows the mechanism and trust boundaries without prescribing an embedding, LLM, or reranker vendor.
 
@@ -3433,7 +3452,8 @@ describe('adaptive RAG mechanism', () => {
 
 ## 20. References
 
-> **Adaptive mechanism covered:** Anchors OpenSearch query, vector, analyzer, multi-search, and fusion assumptions to their authoritative platform behavior.
+> **Mechanism name:** OpenSearch Compatibility Evidence
+> **What it covers:** Anchors OpenSearch query, vector, analyzer, multi-search, and fusion assumptions to their authoritative platform behavior.
 
 - [OpenSearch JavaScript client](https://docs.opensearch.org/latest/clients/javascript/index/)
 - [OpenSearch k-NN query and query-time parameters](https://docs.opensearch.org/latest/query-dsl/specialized/k-nn/index/)
