@@ -3,8 +3,9 @@
 **Version:** 2.0 (Draft)
 **Status:** For Review
 **Language:** English only
-**Scope:** Query-adaptive retrieval with hierarchical routing for large, multi-project RAG deployments
-**Baseline:** RAGFlow-style hybrid retrieval parameters and score semantics
+**Scope:** Portable, retrieval-only Adaptive RAG for Node.js, TypeScript, and OpenSearch
+**Deployment model:** One modular service supporting multi-tenant, multi-project, and multi-dataset search
+**Baseline:** Static BM25 plus dense-vector retrieval over already indexed chunks
 
 ---
 
@@ -14,20 +15,24 @@ Adaptive RAG v2 selects retrieval behavior from the query instead of applying on
 
 - One to thousands of datasets per authorized scope.
 - Many independent projects and tenants.
-- Very large total document and chunk counts.
+- A few datasets containing millions of chunks, thousands of smaller datasets, or both.
 - Hybrid lexical and dense retrieval.
 - Optional cross-encoder reranking.
 - Exact or near-exact lookup for text pasted from source documents.
+- Enterprise questions ranging from direct identifier lookup to bounded multi-hop research.
 
-The system has five stages:
+The retrieval mechanism has six stages:
 
 1. Analyze the standalone English query.
 2. Select a base retrieval profile and independent modifiers.
 3. Resolve the caller's authorized project and dataset scope.
 4. Route hierarchically to a bounded set of datasets.
-5. Retrieve, optionally rerank, assemble context, and record the decision.
+5. Retrieve, optionally decompose into bounded hops, rerank, and assemble evidence.
+6. Return citations and an auditable retrieval decision without generating an answer.
 
 The design intentionally does **not** query every eligible dataset. At large scale, physical fan-out across every dataset is incompatible with bounded latency and cost. Instead, every request produces a versioned, auditable routing decision, and routing quality is enforced through an offline `Routing Recall@M` acceptance target.
+
+This is a retrieval-only specification. Parsing, chunking, document embeddings, ingestion jobs, index creation, reindexing, and answer generation are outside scope. Section 9 defines only the fields that those upstream systems must make searchable.
 
 ---
 
@@ -45,6 +50,9 @@ The design intentionally does **not** query every eligible dataset. At large sca
 - **G8 - Safe degradation:** Fall back from reranked to calibrated non-reranked retrieval without applying incompatible score thresholds.
 - **G9 - Versioned configuration:** Apply validated configuration changes without redeployment and retain the last known-good version.
 - **G10 - Tenant and project isolation:** Apply authorization before routing and never expose unauthorized dataset existence through results or telemetry.
+- **G11 - Enterprise query coverage:** Handle conversational, exact, factual, procedural, policy, temporal, comparative, tabular, cross-project, and bounded multi-hop queries.
+- **G12 - Portable implementation:** Keep adaptive decisions and Reciprocal Rank Fusion in TypeScript and use the official OpenSearch client without requiring Neural Search pipelines.
+- **G13 - Dual-axis scale:** Bound work independently for eligible dataset count, physical index count, shard count, and chunk candidate count.
 
 ### 2.2 Non-Goals
 
@@ -53,9 +61,11 @@ The design intentionally does **not** query every eligible dataset. At large sca
 - Training a custom classifier in v2.
 - Answer generation or prompt design after context assembly.
 - Multi-turn query rewriting. The system receives a standalone query.
-- Replacing each dataset's underlying chunk retrieval engine.
+- Document parsing, chunk creation, document embedding, ingestion, reindexing, and index lifecycle automation.
+- Creating or modifying any indexed content during retrieval.
 - Using historical popularity as a hard routing signal.
 - Enabling knowledge-graph retrieval for every analytical query.
+- Unlimited agentic research, open-ended web search, or more than three synchronous retrieval hops.
 
 ---
 
@@ -69,6 +79,10 @@ The design intentionally does **not** query every eligible dataset. At large sca
 6. **Reranked and non-reranked scores are not interchangeable.** Each path has separate weights, score floors, calibration versions, and fallbacks.
 7. **Retrieval failure is not evidence absence.** Partial coverage, failed shards, and timeouts are surfaced explicitly.
 8. **Profile values are seed configurations.** Production activation requires evaluation and score calibration for the selected embedding and rerank models.
+9. **Retrieval is read-only.** Query handling never creates indexes, writes chunks, refreshes catalogs, or changes aliases.
+10. **Client filters only narrow scope.** Tenant and ACL filters are created from trusted server identity and cannot be supplied or removed by the caller.
+11. **Every loop is bounded.** Query variants, projects, datasets, physical indexes, candidates, retries, and multi-hop steps all have hard limits.
+12. **No answer is a valid result.** The service returns `INSUFFICIENT_EVIDENCE` rather than filling evidence gaps.
 
 ---
 
@@ -82,9 +96,12 @@ The design intentionally does **not** query every eligible dataset. At large sca
 | Exact locator index | A central positional phrase and character n-gram index mapping normalized text to dataset, document, and chunk locations. |
 | Base profile | One of `PRECISION`, `BALANCED`, `RECALL`, or `NONE`. |
 | Modifier | An independent retrieval behavior added to a base profile. |
+| Retrieval pool | One physical OpenSearch index or alias containing chunks with one compatible vector dimension and embedding-model version. |
+| Search group | Selected datasets that can be searched together because they share a retrieval pool, routing policy, and query-vector model. |
+| Retrieval hop | One evidence-seeking subquery in a bounded multi-hop plan. |
 | Routing wave | One bounded selection and retrieval attempt over a set of projects or datasets. |
 | Candidate | A chunk returned before final context selection. |
-| Context chunk | A final chunk passed to answer generation. |
+| Context chunk | A final evidence chunk returned to the downstream consumer. |
 | Calibration version | The versioned mapping or threshold set used to interpret retrieval or rerank scores. |
 
 ---
@@ -128,12 +145,15 @@ Standalone query
 +----------------------------------------------------+
 | 4. Retrieval Executor                             |
 | - lexical and dense candidate generation          |
-| - score calibration and fusion                    |
+| - application-side Reciprocal Rank Fusion         |
 | - optional cross-encoder rerank                    |
 | - deduplication, diversity, neighbor expansion    |
 +----------------------------------------------------+
       |
-      | Final chunks
+      | Evidence sufficient?
+      +------------ no and MULTI_HOP ---------------+
+      |                                             |
+      | yes                                 bounded next hop
       v
 +-------------------------+
 | 5. Decision Telemetry   |
@@ -148,7 +168,7 @@ The services may be horizontally stateless, but they depend on external state:
 
 - Versioned configuration store.
 - Dataset and project catalogs.
-- Exact locator index.
+- Chunk and optional exact-locator indexes populated by an upstream indexing system.
 - Classifier cache.
 - Score calibration registry.
 - Circuit-breaker state.
@@ -165,7 +185,7 @@ The services may be horizontally stateless, but they depend on external state:
   "base_profile": "PRECISION",
   "modifiers": ["LEXICAL"],
   "confidence": 0.91,
-  "classifier": "rule:R_IDENTIFIER",
+  "classifier": "rule:R03",
   "signals": {
     "token_count": 7,
     "sentence_count": 1,
@@ -192,16 +212,49 @@ The services may be horizontally stateless, but they depend on external state:
 |---|---|
 | `LEXICAL` | Increases lexical candidate quota and lexical influence for identifiers or keyword-style queries. |
 | `EXACT` | Runs the exact locator path for quoted or pasted source content. |
+| `LEXICAL_EXPANSION` | Adds approved acronym, alias, product-name, and glossary variants without changing authorization scope. |
 | `MULTI_EVIDENCE` | Requires source diversity, raises evidence minimums, and may trigger routing escalation. |
 | `NEIGHBOR_EXPANSION` | Fetches adjacent or parent chunks after ranking to preserve procedures and local context. |
+| `TEMPORAL` | Applies explicit effective-date filters or a calibrated recency preference while preserving older conflicting evidence. |
+| `TABLE_AWARE` | Raises candidates from table, row, header, and structured-value chunks. |
+| `DECOMPOSE` | Creates independent retrieval subqueries for comparisons, lists, or compound questions and merges their evidence. |
+| `MULTI_HOP` | Runs sequential evidence-dependent subqueries with a maximum of three hops. |
+| `ENTITY_CARRYOVER` | Allows the next hop to use entities extracted only from evidence returned by an earlier hop. |
 
 Modifiers compose with profiles. For example:
 
 - `PRECISION + LEXICAL`: "Who approved PO-2231?"
 - `RECALL + EXACT + MULTI_EVIDENCE`: "Summarize this pasted policy section."
 - `BALANCED + NEIGHBOR_EXPANSION`: "How do I reset the device?"
+- `RECALL + DECOMPOSE + MULTI_EVIDENCE`: "Compare parental leave in Japan and Vietnam."
+- `RECALL + MULTI_HOP + ENTITY_CARRYOVER`: "Which customer services depend on systems owned by Team A?"
 
-### 6.4 Normalized Signals
+### 6.4 Enterprise Query Coverage
+
+The analyzer assigns a query family before applying ordered rules. A family is diagnostic metadata; executable behavior remains the base profile plus modifiers.
+
+| Query family | Example | Required plan |
+|---|---|---|
+| Conversation or meta | "Thanks" | `NONE` |
+| Exact identifier | "Status of INC-10452" | `PRECISION + LEXICAL` |
+| Pasted or quoted source | "Where does this paragraph come from?" | `PRECISION + EXACT` |
+| Simple fact | "Who owns Project Atlas?" | `PRECISION` |
+| Acronym or internal jargon | "What is EDRM?" | `PRECISION + LEXICAL_EXPANSION` |
+| Procedure | "How do I request production access?" | `BALANCED + NEIGHBOR_EXPANSION` |
+| Policy or eligibility | "Can contractors access customer data?" | `BALANCED + MULTI_EVIDENCE` |
+| Current or effective policy | "What is the current travel policy?" | `BALANCED + TEMPORAL` |
+| Summary or exhaustive list | "Summarize all onboarding requirements" | `RECALL + MULTI_EVIDENCE` |
+| Comparison | "Compare parental leave in Japan and Vietnam" | `RECALL + DECOMPOSE + MULTI_EVIDENCE` |
+| Root cause or impact | "Why did incident X affect service Y?" | `RECALL + MULTI_HOP + MULTI_EVIDENCE` |
+| Relationship traversal | "Which customers depend on systems owned by Team A?" | `RECALL + MULTI_HOP + ENTITY_CARRYOVER` |
+| Table or numeric evidence | "What was Q3 revenue for each region?" | `BALANCED + TABLE_AWARE` |
+| Ambiguous shorthand | "Access issue" | `BALANCED + LEXICAL_EXPANSION`, then at most three query variants |
+| Cross-project discovery | "Which projects use library X?" | `RECALL + MULTI_EVIDENCE` with project diversity |
+| Unsupported or absent evidence | No qualifying evidence | `INSUFFICIENT_EVIDENCE` |
+
+Queries may belong to more than one family. For example, a current-policy comparison uses `RECALL + TEMPORAL + DECOMPOSE + MULTI_EVIDENCE`.
+
+### 6.5 Normalized Signals
 
 The rule path computes:
 
@@ -214,10 +267,14 @@ The rule path computes:
 - Paste artifacts such as bullets, page headers, repeated line breaks, and hyphenation.
 - Stopword ratio for sufficiently long queries.
 - Explicit dataset or project references.
+- Temporal language such as current, latest, effective, before, after, and as-of dates.
+- Comparison conjunctions and independently retrievable clauses.
+- Relationship language such as owned by, depends on, caused by, affected, and associated with.
+- Table and numeric signals such as quarter names, currencies, percentages, "by region", and "for each".
 
 English-only operation uses one tokenizer and one stopword set. Named-entity recognition is not required on the fast path.
 
-### 6.5 Ordered Rules
+### 6.6 Ordered Rules
 
 Rules produce independent base-profile and modifier decisions:
 
@@ -231,31 +288,60 @@ R02 pasted prose or quoted span >= 8 tokens
 R03 configured document, invoice, order, ticket, or error identifier
     -> LEXICAL
 
-R04 summary, overview, compare, differences, list all, or across
-    -> RECALL + MULTI_EVIDENCE
+R04 approved acronym, product alias, or internal glossary term
+    -> LEXICAL_EXPANSION
 
-R05 why, impact, implication, root cause, or what-if
-    -> RECALL + MULTI_EVIDENCE
+R05 current, latest, effective, expired, historical, or explicit as-of date
+    -> TEMPORAL
 
 R06 how to, steps, procedure, instructions, or troubleshoot
     -> BALANCED + NEIGHBOR_EXPANSION
 
-R07 short interrogative expecting one entity or value
+R07 table, quarter, percentage, total, amount, "by <dimension>", or "for each"
+    -> TABLE_AWARE
+
+R08 compare, versus, differences, between, or independently answerable clauses
+    -> RECALL + DECOMPOSE + MULTI_EVIDENCE
+
+R09 summary, overview, list all, across, requirements, or exhaustive scope
+    -> RECALL + MULTI_EVIDENCE
+
+R10 why, caused by, impact, depends on, owned by, implication, or relationship chain
+    -> RECALL + MULTI_HOP + MULTI_EVIDENCE
+
+R11 relationship chain where a later lookup requires an entity not present in the query
+    -> ENTITY_CARRYOVER
+
+R12 short interrogative expecting one entity or value
     -> PRECISION
 
-R08 one to four non-sentence search terms
+R13 one to four non-sentence search terms
     -> PRECISION + LEXICAL
 
-R09 normal question
+R14 normal question
     -> BALANCED
 
-R10 insufficient evidence
+R15 conflicting base-profile rules
+    -> choose the broader profile in order RECALL > BALANCED > PRECISION
+
+R16 insufficient confidence or ambiguous decomposition
     -> LLM fallback
 ```
 
 An identifier adds `LEXICAL`; it does not imply `EXACT`. `EXACT` requires evidence that query text was copied or deliberately quoted.
 
-### 6.6 Rule Confidence
+Modifier merge rules:
+
+1. `NONE` is valid only when no retrieval modifier is present and its calibrated precision gate passes.
+2. `MULTI_HOP` implies `MULTI_EVIDENCE`.
+3. `ENTITY_CARRYOVER` is ignored unless `MULTI_HOP` is present.
+4. `DECOMPOSE` creates parallel independent subqueries; `MULTI_HOP` creates sequential dependent subqueries.
+5. `TEMPORAL` applies a hard date filter only when the user supplied a date or "current" has an indexed `is_current` contract. Otherwise it applies a soft preference and returns conflicting dates.
+6. `TABLE_AWARE` never performs arithmetic. It retrieves table evidence and preserves row and header context.
+7. `EXACT` runs beside fuzzy retrieval unless an authorized unique exact hit satisfies the request.
+8. No modifier may increase the authorized project or dataset set.
+
+### 6.7 Rule Confidence
 
 Rule confidence values must be calibrated from labeled traffic:
 
@@ -264,18 +350,65 @@ Rule confidence values must be calibrated from labeled traffic:
 - Uncalibrated rule scores are called `rule_score`, not probability.
 - Production `confidence` is emitted only after calibration.
 
-### 6.7 LLM Fallback
+### 6.8 LLM Fallback
 
 The LLM fallback:
 
 - Runs only when deterministic rules cannot choose a base profile.
 - Uses temperature `0` and structured output.
 - May return one base profile and zero or more valid modifiers.
+- May return at most three parallel subqueries or three sequential hop templates.
 - Cannot alter scope or authorization.
 - Times out after 800 ms.
 - Falls back to `BALANCED` on timeout or invalid output.
 - Caches results by normalized query hash, analyzer version, model version, prompt version, and tenant.
 - Never shares cache entries across tenants.
+- Returns JSON validated against a closed enum; unknown fields and modifiers reject the output.
+- Does not contribute facts, entities, filters, or evidence to the retrieval result.
+
+### 6.9 Bounded Decomposition and Multi-Hop
+
+`DECOMPOSE` is used when subquestions can be searched independently. All subqueries execute against the same authorized scope and share one global deadline.
+
+`MULTI_HOP` is used only when a later retrieval depends on evidence from an earlier retrieval:
+
+```text
+original query
+  -> hop 1 subquery
+  -> retrieve and select qualifying evidence
+  -> extract allow-listed entity types from that evidence
+  -> instantiate hop 2 from the approved template
+  -> stop, or run one final hop 3
+```
+
+Hard limits:
+
+- Maximum three hops.
+- Maximum three subqueries per hop.
+- Maximum eight extracted carryover entities per hop.
+- Maximum 128 characters per generated subquery.
+- No repeated normalized subquery.
+- No entity carryover from model memory or unqualified candidates.
+- No authorization-scope expansion.
+- Stop when evidence is sufficient, the next hop has no grounded entities, or the request deadline has less than 250 ms remaining.
+
+The response groups evidence by hop and records the dependency:
+
+```json
+{
+  "hop": 2,
+  "query": "services owned by Team A",
+  "depends_on": [
+    {
+      "hop": 1,
+      "chunk_id": "chunk-17",
+      "entity": "Team A"
+    }
+  ]
+}
+```
+
+If the loop stops early, completed evidence is returned with `coverage_incomplete: true` and an `unresolved_hops` list. Partial multi-hop evidence is never labeled complete.
 
 ---
 
@@ -287,11 +420,11 @@ Adaptive RAG v2 separates five candidate counts:
 
 | Parameter | Meaning |
 |---|---|
-| `dense_candidate_k` | Dense ANN candidates requested from each selected dataset. |
-| `lexical_candidate_k` | Lexical/BM25 candidates requested from each selected dataset. |
-| `fusion_candidate_k` | Candidates retained after lexical-dense fusion per dataset. |
+| `dense_candidate_k` | Dense ANN candidates requested from each physical search group. |
+| `lexical_candidate_k` | Lexical/BM25 candidates requested from each physical search group. |
+| `fusion_candidate_k` | Candidates retained after lexical-dense fusion per search group. |
 | `rerank_candidate_k` | Globally pooled candidates sent to the cross-encoder. |
-| `context_top_n` | Final chunks passed to answer generation before neighbor expansion. |
+| `context_top_n` | Final evidence chunks returned before neighbor expansion. |
 
 This avoids overloading RAGFlow-style `top_k` with candidate generation, reranking, and context responsibilities.
 
@@ -301,38 +434,35 @@ This avoids overloading RAGFlow-style `top_k` with candidate generation, reranki
 |---|---|
 | `top_n` | `context_top_n` |
 | `top_k` | Closest to `dense_candidate_k`; it is not the final rerank or context count. |
-| `similarity_threshold` | A calibrated hybrid score floor for the non-reranked path. |
-| `vector_similarity_weight` without reranker | `dense_score_weight` in lexical-dense fusion. |
-| `vector_similarity_weight` with reranker | `rerank_score_weight` in lexical-rerank final scoring. |
+| `similarity_threshold` | A native dense or reranker floor only after calibration; it is not copied onto RRF scores. |
+| `vector_similarity_weight` without reranker | `dense_rrf_weight` in rank fusion. |
+| `vector_similarity_weight` with reranker | Candidate-generation preference only; final rank is the reranker rank. |
 | `rerank_model` | `rerank.enabled` plus a versioned model ID. |
 | `keyword` or `keyword_boost` | Lexical query expansion and lexical candidate generation policy. |
 | `use_knowledge_graph` | A separately gated retrieval source, not a default profile switch. |
 
-### 7.3 Non-Reranked Scoring
+### 7.3 Default Non-Reranked Fusion
 
-For candidate `c`:
-
-```text
-hybrid_score(c) =
-    dense_score_weight   * calibrated_dense_score(c)
-  + lexical_score_weight * calibrated_lexical_score(c)
-  + exact_identifier_bonus(c)
-```
-
-Where:
+BM25 and k-NN scores have different distributions. The portable default is weighted Reciprocal Rank Fusion in TypeScript:
 
 ```text
-lexical_score_weight = 1 - dense_score_weight
+rrf_score(c) =
+    lexical_rrf_weight / (rrf_k + lexical_rank(c))
+  + dense_rrf_weight   / (rrf_k + dense_rank(c))
+  + exact_rrf_weight   / (rrf_k + exact_rank(c))
 ```
+
+Missing ranks contribute zero. `rrf_k` defaults to `60`. Exact and identifier lists participate only when the analyzer enables them.
 
 Requirements:
 
-- Dense and lexical scores must be calibrated before weighted addition.
-- Reciprocal Rank Fusion may replace weighted addition when reliable score calibration is unavailable.
-- `exact_identifier_bonus` is non-zero only when a normalized configured identifier exactly matches an indexed identifier or lexical field.
-- The identifier bonus is capped at `0.10`, requires a qualifying lexical match, and is included in score calibration.
-- The non-reranked score floor is versioned by embedding model, lexical engine, profile, and calibration version.
-- Exact locator hits are not inserted into this formula.
+- Fuse globally after joining results from every physical search group.
+- Deduplicate by stable chunk ID before assigning final ranks.
+- Keep source-native scores for diagnostics but never add raw BM25 and vector scores.
+- Weighted score fusion is allowed only after a calibration report proves cross-index and cross-model compatibility.
+- Apply an RRF floor only if calibrated for the exact list count, weights, and `rrf_k`.
+- A unique high-confidence exact hit may occupy a separate priority band; it remains labeled `exact`, not `rrf`.
+- OpenSearch's score-ranker processor may replace application RRF when the deployment is pinned to a compatible version, but it is not required by this design.
 
 ### 7.4 Reranked Scoring
 
@@ -341,37 +471,26 @@ The reranked path has two steps.
 **Candidate generation:**
 
 ```text
-candidate_score(c) =
-    candidate_dense_weight   * calibrated_dense_score(c)
-  + candidate_lexical_weight * calibrated_lexical_score(c)
+candidate_score(c) = weighted_rrf(lexical_rank, dense_rank, exact_rank)
 ```
 
 **Final scoring:**
 
 ```text
-final_score(c) =
-    rerank_score_weight * calibrated_rerank_score(c)
-  + lexical_score_weight * calibrated_lexical_score(c)
-  + exact_identifier_bonus(c)
+final_rank(c) = rank_by(calibrated_rerank_score(c))
 ```
 
-Where:
-
-```text
-lexical_score_weight = 1 - rerank_score_weight
-```
-
-Dense cosine determines candidate recall but does not masquerade as the cross-encoder score. Reranker score floors are calibrated independently from non-reranked hybrid score floors.
+The reranker receives the original query, chunk text, and minimal section/title context. Dense and lexical scores determine candidate recall but do not masquerade as cross-encoder scores. Exact priority hits retain their exact label and may be reranked only within their priority band. Reranker score floors are calibrated independently from RRF floors.
 
 ### 7.5 Seed Base Profiles
 
 These values are shadow-mode starting points, not universal production constants.
 
-| Profile | Dense K | Lexical K | Fusion K | Rerank K | Context N | Dense weight, no rerank | Rerank weight | Max per document |
+| Profile | Dense K | Lexical K | Fusion K | Rerank K | Context N | Lexical RRF weight | Dense RRF weight | Max per document |
 |---|---:|---:|---:|---:|---:|---:|---:|---:|
-| `PRECISION` | 256 | 128 | 96 | 60 | 5 | 0.45 | 0.80 | 2 |
-| `BALANCED` | 512 | 256 | 160 | 100 | 8 | 0.55 | 0.75 | 3 |
-| `RECALL` | 1024 | 512 | 256 | 150 | 12 | 0.65 | 0.70 | 3 |
+| `PRECISION` | 256 | 128 | 96 | 60 | 5 | 1.25 | 1.00 | 2 |
+| `BALANCED` | 512 | 256 | 160 | 100 | 8 | 1.00 | 1.00 | 3 |
+| `RECALL` | 1024 | 512 | 256 | 150 | 12 | 0.90 | 1.10 | 3 |
 | `NONE` | 0 | 0 | 0 | 0 | 0 | 0 | 0 | 0 |
 
 ### 7.6 Modifier Adjustments
@@ -379,9 +498,9 @@ These values are shadow-mode starting points, not universal production constants
 #### LEXICAL
 
 - Double `lexical_candidate_k`, capped at 1024.
-- Reduce non-reranked `dense_score_weight` by `0.20`, floor `0.15`.
-- Enable configured identifier normalization and exact-term bonuses.
-- Do not lower the final score floor solely because an identifier exists.
+- Increase `lexical_rrf_weight` by `0.50`, capped at `2.0`.
+- Enable configured identifier normalization and an independent exact-identifier list.
+- Do not lower the final floor solely because an identifier exists.
 
 #### EXACT
 
@@ -404,23 +523,54 @@ These values are shadow-mode starting points, not universal production constants
 - Charge expanded chunks against `max_context_tokens`, not `context_top_n`.
 - Preserve document order in the assembled context.
 
+#### LEXICAL_EXPANSION
+
+- Use only tenant-approved aliases, glossary entries, acronyms, and product names.
+- Add at most eight variants and 128 total expanded tokens.
+- Record every expansion in the decision trace.
+- Never let a generated expansion become a server authorization filter.
+
+#### TEMPORAL
+
+- Use `effective_from`, `effective_to`, `is_current`, and `source_updated_at` when present.
+- Apply a hard range only for explicit user dates or a validated `is_current` contract.
+- Otherwise apply a soft recency preference and retain older contradictory evidence.
+
+#### TABLE_AWARE
+
+- Add `chunk_kind: table|table_row` as a preference, not an unconditional filter.
+- Search `table_headers`, `table_text`, and normalized value fields.
+- Fetch the associated table header and row context for selected anchors.
+
+#### DECOMPOSE
+
+- Execute at most three independent subqueries.
+- Reserve a minimum candidate quota per subquery before global fusion.
+- Require coverage for each comparison side before declaring evidence sufficient.
+
+#### MULTI_HOP and ENTITY_CARRYOVER
+
+- Use the limits in Section 6.9.
+- Carry only entities supported by selected evidence.
+- Preserve hop-specific candidate and citation groups in the response.
+
 ### 7.7 Score Floors
 
 Seed floors may be used only in shadow mode:
 
 | Path | Precision | Balanced | Recall |
 |---|---:|---:|---:|
-| Non-reranked hybrid | 0.18 | 0.14 | 0.10 |
+| Weighted RRF, two lists with `rrf_k=60` | 0.018 | 0.014 | 0.010 |
 | Reranker | 0.25 | 0.20 | 0.15 |
 
-Production floors require a calibration report. Changing an embedding model, lexical engine, reranker, fusion formula, or score normalization invalidates the relevant calibration version.
+Production floors require a calibration report. Changing the number of fused lists, an RRF weight, `rrf_k`, embedding model, lexical engine, reranker, fusion formula, or score normalization invalidates the relevant calibration version.
 
 ### 7.8 Empty-Result Retry
 
 At most one retrieval retry is allowed:
 
 1. If no candidates were generated, expand dense and lexical candidate counts by 2x.
-2. If candidates existed but were filtered by the score floor, use the profile's calibrated low-recall floor.
+2. If candidates existed but were filtered by the RRF or reranker floor, use the profile's calibrated low-recall floor.
 3. Do not lower an exact-match confidence threshold.
 4. Do not retry `NONE`.
 5. Record the retry reason and parameter delta.
@@ -452,6 +602,17 @@ L3: full chunk retrieval in selected datasets
 ```
 
 Document and chunk counts do not affect L1 and L2 search complexity. The router searches compact project and dataset catalog entries.
+
+The router addresses two independent scale axes:
+
+| Deployment shape | Required behavior |
+|---|---|
+| Few datasets with millions of chunks each | Bypass broad dataset ranking when scope is explicit and run filtered ANN plus BM25 in the target retrieval pool. |
+| Thousands of small or medium datasets | Route through compact catalogs, then search selected dataset IDs together with a `terms` filter. |
+| Thousands of datasets and very large chunk volume | Route hierarchically, group selected datasets by retrieval pool and embedding model, and issue one bounded `_msearch`. |
+| Explicit authorized dataset IDs | Make them mandatory and bypass ranking for those IDs. |
+
+The executor never sends one OpenSearch request per dataset unless each selected dataset is intentionally stored in a separate physical index. It sends one lexical and one dense search per compatible search group.
 
 ### 8.2 L0 - Scope Resolution
 
@@ -503,21 +664,25 @@ Each dataset catalog entry contains:
 - Document and chunk counts.
 - Content time range when available.
 - Underlying retrieval engine and embedding model IDs.
+- Physical chunk index or alias.
+- Optional OpenSearch routing key.
+- Vector field name, vector dimension, and distance space.
 - Catalog freshness timestamp.
 - Health state.
 
 Large or heterogeneous datasets may publish multiple centroids. Centroids are routing summaries, not replacements for chunk retrieval.
 
-### 8.5 Catalog Maintenance
+### 8.5 Catalog Read Contract
 
-Catalog entries are refreshed:
+Catalog production and refresh are upstream responsibilities. Retrieval requires:
 
-- On dataset creation, deletion, or ACL change.
-- After document ingestion completes.
-- After a configurable content-change threshold.
-- At least once every 24 hours.
+- An immutable catalog snapshot version for the duration of a request.
+- `active` and `healthy` flags.
+- A freshness timestamp.
+- Physical-index, routing-key, and embedding-model compatibility fields.
+- Tenant, project, dataset, and ACL partition fields that can be filtered before scoring.
 
-Catalog updates are versioned and atomic. A request uses one catalog snapshot version for its entire routing decision.
+When catalog age exceeds `max_age_hours`, retrieval uses the last healthy snapshot only if policy permits and emits `catalog_stale`. It does not refresh or repair the catalog.
 
 ### 8.6 Router Scoring
 
@@ -543,6 +708,7 @@ Default budgets:
 | Projects | 3 | 1 | 8 |
 | Datasets per selected project | 8 | 4 | 32 |
 | Total fully searched datasets | 16 | 4 | 64 |
+| Physical search groups | 4 | 1 | 8 |
 
 Selection may stop below the initial limit when:
 
@@ -552,7 +718,35 @@ Selection may stop below the initial limit when:
 
 Mandatory inclusions do not consume the minimum selection count but do consume the hard maximum unless the caller explicitly requests otherwise.
 
-### 8.8 Exact Locator Shortcut
+If mandatory datasets exceed a physical-group cap, explicit authorized scope wins, but the request must still obey the total deadline and report partial coverage. The service never silently drops a caller's explicit authorized dataset.
+
+### 8.8 Physical Search Planning
+
+After dataset selection, group datasets by:
+
+```text
+cluster_id
++ physical_index_or_alias
++ embedding_model_id
++ vector_field
++ vector_dimension
++ distance_space
++ routing_policy
+```
+
+For each group:
+
+1. Generate or reuse the query vector matching that group's embedding model.
+2. Build one trusted filter containing tenant, selected project IDs, selected dataset IDs, ACL principals, lifecycle state, and allowed client metadata filters.
+3. Put the filter inside the k-NN clause for efficient filtered ANN when the index uses a supported Lucene or Faiss engine.
+4. Reuse the same trusted filter in the lexical Boolean query.
+5. Add one dense and one lexical request to `_msearch`.
+6. Set per-search `cancel_after_time_interval`, result size, `_source` allow-list, and optional routing key.
+7. Parse every `_msearch` response independently and mark shard failures or timeouts as partial coverage.
+
+The executor caps physical groups, concurrent OpenSearch requests, concurrent shard requests, candidates per group, and total elapsed time. It never targets an unspecified wildcard or all indexes.
+
+### 8.9 Exact Locator Shortcut
 
 For `EXACT` queries:
 
@@ -563,19 +757,19 @@ For `EXACT` queries:
 
 This provides broad exact-text coverage without sending a full retrieval request to every dataset.
 
-### 8.9 Routing Wave 1
+### 8.10 Routing Wave 1
 
 Wave 1:
 
 1. Select projects.
 2. Select datasets within those projects.
 3. Add mandatory datasets from explicit scope, identifiers, and exact locator hits.
-4. Group datasets by retrieval engine and embedding model.
-5. Execute full retrieval with bounded concurrency and a shared deadline.
+4. Group datasets by physical index, routing policy, and embedding-model compatibility.
+5. Execute grouped `_msearch` retrieval with bounded concurrency and a shared deadline.
 6. Fuse candidates globally.
 7. Evaluate evidence sufficiency.
 
-### 8.10 Evidence Sufficiency
+### 8.11 Evidence Sufficiency
 
 Wave 1 is insufficient when any configured condition is true:
 
@@ -583,10 +777,12 @@ Wave 1 is insufficient when any configured condition is true:
 - Fewer than `min(context_top_n, 3)` chunks survive.
 - `MULTI_EVIDENCE` has fewer than three evidence chunks.
 - `MULTI_EVIDENCE` results come from only one dataset when multiple selected datasets produced candidates.
+- `DECOMPOSE` has no qualifying evidence for one or more required comparison sides.
+- `MULTI_HOP` has an unresolved dependency and enough deadline remains for the next bounded hop.
 - The top score is below the calibrated sufficiency floor.
-- More than 25% of selected datasets failed or timed out.
+- More than 25% of selected search groups or shards failed or timed out.
 
-### 8.11 Routing Escalation
+### 8.12 Routing Escalation
 
 At most one synchronous escalation is allowed:
 
@@ -598,7 +794,7 @@ At most one synchronous escalation is allowed:
 
 If results remain insufficient, return an honest no-result or partial-coverage outcome. The system does not fan out to every eligible dataset.
 
-### 8.12 Auditable Routing
+### 8.13 Auditable Routing
 
 Per-query telemetry stores:
 
@@ -610,6 +806,8 @@ Per-query telemetry stores:
 - Selection floors, margins, and budgets.
 - Escalation decision.
 - Failed and timed-out datasets.
+- Physical search groups, targeted indexes, query-vector model IDs, and shard-failure counts.
+- Decomposition queries, hop dependencies, and grounded carryover entities.
 - A normalized query hash rather than raw pasted text.
 
 The full list of thousands of non-selected datasets is not copied into every request log. The decision is reconstructable from:
@@ -619,7 +817,7 @@ query hash + normalized routing features + scope policy version
 + catalog snapshot version + router version + selection policy
 ```
 
-### 8.13 Routing Quality Metric
+### 8.14 Routing Quality Metric
 
 For each labeled query, let `RelevantDatasets(q)` be datasets containing judged relevant evidence and `SelectedDatasets(q)` be datasets fully searched by the router.
 
@@ -635,13 +833,131 @@ Production acceptance requires:
 - No critical project or tenant slice below 98%.
 - Separate reporting for new datasets less than seven days old.
 
+### 8.15 OpenSearch Read Contract
+
+Retrieval assumes the following logical fields. Physical names may differ behind a validated adapter, but their semantics may not.
+
+#### Chunk document
+
+| Field | OpenSearch type | Required | Retrieval use |
+|---|---|---:|---|
+| `chunk_id` | `keyword` | Yes | Stable global deduplication key. |
+| `tenant_id` | `keyword` | Yes | Mandatory trusted filter. |
+| `project_id` | `keyword` | Yes | Scope and diversity. |
+| `dataset_id` | `keyword` | Yes | Scope, routing, and diversity. |
+| `document_id` | `keyword` | Yes | Deduplication, caps, and citation. |
+| `visibility` | `keyword` | Yes | `public` or `restricted`. |
+| `acl_principals` | `keyword` | Yes | User, team, role, or service-principal filter. |
+| `lifecycle_state` | `keyword` | Yes | Exclude deleted, quarantined, and inactive chunks. |
+| `text` | `text` | Yes | BM25 search and returned evidence. |
+| `title` | `text` plus `keyword` subfield | Recommended | Boosted lexical search and citation. |
+| `section` | `text` plus `keyword` subfield | Recommended | Boosted lexical search and citation. |
+| `identifiers` | `keyword` | Recommended | Exact ticket, order, invoice, error, and document IDs. |
+| `embedding` | `knn_vector` | Yes | Dense ANN retrieval. |
+| `embedding_model_id` | `keyword` | Yes | Query-vector compatibility check. |
+| `sequence` | `integer` | Recommended | Neighbor ordering. |
+| `previous_chunk_id` | `keyword` | Optional | Neighbor expansion. |
+| `next_chunk_id` | `keyword` | Optional | Neighbor expansion. |
+| `parent_chunk_id` | `keyword` | Optional | Parent or section expansion. |
+| `chunk_kind` | `keyword` | Recommended | `text`, `heading`, `table`, or `table_row`. |
+| `table_headers` | `text` | Optional | Table-aware lexical retrieval. |
+| `table_text` | `text` | Optional | Table-aware lexical retrieval. |
+| `effective_from` | `date` | Optional | Temporal filtering. |
+| `effective_to` | `date` | Optional | Temporal filtering. |
+| `is_current` | `boolean` | Optional | Validated current-policy filter. |
+| `source_updated_at` | `date` | Recommended | Recency preference and citation. |
+| `content_hash` | `keyword` | Recommended | Exact duplicate removal. |
+| `source` | `object` | Yes | URI, file name, page, section, and display metadata. |
+
+An example compatible vector mapping is shown only to make the read contract precise; the retrieval service does not create it:
+
+```json
+{
+  "settings": {
+    "index.knn": true
+  },
+  "mappings": {
+    "dynamic": "strict",
+    "properties": {
+      "tenant_id": { "type": "keyword" },
+      "project_id": { "type": "keyword" },
+      "dataset_id": { "type": "keyword" },
+      "acl_principals": { "type": "keyword" },
+      "lifecycle_state": { "type": "keyword" },
+      "text": { "type": "text" },
+      "identifiers": { "type": "keyword" },
+      "embedding_model_id": { "type": "keyword" },
+      "embedding": {
+        "type": "knn_vector",
+        "dimension": 1536,
+        "space_type": "cosinesimil",
+        "method": {
+          "name": "hnsw",
+          "engine": "lucene",
+          "parameters": {
+            "m": 16,
+            "ef_construction": 128
+          }
+        }
+      }
+    }
+  }
+}
+```
+
+The dimension and model ID are deployment values, not universal defaults. A retrieval pool cannot mix incompatible dimensions or embedding models in the same vector field.
+
+#### Dataset catalog document
+
+The dataset catalog must expose:
+
+- Tenant, project, dataset, visibility, ACL, health, and lifecycle fields.
+- Name, description, aliases, glossary terms, identifier prefixes, and domain tags.
+- One or more router-space centroid vectors.
+- `cluster_id`, `physical_index`, optional `routing_key`, `embedding_model_id`, `vector_field`, `vector_dimension`, and `distance_space`.
+- Document and chunk counts, source time range, and catalog freshness.
+
+#### Project catalog document
+
+The project catalog must expose tenant, project, ACL, name, description, aliases, domain tags, router-space centroids, dataset count, and freshness.
+
+Catalog vectors use one globally consistent routing model. Chunk retrieval pools may use different application-generated embedding models, but the executor must generate a compatible query vector for each selected search group.
+
+#### Trusted filter shape
+
+Every lexical and dense chunk search includes a filter equivalent to:
+
+```json
+{
+  "bool": {
+    "filter": [
+      { "term": { "tenant_id": "tenant-a" } },
+      { "terms": { "project_id": ["project-a"] } },
+      { "terms": { "dataset_id": ["dataset-7", "dataset-11"] } },
+      { "term": { "lifecycle_state": "active" } },
+      {
+        "bool": {
+          "should": [
+            { "term": { "visibility": "public" } },
+            { "terms": { "acl_principals": ["user:u-1", "team:t-2"] } }
+          ],
+          "minimum_should_match": 1
+        }
+      }
+    ]
+  }
+}
+```
+
+The server builds this object from trusted identity and resolved scope. User input never supplies raw Query DSL.
+
 ---
 
 ## 9. Exact and Verbatim Retrieval
 
-### 9.1 Ingestion Additions
+### 9.1 Required Indexed Fields
 
-The indexing pipeline adds:
+The upstream indexing system must make the following fields searchable when exact retrieval is enabled:
 
 - Unicode-normalized source text.
 - Lowercased English token stream.
@@ -651,7 +967,7 @@ The indexing pipeline adds:
 - Cross-chunk windows spanning the end of one chunk and start of the next.
 - Dataset, document, page, section, and chunk provenance.
 
-These fields may live in a separate exact locator index and do not require replacing the main hybrid retrieval index.
+These fields may live in a separate exact locator index or in the chunk retrieval pool. Their production is outside this specification. Retrieval treats a missing optional field as an unavailable capability and records the degradation.
 
 ### 9.2 Query Normalization
 
@@ -663,9 +979,9 @@ Normalize pasted text with:
 - Smart quote normalization.
 - Dash and hyphen normalization.
 - Line-break dehyphenation.
-- Removal of repeated page headers and footers when confidently detected.
+- Optional removal of repeated page-header or footer text only when the request parser can identify it without document access.
 
-Original text is preserved for display and answer generation.
+Original query text is preserved for display and audit-safe hashing.
 
 ### 9.3 Paste and Question Separation
 
@@ -714,14 +1030,15 @@ If no exact or qualified fuzzy result is found:
 
 ## 10. Candidate Fusion and Context Assembly
 
-### 10.1 Per-Dataset Candidate Quotas
+### 10.1 Per-Group and Per-Dataset Candidate Quotas
 
-Each selected dataset returns at most `fusion_candidate_k` candidates. The global pool applies:
+Each physical search group returns at most `fusion_candidate_k` candidates after RRF. The global pool applies:
 
 - A hard `rerank_candidate_k` cap when reranking is enabled.
 - A hard `global_candidate_k` cap when reranking is disabled.
 - A minimum quota for mandatory datasets.
 - A maximum quota per dataset to prevent one large dataset from monopolizing the pool.
+- A minimum qualifying quota for each `DECOMPOSE` side or completed multi-hop step.
 
 ### 10.2 Cross-Dataset Merge
 
@@ -729,9 +1046,10 @@ The system does not min-max or z-score each result list independently. Those met
 
 Use one of:
 
-1. Calibrated global scores for compatible retrieval backends.
-2. Reciprocal Rank Fusion when score calibration is unavailable.
-3. Global cross-encoder reranking over quota-balanced candidates.
+1. Application-side weighted Reciprocal Rank Fusion as the portable default.
+2. OpenSearch score-ranker RRF when the deployment is pinned to a compatible search pipeline.
+3. Calibrated global scores only when an evaluation proves compatibility.
+4. Global cross-encoder reranking over quota-balanced fused candidates.
 
 ### 10.3 Deduplication
 
@@ -776,6 +1094,8 @@ Default budgets:
 
 The assembler trims lowest-value non-exact chunks first. It never truncates provenance metadata or silently remove all evidence for a selected source.
 
+For `DECOMPOSE`, the assembler preserves at least one qualifying evidence group per required side before adding lower-value duplicates. For `MULTI_HOP`, it preserves the evidence chain linking each grounded carryover entity to the next hop.
+
 ---
 
 ## 11. Knowledge-Graph Retrieval
@@ -814,6 +1134,11 @@ adaptive_rag:
       timeout_ms: 800
       cache_ttl_hours: 24
 
+  request:
+    max_query_characters: 8000
+    max_explicit_project_ids: 64
+    max_explicit_dataset_ids: 256
+
   profiles:
     PRECISION:
       dense_candidate_k: 256
@@ -825,14 +1150,14 @@ adaptive_rag:
       max_context_tokens: 4000
       max_per_document: 2
       no_rerank:
-        dense_score_weight: 0.45
-        identifier_bonus_max: 0.10
-        score_floor: 0.18
-        calibration_id: "hybrid-precision-v1"
+        rrf_k: 60
+        lexical_rrf_weight: 1.25
+        dense_rrf_weight: 1.00
+        exact_rrf_weight: 1.50
+        score_floor: 0.018
+        calibration_id: "rrf-precision-v1"
       rerank:
         enabled: true
-        rerank_score_weight: 0.80
-        identifier_bonus_max: 0.10
         score_floor: 0.25
         calibration_id: "rerank-precision-v1"
 
@@ -846,14 +1171,14 @@ adaptive_rag:
       max_context_tokens: 8000
       max_per_document: 3
       no_rerank:
-        dense_score_weight: 0.55
-        identifier_bonus_max: 0.10
-        score_floor: 0.14
-        calibration_id: "hybrid-balanced-v1"
+        rrf_k: 60
+        lexical_rrf_weight: 1.00
+        dense_rrf_weight: 1.00
+        exact_rrf_weight: 1.50
+        score_floor: 0.014
+        calibration_id: "rrf-balanced-v1"
       rerank:
         enabled: true
-        rerank_score_weight: 0.75
-        identifier_bonus_max: 0.10
         score_floor: 0.20
         calibration_id: "rerank-balanced-v1"
 
@@ -867,14 +1192,14 @@ adaptive_rag:
       max_context_tokens: 12000
       max_per_document: 3
       no_rerank:
-        dense_score_weight: 0.65
-        identifier_bonus_max: 0.10
-        score_floor: 0.10
-        calibration_id: "hybrid-recall-v1"
+        rrf_k: 60
+        lexical_rrf_weight: 0.90
+        dense_rrf_weight: 1.10
+        exact_rrf_weight: 1.50
+        score_floor: 0.010
+        calibration_id: "rrf-recall-v1"
       rerank:
         enabled: true
-        rerank_score_weight: 0.70
-        identifier_bonus_max: 0.10
         score_floor: 0.15
         calibration_id: "rerank-recall-v1"
 
@@ -887,6 +1212,9 @@ adaptive_rag:
       max_per_project_top_m: 32
       initial_total_limit: 16
       hard_total_limit: 64
+    search_groups:
+      initial_limit: 4
+      hard_limit: 8
     escalation:
       enabled: true
       max_waves: 2
@@ -905,11 +1233,37 @@ adaptive_rag:
     cross_chunk_windows: true
 
   execution:
-    max_dataset_concurrency: 16
-    dataset_timeout_ms: 900
+    max_opensearch_requests: 2
+    max_concurrent_searches: 8
+    max_concurrent_shard_requests: 5
+    search_timeout_ms: 900
+    min_remaining_for_next_hop_ms: 250
     total_timeout_ms:
       no_rerank: 1500
       rerank: 3000
+      multi_hop: 5000
+
+  multi_hop:
+    max_hops: 3
+    max_subqueries_per_hop: 3
+    max_entities_per_hop: 8
+    max_query_characters: 128
+
+  opensearch:
+    project_catalog_alias: "rag-projects-read"
+    dataset_catalog_alias: "rag-datasets-read"
+    exact_locator_alias: "rag-exact-read"
+    source_fields:
+      - "chunk_id"
+      - "tenant_id"
+      - "project_id"
+      - "dataset_id"
+      - "document_id"
+      - "text"
+      - "title"
+      - "section"
+      - "sequence"
+      - "source"
 
   telemetry:
     raw_query_logging: false
@@ -944,11 +1298,15 @@ POST /v2/adaptive-retrieve
   "project_ids": ["project-a"],
   "dataset_ids": null,
   "metadata_filters": null,
+  "as_of": null,
   "rerank_mode": "auto",
+  "max_hops": 3,
   "use_knowledge_graph": false,
   "trace": true
 }
 ```
+
+`tenant_id`, user ID, team IDs, service-account principals, and ACL grants come from trusted authentication middleware. They are not accepted from this JSON body.
 
 `rerank_mode` values:
 
@@ -956,10 +1314,13 @@ POST /v2/adaptive-retrieve
 - `on`: Require reranking; fail explicitly if unavailable.
 - `off`: Use the calibrated non-reranked path.
 
+`max_hops` may narrow the configured maximum but cannot raise it. Client metadata filters are matched against an allow-list and can only narrow the server-resolved scope.
+
 ### 13.2 Response
 
 ```json
 {
+  "status": "FOUND",
   "found": true,
   "coverage_incomplete": false,
   "chunks": [
@@ -982,8 +1343,8 @@ POST /v2/adaptive-retrieve
   ],
   "decision": {
     "base_profile": "RECALL",
-    "modifiers": ["LEXICAL", "MULTI_EVIDENCE"],
-    "classifier": "rule:R05+R03",
+    "modifiers": ["LEXICAL", "MULTI_EVIDENCE", "MULTI_HOP"],
+    "classifier": "rule:R03+R10",
     "scoring_path": "reranked",
     "config_version": "2.0.0",
     "calibration_id": "rerank-recall-v1",
@@ -996,9 +1357,27 @@ POST /v2/adaptive-retrieve
       "selected_projects": ["project-a"],
       "selected_datasets": ["dataset-7", "dataset-11"],
       "mandatory_datasets": [],
+      "search_groups": [
+        {
+          "index": "rag-chunks-ada-1536",
+          "embedding_model_id": "text-embedding-v3",
+          "dataset_count": 2
+        }
+      ],
       "waves": 1,
-      "failed_datasets": []
+      "failed_datasets": [],
+      "failed_search_groups": [],
+      "failed_shards": 0
     },
+    "hops": [
+      {
+        "hop": 1,
+        "query_hash": "hmac:...",
+        "depends_on": [],
+        "evidence_chunk_ids": ["chunk-1"],
+        "complete": true
+      }
+    ],
     "timings_ms": {
       "analyze": 3,
       "scope": 8,
@@ -1012,6 +1391,15 @@ POST /v2/adaptive-retrieve
 }
 ```
 
+`status` values:
+
+- `FOUND`: sufficient qualifying evidence.
+- `PARTIAL`: useful evidence exists but routing, shards, or multi-hop dependencies are incomplete.
+- `INSUFFICIENT_EVIDENCE`: bounded retrieval completed without enough qualifying evidence.
+- `NO_RETRIEVAL`: the high-precision `NONE` rule selected no retrieval.
+- `DEPENDENCY_ERROR`: a required embedding or OpenSearch dependency failed and no safe fallback exists.
+- `FORBIDDEN`: trusted scope resolution denied the requested explicit scope; no search was executed.
+
 ---
 
 ## 14. Observability and Privacy
@@ -1024,7 +1412,7 @@ Record:
 - Base profile and modifier distributions.
 - Classification quality by rule.
 - Project and dataset `Routing Recall@M`.
-- Selected and fully searched dataset counts.
+- Selected dataset, physical search-group, targeted-index, and shard counts.
 - Escalation rate and benefit.
 - Candidate counts at each stage.
 - Retrieval Recall@K, MRR, and nDCG.
@@ -1032,6 +1420,8 @@ Record:
 - Reranker usage, latency, timeout, and circuit-breaker state.
 - Context diversity and duplicate removal.
 - Partial-coverage and shard-failure rates.
+- Query-family accuracy and per-family evidence coverage.
+- Decomposition side coverage, hops attempted, grounded entities carried, repeated-hop stops, unresolved hops, and multi-hop completion.
 - Latency and infrastructure cost per profile and scoring path.
 
 ### 14.2 Query Privacy
@@ -1051,6 +1441,12 @@ The evaluation set includes:
 - Procedures spanning adjacent chunks.
 - Broad summaries and comparisons.
 - Analytical multi-evidence questions.
+- Current-policy and as-of-date questions with conflicting versions.
+- Tables, rows, headers, units, and numeric-value lookups.
+- Cross-project questions with many irrelevant datasets.
+- Independent comparisons and compound questions.
+- Two-hop and three-hop dependency questions with evidence-backed carryover entities.
+- Adversarial multi-hop plans that attempt to expand scope or reuse ungrounded entities.
 - Exact fragments within one chunk.
 - Exact fragments spanning chunk boundaries.
 - OCR and punctuation variations.
@@ -1069,11 +1465,17 @@ The evaluation set includes:
 | Dataset catalog unavailable | Search mandatory datasets and configured project defaults only; never fan out to every dataset. |
 | Catalog stale | Use the last snapshot, include recently changed mandatory entries, and flag `catalog_stale`. |
 | Exact locator unavailable | Continue with fuzzy hierarchical retrieval and flag `exact_locator_unavailable`. |
+| Query embedding fails | Use lexical-only retrieval only for a profile with a calibrated lexical fallback; otherwise return `DEPENDENCY_ERROR`. |
+| Query-vector dimension differs from index contract | Skip the incompatible search group, flag partial coverage, and alert on catalog corruption. |
+| Unauthorized explicit project or dataset | Return `FORBIDDEN`; execute no catalog or chunk search. |
 | Reranker unavailable in `auto` | Use the calibrated non-reranked profile. |
 | Reranker unavailable in `on` | Return an explicit dependency failure. |
-| Dataset timeout | Return partial results with failed dataset IDs visible only when authorized. |
-| More than 25% selected datasets fail | Set `coverage_incomplete: true`. |
-| Empty after escalation | Return `found: false`; do not fabricate evidence. |
+| `_msearch` child or shard failure | Keep successful child results and return `PARTIAL` with authorized failure metadata. |
+| More than 25% selected search groups or shards fail | Set `coverage_incomplete: true` and status `PARTIAL`. |
+| Multi-hop planner fails | Run the original query once with `RECALL + MULTI_EVIDENCE`; do not invent hops. |
+| Multi-hop entity extraction finds no grounded entity | Stop and return completed evidence plus unresolved hops. |
+| Multi-hop deadline expires | Return completed-hop evidence with `PARTIAL`; do not start another hop. |
+| Empty after one bounded relaxation | Return `INSUFFICIENT_EVIDENCE`; do not fabricate evidence. |
 | Invalid config reload | Keep the last known-good version and alert. |
 
 ---
@@ -1095,12 +1497,18 @@ The evaluation set includes:
 - Routing p95 is at most 100 ms with 10,000 eligible dataset catalog entries.
 - A request fully searches no more than 64 datasets unless explicit authorized dataset IDs exceed the cap.
 - New-dataset routing quality is reported separately and meets at least 98% recall.
+- A query targets at most eight physical search groups unless explicit authorized scope exceeds the cap.
+- The 10,000-dataset test and a separate 50-million-chunk retrieval-pool test both meet their latency and recall gates.
 
 ### 16.3 Retrieval Quality
 
 - Each base profile matches or exceeds the static RAGFlow-style baseline on Recall@K and nDCG.
 - `PRECISION` improves MRR without reducing Recall@5 by more than one percentage point.
 - `RECALL + MULTI_EVIDENCE` improves relevant-source coverage over the static baseline.
+- Every comparison side has qualifying evidence or the response is `PARTIAL`/`INSUFFICIENT_EVIDENCE`.
+- Temporal retrieval returns the effective source in the top five and does not silently hide conflicting versions.
+- Table-aware retrieval returns the qualifying row plus its header context.
+- Two-hop and three-hop completion are reported separately; every carried entity has a supporting selected chunk.
 - Reranked and non-reranked paths are evaluated separately.
 - Reranker failure fallback does not reduce Recall@K by more than five percentage points.
 
@@ -1119,12 +1527,15 @@ Excluding answer generation:
 - Reranked adaptive retrieval is at most 3 seconds p95.
 - Exact locator search is at most 250 ms p95.
 - One escalation remains within the same total request deadline.
+- Bounded multi-hop retrieval is at most 5 seconds p95 and never exceeds three hops.
 
 ### 16.6 Operations
 
 - A validated config change takes effect within 60 seconds without redeployment.
 - Every response identifies its config, router, catalog, and calibration versions.
 - No request crosses tenant or project authorization boundaries.
+- Retrieval performs no OpenSearch write API calls.
+- Every targeted index comes from an authorized catalog entry; wildcard and implicit all-index searches are rejected.
 - Invalid configuration never replaces the last known-good version.
 
 ---
@@ -1145,24 +1556,28 @@ Excluding answer generation:
 
 ### Phase 2 - Hierarchical Router
 
-- Build project and dataset catalogs.
+- Validate the upstream project and dataset catalog read contracts.
+- Implement physical search grouping and trusted catalog filters.
 - Run routing in shadow mode while full baseline retrieval remains authoritative.
 - Measure `Routing Recall@M` and tune selection budgets.
 
-### Phase 3 - Exact Locator
+### Phase 3 - Specialized Retrieval
 
-- Add positional, character n-gram, adjacency, and cross-chunk indexes.
-- Enable exact routing and source-location evaluation.
+- Enable exact, temporal, table-aware, and neighbor retrieval only where the required indexed fields are available.
+- Return explicit capability degradation for missing optional fields.
+- Evaluate exact source location, current-policy selection, table context, and procedures.
 
 ### Phase 4 - Controlled Activation
 
 - Activate adaptive profiles for low-risk tenants.
 - Enable hierarchical routing after the 99.5% routing recall gate passes.
 - Enable reranker circuit-breaker fallback.
+- Enable decomposition, then bounded multi-hop, as separate feature flags after their evaluation gates pass.
 
 ### Phase 5 - Scale and General Availability
 
 - Load test with at least 10,000 eligible dataset catalog entries.
+- Load test at least one retrieval pool containing 50 million chunks.
 - Validate isolation across multiple tenants and projects.
 - Enable canary config rollout and automated rollback.
 
@@ -1183,7 +1598,1292 @@ The following are intentionally deferred until telemetry demonstrates a need:
 
 ---
 
-## 19. References
+## 19. Portable TypeScript Reference
 
+This reference is intentionally small. It shows the mechanism and trust boundaries without prescribing an embedding, LLM, or reranker vendor.
+
+Install the official OpenSearch client:
+
+```bash
+npm install @opensearch-project/opensearch
+```
+
+### 19.1 Core contracts
+
+```ts
+// adaptive-rag.types.ts
+export type BaseProfile = 'NONE' | 'PRECISION' | 'BALANCED' | 'RECALL'
+
+export type Modifier =
+  | 'LEXICAL'
+  | 'EXACT'
+  | 'LEXICAL_EXPANSION'
+  | 'MULTI_EVIDENCE'
+  | 'NEIGHBOR_EXPANSION'
+  | 'TEMPORAL'
+  | 'TABLE_AWARE'
+  | 'DECOMPOSE'
+  | 'MULTI_HOP'
+  | 'ENTITY_CARRYOVER'
+
+export interface TrustedIdentity {
+  tenantId: string
+  userId: string
+  principals: string[]
+  authorizedProjectIds: string[]
+  authorizedDatasetIds: string[]
+}
+
+export interface RetrievalRequest {
+  query: string
+  projectIds?: string[]
+  datasetIds?: string[]
+  metadataFilters?: Record<string, string | string[]>
+  asOf?: string
+  maxHops?: number
+  rerankMode?: 'auto' | 'on' | 'off'
+  trace?: boolean
+}
+
+export interface QuerySignals {
+  tokenCount: number
+  looksLikePaste: boolean
+  identifierHits: string[]
+  hasTemporalIntent: boolean
+  hasTableIntent: boolean
+  hasComparison: boolean
+  hasRelationshipChain: boolean
+}
+
+export interface QueryIntent {
+  profile: BaseProfile
+  modifiers: Modifier[]
+  family: string
+  classifier: string
+  ruleScore: number
+  signals: QuerySignals
+  expansions: string[]
+}
+
+export interface RetrievalProfile {
+  denseCandidateK: number
+  lexicalCandidateK: number
+  fusionCandidateK: number
+  rerankCandidateK: number
+  contextTopN: number
+  maxContextTokens: number
+  maxPerDocument: number
+  rrfK: number
+  lexicalRrfWeight: number
+  denseRrfWeight: number
+  exactRrfWeight: number
+  scoreFloor: number
+}
+
+export interface SearchGroup {
+  clusterId: string
+  index: string
+  routingKeys: string[]
+  projectIds: string[]
+  datasetIds: string[]
+  embeddingModelId: string
+  vectorField: string
+  vectorDimension: number
+}
+
+export interface ChunkSource {
+  chunk_id: string
+  tenant_id: string
+  project_id: string
+  dataset_id: string
+  document_id: string
+  text: string
+  title?: string
+  section?: string
+  sequence?: number
+  previous_chunk_id?: string
+  next_chunk_id?: string
+  parent_chunk_id?: string
+  chunk_kind?: 'text' | 'heading' | 'table' | 'table_row'
+  source: {
+    uri?: string
+    file_name?: string
+    page?: number
+  }
+}
+
+export interface RankedChunk {
+  id: string
+  source: ChunkSource
+  score: number
+  scoreType: 'bm25' | 'vector' | 'rrf' | 'rerank' | 'exact'
+  rank?: number
+  groupIndex: string
+}
+
+export interface HopEvidence {
+  hop: number
+  query: string
+  dependsOn: Array<{
+    hop: number
+    chunkId: string
+    entity: string
+  }>
+  chunks: RankedChunk[]
+  complete: boolean
+}
+```
+
+### 19.2 Deterministic analyzer
+
+```ts
+// query-analyzer.ts
+import type {
+  BaseProfile,
+  Modifier,
+  QueryIntent,
+  QuerySignals
+} from './adaptive-rag.types.js'
+
+const IDENTIFIER = /\b(?:INC|REQ|PO|INV|ERR|DOC)-?\d{3,}\b/gi
+const META = /^(?:hi|hello|thanks|thank you|good morning|good afternoon)[.! ]*$/i
+const SUMMARY = /\b(?:summari[sz]e|overview|list all|all requirements|across)\b/i
+const PROCEDURE = /\b(?:how (?:do|can|to)|steps?|procedure|instructions?|troubleshoot)\b/i
+const TEMPORAL = /\b(?:current|latest|effective|expired|historical|as of|before|after)\b/i
+const TABLE = /\b(?:q[1-4]|quarter|percent|percentage|total|amount|revenue|by region|for each)\b/i
+const COMPARE = /\b(?:compare|versus|vs\.?|differences?|between)\b/i
+const RELATIONSHIP = /\b(?:why|caused by|impact|depends on|owned by|affected|relationship)\b/i
+const QUOTED_EXACT = /["“][^"”]{40,}["”]/i
+
+/**
+ * @description Normalizes whitespace without changing identifier punctuation.
+ * @param query Raw standalone query.
+ * @returns Normalized query.
+ */
+function normalizeQuery(query: string): string {
+  return query.normalize('NFKC').replace(/\s+/g, ' ').trim()
+}
+
+/**
+ * @description Adds a modifier once while preserving deterministic order.
+ * @param modifiers Current modifiers.
+ * @param modifier Modifier to add.
+ * @returns Nothing.
+ */
+function addModifier(modifiers: Modifier[], modifier: Modifier): void {
+  if (!modifiers.includes(modifier)) modifiers.push(modifier)
+}
+
+/**
+ * @description Chooses the broader of two retrieval profiles.
+ * @param current Current profile.
+ * @param next Candidate profile.
+ * @returns Broader profile.
+ */
+function broaden(current: BaseProfile, next: BaseProfile): BaseProfile {
+  const order: BaseProfile[] = ['NONE', 'PRECISION', 'BALANCED', 'RECALL']
+  return order.indexOf(next) > order.indexOf(current) ? next : current
+}
+
+/**
+ * @description Applies the fast ordered enterprise-query rules.
+ * @param rawQuery Raw standalone query.
+ * @param approvedExpansions Tenant-approved glossary expansions keyed by lowercase term.
+ * @returns Query intent used to build the retrieval plan.
+ */
+export function analyzeQuery(
+  rawQuery: string,
+  approvedExpansions: ReadonlyMap<string, string[]> = new Map()
+): QueryIntent {
+  // Normalize once so every rule sees the same query.
+  const query = normalizeQuery(rawQuery)
+  const tokens = query ? query.split(' ') : []
+  const identifierHits = [...query.matchAll(IDENTIFIER)].map(match => match[0].toUpperCase())
+  const modifiers: Modifier[] = []
+  const expansions = approvedExpansions.get(query.toLowerCase())?.slice(0, 8) ?? []
+
+  // Compute reusable signals before selecting a profile.
+  const signals: QuerySignals = {
+    tokenCount: tokens.length,
+    looksLikePaste: QUOTED_EXACT.test(query) || (
+      rawQuery.includes('\n') &&
+      tokens.length >= 20
+    ),
+    identifierHits,
+    hasTemporalIntent: TEMPORAL.test(query),
+    hasTableIntent: TABLE.test(query),
+    hasComparison: COMPARE.test(query),
+    hasRelationshipChain: RELATIONSHIP.test(query)
+  }
+
+  // Skip retrieval only for a narrow, high-precision meta rule.
+  if (META.test(query)) {
+    return {
+      profile: 'NONE',
+      modifiers,
+      family: 'conversation',
+      classifier: 'rule:R01',
+      ruleScore: 0.99,
+      signals,
+      expansions
+    }
+  }
+
+  // Begin with the safe default and broaden only when a rule requires it.
+  let profile: BaseProfile = tokens.length <= 8 ? 'PRECISION' : 'BALANCED'
+  let family = profile === 'PRECISION' ? 'simple_fact' : 'standard_question'
+  const rules: string[] = []
+
+  if (signals.looksLikePaste) {
+    addModifier(modifiers, 'EXACT')
+    rules.push('R02')
+    family = 'pasted_source'
+  }
+
+  if (identifierHits.length > 0) {
+    addModifier(modifiers, 'LEXICAL')
+    rules.push('R03')
+    family = 'identifier'
+  }
+
+  if (expansions.length > 0) {
+    addModifier(modifiers, 'LEXICAL_EXPANSION')
+    rules.push('R04')
+    family = 'enterprise_jargon'
+  }
+
+  if (signals.hasTemporalIntent) {
+    addModifier(modifiers, 'TEMPORAL')
+    rules.push('R05')
+  }
+
+  if (PROCEDURE.test(query)) {
+    profile = broaden(profile, 'BALANCED')
+    addModifier(modifiers, 'NEIGHBOR_EXPANSION')
+    rules.push('R06')
+    family = 'procedure'
+  }
+
+  if (signals.hasTableIntent) {
+    profile = broaden(profile, 'BALANCED')
+    addModifier(modifiers, 'TABLE_AWARE')
+    rules.push('R07')
+    family = 'table_numeric'
+  }
+
+  if (signals.hasComparison) {
+    profile = 'RECALL'
+    addModifier(modifiers, 'DECOMPOSE')
+    addModifier(modifiers, 'MULTI_EVIDENCE')
+    rules.push('R08')
+    family = 'comparison'
+  } else if (SUMMARY.test(query)) {
+    profile = 'RECALL'
+    addModifier(modifiers, 'MULTI_EVIDENCE')
+    rules.push('R09')
+    family = 'summary'
+  }
+
+  if (signals.hasRelationshipChain) {
+    profile = 'RECALL'
+    addModifier(modifiers, 'MULTI_HOP')
+    addModifier(modifiers, 'MULTI_EVIDENCE')
+    addModifier(modifiers, 'ENTITY_CARRYOVER')
+    rules.push('R10')
+    family = 'multi_hop'
+  }
+
+  return {
+    profile,
+    modifiers,
+    family,
+    classifier: rules.length > 0 ? `rule:${rules.join('+')}` : 'rule:R14',
+    ruleScore: rules.length > 0 ? 0.9 : 0.75,
+    signals,
+    expansions
+  }
+}
+```
+
+The analyzer is deliberately conservative. Production replaces seed `ruleScore` values with calibrated confidence and calls a structured LLM planner only below the configured confidence gate or when decomposition is necessary.
+
+### 19.3 Reciprocal Rank Fusion
+
+```ts
+// rrf.ts
+import type { RankedChunk } from './adaptive-rag.types.js'
+
+export interface RankedList {
+  weight: number
+  chunks: RankedChunk[]
+}
+
+/**
+ * @description Fuses ranked lists without adding incompatible native scores.
+ * @param lists BM25, vector, and optional exact ranked lists.
+ * @param rankConstant Positive RRF rank constant.
+ * @returns Deduplicated chunks sorted by descending RRF score.
+ */
+export function reciprocalRankFusion(
+  lists: RankedList[],
+  rankConstant = 60
+): RankedChunk[] {
+  const fused = new Map<string, RankedChunk>()
+
+  for (const list of lists) {
+    list.chunks.forEach((chunk, index) => {
+      // RRF ranks are one-based.
+      const contribution = list.weight / (rankConstant + index + 1)
+      const current = fused.get(chunk.id)
+
+      // Preserve one source payload and accumulate rank contributions.
+      fused.set(chunk.id, {
+        ...(current ?? chunk),
+        score: (current?.score ?? 0) + contribution,
+        scoreType: 'rrf'
+      })
+    })
+  }
+
+  return [...fused.values()]
+    .sort((left, right) => right.score - left.score)
+    .map((chunk, index) => ({ ...chunk, rank: index + 1 }))
+}
+```
+
+### 19.4 Scope resolution and physical grouping
+
+```ts
+// retrieval-scope.ts
+import type {
+  RetrievalRequest,
+  SearchGroup,
+  TrustedIdentity
+} from './adaptive-rag.types.js'
+
+export interface ResolvedScope {
+  tenantId: string
+  principals: string[]
+  projectIds: string[]
+  datasetIds: string[]
+  explicitProjectScope: boolean
+  explicitDatasetScope: boolean
+}
+
+export interface DatasetRoute {
+  clusterId: string
+  index: string
+  routingKey?: string
+  projectId: string
+  datasetId: string
+  embeddingModelId: string
+  vectorField: string
+  vectorDimension: number
+}
+
+/**
+ * @description Verifies that every requested ID is authorized.
+ * @param authorized Authorized IDs from trusted identity.
+ * @param requested Optional IDs supplied by the caller.
+ * @param label Field name used in the error.
+ * @param limit Maximum explicit IDs accepted from one request.
+ * @returns Authorized IDs narrowed by the request.
+ */
+function narrowAuthorizedIds(
+  authorized: string[],
+  requested: string[] | undefined,
+  label: string,
+  limit: number
+): string[] {
+  if (!requested) return authorized
+  if (requested.length > limit) throw new Error(`${label.toUpperCase()}_LIMIT_EXCEEDED`)
+
+  const allowed = new Set(authorized)
+  if (requested.some(id => !allowed.has(id))) {
+    throw new Error(`FORBIDDEN_${label.toUpperCase()}`)
+  }
+
+  return [...new Set(requested)]
+}
+
+/**
+ * @description Resolves caller scope before any catalog or chunk search.
+ * @param identity Trusted server identity.
+ * @param request Untrusted retrieval request.
+ * @returns Scope that client filters can only narrow.
+ */
+export function resolveScope(
+  identity: TrustedIdentity,
+  request: RetrievalRequest
+): ResolvedScope {
+  return {
+    tenantId: identity.tenantId,
+    principals: [...new Set(identity.principals)],
+    projectIds: narrowAuthorizedIds(
+      identity.authorizedProjectIds,
+      request.projectIds,
+      'project_ids',
+      64
+    ),
+    datasetIds: narrowAuthorizedIds(
+      identity.authorizedDatasetIds,
+      request.datasetIds,
+      'dataset_ids',
+      256
+    ),
+    explicitProjectScope: Boolean(request.projectIds),
+    explicitDatasetScope: Boolean(request.datasetIds)
+  }
+}
+
+/**
+ * @description Groups selected datasets into compatible OpenSearch searches.
+ * @param routes Selected dataset catalog entries.
+ * @returns Physical search groups.
+ */
+export function buildSearchGroups(routes: DatasetRoute[]): SearchGroup[] {
+  const groups = new Map<string, SearchGroup>()
+
+  for (const route of routes) {
+    // Group only fields that must be compatible in one k-NN search.
+    const key = [
+      route.clusterId,
+      route.index,
+      route.embeddingModelId,
+      route.vectorField,
+      route.vectorDimension
+    ].join('|')
+    const current = groups.get(key)
+
+    if (current) {
+      current.projectIds.push(route.projectId)
+      current.datasetIds.push(route.datasetId)
+      if (route.routingKey) current.routingKeys.push(route.routingKey)
+      continue
+    }
+
+    groups.set(key, {
+      clusterId: route.clusterId,
+      index: route.index,
+      routingKeys: route.routingKey ? [route.routingKey] : [],
+      projectIds: [route.projectId],
+      datasetIds: [route.datasetId],
+      embeddingModelId: route.embeddingModelId,
+      vectorField: route.vectorField,
+      vectorDimension: route.vectorDimension
+    })
+  }
+
+  return [...groups.values()].map(group => ({
+    ...group,
+    routingKeys: [...new Set(group.routingKeys)],
+    projectIds: [...new Set(group.projectIds)],
+    datasetIds: [...new Set(group.datasetIds)]
+  }))
+}
+```
+
+For extremely large authorization scopes, `TrustedIdentity` may contain policy handles rather than expanded ID arrays. In that deployment, `resolveScope` is replaced by an authorization service call, but its output and fail-closed behavior remain the same.
+
+### 19.5 Grouped OpenSearch hybrid retrieval
+
+```ts
+// opensearch-retriever.ts
+import { Client } from '@opensearch-project/opensearch'
+import type {
+  ChunkSource,
+  Modifier,
+  RankedChunk,
+  RetrievalProfile,
+  SearchGroup
+} from './adaptive-rag.types.js'
+import type { ResolvedScope } from './retrieval-scope.js'
+import { reciprocalRankFusion } from './rrf.js'
+
+type QueryDsl = Record<string, unknown>
+type EmbedQuery = (
+  query: string,
+  modelId: string,
+  dimension: number
+) => Promise<number[]>
+
+interface SearchHit {
+  _id: string
+  _index: string
+  _score: number
+  _source: ChunkSource
+}
+
+interface SearchPart {
+  error?: unknown
+  timed_out?: boolean
+  _shards?: {
+    failed: number
+  }
+  hits?: {
+    hits: SearchHit[]
+  }
+}
+
+interface MultiSearchBody {
+  responses: SearchPart[]
+}
+
+export interface HybridSearchResult {
+  chunks: RankedChunk[]
+  coverageIncomplete: boolean
+  failedSearches: number
+}
+
+const SOURCE_FIELDS = [
+  'chunk_id',
+  'tenant_id',
+  'project_id',
+  'dataset_id',
+  'document_id',
+  'text',
+  'title',
+  'section',
+  'sequence',
+  'previous_chunk_id',
+  'next_chunk_id',
+  'parent_chunk_id',
+  'chunk_kind',
+  'source'
+]
+
+/**
+ * @description Builds the mandatory server-owned OpenSearch filter.
+ * @param scope Trusted resolved scope.
+ * @param group Compatible physical search group.
+ * @returns Query DSL used inside both lexical and k-NN searches.
+ */
+function buildTrustedFilter(
+  scope: ResolvedScope,
+  group: SearchGroup
+): QueryDsl {
+  return {
+    bool: {
+      filter: [
+        { term: { tenant_id: scope.tenantId } },
+        { terms: { project_id: group.projectIds } },
+        { terms: { dataset_id: group.datasetIds } },
+        { term: { lifecycle_state: 'active' } },
+        {
+          bool: {
+            should: [
+              { term: { visibility: 'public' } },
+              { terms: { acl_principals: scope.principals } }
+            ],
+            minimum_should_match: 1
+          }
+        }
+      ]
+    }
+  }
+}
+
+/**
+ * @description Builds the BM25 query for one search group.
+ * @param query Normalized query.
+ * @param filter Trusted scope filter.
+ * @param modifiers Selected query modifiers.
+ * @param profile Retrieval profile.
+ * @param expansions Approved lexical expansions.
+ * @returns OpenSearch search body.
+ */
+function buildLexicalBody(
+  query: string,
+  filter: QueryDsl,
+  modifiers: Modifier[],
+  profile: RetrievalProfile,
+  expansions: string[]
+): QueryDsl {
+  // Approved expansions are appended as optional lexical alternatives.
+  const lexicalQuery = expansions.length > 0
+    ? `${query} ${expansions.join(' ')}`
+    : query
+  const should: QueryDsl[] = []
+
+  if (modifiers.includes('LEXICAL')) {
+    should.push({ terms: { identifiers: [query.toUpperCase()] } })
+  }
+
+  if (modifiers.includes('TABLE_AWARE')) {
+    should.push({ terms: { chunk_kind: ['table', 'table_row'] } })
+  }
+
+  if (modifiers.includes('TEMPORAL')) {
+    should.push({
+      term: { is_current: true }
+    })
+  }
+
+  return {
+    size: profile.lexicalCandidateK,
+    track_total_hits: false,
+    _source: SOURCE_FIELDS,
+    query: {
+      bool: {
+        filter: [filter],
+        must: [
+          {
+            multi_match: {
+              query: lexicalQuery,
+              type: 'best_fields',
+              fields: [
+                'title^3',
+                'section^2',
+                'identifiers^4',
+                'table_headers^2',
+                'table_text^1.5',
+                'text'
+              ],
+              operator: modifiers.includes('LEXICAL') ? 'and' : 'or',
+              minimum_should_match: modifiers.includes('LEXICAL') ? undefined : '60%'
+            }
+          }
+        ],
+        should
+      }
+    }
+  }
+}
+
+/**
+ * @description Builds an efficiently filtered approximate k-NN query.
+ * @param vector Query vector compatible with the search group.
+ * @param group Physical search group.
+ * @param filter Trusted scope filter.
+ * @param profile Retrieval profile.
+ * @returns OpenSearch search body.
+ */
+function buildDenseBody(
+  vector: number[],
+  group: SearchGroup,
+  filter: QueryDsl,
+  profile: RetrievalProfile
+): QueryDsl {
+  return {
+    size: profile.denseCandidateK,
+    track_total_hits: false,
+    _source: SOURCE_FIELDS,
+    query: {
+      knn: {
+        [group.vectorField]: {
+          vector,
+          k: profile.denseCandidateK,
+          filter,
+          method_parameters: {
+            ef_search: Math.max(profile.denseCandidateK, 256)
+          }
+        }
+      }
+    }
+  }
+}
+
+/**
+ * @description Converts one OpenSearch response into ranked chunks.
+ * @param part One lexical or dense multi-search response.
+ * @param scoreType Native score type.
+ * @returns Ranked chunks, or an empty list for a failed search.
+ */
+function parseSearchPart(
+  part: SearchPart,
+  scoreType: 'bm25' | 'vector'
+): RankedChunk[] {
+  if (part.error || !part.hits) return []
+
+  return part.hits.hits.map((hit, index) => ({
+    id: hit._source.chunk_id || hit._id,
+    source: hit._source,
+    score: hit._score,
+    scoreType,
+    rank: index + 1,
+    groupIndex: hit._index
+  }))
+}
+
+/**
+ * @description Executes BM25 and k-NN searches for all bounded physical groups.
+ * @param client Reused OpenSearch client.
+ * @param groups Selected compatible search groups.
+ * @param scope Trusted resolved scope.
+ * @param query Normalized standalone query.
+ * @param modifiers Selected modifiers.
+ * @param expansions Approved lexical expansions.
+ * @param profile Selected retrieval profile.
+ * @param embedQuery Application embedding function.
+ * @returns Globally fused chunks plus partial-coverage state.
+ */
+export async function retrieveGroups(
+  client: Client,
+  groups: SearchGroup[],
+  scope: ResolvedScope,
+  query: string,
+  modifiers: Modifier[],
+  expansions: string[],
+  profile: RetrievalProfile,
+  embedQuery: EmbedQuery
+): Promise<HybridSearchResult> {
+  if (groups.length === 0) return {
+    chunks: [],
+    coverageIncomplete: false,
+    failedSearches: 0
+  }
+
+  if (groups.length > 8) throw new Error('SEARCH_GROUP_LIMIT_EXCEEDED')
+
+  // Reuse one query vector for groups with the same model and dimension.
+  const vectorCache = new Map<string, Promise<number[]>>()
+  const vectors = await Promise.all(groups.map(async group => {
+    const key = `${group.embeddingModelId}:${group.vectorDimension}`
+    const pending = vectorCache.get(key) ?? embedQuery(
+      query,
+      group.embeddingModelId,
+      group.vectorDimension
+    )
+    vectorCache.set(key, pending)
+    const vector = await pending
+
+    if (vector.length !== group.vectorDimension) {
+      throw new Error(`EMBEDDING_DIMENSION_MISMATCH:${group.embeddingModelId}`)
+    }
+
+    return vector
+  }))
+
+  const body: QueryDsl[] = []
+
+  groups.forEach((group, index) => {
+    const filter = buildTrustedFilter(scope, group)
+    const metadata = {
+      index: group.index,
+      routing: group.routingKeys.length > 0
+        ? group.routingKeys.join(',')
+        : undefined,
+      cancel_after_time_interval: '900ms'
+    }
+
+    // Add one lexical and one dense search per physical group.
+    body.push(metadata)
+    body.push(buildLexicalBody(query, filter, modifiers, profile, expansions))
+    body.push(metadata)
+    body.push(buildDenseBody(vectors[index], group, filter, profile))
+  })
+
+  const response = await client.msearch({
+    body,
+    max_concurrent_searches: 8,
+    max_concurrent_shard_requests: 5
+  })
+  const parts = (response.body as MultiSearchBody).responses
+  const rankedLists: Array<{ weight: number, chunks: RankedChunk[] }> = []
+  let failedSearches = 0
+
+  for (let index = 0; index < parts.length; index += 2) {
+    const lexicalPart = parts[index]
+    const densePart = parts[index + 1]
+
+    failedSearches += Number(Boolean(
+      lexicalPart.error ||
+      lexicalPart.timed_out ||
+      lexicalPart._shards?.failed
+    ))
+    failedSearches += Number(Boolean(
+      densePart.error ||
+      densePart.timed_out ||
+      densePart._shards?.failed
+    ))
+
+    rankedLists.push({
+      weight: profile.lexicalRrfWeight,
+      chunks: parseSearchPart(lexicalPart, 'bm25')
+    })
+    rankedLists.push({
+      weight: profile.denseRrfWeight,
+      chunks: parseSearchPart(densePart, 'vector')
+    })
+  }
+
+  const chunks = reciprocalRankFusion(rankedLists, profile.rrfK)
+    .filter(chunk => chunk.score >= profile.scoreFloor)
+    .slice(0, profile.fusionCandidateK)
+
+  return {
+    chunks,
+    coverageIncomplete: failedSearches > 0,
+    failedSearches
+  }
+}
+```
+
+Production code should reuse one long-lived `Client`, use TLS and workload identity, apply request-level cancellation, and maintain one client per OpenSearch cluster ID.
+
+### 19.6 Hierarchical catalog routing
+
+```ts
+// catalog-router.ts
+import { Client } from '@opensearch-project/opensearch'
+import type { DatasetRoute, ResolvedScope } from './retrieval-scope.js'
+
+type QueryDsl = Record<string, unknown>
+type EmbedRouterQuery = (query: string) => Promise<number[]>
+
+interface CatalogSource {
+  tenant_id: string
+  project_id: string
+  dataset_id?: string
+  name: string
+  description?: string
+  aliases?: string[]
+  cluster_id?: string
+  physical_index?: string
+  routing_key?: string
+  embedding_model_id?: string
+  vector_field?: string
+  vector_dimension?: number
+}
+
+interface CatalogPart {
+  error?: unknown
+  hits?: {
+    hits: Array<{
+      _id: string
+      _source: CatalogSource
+    }>
+  }
+}
+
+/**
+ * @description Builds a trusted catalog filter for one routing level.
+ * @param scope Trusted resolved scope.
+ * @param projectIds Authorized project IDs.
+ * @param datasetIds Optional authorized dataset IDs.
+ * @returns Catalog filter.
+ */
+function buildCatalogFilter(
+  scope: ResolvedScope,
+  projectIds: string[],
+  datasetIds?: string[]
+): QueryDsl {
+  const filter: QueryDsl[] = [
+    { term: { tenant_id: scope.tenantId } },
+    { terms: { project_id: projectIds } },
+    { term: { lifecycle_state: 'active' } },
+    {
+      bool: {
+        should: [
+          { term: { visibility: 'public' } },
+          { terms: { acl_principals: scope.principals } }
+        ],
+        minimum_should_match: 1
+      }
+    }
+  ]
+
+  if (datasetIds) filter.push({ terms: { dataset_id: datasetIds } })
+  return { bool: { filter } }
+}
+
+/**
+ * @description Fuses lexical and dense catalog lists by stable catalog ID.
+ * @param lexical Lexical catalog response.
+ * @param dense Dense catalog response.
+ * @param limit Maximum returned catalog entries.
+ * @returns Ranked catalog sources.
+ */
+function fuseCatalog(
+  lexical: CatalogPart,
+  dense: CatalogPart,
+  limit: number
+): CatalogSource[] {
+  const scores = new Map<string, number>()
+  const sources = new Map<string, CatalogSource>()
+
+  const parts = [lexical, dense]
+
+  parts.forEach(part => {
+    part.hits?.hits.forEach((hit, index) => {
+      sources.set(hit._id, hit._source)
+      scores.set(hit._id, (scores.get(hit._id) ?? 0) + 1 / (60 + index + 1))
+    })
+  })
+
+  return [...scores.entries()]
+    .sort((left, right) => right[1] - left[1])
+    .slice(0, limit)
+    .map(([id]) => sources.get(id))
+    .filter((source): source is CatalogSource => Boolean(source))
+}
+
+/**
+ * @description Searches one compact catalog with BM25 and filtered k-NN.
+ * @param client OpenSearch client.
+ * @param index Explicit catalog alias.
+ * @param query Normalized user query.
+ * @param vector Router-model query vector.
+ * @param filter Trusted catalog filter.
+ * @param limit Maximum fused results.
+ * @returns Ranked catalog sources.
+ */
+async function searchCatalog(
+  client: Client,
+  index: string,
+  query: string,
+  vector: number[],
+  filter: QueryDsl,
+  limit: number
+): Promise<CatalogSource[]> {
+  const response = await client.msearch({
+    body: [
+      { index },
+      {
+        size: limit * 2,
+        _source: true,
+        query: {
+          bool: {
+            filter: [filter],
+            must: [{
+              multi_match: {
+                query,
+                fields: ['name^3', 'aliases^2', 'description', 'top_terms']
+              }
+            }]
+          }
+        }
+      },
+      { index },
+      {
+        size: limit * 2,
+        _source: true,
+        query: {
+          knn: {
+            centroid: {
+              vector,
+              k: limit * 2,
+              filter
+            }
+          }
+        }
+      }
+    ]
+  })
+  const parts = (response.body as { responses: CatalogPart[] }).responses
+
+  if (parts.length !== 2 || parts.every(part => part.error)) {
+    throw new Error(`CATALOG_UNAVAILABLE:${index}`)
+  }
+
+  return fuseCatalog(parts[0], parts[1], limit)
+}
+
+/**
+ * @description Loads explicit datasets without relevance ranking.
+ * @param client OpenSearch client.
+ * @param scope Trusted explicit scope.
+ * @returns Every authorized explicit dataset catalog entry.
+ */
+async function loadExplicitDatasets(
+  client: Client,
+  scope: ResolvedScope
+): Promise<CatalogSource[]> {
+  const response = await client.search({
+    index: 'rag-datasets-read',
+    body: {
+      size: scope.datasetIds.length,
+      _source: true,
+      query: buildCatalogFilter(scope, scope.projectIds, scope.datasetIds)
+    }
+  })
+  const hits = (response.body as {
+    hits: {
+      hits: Array<{ _source: CatalogSource }>
+    }
+  }).hits.hits.map(hit => hit._source)
+
+  if (hits.length !== scope.datasetIds.length) {
+    throw new Error('EXPLICIT_DATASET_CATALOG_MISMATCH')
+  }
+
+  return hits
+}
+
+/**
+ * @description Validates and converts one dataset catalog entry.
+ * @param dataset Dataset catalog entry.
+ * @returns Physical dataset route.
+ */
+function toDatasetRoute(dataset: CatalogSource): DatasetRoute {
+  if (
+    !dataset.dataset_id ||
+    !dataset.cluster_id ||
+    !dataset.physical_index ||
+    !dataset.embedding_model_id ||
+    !dataset.vector_field ||
+    !dataset.vector_dimension
+  ) {
+    throw new Error(`INVALID_DATASET_CATALOG_ENTRY:${dataset.dataset_id ?? 'unknown'}`)
+  }
+
+  return {
+    clusterId: dataset.cluster_id,
+    index: dataset.physical_index,
+    routingKey: dataset.routing_key,
+    projectId: dataset.project_id,
+    datasetId: dataset.dataset_id,
+    embeddingModelId: dataset.embedding_model_id,
+    vectorField: dataset.vector_field,
+    vectorDimension: dataset.vector_dimension
+  }
+}
+
+/**
+ * @description Routes a query through project and dataset catalogs.
+ * @param client OpenSearch client.
+ * @param query Normalized user query.
+ * @param scope Trusted authorized scope.
+ * @param embedRouterQuery Router-space embedding function.
+ * @returns Dataset routes ready for physical grouping.
+ */
+export async function routeDatasets(
+  client: Client,
+  query: string,
+  scope: ResolvedScope,
+  embedRouterQuery: EmbedRouterQuery
+): Promise<DatasetRoute[]> {
+  // Explicit authorized dataset scope bypasses relevance ranking.
+  if (scope.explicitDatasetScope) {
+    return (await loadExplicitDatasets(client, scope)).map(toDatasetRoute)
+  }
+
+  const vector = await embedRouterQuery(query)
+  const selectedProjectIds = scope.explicitProjectScope
+    ? scope.projectIds
+    : (await searchCatalog(
+        client,
+        'rag-projects-read',
+        query,
+        vector,
+        buildCatalogFilter(scope, scope.projectIds),
+        3
+      )).map(project => project.project_id)
+  const datasetFilter = buildCatalogFilter(
+    scope,
+    selectedProjectIds,
+    scope.datasetIds
+  )
+  const datasets = await searchCatalog(
+    client,
+    'rag-datasets-read',
+    query,
+    vector,
+    datasetFilter,
+    16
+  )
+
+  return datasets.map(toDatasetRoute)
+}
+```
+
+Explicit authorized dataset IDs are loaded as mandatory catalog entries before ranked catalog results and are never dropped by the top-16 seed budget. The production router also applies score floors, margins, one escalation wave, catalog-version checks, and the hard 64-dataset/eight-group limits from Section 8.
+
+### 19.7 Bounded multi-hop executor
+
+```ts
+// multi-hop.ts
+import type { HopEvidence, RankedChunk } from './adaptive-rag.types.js'
+
+export interface HopTemplate {
+  queryTemplate: string
+  requiresEntity: boolean
+}
+
+export interface GroundedEntity {
+  value: string
+  chunkId: string
+}
+
+type RetrieveHop = (
+  query: string,
+  hop: number
+) => Promise<{
+  chunks: RankedChunk[]
+  sufficient: boolean
+}>
+
+type ExtractGroundedEntities = (
+  chunks: RankedChunk[],
+  limit: number
+) => Promise<GroundedEntity[]>
+
+/**
+ * @description Replaces the only supported hop placeholder.
+ * @param template Approved hop template.
+ * @param entity Evidence-grounded entity.
+ * @returns Concrete bounded subquery.
+ */
+function instantiateHop(template: string, entity: string): string {
+  return template.replaceAll('{entity}', entity).replace(/\s+/g, ' ').trim()
+}
+
+/**
+ * @description Runs at most three sequential evidence-dependent retrieval hops.
+ * @param originalQuery Original standalone query.
+ * @param templates Structured planner output.
+ * @param retrieveHop Retrieval function that preserves the original scope.
+ * @param extractEntities Entity extractor restricted to selected evidence.
+ * @param deadlineAt Absolute request deadline in milliseconds.
+ * @returns Evidence grouped by hop and unresolved templates.
+ */
+export async function executeMultiHop(
+  originalQuery: string,
+  templates: HopTemplate[],
+  retrieveHop: RetrieveHop,
+  extractEntities: ExtractGroundedEntities,
+  deadlineAt: number
+): Promise<{
+  evidence: HopEvidence[]
+  unresolvedHops: string[]
+}> {
+  const evidence: HopEvidence[] = []
+  const seen = new Set<string>()
+  let groundedEntities: GroundedEntity[] = []
+  let satisfied = false
+  const boundedTemplates = templates.slice(0, 3)
+
+  for (let index = 0; index < boundedTemplates.length; index += 1) {
+    if (Date.now() > deadlineAt - 250) break
+
+    const template = boundedTemplates[index]
+    const grounded = groundedEntities[0]
+    const query = template.requiresEntity
+      ? instantiateHop(template.queryTemplate, grounded?.value ?? '')
+      : template.queryTemplate || originalQuery
+    const normalized = query.toLowerCase().replace(/\s+/g, ' ').trim().slice(0, 128)
+
+    // Stop if a dependent hop has no evidence-backed entity.
+    if (!normalized || (template.requiresEntity && !grounded)) break
+    if (seen.has(normalized)) break
+    seen.add(normalized)
+
+    const result = await retrieveHop(normalized, index + 1)
+    const dependsOn = template.requiresEntity && grounded
+      ? [{
+          hop: index,
+          chunkId: grounded.chunkId,
+          entity: grounded.value
+        }]
+      : []
+
+    evidence.push({
+      hop: index + 1,
+      query: normalized,
+      dependsOn,
+      chunks: result.chunks,
+      complete: result.sufficient
+    })
+
+    if (result.sufficient) {
+      satisfied = true
+      break
+    }
+
+    // Only selected evidence may provide entities for the next hop.
+    groundedEntities = (await extractEntities(result.chunks, 8)).slice(0, 8)
+  }
+
+  return {
+    evidence,
+    unresolvedHops: satisfied
+      ? []
+      : boundedTemplates
+          .slice(evidence.length)
+          .map(template => template.queryTemplate)
+  }
+}
+```
+
+The planner creates templates, not evidence. `extractEntities` must return the supporting chunk ID for each value, and the next retrieval uses the same resolved scope object as the first.
+
+### 19.8 Minimal runnable checks
+
+```ts
+// adaptive-rag.test.ts
+import { describe, expect, it } from 'vitest'
+import { analyzeQuery } from './query-analyzer.js'
+import { reciprocalRankFusion } from './rrf.js'
+import { resolveScope } from './retrieval-scope.js'
+import type { RankedChunk } from './adaptive-rag.types.js'
+
+/**
+ * @description Creates the smallest ranked chunk used by RRF tests.
+ * @param id Stable test chunk ID.
+ * @returns Ranked test chunk.
+ */
+const chunk = (id: string): RankedChunk => ({
+  id,
+  score: 1,
+  scoreType: 'bm25',
+  groupIndex: 'rag-chunks-test',
+  source: {
+    chunk_id: id,
+    tenant_id: 't1',
+    project_id: 'p1',
+    dataset_id: 'd1',
+    document_id: `doc-${id}`,
+    text: id,
+    source: {}
+  }
+})
+
+describe('adaptive RAG mechanism', () => {
+  it('selects multi-hop retrieval for relationship questions', () => {
+    const intent = analyzeQuery(
+      'Which customers depend on systems owned by Team A?'
+    )
+
+    expect(intent.profile).toBe('RECALL')
+    expect(intent.modifiers).toContain('MULTI_HOP')
+    expect(intent.modifiers).toContain('ENTITY_CARRYOVER')
+  })
+
+  it('fuses lexical and dense ranks without adding native scores', () => {
+    const fused = reciprocalRankFusion([
+      { weight: 1, chunks: [chunk('a'), chunk('b')] },
+      { weight: 1, chunks: [chunk('b'), chunk('c')] }
+    ])
+
+    expect(fused[0].id).toBe('b')
+    expect(fused[0].scoreType).toBe('rrf')
+  })
+
+  it('fails closed when explicit scope contains an unauthorized dataset', () => {
+    expect(() => resolveScope({
+      tenantId: 't1',
+      userId: 'u1',
+      principals: ['user:u1'],
+      authorizedProjectIds: ['p1'],
+      authorizedDatasetIds: ['d1']
+    }, {
+      query: 'policy',
+      datasetIds: ['d2']
+    })).toThrow('FORBIDDEN_DATASET_IDS')
+  })
+})
+```
+
+---
+
+## 20. References
+
+- [OpenSearch JavaScript client](https://docs.opensearch.org/latest/clients/javascript/index/)
+- [OpenSearch k-NN query and query-time parameters](https://docs.opensearch.org/latest/query-dsl/specialized/k-nn/index/)
+- [OpenSearch filtered vector search](https://docs.opensearch.org/latest/vector-search/filter-search-knn/index/)
+- [OpenSearch `knn_vector` mapping](https://docs.opensearch.org/latest/mappings/supported-field-types/knn-vector/)
+- [OpenSearch Multi-Search API](https://docs.opensearch.org/latest/api-reference/search-apis/multi-search/)
+- [OpenSearch multi-match query](https://docs.opensearch.org/latest/query-dsl/full-text/multi-match/)
+- [OpenSearch score-ranker RRF processor](https://docs.opensearch.org/latest/search-plugins/search-pipelines/score-ranker-processor/)
 - [RAGFlow: Run retrieval test](https://ragflow.io/docs/dev/run_retrieval_test)
 - [RAGFlow: HTTP API - Retrieve chunks](https://ragflow.io/docs/dev/http_api_reference#retrieve-chunks)
