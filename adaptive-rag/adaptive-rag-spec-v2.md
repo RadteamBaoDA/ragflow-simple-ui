@@ -11,6 +11,8 @@
 
 ## 1. Executive Summary
 
+> **Adaptive mechanism covered:** End-to-end per-request adaptation from language and intent detection through routing, retrieval, evidence sufficiency, bounded iteration, and safe degradation.
+
 Adaptive RAG v2 selects retrieval behavior from the query instead of applying one static configuration to every request. It is designed for deployments with:
 
 - One to thousands of datasets per authorized scope.
@@ -34,9 +36,51 @@ The design intentionally does **not** query every eligible dataset. At large sca
 
 This is a retrieval-only specification. Parsing, chunking, document embeddings, ingestion jobs, index creation, reindexing, and answer generation are outside scope. Section 9 defines only the fields that those upstream systems must make searchable.
 
+### 1.1 Adaptive Mechanism Coverage Matrix
+
+This specification is complete for its declared retrieval-only boundary. "Complete" means every adaptive decision has a trigger, bounded action, fallback, telemetry, and acceptance gate. It does not mean every possible RAG feature is in scope.
+
+| Adaptive decision | Trigger or input | Runtime adaptation | Primary section | Coverage |
+|---|---|---|---|---|
+| Language selection | Query text, hint, tenant default | Select BCP 47 language packs and lexical fields | 6 | Full |
+| Mixed/unknown language | Detector confidence and candidates | Merge packs or use `und` plus dense fallback | 6, 7 | Full |
+| Cross-lingual retrieval | Query/source language mismatch | Multilingual vector search and bounded translated lexical variants | 6, 7, 8 | Full |
+| Retrieval/no retrieval | High-confidence meta intent | Select `NONE` or a retrieval profile | 6 | Full |
+| Precision/recall strategy | Intent, length, complexity, evidence need | Select `PRECISION`, `BALANCED`, or `RECALL` | 6, 7 | Full |
+| Lexical emphasis | Identifiers, acronyms, keyword query | Raise BM25 quota and RRF weight | 6, 7 | Full |
+| Exact lookup | Quoted or pasted source text | Run exact locator beside fuzzy retrieval | 6, 8, 9 | Full when indexed fields exist |
+| Temporal retrieval | Current, latest, effective, or as-of intent | Apply temporal filter or recency preference | 6, 7 | Full when indexed fields exist |
+| Table retrieval | Numeric, table, row, or dimension intent | Prefer table fields and preserve header context | 6, 7, 10 | Full when indexed fields exist |
+| Procedure context | How-to or troubleshooting intent | Expand neighboring and parent chunks | 6, 7, 10 | Full when adjacency exists |
+| Scope selection | Identity, ACL, explicit IDs, metadata | Resolve authorized projects and datasets before search | 8, 13 | Full |
+| Project/dataset routing | Eligible-scope size and catalog scores | Select bounded catalogs and mandatory datasets | 8 | Full |
+| Physical search planning | Index, model, vector, and lexical compatibility | Group datasets into bounded `_msearch` work | 8 | Full |
+| Candidate budgets | Profile, modifier, scale, and deadline | Change BM25, ANN, fusion, rerank, and context counts | 7, 8 | Full |
+| Retrieval-source selection | Intent and capability health | Use BM25, vector, exact, or optional graph sources | 7, 9, 11 | Full; graph optional |
+| Fusion strategy | Compatible/incompatible score distributions | Use weighted RRF or calibrated score fusion | 7, 10 | Full |
+| Reranker decision | Profile, request mode, health, and deadline | Enable, skip, or circuit-break to non-reranked policy | 7, 15 | Full |
+| Evidence sufficiency | Score, count, diversity, failures, comparison sides | Stop, relax once, escalate routing, or return insufficient evidence | 7, 8, 15 | Full |
+| Parallel decomposition | Compound or comparison query | Run at most three independent subqueries | 6, 7 | Full |
+| Sequential multi-hop | Evidence-dependent relationship query | Run at most three grounded retrieval hops | 6, 7 | Full |
+| Context selection | Profile, token budget, diversity, adjacency | Deduplicate, diversify, expand, and trim evidence | 10 | Full |
+| Failure adaptation | Dependency errors, timeouts, stale catalogs, shard failures | Use typed fallbacks, partial coverage, or fail closed | 15 | Full |
+| Runtime configuration | Versioned profiles, models, rules, floors | Validate and atomically activate or roll back | 12 | Full |
+| Feedback control loop | Telemetry and labeled evaluations | Calibrate rules, budgets, routing, scores, and feature flags offline | 14, 16, 17 | Full; no online self-training |
+| Auditable API behavior | Request scope and runtime decisions | Return versions, timings, hops, coverage, and failure state | 13, 14 | Full |
+
+Explicitly outside this coverage boundary:
+
+- Document parsing, chunking, ingestion, and index lifecycle.
+- Training embedding, reranking, routing, translation, or language-detection models.
+- Final answer generation, answer translation, and hallucination controls after retrieval.
+- Unlimited autonomous research, web browsing, and more than three synchronous retrieval hops.
+- Automatic online learning that changes production behavior without evaluation and configuration approval.
+
 ---
 
 ## 2. Goals and Non-Goals
+
+> **Adaptive mechanism covered:** Defines measurable boundaries for what may adapt at runtime and what remains intentionally static or outside retrieval.
 
 ### 2.1 Goals
 
@@ -72,6 +116,8 @@ This is a retrieval-only specification. Parsing, chunking, document embeddings, 
 
 ## 3. Design Principles and Invariants
 
+> **Adaptive mechanism covered:** Constrains every adaptive choice with authorization, bounded work, score compatibility, read-only behavior, and honest no-evidence outcomes.
+
 1. **Authorization precedes routing.** Unauthorized projects and datasets never enter router candidate sets.
 2. **Query intent and retrieval properties are separate.** A query may be analytical and lexical, or summary-oriented and verbatim, at the same time.
 3. **Routing is bounded.** Full retrieval is limited by configured project, dataset, candidate, and time budgets.
@@ -90,6 +136,8 @@ This is a retrieval-only specification. Parsing, chunking, document embeddings, 
 ---
 
 ## 4. Terminology
+
+> **Adaptive mechanism covered:** Establishes the contracts used to express profiles, modifiers, routing waves, search groups, hops, language packs, calibration, and evidence.
 
 | Term | Definition |
 |---|---|
@@ -111,6 +159,8 @@ This is a retrieval-only specification. Parsing, chunking, document embeddings, 
 ---
 
 ## 5. High-Level Architecture
+
+> **Adaptive mechanism covered:** Shows the control flow that converts query signals into a retrieval plan, executes it, checks evidence, and records the decision.
 
 ```text
 Standalone query
@@ -182,6 +232,8 @@ The services may be horizontally stateless, but they depend on external state:
 ---
 
 ## 6. Query Analyzer
+
+> **Adaptive mechanism covered:** Detects language and query family, then selects the base profile, composable modifiers, decomposition, multi-hop, or `NONE`.
 
 ### 6.1 Language Detection
 
@@ -484,6 +536,8 @@ If the loop stops early, completed evidence is returned with `coverage_incomplet
 
 ## 7. Retrieval Parameter Model
 
+> **Adaptive mechanism covered:** Converts profiles and modifiers into bounded candidate counts, RRF weights, score floors, reranking policy, retries, and specialized retrieval behavior.
+
 ### 7.1 Separation of Concerns
 
 Adaptive RAG v2 separates five candidate counts:
@@ -654,7 +708,19 @@ At most one retrieval retry is allowed:
 4. Do not retry `NONE`.
 5. Record the retry reason and parameter delta.
 
-### 7.9 Reranker Circuit Breaker
+### 7.9 Reranker Activation
+
+`rerank_mode` is resolved before candidate execution:
+
+1. `off` always uses the calibrated RRF path.
+2. `on` requires the configured reranker and returns `DEPENDENCY_ERROR` when it cannot run.
+3. `auto` enables reranking only when the selected profile enables it, the circuit breaker is closed, at least `rerank_min_candidates` survive fusion, and the remaining deadline exceeds `rerank_timeout_ms + 100`.
+4. `auto` skips reranking when an authorized unique exact hit already satisfies a precision lookup.
+5. Any skip records its reason: `request_off`, `profile_off`, `exact_sufficient`, `too_few_candidates`, `deadline`, or `circuit_open`.
+
+Reranker activation changes the score path, score floor, calibration ID, candidate cap, and expected latency as one atomic plan decision.
+
+### 7.10 Reranker Circuit Breaker
 
 The reranker circuit breaker opens on configured timeout or error-rate thresholds.
 
@@ -668,6 +734,8 @@ When open:
 ---
 
 ## 8. Hierarchical Routing
+
+> **Adaptive mechanism covered:** Adapts authorized project, dataset, physical-index, embedding-model, lexical-schema, and search-group selection to deployment scale and evidence sufficiency.
 
 ### 8.1 Routing Hierarchy
 
@@ -1055,6 +1123,8 @@ The server builds this object from trusted identity and resolved scope. User inp
 
 ## 9. Exact and Verbatim Retrieval
 
+> **Adaptive mechanism covered:** Switches quoted or pasted text to exact-location search while retaining fuzzy and cross-lingual fallback paths.
+
 ### 9.1 Required Indexed Fields
 
 The upstream indexing system must make the following fields searchable when exact retrieval is enabled:
@@ -1130,6 +1200,8 @@ If no exact or qualified fuzzy result is found:
 
 ## 10. Candidate Fusion and Context Assembly
 
+> **Adaptive mechanism covered:** Adapts cross-group fusion, deduplication, diversity, neighbor expansion, multi-hop evidence preservation, and context trimming.
+
 ### 10.1 Per-Group and Per-Dataset Candidate Quotas
 
 Each physical search group returns at most `fusion_candidate_k` candidates after RRF. The global pool applies:
@@ -1200,6 +1272,8 @@ For `DECOMPOSE`, the assembler preserves at least one qualifying evidence group 
 
 ## 11. Knowledge-Graph Retrieval
 
+> **Adaptive mechanism covered:** Optionally activates graph retrieval only for explicit or calibrated relationship queries and safely falls back to text retrieval.
+
 Knowledge-graph retrieval is optional and separately gated because it may require LLM-based entity extraction and adds latency.
 
 It runs only when:
@@ -1219,6 +1293,8 @@ KG retrieval failure does not fail normal text retrieval.
 ---
 
 ## 12. Configuration
+
+> **Adaptive mechanism covered:** Makes rules, language packs, models, budgets, floors, routing limits, and fallbacks versioned, validated, atomic, and reversible.
 
 ### 12.1 Example
 
@@ -1277,6 +1353,8 @@ adaptive_rag:
         calibration_id: "rrf-precision-v1"
       rerank:
         enabled: true
+        min_candidates: 10
+        timeout_ms: 800
         score_floor: 0.25
         calibration_id: "rerank-precision-v1"
 
@@ -1298,6 +1376,8 @@ adaptive_rag:
         calibration_id: "rrf-balanced-v1"
       rerank:
         enabled: true
+        min_candidates: 20
+        timeout_ms: 800
         score_floor: 0.20
         calibration_id: "rerank-balanced-v1"
 
@@ -1319,6 +1399,8 @@ adaptive_rag:
         calibration_id: "rrf-recall-v1"
       rerank:
         enabled: true
+        min_candidates: 30
+        timeout_ms: 1000
         score_floor: 0.15
         calibration_id: "rerank-recall-v1"
 
@@ -1406,6 +1488,8 @@ No request may combine fields from two configuration versions.
 ---
 
 ## 13. Internal API
+
+> **Adaptive mechanism covered:** Exposes adaptive inputs that may narrow behavior and returns the complete plan, language, route, hop, score, coverage, and timing decision.
 
 ### 13.1 Request
 
@@ -1535,6 +1619,8 @@ POST /v2/adaptive-retrieve
 
 ## 14. Observability and Privacy
 
+> **Adaptive mechanism covered:** Supplies the feedback signals used to calibrate adaptive rules and budgets while protecting enterprise queries and unauthorized scope.
+
 ### 14.1 Metrics
 
 Record:
@@ -1591,9 +1677,26 @@ The evaluation set includes:
 - Repeated boilerplate across documents.
 - Queries where the relevant dataset is newly created or rarely used.
 
+### 14.4 Adaptive Control Loop
+
+Runtime requests do not train or mutate the mechanism. Adaptation across releases uses this controlled loop:
+
+1. Collect sanitized decision, latency, coverage, and outcome telemetry.
+2. Add sampled failures and regressions to versioned labeled evaluation sets.
+3. Propose one versioned change to a rule pack, profile, budget, routing threshold, lexical map, RRF policy, or model reference.
+4. Run all affected language, tenant, scale, and query-family slices offline.
+5. Reject any change that misses a security, recall, latency, or critical-slice gate.
+6. Run the surviving configuration in shadow mode.
+7. Canary it for explicitly selected tenants.
+8. Activate atomically or restore the last known-good version.
+
+The loop never writes production configuration directly from user clicks, model output, or raw relevance feedback.
+
 ---
 
 ## 15. Failure Modes
+
+> **Adaptive mechanism covered:** Defines how the mechanism adapts to uncertainty, unavailable models, stale catalogs, timeouts, partial shards, and insufficient evidence.
 
 | Failure | Required behavior |
 |---|---|
@@ -1624,6 +1727,8 @@ The evaluation set includes:
 ---
 
 ## 16. Acceptance Criteria
+
+> **Adaptive mechanism covered:** Provides activation gates for every adaptive path so behavior changes are evidence-based rather than assumed improvements.
 
 ### 16.1 Analyzer
 
@@ -1690,6 +1795,8 @@ Excluding answer generation:
 
 ## 17. Rollout Plan
 
+> **Adaptive mechanism covered:** Activates analyzer, routing, specialized retrieval, reranking, decomposition, multi-hop, and cross-lingual behavior incrementally with rollback.
+
 ### Phase 0 - Baseline
 
 - Build the labeled analyzer, routing, retrieval, and exact-fragment evaluation sets.
@@ -1734,6 +1841,8 @@ Excluding answer generation:
 
 ## 18. Deferred Options
 
+> **Adaptive mechanism covered:** Prevents speculative adaptive features from entering runtime until telemetry demonstrates a measured need.
+
 The following are intentionally deferred until telemetry demonstrates a need:
 
 - Multilingual analysis and language-specific profiles.
@@ -1748,6 +1857,8 @@ The following are intentionally deferred until telemetry demonstrates a need:
 ---
 
 ## 19. Portable TypeScript Reference
+
+> **Adaptive mechanism covered:** Demonstrates the executable contracts for analysis, language detection, scope, routing, grouping, OpenSearch retrieval, RRF, and bounded hops.
 
 This reference is intentionally small. It shows the mechanism and trust boundaries without prescribing an embedding, LLM, or reranker vendor.
 
@@ -3321,6 +3432,8 @@ describe('adaptive RAG mechanism', () => {
 ---
 
 ## 20. References
+
+> **Adaptive mechanism covered:** Anchors OpenSearch query, vector, analyzer, multi-search, and fusion assumptions to their authoritative platform behavior.
 
 - [OpenSearch JavaScript client](https://docs.opensearch.org/latest/clients/javascript/index/)
 - [OpenSearch k-NN query and query-time parameters](https://docs.opensearch.org/latest/query-dsl/specialized/k-nn/index/)
