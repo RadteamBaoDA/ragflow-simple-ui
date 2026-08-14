@@ -1,0 +1,26 @@
+{
+  "name": "@agentic/module",
+  "version": "0.2.0",
+  "private": true,
+  "type": "module",
+  "main": "./dist/index.js",
+  "types": "./dist/index.d.ts",
+  "exports": {
+    ".": {
+      "types": "./dist/index.d.ts",
+      "import": "./dist/index.js"
+    }
+  },
+  "files": ["dist", "README.md", "INTEGRATION_SPEC.md", "HOST_IMPLEMENTATION_SPEC.md", "UI_STREAMING_SPEC.md", "OPERATOR_RUNBOOK.md", "HFS_STATUS.md", "JSDOC_STANDARD.md"],
+  "scripts": {
+    "build": "tsc",
+    "typecheck": "tsc --noEmit",
+    "check:docs": "node scripts/check-source-docs.mjs",
+    "test:package": "tsc -p fixture/tsconfig.json",
+    "test": "node --experimental-strip-types --test test/*.test.ts"
+  },
+  "devDependencies": {
+    "@types/node": "^24.0.0",
+    "typescript": "^5.9.2"
+  }
+}
