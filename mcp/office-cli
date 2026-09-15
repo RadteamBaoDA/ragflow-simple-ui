@@ -1,0 +1,2021 @@
+AionUi / AionCore → OfficeCLI Orchestration
+
+> Mục tiêu: tài liệu duy nhất để một LLM hiểu cách AionUi/AionCore orchestration gọi OfficeCLI cho Word / Excel / PowerPoint.
+>
+> Source chính:
+> - https://github.com/iOfficeAI/AionUi
+> - https://github.com/iOfficeAI/AionCore
+> - https://github.com/iOfficeAI/OfficeCLI
+>
+> Snapshot source được kiểm tra ngày 2026-09-14.
+>
+> Lưu ý: đây là **toàn bộ đường orchestration liên quan trực tiếp đến OfficeCLI** được gom lại thành một file, không phải dump toàn bộ repository.
+
+---
+
+## 1. Kiến trúc tổng thể
+
+```text
+User prompt
+   |
+   v
+AionUi Assistant
+   |
+   | assistant.agent_ref = "aionrs"
+   | assistant.enabled_skills = ["officecli-docx" | "officecli-xlsx" | "officecli-pptx"]
+   v
+AionRS Agent Runtime
+   |
+   | Load SKILL.md
+   | LLM quyết định các lệnh officecli cần chạy
+   v
+Shell / command tool
+   |
+   | officecli create ...
+   | officecli add ...
+   | officecli set ...
+   | officecli get ...
+   | officecli validate ...
+   | officecli view ...
+   v
+OfficeCLI
+   |
+   +---- DOCX
+   +---- XLSX
+   +---- PPTX
+
+Song song, để preview:
+
+Frontend
+   |
+   | POST /api/{word|excel|ppt}-preview/start
+   v
+AionCore office_routes
+   |
+   v
+OfficecliWatchManager.start_for_user(...)
+   |
+   v
+DefaultProcessSpawner.spawn_officecli(...)
+   |
+   | officecli watch <file> --port <port>
+   v
+OfficeCLI HTTP preview server
+   |
+   v
+ProxyService
+   |
+   v
+AionUi WebView / Browser
+```
+
+Điểm quan trọng:
+
+- **Agent không gọi một SDK OfficeCLI đặc biệt.**
+- Agent được prompt bằng `SKILL.md`, rồi dùng command execution để chạy `officecli ...`.
+- Backend Rust của AionCore gọi OfficeCLI trực tiếp chủ yếu cho **watch / preview / refresh / lifecycle**.
+
+---
+
+# 2. Assistant chọn Office skill như thế nào
+
+Source:
+
+```text
+iOfficeAI/AionCore
+crates/aionui-app/assets/builtin-assistants/assistants.json
+```
+
+Các assistant chính:
+
+```json
+{
+  "id": "word-creator",
+  "name": "Word Creator",
+  "description": "Create, edit, and analyze professional Word documents with officecli. Reports, proposals, letters, memos, and more.",
+  "agent_ref": "aionrs",
+  "enabled_skills": [
+    "officecli-docx"
+  ],
+  "custom_skill_names": [],
+  "disabled_builtin_skills": [],
+  "rule_file": "rules/word-creator.{locale}.md",
+  "models": []
+}
+```
+
+```json
+{
+  "id": "ppt-creator",
+  "name": "PPT Creator",
+  "description": "Create, edit, and analyze professional PowerPoint presentations with officecli. Bold designs, varied layouts, and visual impact.",
+  "agent_ref": "aionrs",
+  "enabled_skills": [
+    "officecli-pptx"
+  ],
+  "custom_skill_names": [],
+  "disabled_builtin_skills": [],
+  "rule_file": "rules/ppt-creator.{locale}.md",
+  "models": []
+}
+```
+
+```json
+{
+  "id": "excel-creator",
+  "name": "Excel Creator",
+  "description": "Create, edit, and analyze professional Excel spreadsheets with officecli. Financial models, dashboards, trackers, and data analysis.",
+  "agent_ref": "aionrs",
+  "enabled_skills": [
+    "officecli-xlsx"
+  ],
+  "custom_skill_names": [],
+  "disabled_builtin_skills": [],
+  "rule_file": "rules/excel-creator.{locale}.md",
+  "models": []
+}
+```
+
+Nghĩa là:
+
+```text
+Word Creator  -> aionrs + officecli-docx
+PPT Creator   -> aionrs + officecli-pptx
+Excel Creator -> aionrs + officecli-xlsx
+```
+
+Ngoài ra có các scene skills:
+
+```text
+officecli-word-form
+officecli-academic-paper
+officecli-financial-model
+officecli-data-dashboard
+officecli-pitch-deck
+Morph PPT skills
+```
+
+Các scene skill này vẫn build trên primitive OfficeCLI.
+
+---
+
+# 3. Auto-injected OfficeCLI skill
+
+Source:
+
+```text
+crates/aionui-app/assets/builtin-skills/auto-inject/officecli/SKILL.md
+```
+
+Header:
+
+```yaml
+---
+name: officecli
+description: Create, analyze, proofread, and modify Office documents (.docx, .xlsx, .pptx) with the officecli CLI. Use when the user wants to build, inspect, check formatting, or chart a Word/Excel/PPT file.
+---
+```
+
+Skill nói rõ với agent:
+
+```text
+AI-friendly CLI for .docx, .xlsx, .pptx.
+Single binary, no dependencies, no Office installation needed.
+```
+
+Chiến lược:
+
+```text
+L1 (read) → L2 (DOM edit) → L3 (raw XML)
+```
+
+Agent được hướng dẫn dùng help thay vì đoán:
+
+```bash
+officecli help
+officecli help docx
+officecli help docx paragraph
+officecli help docx set paragraph
+officecli help docx paragraph --json
+```
+
+Alias:
+
+```text
+word       -> docx
+excel      -> xlsx
+ppt        -> pptx
+powerpoint -> pptx
+```
+
+---
+
+# 4. Các lệnh mà agent thực sự sinh ra
+
+## PowerPoint
+
+```bash
+officecli create slides.pptx
+
+officecli add slides.pptx / \
+  --type slide \
+  --prop title="Q4 Report" \
+  --prop background=1A1A2E
+
+officecli add slides.pptx '/slide[1]' \
+  --type shape \
+  --prop text="Revenue grew 25%" \
+  --prop x=2cm \
+  --prop y=5cm \
+  --prop font=Arial \
+  --prop size=24 \
+  --prop color=FFFFFF
+```
+
+## Word
+
+```bash
+officecli create report.docx
+
+officecli add report.docx /body \
+  --type paragraph \
+  --prop text="Executive Summary" \
+  --prop style=Heading1
+
+officecli add report.docx /body \
+  --type paragraph \
+  --prop text="Revenue increased by 25% year-over-year."
+```
+
+## Excel
+
+```bash
+officecli create data.xlsx
+
+officecli set data.xlsx /Sheet1/A1 \
+  --prop value="Name" \
+  --prop bold=true
+
+officecli set data.xlsx /Sheet1/A2 \
+  --prop value="Alice"
+```
+
+---
+
+# 5. OfficeCLI primitives mà orchestration dùng
+
+```bash
+officecli create <file>
+
+officecli view <file> outline
+officecli view <file> stats
+officecli view <file> issues
+officecli view <file> text
+officecli view <file> annotated
+officecli view <file> html
+
+officecli get <file> <path> --depth N --json
+
+officecli query <file> '<selector>'
+
+officecli validate <file>
+
+officecli set <file> <path> --prop key=value
+
+officecli add <file> <parent> --type <type> --prop key=value
+
+officecli remove <file> <path>
+```
+
+Resident mode:
+
+```bash
+officecli open report.docx
+officecli set report.docx ...
+officecli close report.docx
+```
+
+---
+
+# 6. Agent loop điển hình
+
+Pseudo orchestration:
+
+```text
+1. Parse user intent.
+2. Chọn Office skill.
+3. Nếu cần, inspect source files/data.
+4. officecli create/open.
+5. officecli add/set nhiều lần.
+6. officecli get/query để kiểm tra structure.
+7. officecli validate.
+8. officecli view html hoặc watch.
+9. Nếu render có vấn đề:
+     inspect -> set/add/remove -> render lại.
+10. close/save.
+11. Trả file cho user.
+```
+
+Một loop có thể được implement như:
+
+```python
+def build_office_document(request):
+    plan = llm.plan(request)
+
+    run(["officecli", "create", plan.output_file])
+    run(["officecli", "open", plan.output_file])
+
+    for operation in plan.operations:
+        run(operation.to_officecli_args())
+
+    validation = run([
+        "officecli",
+        "validate",
+        plan.output_file
+    ])
+
+    preview = run([
+        "officecli",
+        "view",
+        plan.output_file,
+        "html"
+    ])
+
+    if llm.detect_visual_problem(preview):
+        fixes = llm.plan_fixes(preview)
+
+        for fix in fixes:
+            run(fix.to_officecli_args())
+
+    run(["officecli", "close", plan.output_file])
+
+    return plan.output_file
+```
+
+Đây là pseudo-code tương đương với cách skill-driven agent hoạt động; AionUi không hard-code từng operation Office trong assistant.
+
+---
+
+# 7. OfficeCLI binary resolution
+
+Source:
+
+```text
+crates/aionui-office/src/officecli_runtime.rs
+```
+
+Code production quan trọng:
+
+```rust
+use std::ffi::{OsStr, OsString};
+use std::path::PathBuf;
+
+use aionui_runtime::resolve_command_path;
+
+pub(crate) const OFFICECLI_INSTALL_SH_MIRROR_URL: &str =
+    "https://d.officecli.ai/install.sh";
+
+pub(crate) const OFFICECLI_INSTALL_PS1_MIRROR_URL: &str =
+    "https://d.officecli.ai/install.ps1";
+
+pub(crate) const OFFICECLI_INSTALL_SH_URL: &str =
+    "https://raw.githubusercontent.com/iOfficeAI/OfficeCli/main/install.sh";
+
+pub(crate) const OFFICECLI_INSTALL_PS1_URL: &str =
+    "https://raw.githubusercontent.com/iOfficeAI/OfficeCli/main/install.ps1";
+
+pub(crate) const OFFICECLI_LATEST_RELEASE_URL: &str =
+    "https://github.com/iOfficeAI/OfficeCli/releases/latest";
+
+#[derive(Debug, Clone, Copy, PartialEq, Eq)]
+pub(crate) enum OfficecliInstallPlatform {
+    Unix,
+    Windows,
+}
+
+#[derive(Debug, Clone, PartialEq, Eq)]
+pub(crate) struct OfficecliInstallCommand {
+    pub program: OsString,
+    pub args: Vec<OsString>,
+}
+
+pub(crate) fn resolve_officecli_path() -> Option<PathBuf> {
+    resolve_command_path("officecli")
+        .or_else(resolve_known_officecli_install_path)
+}
+
+pub(crate) fn install_command() -> OfficecliInstallCommand {
+    if cfg!(windows) {
+        install_command_for_platform(OfficecliInstallPlatform::Windows)
+    } else {
+        install_command_for_platform(OfficecliInstallPlatform::Unix)
+    }
+}
+
+pub(crate) fn install_command_for_platform(
+    platform: OfficecliInstallPlatform,
+) -> OfficecliInstallCommand {
+    match platform {
+        OfficecliInstallPlatform::Windows => OfficecliInstallCommand {
+            program: OsString::from("powershell.exe"),
+            args: vec![
+                OsString::from("-NoProfile"),
+                OsString::from("-ExecutionPolicy"),
+                OsString::from("Bypass"),
+                OsString::from("-Command"),
+                OsString::from(format!(
+                    "$ErrorActionPreference='Stop'; \
+                     try {{ $s = irm {OFFICECLI_INSTALL_PS1_MIRROR_URL} }} \
+                     catch {{ $s = irm {OFFICECLI_INSTALL_PS1_URL} }}; \
+                     iex $s"
+                )),
+            ],
+        },
+
+        OfficecliInstallPlatform::Unix => OfficecliInstallCommand {
+            program: OsString::from("bash"),
+            args: vec![
+                OsString::from("-lc"),
+                OsString::from(format!(
+                    "f=$(mktemp) || exit 1; \
+                     (curl -fsSL {OFFICECLI_INSTALL_SH_MIRROR_URL} -o \"$f\" \
+                     || curl -fsSL {OFFICECLI_INSTALL_SH_URL} -o \"$f\") \
+                     && bash \"$f\"; \
+                     s=$?; rm -f \"$f\"; exit $s"
+                )),
+            ],
+        },
+    }
+}
+
+fn resolve_known_officecli_install_path() -> Option<PathBuf> {
+    resolve_known_officecli_install_path_from_env(
+        std::env::var_os("HOME").as_deref(),
+        std::env::var_os("LOCALAPPDATA").as_deref(),
+    )
+}
+
+fn resolve_known_officecli_install_path_from_env(
+    home: Option<&OsStr>,
+    local_app_data: Option<&OsStr>,
+) -> Option<PathBuf> {
+    let mut candidates = Vec::new();
+
+    if let Some(local_app_data) = local_app_data {
+        candidates.push(
+            PathBuf::from(local_app_data)
+                .join("OfficeCli")
+                .join("officecli.exe")
+        );
+    }
+
+    if let Some(home) = home {
+        candidates.push(
+            PathBuf::from(home)
+                .join(".local")
+                .join("bin")
+                .join("officecli")
+        );
+    }
+
+    candidates
+        .into_iter()
+        .find(|path| path.is_file())
+}
+```
+
+Logic:
+
+```text
+1. Tìm officecli trong PATH.
+2. Nếu không có:
+   Windows:
+     %LOCALAPPDATA%\OfficeCli\officecli.exe
+
+   Unix:
+     ~/.local/bin/officecli
+3. Nếu preview cần binary nhưng không có:
+   auto-install bằng official installer.
+```
+
+---
+
+# 8. ProcessSpawner: chỗ AionCore trực tiếp chạy OfficeCLI
+
+Source:
+
+```text
+crates/aionui-office/src/watch_manager.rs
+```
+
+Interface:
+
+```rust
+#[async_trait::async_trait]
+pub trait ProcessSpawner: Send + Sync {
+    async fn spawn_officecli(
+        &self,
+        file_path: &str,
+        port: u16,
+        doc_type: DocType,
+    ) -> Result<Box<dyn ProcessHandle>, OfficeError>;
+
+    async fn install_officecli(
+        &self,
+    ) -> Result<(), OfficeError>;
+
+    async fn is_officecli_installed(
+        &self,
+    ) -> bool;
+
+    async fn check_update(
+        &self,
+        doc_type: DocType,
+    ) -> Result<(), OfficeError>;
+}
+```
+
+Process handle:
+
+```rust
+pub trait ProcessHandle: Send + Sync {
+    fn kill(&self);
+    fn is_alive(&self) -> bool;
+}
+```
+
+Chỗ gọi binary thật sự:
+
+```rust
+#[async_trait::async_trait]
+impl ProcessSpawner for DefaultProcessSpawner {
+    async fn spawn_officecli(
+        &self,
+        file_path: &str,
+        port: u16,
+        _doc_type: DocType,
+    ) -> Result<Box<dyn ProcessHandle>, OfficeError> {
+        let officecli =
+            resolve_officecli_path()
+                .ok_or(OfficeError::OfficecliNotFound)?;
+
+        if !officecli_supports_watch(&officecli).await {
+            return Err(OfficeError::OfficecliNotFound);
+        }
+
+        let mut builder = CmdBuilder::new(&officecli);
+
+        builder
+            .arg("watch")
+            .arg(file_path)
+            .arg("--port")
+            .arg(port.to_string())
+            .stdin(std::process::Stdio::null())
+            .stdout(std::process::Stdio::null())
+            .stderr(std::process::Stdio::null());
+
+        let child = builder.spawn().map_err(|e| {
+            if e.kind() == std::io::ErrorKind::NotFound {
+                OfficeError::OfficecliNotFound
+            } else {
+                OfficeError::StartFailed(e.to_string())
+            }
+        })?;
+
+        Ok(Box::new(TokioProcessHandle {
+            child: Mutex::new(Some(child)),
+        }))
+    }
+}
+```
+
+Tương đương command:
+
+```bash
+officecli watch "<file_path>" --port <port>
+```
+
+Đây là điểm quan trọng nhất nếu muốn biết **AionCore trực tiếp execute OfficeCLI thế nào**.
+
+---
+
+# 9. Auto-install khi chưa có OfficeCLI
+
+Flow trong `OfficecliWatchManager`:
+
+```rust
+async fn spawn_officecli_with_install(
+    &self,
+    user_id: &str,
+    resolved: &str,
+    port: u16,
+    doc_type: DocType,
+) -> Result<Box<dyn ProcessHandle>, OfficeError> {
+    match self
+        .spawner
+        .spawn_officecli(
+            resolved,
+            port,
+            doc_type
+        )
+        .await
+    {
+        Ok(process) => Ok(process),
+
+        Err(OfficeError::OfficecliNotFound) => {
+            self.broadcast_status_for_user(
+                user_id,
+                doc_type,
+                PreviewState::Installing,
+                None,
+            );
+
+            self.spawner
+                .install_officecli()
+                .await?;
+
+            self.spawner
+                .spawn_officecli(
+                    resolved,
+                    port,
+                    doc_type
+                )
+                .await
+        }
+
+        Err(error) => Err(error),
+    }
+}
+```
+
+Logic:
+
+```text
+spawn officecli
+     |
+     +-- success -> continue
+     |
+     +-- OfficecliNotFound
+             |
+             v
+        install_officecli()
+             |
+             v
+        spawn lại
+```
+
+---
+
+# 10. Watch session orchestration
+
+Core state:
+
+```rust
+struct WatchSession {
+    user_id: String,
+    port: u16,
+    process: Box<dyn ProcessHandle>,
+    file_path: String,
+    doc_type: DocType,
+    aborted: bool,
+}
+```
+
+Manager:
+
+```rust
+pub struct OfficecliWatchManager {
+    sessions: DashMap<WatchSessionKey, WatchSession>,
+    spawner: Arc<dyn ProcessSpawner>,
+    broadcaster: Arc<dyn EventBroadcaster>,
+    last_version_check: Mutex<Option<std::time::Instant>>,
+}
+```
+
+Start:
+
+```rust
+pub async fn start_for_user(
+    &self,
+    user_id: &str,
+    file_path: &str,
+    doc_type: DocType,
+) -> Result<u16, OfficeError> {
+    let resolved = resolve_path(file_path)?;
+    let key = session_key(
+        user_id,
+        &resolved,
+        doc_type
+    );
+
+    if let Some(entry) = self.sessions.get(&key) {
+        if !entry.aborted && entry.process.is_alive() {
+            return Ok(entry.port);
+        }
+
+        drop(entry);
+        self.sessions.remove(&key);
+    }
+
+    self.broadcast_status_for_user(
+        user_id,
+        doc_type,
+        PreviewState::Starting,
+        None,
+    );
+
+    let result =
+        self.try_start(
+            user_id,
+            &resolved,
+            doc_type
+        )
+        .await;
+
+    match &result {
+        Ok(port) => {
+            self.broadcast_status_for_user(
+                user_id,
+                doc_type,
+                PreviewState::Ready,
+                None,
+            );
+
+            if doc_type == DocType::Ppt {
+                self.maybe_check_update(doc_type).await;
+            }
+
+            Ok(*port)
+        }
+
+        Err(e) => {
+            self.broadcast_status_for_user(
+                user_id,
+                doc_type,
+                PreviewState::Error,
+                Some(public_preview_error_message(e)),
+            );
+
+            Err(/* normalized OfficeError */)
+        }
+    }
+}
+```
+
+Start retry port:
+
+```rust
+async fn try_start(
+    &self,
+    user_id: &str,
+    resolved: &str,
+    doc_type: DocType,
+) -> Result<u16, OfficeError> {
+    for attempt in 1..=START_PORT_MAX_ATTEMPTS {
+        let port = allocate_port()?;
+
+        match self
+            .spawn_officecli_with_install(
+                user_id,
+                resolved,
+                port,
+                doc_type,
+            )
+            .await
+        {
+            Ok(process) => {
+                self.poll_port_ready(
+                    port,
+                    resolved
+                )
+                .await?;
+
+                let key =
+                    session_key(
+                        user_id,
+                        resolved,
+                        doc_type
+                    );
+
+                self.sessions.insert(
+                    key,
+                    WatchSession {
+                        user_id: user_id.to_owned(),
+                        port,
+                        process,
+                        file_path: resolved.to_owned(),
+                        doc_type,
+                        aborted: false,
+                    },
+                );
+
+                return Ok(port);
+            }
+
+            Err(error)
+                if is_port_in_use_start_failure(&error)
+                    && attempt < START_PORT_MAX_ATTEMPTS =>
+            {
+                // retry another port
+            }
+
+            Err(error) => return Err(error),
+        }
+    }
+
+    Err(OfficeError::StartFailed(
+        "failed to allocate an available preview port".into()
+    ))
+}
+```
+
+Readiness:
+
+```rust
+async fn poll_port_ready(
+    &self,
+    port: u16,
+    file_path: &str,
+) -> Result<(), OfficeError> {
+    for _ in 0..POLL_MAX_ATTEMPTS {
+        if is_port_listening(port).await {
+            return Ok(());
+        }
+
+        tokio::time::sleep(
+            Duration::from_millis(
+                POLL_INTERVAL_MS
+            )
+        )
+        .await;
+    }
+
+    Err(
+        OfficeError::PortTimeout(
+            file_path.to_owned()
+        )
+    )
+}
+```
+
+---
+
+# 11. HTTP routes dùng để start preview
+
+Source:
+
+```text
+crates/aionui-office/src/routes.rs
+```
+
+Routes:
+
+```rust
+pub fn office_routes(
+    state: OfficeRouterState
+) -> Router {
+    Router::new()
+
+        .route(
+            "/api/word-preview/start",
+            post(start_word_preview)
+        )
+
+        .route(
+            "/api/word-preview/stop",
+            post(stop_word_preview)
+        )
+
+        .route(
+            "/api/word-preview/refresh",
+            post(refresh_word_preview)
+        )
+
+        .route(
+            "/api/excel-preview/start",
+            post(start_excel_preview)
+        )
+
+        .route(
+            "/api/excel-preview/stop",
+            post(stop_excel_preview)
+        )
+
+        .route(
+            "/api/excel-preview/refresh",
+            post(refresh_excel_preview)
+        )
+
+        .route(
+            "/api/ppt-preview/start",
+            post(start_ppt_preview)
+        )
+
+        .route(
+            "/api/ppt-preview/stop",
+            post(stop_ppt_preview)
+        )
+
+        .route(
+            "/api/ppt-preview/refresh",
+            post(refresh_ppt_preview)
+        )
+
+        .route(
+            "/api/document/convert",
+            post(convert_document)
+        )
+
+        .with_state(state)
+}
+```
+
+Proxy routes:
+
+```rust
+pub fn office_proxy_routes(
+    state: OfficeRouterState
+) -> Router {
+    Router::new()
+
+        .route(
+            "/api/ppt-proxy/{port}",
+            get(ppt_proxy)
+        )
+
+        .route(
+            "/api/ppt-proxy/{port}/{*path}",
+            get(ppt_proxy)
+        )
+
+        .route(
+            "/api/office-watch-proxy/{port}",
+            get(office_watch_proxy)
+        )
+
+        .route(
+            "/api/office-watch-proxy/{port}/{*path}",
+            get(office_watch_proxy)
+        )
+
+        .with_state(state)
+}
+```
+
+---
+
+# 12. Generic start_preview
+
+Đây là đoạn nối HTTP API vào WatchManager:
+
+```rust
+async fn start_preview(
+    state: OfficeRouterState,
+    user_id: &str,
+    body: Result<
+        Json<StartPreviewRequest>,
+        JsonRejection
+    >,
+    doc_type: DocType,
+) -> Result<
+    Json<ApiResponse<PreviewUrlResponse>>,
+    ApiError
+> {
+    let Json(req) =
+        body.map_err(ApiError::from)?;
+
+    let validated_path =
+        match &req.file {
+            Some(file) => {
+                let upload_root =
+                    std::env::temp_dir()
+                        .join("aionui");
+
+                state
+                    .project
+                    .resolve_chat_file_ref(
+                        user_id,
+                        file,
+                        &upload_root,
+                        aionui_project::FileOp::Read,
+                    )
+                    .await
+                    .map_err(ApiError::from)?
+            }
+
+            None => validate_office_path(
+                &state,
+                &req.file_path,
+                req.workspace.as_deref(),
+            )?
+            .to_string_lossy()
+            .into_owned(),
+        };
+
+    let result =
+        state
+            .watch_manager
+            .start_for_user(
+                user_id,
+                &validated_path,
+                doc_type,
+            )
+            .await;
+
+    let resp = match result {
+        Ok(port) => {
+            let url = format!(
+                "/api/{}/{}",
+                doc_type.proxy_prefix(),
+                port
+            );
+
+            PreviewUrlResponse {
+                url,
+                error: None,
+            }
+        }
+
+        Err(e) => PreviewUrlResponse {
+            url: String::new(),
+            error: Some(
+                preview_error_code(&e)
+                    .to_owned()
+            ),
+        },
+    };
+
+    Ok(
+        Json(
+            ApiResponse::ok(resp)
+        )
+    )
+}
+```
+
+Call chain:
+
+```text
+POST /api/ppt-preview/start
+        |
+        v
+start_ppt_preview()
+        |
+        v
+start_preview(... DocType::Ppt)
+        |
+        v
+watch_manager.start_for_user()
+        |
+        v
+try_start()
+        |
+        v
+spawn_officecli_with_install()
+        |
+        v
+DefaultProcessSpawner.spawn_officecli()
+        |
+        v
+officecli watch file.pptx --port N
+```
+
+Word và Excel giống hệt, chỉ khác `DocType`.
+
+---
+
+# 13. Refresh preview
+
+OfficeCLI `watch` có HTTP control API:
+
+```text
+POST http://127.0.0.1:<port>/api/switch
+```
+
+AionCore gọi:
+
+```rust
+pub(crate) async fn force_reload(
+    &self,
+    port: u16,
+    absolute_path: &str,
+    timeout: std::time::Duration,
+) -> Result<(), &'static str> {
+    let url =
+        build_target_url(
+            port,
+            "/api/switch"
+        );
+
+    let result =
+        self.client
+            .post(&url)
+            .timeout(timeout)
+            .json(
+                &serde_json::json!({
+                    "file": absolute_path
+                })
+            )
+            .send()
+            .await;
+
+    let response = match result {
+        Ok(response) => response,
+
+        Err(err) => {
+            return Err(
+                if err.is_timeout() {
+                    "OFFICECLI_PORT_TIMEOUT"
+                } else {
+                    "OFFICECLI_START_FAILED"
+                }
+            );
+        }
+    };
+
+    let status = response.status();
+
+    if status.is_success() {
+        return Ok(());
+    }
+
+    let code =
+        match status.as_u16() {
+            404 =>
+                "OFFICECLI_FILE_NOT_FOUND",
+
+            409 =>
+                "OFFICECLI_ALREADY_WATCHED",
+
+            400 =>
+                "OFFICECLI_UNSUPPORTED_FILE",
+
+            _ =>
+                "OFFICECLI_START_FAILED",
+        };
+
+    Err(code)
+}
+```
+
+Tương đương:
+
+```http
+POST http://127.0.0.1:26315/api/switch
+Content-Type: application/json
+
+{
+  "file": "/absolute/path/report.docx"
+}
+```
+
+---
+
+# 14. Proxy tới OfficeCLI preview server
+
+AionCore không expose thẳng port OfficeCLI cho browser.
+
+Flow:
+
+```text
+Browser
+   |
+   | GET /api/office-watch-proxy/26315/...
+   v
+AionCore ProxyService
+   |
+   | GET http://127.0.0.1:26315/...
+   v
+OfficeCLI watch HTTP server
+```
+
+Core:
+
+```rust
+async fn forward_inner(
+    &self,
+    port: u16,
+    path: &str,
+    proxy_base: &str,
+    request_headers: &[
+        (String, String)
+    ],
+) -> Result<
+    ProxyResponse,
+    ProxyError
+> {
+    let target_url =
+        build_target_url(
+            port,
+            path
+        );
+
+    let resp =
+        self.client
+            .get(&target_url)
+            .headers(req_headers)
+            .send()
+            .await
+            .map_err(/* ... */)?;
+
+    let status =
+        resp.status().as_u16();
+
+    let resp_headers =
+        resp.headers().clone();
+
+    let body =
+        resp.bytes()
+            .await
+            .map_err(/* ... */)?;
+
+    // rewrite headers / HTML navigation
+
+    Ok(
+        ProxyResponse {
+            status,
+            headers: out_headers,
+            body: body_bytes,
+        }
+    )
+}
+```
+
+---
+
+# 15. Stop preview
+
+Concept:
+
+```rust
+pub async fn stop_for_user(
+    &self,
+    user_id: &str,
+    file_path: &str,
+    doc_type: DocType,
+) {
+    let resolved =
+        match resolve_path(file_path) {
+            Ok(p) => p,
+            Err(_) => return,
+        };
+
+    let key =
+        session_key(
+            user_id,
+            &resolved,
+            doc_type
+        );
+
+    tokio::time::sleep(
+        Duration::from_millis(
+            STOP_DELAY_MS
+        )
+    )
+    .await;
+
+    if let Some((_, session)) =
+        self.sessions.remove(&key)
+    {
+        session.process.kill();
+    }
+}
+```
+
+Nó kill child process đang chạy:
+
+```bash
+officecli watch ...
+```
+
+---
+
+# 16. Tách rõ hai loại orchestration
+
+## A. Document-edit orchestration
+
+Do **agent + skill** thực hiện.
+
+```text
+LLM
+ |
+ v
+SKILL.md
+ |
+ v
+command execution
+ |
+ v
+officecli create/add/set/get/query/validate/view
+```
+
+Ví dụ:
+
+```bash
+officecli create report.docx
+
+officecli add report.docx /body \
+  --type paragraph \
+  --prop text="Executive Summary" \
+  --prop style=Heading1
+
+officecli validate report.docx
+
+officecli view report.docx html
+```
+
+Đây mới là flow tạo/sửa tài liệu.
+
+---
+
+## B. Preview orchestration
+
+Do **AionCore Rust backend** thực hiện.
+
+```text
+Frontend
+ |
+ v
+/api/word-preview/start
+ |
+ v
+OfficecliWatchManager
+ |
+ v
+ProcessSpawner
+ |
+ v
+officecli watch report.docx --port 26315
+ |
+ v
+ProxyService
+ |
+ v
+Browser
+```
+
+Backend không dùng `officecli add/set` để xây document thay agent.
+
+---
+
+# 17. Nếu muốn làm enterprise backend riêng
+
+Có thể bỏ AionUi UI nhưng giữ pattern:
+
+```text
+POST /api/v1/office/jobs
+        |
+        v
+OfficeJobOrchestrator
+        |
+        +--> LLM
+        |
+        +--> Office skill prompt
+        |
+        +--> sandboxed command runner
+                  |
+                  v
+              officecli
+```
+
+Rust pseudo-code:
+
+```rust
+pub struct OfficeJobOrchestrator {
+    llm: Arc<dyn Llm>,
+    runner: Arc<dyn CommandRunner>,
+}
+
+impl OfficeJobOrchestrator {
+    pub async fn execute(
+        &self,
+        request: OfficeRequest,
+    ) -> Result<OfficeResult> {
+        let plan =
+            self.llm
+                .plan_office_job(
+                    &request
+                )
+                .await?;
+
+        for operation in plan.operations {
+            let output =
+                self.runner
+                    .run(
+                        "officecli",
+                        &operation.args,
+                        &request.workspace,
+                    )
+                    .await?;
+
+            if !output.success {
+                let repair =
+                    self.llm
+                        .repair_operation(
+                            &operation,
+                            &output.stderr,
+                        )
+                        .await?;
+
+                self.runner
+                    .run(
+                        "officecli",
+                        &repair.args,
+                        &request.workspace,
+                    )
+                    .await?;
+            }
+        }
+
+        Ok(
+            OfficeResult {
+                file:
+                    plan.output_file,
+            }
+        )
+    }
+}
+```
+
+---
+
+# 18. Enterprise-safe CommandRunner
+
+Không nên để LLM có raw shell unrestricted.
+
+Nên whitelist:
+
+```rust
+const ALLOWED_OFFICECLI_COMMANDS: &[&str] = &[
+    "create",
+    "open",
+    "close",
+    "get",
+    "query",
+    "view",
+    "validate",
+    "add",
+    "set",
+    "remove",
+    "move",
+    "copy",
+];
+```
+
+Command spec:
+
+```rust
+pub struct OfficeCliCommand {
+    pub verb: OfficeVerb,
+    pub file: PathBuf,
+    pub args: Vec<String>,
+}
+```
+
+Execution:
+
+```rust
+pub async fn execute_officecli(
+    workspace: &Path,
+    cmd: OfficeCliCommand,
+) -> Result<Output> {
+    let canonical_workspace =
+        workspace.canonicalize()?;
+
+    let canonical_file =
+        cmd.file.canonicalize()?;
+
+    if !canonical_file
+        .starts_with(
+            &canonical_workspace
+        )
+    {
+        anyhow::bail!(
+            "file outside workspace"
+        );
+    }
+
+    let officecli =
+        resolve_command_path(
+            "officecli"
+        )
+        .ok_or_else(
+            || anyhow::anyhow!(
+                "officecli not installed"
+            )
+        )?;
+
+    let output =
+        tokio::process::Command::new(
+            officecli
+        )
+        .arg(cmd.verb.as_str())
+        .arg(canonical_file)
+        .args(cmd.args)
+        .current_dir(
+            canonical_workspace
+        )
+        .stdin(
+            std::process::Stdio::null()
+        )
+        .output()
+        .await?;
+
+    Ok(output)
+}
+```
+
+Enterprise nên thêm:
+
+```text
+- workspace isolation per job / tenant
+- CPU / RAM / timeout limits
+- no unrestricted bash
+- command whitelist
+- path canonicalization
+- audit log
+- prompt + tool call log
+- document retention policy
+- antivirus scan
+- DLP scan
+- file size limit
+- OfficeCLI version pinning
+- LLM provider policy
+```
+
+---
+
+# 19. Suggested Agent API
+
+Request:
+
+```json
+{
+  "task": "Create monthly financial report",
+  "format": "xlsx",
+  "workspaceId": "job-123",
+  "inputFiles": [
+    "sales.csv",
+    "cost.csv"
+  ]
+}
+```
+
+Agent output schema:
+
+```json
+{
+  "outputFile": "monthly-report.xlsx",
+  "operations": [
+    {
+      "command": "create",
+      "args": [
+        "monthly-report.xlsx"
+      ]
+    },
+    {
+      "command": "set",
+      "args": [
+        "monthly-report.xlsx",
+        "/Sheet1/A1",
+        "--prop",
+        "value=Revenue"
+      ]
+    }
+  ]
+}
+```
+
+Executor:
+
+```python
+ALLOWED = {
+    "create",
+    "open",
+    "close",
+    "get",
+    "query",
+    "view",
+    "validate",
+    "add",
+    "set",
+    "remove",
+}
+
+def execute(op, workspace):
+    if op["command"] not in ALLOWED:
+        raise PermissionError(
+            "OfficeCLI command not allowed"
+        )
+
+    subprocess.run(
+        [
+            "officecli",
+            op["command"],
+            *op["args"]
+        ],
+        cwd=workspace,
+        timeout=60,
+        check=True,
+        shell=False
+    )
+```
+
+---
+
+# 20. Recommended production flow
+
+```text
+                     ┌───────────────┐
+                     │ Enterprise UI │
+                     └───────┬───────┘
+                             │
+                             v
+                     ┌───────────────┐
+                     │ API Gateway   │
+                     │ OIDC / Entra  │
+                     └───────┬───────┘
+                             │
+                             v
+                 ┌──────────────────────┐
+                 │ Office Orchestrator  │
+                 └───┬──────────────┬───┘
+                     │              │
+                     v              v
+                 ┌───────┐      ┌────────┐
+                 │  LLM  │      │  RAG   │
+                 └───┬───┘      └────────┘
+                     │
+                     v
+              ┌──────────────┐
+              │ Tool Planner │
+              └──────┬───────┘
+                     │ structured command
+                     v
+              ┌────────────────┐
+              │ Policy Engine  │
+              │ whitelist/path │
+              └───────┬────────┘
+                      │
+                      v
+              ┌────────────────┐
+              │ Sandbox Runner │
+              └───────┬────────┘
+                      │
+                      v
+                 officecli
+                      │
+          ┌───────────┼───────────┐
+          v           v           v
+        DOCX         XLSX        PPTX
+                      │
+                      v
+              validate / render
+                      │
+                      v
+                 LLM review
+                      │
+              bad? ───┴─── good?
+               │             │
+               v             v
+             repair        deliver
+```
+
+---
+
+# 21. Minimal enterprise implementation
+
+Nếu chỉ cần MVP:
+
+```python
+import json
+import subprocess
+from pathlib import Path
+
+ALLOWED = {
+    "create",
+    "open",
+    "close",
+    "get",
+    "query",
+    "view",
+    "validate",
+    "add",
+    "set",
+    "remove",
+}
+
+class OfficeCliExecutor:
+    def __init__(self, workspace: str):
+        self.workspace = Path(
+            workspace
+        ).resolve()
+
+    def execute(
+        self,
+        command: str,
+        args: list[str],
+    ) -> str:
+        if command not in ALLOWED:
+            raise ValueError(
+                "command not allowed"
+            )
+
+        result = subprocess.run(
+            [
+                "officecli",
+                command,
+                *args,
+            ],
+            cwd=self.workspace,
+            capture_output=True,
+            text=True,
+            shell=False,
+            timeout=120,
+        )
+
+        if result.returncode != 0:
+            raise RuntimeError(
+                result.stderr
+            )
+
+        return result.stdout
+
+
+class OfficeAgent:
+    def __init__(
+        self,
+        llm,
+        executor: OfficeCliExecutor,
+    ):
+        self.llm = llm
+        self.executor = executor
+
+    def run(
+        self,
+        user_request: str,
+    ):
+        plan = self.llm.create_plan(
+            user_request
+        )
+
+        history = []
+
+        for operation in plan:
+            result = (
+                self.executor.execute(
+                    operation["command"],
+                    operation["args"],
+                )
+            )
+
+            history.append({
+                "operation": operation,
+                "result": result,
+            })
+
+        return history
+```
+
+Một planner system prompt có thể bắt LLM trả JSON:
+
+```text
+You are an Office document agent.
+
+You may manipulate Office files only through OfficeCLI.
+
+Allowed commands:
+- create
+- open
+- close
+- get
+- query
+- view
+- validate
+- add
+- set
+- remove
+
+Never use arbitrary shell commands.
+
+Always inspect with get/query when uncertain.
+Always validate the final document.
+Use view html after major layout changes.
+
+Return operations as JSON only:
+
+{
+  "operations": [
+    {
+      "command": "create",
+      "args": ["report.docx"]
+    }
+  ]
+}
+```
+
+---
+
+# 22. Mapping source files
+
+```text
+AionCore
+│
+├── crates/aionui-app/assets/builtin-assistants/
+│   └── assistants.json
+│       └── chọn aionrs + enabled Office skill
+│
+├── crates/aionui-app/assets/builtin-skills/
+│   │
+│   ├── auto-inject/officecli/SKILL.md
+│   │   └── common OfficeCLI instructions
+│   │
+│   ├── officecli-docx/SKILL.md
+│   ├── officecli-xlsx/SKILL.md
+│   ├── officecli-pptx/SKILL.md
+│   ├── officecli-word-form/SKILL.md
+│   ├── officecli-academic-paper/SKILL.md
+│   ├── officecli-financial-model/SKILL.md
+│   ├── officecli-data-dashboard/SKILL.md
+│   └── officecli-pitch-deck/SKILL.md
+│
+└── crates/aionui-office/src/
+    │
+    ├── officecli_runtime.rs
+    │   ├── resolve officecli binary
+    │   └── install OfficeCLI
+    │
+    ├── watch_manager.rs
+    │   ├── ProcessSpawner
+    │   ├── WatchSession
+    │   ├── start / stop
+    │   └── `officecli watch file --port N`
+    │
+    ├── routes.rs
+    │   ├── /api/word-preview/*
+    │   ├── /api/excel-preview/*
+    │   └── /api/ppt-preview/*
+    │
+    ├── proxy.rs
+    │   ├── reverse proxy
+    │   └── POST OfficeCLI /api/switch
+    │
+    ├── state.rs
+    ├── types.rs
+    ├── port.rs
+    └── error.rs
+```
+
+---
+
+# 23. Câu trả lời ngắn nhất cho “AionUi gọi OfficeCLI như thế nào?”
+
+```text
+Để TẠO/SỬA Office:
+
+Assistant
+ -> enabled_skills
+ -> OfficeCLI SKILL.md
+ -> AionRS agent
+ -> command/tool execution
+ -> `officecli create/add/set/get/...`
+
+
+Để PREVIEW:
+
+Frontend
+ -> AionCore REST endpoint
+ -> OfficecliWatchManager
+ -> DefaultProcessSpawner
+ -> CmdBuilder
+ -> `officecli watch <file> --port <port>`
+ -> local OfficeCLI HTTP server
+ -> AionCore ProxyService
+ -> WebView
+```
+
+Vì vậy nếu muốn tái sử dụng cho enterprise backend, phần cần port không phải toàn bộ AionUi. Có thể lấy:
+
+```text
+1. Office skill prompts
+2. structured tool planner
+3. restricted OfficeCLI executor
+4. watch/preview lifecycle pattern
+5. proxy pattern nếu cần browser preview
+```
+
+và bỏ Electron/UI hoàn toàn.
+
+---
+
+# 24. Repositories / source locations
+
+AionUi:
+
+```text
+https://github.com/iOfficeAI/AionUi
+```
+
+AionCore:
+
+```text
+https://github.com/iOfficeAI/AionCore
+```
+
+OfficeCLI:
+
+```text
+https://github.com/iOfficeAI/OfficeCLI
+```
+
+Important AionCore files:
+
+```text
+crates/aionui-app/assets/builtin-assistants/assistants.json
+
+crates/aionui-app/assets/builtin-skills/auto-inject/officecli/SKILL.md
+
+crates/aionui-app/assets/builtin-skills/officecli-docx/SKILL.md
+crates/aionui-app/assets/builtin-skills/officecli-xlsx/SKILL.md
+crates/aionui-app/assets/builtin-skills/officecli-pptx/SKILL.md
+
+crates/aionui-office/src/officecli_runtime.rs
+crates/aionui-office/src/watch_manager.rs
+crates/aionui-office/src/routes.rs
+crates/aionui-office/src/proxy.rs
+crates/aionui-office/src/state.rs
+crates/aionui-office/src/types.rs
+crates/aionui-office/src/port.rs
+crates/aionui-office/src/error.rs
+```
+
+---
+
+# 25. Final implementation recommendation
+
+Nếu xây service enterprise độc lập:
+
+```text
+DO:
+LLM
+ -> structured plan
+ -> allowlisted OfficeCLI commands
+ -> sandbox/workspace
+ -> OfficeCLI
+ -> validate
+ -> render
+ -> LLM visual review
+ -> repair
+ -> final file
+
+DON'T:
+LLM
+ -> unrestricted bash
+ -> whole host filesystem
+```
+
+Một interface tốt:
+
+```rust
+#[async_trait]
+pub trait OfficeTool {
+    async fn execute(
+        &self,
+        request: OfficeToolRequest,
+    ) -> Result<OfficeToolResult>;
+}
+
+pub struct OfficeToolRequest {
+    pub workspace_id: String,
+    pub command: OfficeCommand,
+    pub file: PathBuf,
+    pub args: Vec<String>,
+}
+
+pub enum OfficeCommand {
+    Create,
+    Open,
+    Close,
+    Get,
+    Query,
+    View,
+    Validate,
+    Add,
+    Set,
+    Remove,
+}
+```
+
+Sau đó adapter duy nhất gọi:
+
+```rust
+Command::new("officecli")
+    .arg(command)
+    .arg(file)
+    .args(args)
+    .current_dir(workspace)
+    .output()
+    .await?;
+```
+
+Đó là phần cốt lõi của orchestration cần thiết để tái tạo mô hình AionUi/AionCore → OfficeCLI trong một backend enterprise.
