@@ -1,0 +1,21 @@
+{
+  "name": "@aionui/doc-tools-sample",
+  "version": "0.1.0",
+  "private": true,
+  "type": "module",
+  "scripts": {
+    "test": "node --import tsx --test tests/*.test.ts",
+    "typecheck": "tsc --noEmit"
+  },
+  "dependencies": {
+    "openai": "^5.12.2"
+  },
+  "devDependencies": {
+    "@types/node": "^24.3.1",
+    "tsx": "^4.19.1",
+    "typescript": "^5.8.3"
+  },
+  "engines": {
+    "node": ">=22 <25"
+  }
+}
